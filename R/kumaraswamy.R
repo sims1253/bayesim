@@ -171,31 +171,19 @@ kumaraswamy <- function(link = "logit", link_p = "log") {
       type = "real",
       log_lik = log_lik_kumaraswamy,
       posterior_predict = posterior_predict_kumaraswamy,
-      posterior_epred = posterior_epred_kumaraswamy
-    )
-  )
-}
+      posterior_epred = posterior_epred_kumaraswamy,
+      stanvars = brms::stanvar(
+        scode = "
+          real kumaraswamy_lpdf(real y, real mu, real p) {
+             return  (log(p) + log(log(2)) - log(-(log1m(mu^p))) + (p-1) * log(y) +
+                     ((-(log(2)/log1m(mu^p)))-1) * log1m(y^p));
+          }
 
-
-#' Title
-#'
-#' @return
-#' @export
-#'
-#' @examples
-stanvars_kumaraswamy <- function() {
-  return(
-    brms::stanvar(
-      scode = "
-      real kumaraswamy_lpdf(real y, real mu, real p) {
-         return  (log(p) + log(log(2)) - log(-(log1m(mu^p))) + (p-1) * log(y) +
-                 ((-(log(2)/log1m(mu^p)))-1) * log1m(y^p));
-      }
-
-      real kumaraswamy_rng(real mu, real p) {
-         return ((1-(1-uniform_rng(0, 1))^(1/(-(log(2)/log1m(mu^p)))))^(1/p));
-       }",
-      block = "functions"
+          real kumaraswamy_rng(real mu, real p) {
+             return ((1-(1-uniform_rng(0, 1))^(1/(-(log(2)/log1m(mu^p)))))^(1/p));
+          }",
+        block = "functions"
+      )
     )
   )
 }

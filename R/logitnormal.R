@@ -111,30 +111,19 @@ logitnormal <- function(link = "identity", link_sigma = "log") {
       type = "real",
       log_lik = log_lik_logitnormal,
       posterior_predict = posterior_predict_logitnormal,
-      posterior_epred = posterior_epred_logitnormal
-    )
-  )
-}
+      posterior_epred = posterior_epred_logitnormal,
+      stanvars = brms::stanvar(
+        scode = "
+          real logitnormal_lpdf(real y, real mu, real sigma) {
+            return log(1/(sigma * sqrt(2 * pi()))) + log(1/(y * (1-y))) +
+                   ((-(logit(y) - logit(mu))^2)/(2*(sigma^2)));
+          }
 
-#' Title
-#'
-#' @return
-#' @export
-#'
-#' @examples
-stanvars_logitnormal <- function() {
-  return(
-    brms::stanvar(
-      scode = "
-    real logitnormal_lpdf(real y, real mu, real sigma) {
-      return log(1/(sigma * sqrt(2 * pi()))) + log(1/(y * (1-y))) +
-             ((-(logit(y) - logit(mu))^2)/(2*(sigma^2)));
-    }
-
-    real logitnormal_rng(real mu, real sigma) {
-      return inv_logit(normal_rng(logit(mu), sigma));
-    }",
-      block = "functions"
+          real logitnormal_rng(real mu, real sigma) {
+            return inv_logit(normal_rng(logit(mu), sigma));
+          }",
+        block = "functions"
+      )
     )
   )
 }

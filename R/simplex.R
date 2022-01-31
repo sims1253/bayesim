@@ -155,6 +155,15 @@ posterior_epred_simplex <- function(prep) {
   return(brms::get_dpar(prep, "mu"))
 }
 
+#' Title
+#'
+#' @param link
+#' @param link_sigma
+#'
+#' @return
+#' @export
+#'
+#' @examples
 simplex <- function(link = "logit", link_sigma = "log") {
   return(
     brms::custom_family(
@@ -166,29 +175,25 @@ simplex <- function(link = "logit", link_sigma = "log") {
       type = "real",
       log_lik = log_lik_simplex,
       posterior_predict = posterior_predict_simplex,
-      posterior_epred = posterior_epred_simplex
-    )
-  )
-}
-
-stanvars_simplex <- function() {
-  return(
-    brms::stanvar(
-      scode = "real simplex_lpdf(real y, real mu, real sigma) {
-               return (-0.5) * (
-                         log(2) +
-                         log(pi()) +
-                         2 * log(sigma) +
-                         3 * (log(y) + log1m(y))
-                      ) + (
-                         (-1 / (2 * sigma^2)) *
-                         (
-                            ((y-mu)^2) /
-                            (y * (1-y) * mu^2 * (1-mu)^2)
-                         )
-                      );
-      }",
-      block = "functions"
+      posterior_epred = posterior_epred_simplex,
+      stanvars = brms::stanvar(
+        scode = "
+        real simplex_lpdf(real y, real mu, real sigma) {
+           return (-0.5) * (
+                     log(2) +
+                     log(pi()) +
+                     2 * log(sigma) +
+                     3 * (log(y) + log1m(y))
+                  ) + (
+                     (-1 / (2 * sigma^2)) *
+                     (
+                        ((y-mu)^2) /
+                        (y * (1-y) * mu^2 * (1-mu)^2)
+                     )
+                  );
+        }",
+        block = "functions"
+      )
     )
   )
 }
