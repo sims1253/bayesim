@@ -37,3 +37,27 @@ unit_deviance <- function(y, mu) {
       (y * (1 - y) * mu^2 * (1 - mu)^2)
   )
 }
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+inv_cloglog <- function(x) {
+  return(1 - exp(-exp(x)))
+}
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+inv_cauchit <- function(x){
+  return(pcauchy(x))
+}
