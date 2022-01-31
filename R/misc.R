@@ -58,6 +58,6 @@ inv_cloglog <- function(x) {
 #' @export
 #'
 #' @examples
-inv_cauchit <- function(x){
+inv_cauchit <- function(x) {
   return(pcauchy(x))
 }

@@ -1,2 +1,2 @@
 exportPattern("^[[:alpha:]]+")
-importFrom("stats", "rchisq", "rnorm", "runif")
+importFrom("stats", "rchisq", "rnorm", "runif", "pcauchy")
