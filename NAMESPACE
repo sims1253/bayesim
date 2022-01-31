@@ -1,2 +1,3 @@
 exportPattern("^[[:alpha:]]+")
 importFrom("stats", "rchisq", "rnorm", "runif", "pcauchy")
+importFrom("graphics", "hist")
