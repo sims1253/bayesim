@@ -57,6 +57,58 @@ rkumaraswamy <- function(n, mu, p) {
 
 #' Title
 #'
+#' @param u
+#' @param mu
+#' @param p
+#'
+#' @return
+#' @export
+#'
+#' @examples
+qkumaraswamy <- function(u, mu = 0.5, p = 1) {
+  if (isTRUE(any(u <= 0 || u >= 1))) {
+    stop("u must be in (0,1).")
+  }
+  if (isTRUE(any(mu <= 0 || mu >= 1))) {
+    stop("The median must be in (0,1).")
+  }
+  if (isTRUE(any(p <= 0))) {
+    stop("P must be above 0.")
+  }
+  return(
+    (1 -
+      (1 - u)^(1 /
+        (-(log(2) / log1p(-mu^p))))
+    )^(1 / p)
+  )
+}
+
+#' Title
+#'
+#' @param x
+#' @param mu
+#' @param p
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pkumaraswamy <- function(x, mu = 0.5, p = 1) {
+  if (isTRUE(any(x <= 0 || x >= 1))) {
+    stop("x must be in (0,1).")
+  }
+  if (isTRUE(any(mu <= 0 || mu >= 1))) {
+    stop("The median must be in (0,1).")
+  }
+  if (isTRUE(any(p <= 0))) {
+    stop("P must be above 0.")
+  }
+  q <- -(log(2) / log1p(-mu^p))
+  return(1 + (x^p - 1)^q)
+}
+
+#' Title
+#'
 #' @param i
 #' @param prep
 #'
