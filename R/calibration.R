@@ -54,7 +54,6 @@ calibration_result_text <- function(model_name, results, samples) {
 #' @param prefit
 #'
 #' @return
-#' @export
 #'
 #' @examples
 parallel_run <- function(dataset, prefit) {
