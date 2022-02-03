@@ -165,19 +165,19 @@ posterior_epred_simplex <- function(prep) {
 #'
 #' @examples
 simplex <- function(link = "logit", link_sigma = "log") {
-  return(
-    brms::custom_family(
-      "simplex",
-      dpars = c("mu", "sigma"),
-      links = c("logit", "log"),
-      lb = c(0, -NA),
-      ub = c(1, NA),
-      type = "real",
-      log_lik = log_lik_simplex,
-      posterior_predict = posterior_predict_simplex,
-      posterior_epred = posterior_epred_simplex,
-      stanvars = brms::stanvar(
-        scode = "
+  family <- brms::custom_family(
+    "simplex",
+    dpars = c("mu", "sigma"),
+    links = c("logit", "log"),
+    lb = c(0, -NA),
+    ub = c(1, NA),
+    type = "real",
+    log_lik = log_lik_simplex,
+    posterior_predict = posterior_predict_simplex,
+    posterior_epred = posterior_epred_simplex
+  )
+  family$stanvars <- brms::stanvar(
+    scode = "
         real simplex_lpdf(real y, real mu, real sigma) {
            return (-0.5) * (
                      log(2) +
@@ -192,8 +192,7 @@ simplex <- function(link = "logit", link_sigma = "log") {
                      )
                   );
         }",
-        block = "functions"
-      )
-    )
+    block = "functions"
   )
+  return(family)
 }
