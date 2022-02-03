@@ -8,44 +8,68 @@
 #' @export
 #'
 #' @examples
-calibration_result_text <- function(model_name, results, samples) {
+calibration_result_text <- function(model_name,
+                                    results,
+                                    samples,
+                                    hypothesis_list) {
   print(model_name)
-  greater_lower_ci <- unlist(
-    lapply(
-      results$greater,
-      function(x) {
-        x$hypothesis$CI.Lower
-      }
-    )
-  )
-  print(
-    paste(
-      length(greater_lower_ci[greater_lower_ci < 0]),
-      "/",
-      samples,
-      " of 'x>0' lower CI bounds are < 0",
-      sep = ""
-    )
-  )
 
-  equal_lower_ci <- unlist(
-    lapply(
-      results$equal,
-      function(x) {
-        x$hypothesis$CI.Lower
-      }
+  for (i in seq_along(hypothesis_list)) {
+    current <- hypothesis_list[[i]]
+
+    lower_ci <- unlist(
+      lapply(
+        results[[current]],
+        function(x) {
+          x$hypothesis$CI.Lower
+        }
+      )
     )
-  )
-  print(
-    paste(
-      length(equal_lower_ci[equal_lower_ci < 0]),
-      "/",
-      samples,
-      " of 'x=0' lower CI bounds are < 0",
-      sep = ""
+    upper_ci <- unlist(
+      lapply(
+        results[[current]],
+        function(x) {
+          x$hypothesis$CI.Upper
+        }
+      )
     )
-  )
-  print("=================================================")
+
+    if (current == "x=0") {
+      print(
+        paste(
+          sum(lower_ci > 0 | upper_ci < 0),
+          "/",
+          samples,
+          " of 'x=0' 95% CIs exclude 0.",
+          sep = ""
+        )
+      )
+    }
+
+    if (current == "x>0") {
+      print(
+        paste(
+          sum(lower_ci > 0),
+          "/",
+          samples,
+          " of 'x>0' 95% CIs exclude 0.",
+          sep = ""
+        )
+      )
+    }
+
+    if (current == "x<0") {
+      print(
+        paste(
+          sum(upper_ci < 0),
+          "/",
+          samples,
+          " of 'x<0' 95% CIs exclude 0.",
+          sep = ""
+        )
+      )
+    }
+  }
 }
 
 #' Title
@@ -56,9 +80,10 @@ calibration_result_text <- function(model_name, results, samples) {
 #' @return
 #'
 #' @examples
-parallel_run <- function(dataset, prefit) {
+parallel_run <- function(dataset, prefit, hypothesis_list, brms_formula) {
   fit <- stats::update(prefit,
     newdata = dataset,
+    formula. = brms_formula,
     refresh = 0,
     silent = 2,
     chains = 4,
@@ -67,12 +92,14 @@ parallel_run <- function(dataset, prefit) {
       brms::prior("", class = "Intercept")
     )
   )
-  return(
-    list(
-      greater = brms::hypothesis(fit, hypothesis = "x>0"),
-      equal = brms::hypothesis(fit, hypothesis = "x=0")
-    )
-  )
+
+  result_list <- vector(mode = "list", length = length(hypothesis_list))
+  names(result_list) <- hypothesis_list
+  for (i in seq_along(hypothesis_list)) {
+    current <- hypothesis_list[[i]]
+    result_list[[current]] <- brms::hypothesis(fit, hypothesis = current)
+  }
+  return(result_list)
 }
 
 #' Title
@@ -93,21 +120,9 @@ calibrate_formula <- function(data_list,
                               ncores,
                               brms_family,
                               stanvars,
-                              exports) {
-  prefit <- brms::brm(
-    brms_formular,
-    data = data_list[[1]],
-    family = brms_family,
-    stanvars = stanvars,
-    chains = 0,
-    refresh = 0,
-    silent = 2,
-    control = list(adapt_delta = 0.9),
-    prior = c(
-      brms::prior("", class = "Intercept")
-    )
-  )
-
+                              exports,
+                              hypothesis_list,
+                              prefit) {
   cluster <- parallel::makeCluster(ncores)
   doParallel::registerDoParallel(cluster)
   `%dopar%` <- foreach::`%dopar%`
@@ -117,20 +132,23 @@ calibrate_formula <- function(data_list,
     .packages = c("brms"),
     .export = exports
   ) %dopar% {
-    parallel_run(dataset, prefit)
+    parallel_run(dataset, prefit, hypothesis_list, brms_formular)
   }
   parallel::stopCluster(cluster)
 
-  return(
-    list(
-      greater = lapply(results, function(x) {
-        x$greater
-      }),
-      equal = lapply(results, function(x) {
-        x$equal
-      })
+  result_list <- vector(mode = "list", length = length(hypothesis_list))
+  names(result_list) <- hypothesis_list
+  for (i in seq_along(hypothesis_list)) {
+    current <- hypothesis_list[[i]]
+    result_list[[current]] <- lapply(
+      results,
+      function(x) {
+        x[[current]]
+      }
     )
-  )
+  }
+
+  return(result_list)
 }
 
 #' Title
@@ -152,53 +170,76 @@ calibrate_family <- function(dataset_N,
                              stanvars,
                              exports,
                              ...) {
+  formula_list <- list(
+    "y ~ x + z1 + z2",
+    "y ~ x + z2",
+    "y ~ x + z1",
+    "y ~ x + z1 + z2 + z3",
+    "y ~ x + z1 + z2 + z4"
+  )
   data_list <- vector("list", length = dataset_N)
   for (i in seq_len(dataset_N)) {
     data_list[i] <- list(basedag_data(...))
   }
   hist(data_list[[1]]$y, main = "data", xlab = "data")
-  true_model_logit_sim <- calibrate_formula(data_list,
-    brms_formular = brms::brmsformula(y ~ x + z1 + z2),
-    ncores = ncores,
-    brms_family = brms_family,
-    stanvars = stanvars,
-    exports = exports
-  )
-  calibration_result_text(model_name = "True Model", results = true_model_logit_sim, samples = dataset_N)
 
-  z1_model_logit_sim <- calibrate_formula(data_list,
-    brms_formular = brms::brmsformula(y ~ x + z2),
-    ncores = ncores,
-    brms_family = brms_family,
-    stanvars = stanvars,
-    exports = exports
-  )
-  calibration_result_text(model_name = "z1 Model", results = z1_model_logit_sim, samples = dataset_N)
+  dots <- list(...)
+  dots[["x_y_coef"]] <- 0
 
-  z2_model_logit_sim <- calibrate_formula(data_list,
-    brms_formular = brms::brmsformula(y ~ x + z1),
-    ncores = ncores,
-    brms_family = brms_family,
-    stanvars = stanvars,
-    exports = exports
-  )
-  calibration_result_text(model_name = "z2 Model", results = z2_model_logit_sim, samples = dataset_N)
+  data_list_zero_x <- vector("list", length = dataset_N)
+  for (i in seq_len(dataset_N)) {
+    data_list_zero_x[i] <- list(do.call(basedag_data, dots))
+  }
+  hist(data_list_zero_x[[1]]$y, main = "data", xlab = "data")
 
-  z3_model_logit_sim <- calibrate_formula(data_list,
-    brms_formular = brms::brmsformula(y ~ x + z1 + z2 + z3),
-    ncores = ncores,
-    brms_family = brms_family,
+  prefit <- brms::brm(
+    brms::brmsformula(formula_list[[1]]),
+    data = data_list[[1]],
+    family = brms_family,
     stanvars = stanvars,
-    exports = exports
+    chains = 0,
+    refresh = 0,
+    silent = 2,
+    control = list(adapt_delta = 0.9),
+    prior = c(
+      brms::prior("", class = "Intercept")
+    )
   )
-  calibration_result_text(model_name = "z3 Model", results = z3_model_logit_sim, samples = dataset_N)
 
-  z4_model_logit_sim <- calibrate_formula(data_list,
-    brms_formular = brms::brmsformula(y ~ x + z1 + z2 + z4),
-    ncores = ncores,
-    brms_family = brms_family,
-    stanvars = stanvars,
-    exports = exports
-  )
-  calibration_result_text(model_name = "z4 Model", results = z4_model_logit_sim, samples = dataset_N)
+  for (i in seq_along(formula_list)) {
+    model_sim <- calibrate_formula(
+      data_list,
+      brms_formular = brms::brmsformula(formula_list[[i]]),
+      ncores = ncores,
+      brms_family = brms_family,
+      stanvars = stanvars,
+      exports = exports,
+      hypothesis_list = c("x>0", "x=0"),
+      prefit
+    )
+    calibration_result_text(
+      model_name = formula_list[[i]],
+      results = model_sim,
+      samples = dataset_N,
+      hypothesis_list = c("x>0", "x=0")
+    )
+
+    model_zero_sim <- calibrate_formula(
+      data_list_zero_x,
+      brms_formular = brms::brmsformula(y ~ x + z1 + z2),
+      ncores = ncores,
+      brms_family = brms_family,
+      stanvars = stanvars,
+      exports = exports,
+      hypothesis_list = c("x=0", "x>0"),
+      prefit
+    )
+    calibration_result_text(
+      model_name = paste("Zero x effect"),
+      results = model_zero_sim,
+      samples = dataset_N,
+      hypothesis_list = c("x=0", "x>0")
+    )
+    print("=================================================")
+  }
 }
