@@ -20,6 +20,7 @@
 #' @param lb
 #' @param ub
 #' @param oversampling
+#' @param ...
 #'
 #' @return
 #' @export
@@ -44,7 +45,8 @@ basedag_data <- function(data_N,
                          RNG,
                          lb,
                          ub,
-                         oversampling = 10) {
+                         oversampling = 10,
+                         ...) {
   n <- data_N * oversampling
   z1 <- rnorm(n, sigma_z1)
   z2 <- rnorm(n, sigma_z2)

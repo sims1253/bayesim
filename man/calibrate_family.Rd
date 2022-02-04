@@ -4,7 +4,13 @@
 \alias{calibrate_family}
 \title{Title}
 \usage{
-calibrate_family(dataset_N, ncores, brms_family, stanvars, exports, ...)
+calibrate_family(
+  dataset_N,
+  formula_list,
+  brms_family = brms_family,
+  stanvars = stanvars,
+  ...
+)
 }
 \arguments{
 \item{...}{}

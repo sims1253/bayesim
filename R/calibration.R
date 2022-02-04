@@ -1,86 +1,85 @@
 #' Title
 #'
-#' @param model_name
-#' @param results
-#' @param samples
+#' @param result_df
+#' @param formula_list
 #'
 #' @return
 #' @export
 #'
 #' @examples
-calibration_result_text <- function(model_name,
-                                    results,
-                                    samples,
-                                    hypothesis_list) {
-  print(model_name)
+calibration_text_result <- function(title,
+                                    result_df,
+                                    formula_list) {
+  print(title)
+  for (i in seq_along(formula_list)) {
+    current <- formula_list[[i]]
+    subset_df <- dplyr::filter(result_df, formula == current)
 
-  for (i in seq_along(hypothesis_list)) {
-    current <- hypothesis_list[[i]]
-
-    lower_ci <- unlist(
-      lapply(
-        results[[current]],
-        function(x) {
-          x$hypothesis$CI.Lower
-        }
-      )
-    )
-    upper_ci <- unlist(
-      lapply(
-        results[[current]],
-        function(x) {
-          x$hypothesis$CI.Upper
-        }
+    print(current)
+    print(
+      paste0(
+        "The mean posterior bias was ",
+        mean(subset_df$bias),
+        "."
       )
     )
 
-    if (current == "x=0") {
-      print(
-        paste(
-          sum(lower_ci > 0 | upper_ci < 0),
-          "/",
-          samples,
-          " of 'x=0' 95% CIs exclude 0.",
-          sep = ""
-        )
+    print(
+      paste0(
+        "The mean posterior rmse was ",
+        mean(subset_df$rmse_s),
+        "."
       )
-    }
+    )
 
-    if (current == "x>0") {
-      print(
-        paste(
-          sum(lower_ci > 0),
-          "/",
-          samples,
-          " of 'x>0' 95% CIs exclude 0.",
-          sep = ""
-        )
+    print(
+      paste0(
+        "The mean confidence interval width was ",
+        mean(subset_df[["hyp_x>0_upper_ci"]] - subset_df[["hyp_x>0_lower_ci"]]),
+        "."
       )
-    }
+    )
 
-    if (current == "x<0") {
-      print(
-        paste(
-          sum(upper_ci < 0),
-          "/",
-          samples,
-          " of 'x<0' 95% CIs exclude 0.",
-          sep = ""
-        )
+    print(
+      paste0(
+        sum(subset_df[["hyp_x>0_lower_ci"]] > 0),
+        "/",
+        nrow(subset_df),
+        " x>0 90% CIs exclude 0."
       )
-    }
+    )
+
+    print(
+      paste0(
+        sum(subset_df[["hyp_x=0_lower_ci"]] > 0 | subset_df[["hyp_x=0_upper_ci"]] < 0),
+        "/",
+        nrow(subset_df),
+        " x=0 95% CIs exclude 0."
+      )
+    )
+    print("====================================")
   }
 }
 
+
 #' Title
 #'
-#' @param dataset
 #' @param prefit
+#' @param brms_formula
+#' @param dataset
+#' @param metric_list
+#' @param ...
 #'
 #' @return
 #'
 #' @examples
-parallel_run <- function(dataset, prefit, hypothesis_list, brms_formula) {
+parallel_run <- function(prefit,
+                         brms_formula,
+                         dataset,
+                         metric_list,
+                         data_link,
+                         RNG,
+                         ...) {
   fit <- stats::update(prefit,
     newdata = dataset,
     formula. = brms_formula,
@@ -93,71 +92,54 @@ parallel_run <- function(dataset, prefit, hypothesis_list, brms_formula) {
     )
   )
 
-  result_list <- vector(mode = "list", length = length(hypothesis_list))
-  names(result_list) <- hypothesis_list
-  for (i in seq_along(hypothesis_list)) {
-    current <- hypothesis_list[[i]]
-    result_list[[current]] <- brms::hypothesis(fit, hypothesis = current)
-  }
-  return(result_list)
+  result <- metric_list_handler(fit, metric_list, ...)
+  result <- append(result, list("id" = dataset$id[[1]]))
+  result <- append(result, list(...))
+
+  return(result)
 }
+
 
 #' Title
 #'
 #' @param data_list
 #' @param brms_formular
+#' @param prefit
 #' @param ncores
-#' @param brms_family
-#' @param stanvars
-#' @param exports
+#' @param ...
 #'
 #' @return
-#' @export
 #'
 #' @examples
 calibrate_formula <- function(data_list,
                               brms_formular,
+                              prefit,
                               ncores,
-                              brms_family,
-                              stanvars,
-                              exports,
-                              hypothesis_list,
-                              prefit) {
+                              ...) {
   cluster <- parallel::makeCluster(ncores)
   doParallel::registerDoParallel(cluster)
   `%dopar%` <- foreach::`%dopar%`
 
   results <- foreach::foreach(
     dataset = data_list,
-    .packages = c("brms"),
-    .export = exports
+    .packages = c("brms", "bayesim")
   ) %dopar% {
-    parallel_run(dataset, prefit, hypothesis_list, brms_formular)
+    parallel_run(prefit, brms_formular, dataset, ...)
   }
   parallel::stopCluster(cluster)
+  # results <- vector(mode = "list", length = length(data_list))
+  # for(i in seq_along(data_list)) {
+  #   results[[i]] <- parallel_run(prefit, brms_formular, data_list[[i]], ...)
+  # }
 
-  result_list <- vector(mode = "list", length = length(hypothesis_list))
-  names(result_list) <- hypothesis_list
-  for (i in seq_along(hypothesis_list)) {
-    current <- hypothesis_list[[i]]
-    result_list[[current]] <- lapply(
-      results,
-      function(x) {
-        x[[current]]
-      }
-    )
-  }
-
-  return(result_list)
+  return(do.call(rbind,lapply(results,data.frame, check.names = FALSE)))
 }
+
 
 #' Title
 #'
 #' @param dataset_N
-#' @param ncores
-#' @param brms_family
-#' @param stanvars
-#' @param exports
+#' @param formula_list
 #' @param ...
 #'
 #' @return
@@ -165,32 +147,17 @@ calibrate_formula <- function(data_list,
 #'
 #' @examples
 calibrate_family <- function(dataset_N,
-                             ncores,
-                             brms_family,
-                             stanvars,
-                             exports,
+                             formula_list,
+                             brms_family = brms_family,
+                             stanvars = stanvars,
                              ...) {
-  formula_list <- list(
-    "y ~ x + z1 + z2",
-    "y ~ x + z2",
-    "y ~ x + z1",
-    "y ~ x + z1 + z2 + z3",
-    "y ~ x + z1 + z2 + z4"
-  )
   data_list <- vector("list", length = dataset_N)
   for (i in seq_len(dataset_N)) {
-    data_list[i] <- list(basedag_data(...))
+    data <- basedag_data(...)
+    data$id <- rep(i, nrow(data))
+    data_list[i] <- list(data)
   }
   hist(data_list[[1]]$y, main = "data", xlab = "data")
-
-  dots <- list(...)
-  dots[["x_y_coef"]] <- 0
-
-  data_list_zero_x <- vector("list", length = dataset_N)
-  for (i in seq_len(dataset_N)) {
-    data_list_zero_x[i] <- list(do.call(basedag_data, dots))
-  }
-  hist(data_list_zero_x[[1]]$y, main = "data", xlab = "data")
 
   prefit <- brms::brm(
     brms::brmsformula(formula_list[[1]]),
@@ -206,40 +173,16 @@ calibrate_family <- function(dataset_N,
     )
   )
 
+  combined_results_list <- vector(mode = "list", length = length(formula_list))
   for (i in seq_along(formula_list)) {
-    model_sim <- calibrate_formula(
+    result_df <- calibrate_formula(
       data_list,
       brms_formular = brms::brmsformula(formula_list[[i]]),
-      ncores = ncores,
-      brms_family = brms_family,
-      stanvars = stanvars,
-      exports = exports,
-      hypothesis_list = c("x>0", "x=0"),
-      prefit
+      prefit = prefit,
+      ...
     )
-    calibration_result_text(
-      model_name = formula_list[[i]],
-      results = model_sim,
-      samples = dataset_N,
-      hypothesis_list = c("x>0", "x=0")
-    )
-
-    model_zero_sim <- calibrate_formula(
-      data_list_zero_x,
-      brms_formular = brms::brmsformula(y ~ x + z1 + z2),
-      ncores = ncores,
-      brms_family = brms_family,
-      stanvars = stanvars,
-      exports = exports,
-      hypothesis_list = c("x=0", "x>0"),
-      prefit
-    )
-    calibration_result_text(
-      model_name = paste("Zero x effect"),
-      results = model_zero_sim,
-      samples = dataset_N,
-      hypothesis_list = c("x=0", "x>0")
-    )
-    print("=================================================")
+    result_df$formula <- rep(formula_list[[i]], nrow(result_df))
+    combined_results_list[[i]] <- result_df
   }
+  combined_results_df <- do.call(rbind, combined_results_list)
 }

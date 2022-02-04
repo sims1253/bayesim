@@ -24,11 +24,12 @@ basedag_data(
   RNG,
   lb,
   ub,
-  oversampling = 10
+  oversampling = 10,
+  ...
 )
 }
 \arguments{
-\item{oversampling}{}
+\item{...}{}
 }
 \value{
 
