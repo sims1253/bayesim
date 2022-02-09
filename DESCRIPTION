@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: What the Package Does (Title Case)
-Version: 0.8.0.9000
+Version: 0.9.0.9000
 Author: Maximilian Scholz
 Maintainer: The package maintainer <yourself@somewhere.net>
 Description: More about what it does (maybe more than one line)
@@ -16,5 +16,9 @@ Imports:
     foreach,
     parallel,
     doParallel,
-    dplyr
+    dplyr,
+    reshape2,
+    forcats,
+    ggplot2,
+    posterior
 RoxygenNote: 7.1.2

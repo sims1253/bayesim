@@ -21,4 +21,16 @@ metric_lookup <- function(identifier, fit, ...) {
   if (identifier == "bias") {
     return(p_bias(fit, ...))
   }
+
+  if (identifier == "divergents") {
+    return(divergents(fit))
+  }
+
+  if (identifier == "pmean") {
+    return(p_mean(fit))
+  }
+
+  if (identifier == "rstar") {
+    return(p_rstar(fit))
+  }
 }
