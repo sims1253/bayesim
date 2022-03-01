@@ -15,11 +15,12 @@ get_prefit <- function(family) {
     chains = 0,
     refresh = 0,
     silent = 2,
+    inits = 1,
     control = list(adapt_delta = 0.9),
+    backend = "cmdstanr",
     prior = c(
       brms::prior("", class = "Intercept")
-    ),
-    backend = "cmdstanr"
+    )
   )
   return(prefit)
 }

@@ -4,7 +4,7 @@
 \alias{calibrate_family}
 \title{Title}
 \usage{
-calibrate_family(dataset_N, formula_list, prefit, ...)
+calibrate_family(dataset_N, formula_list, ...)
 }
 \arguments{
 \item{...}{}

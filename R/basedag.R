@@ -42,7 +42,7 @@ basedag_data <- function(data_N,
                          sigma_x = 1,
                          sigma_y = 1,
                          data_link,
-                         RNG,
+                         data_family,
                          lb,
                          ub,
                          oversampling = 10,
@@ -51,17 +51,23 @@ basedag_data <- function(data_N,
   z1 <- rnorm(n, sigma_z1)
   z2 <- rnorm(n, sigma_z2)
   z3 <- rnorm(n, sigma_z3)
-
   x <- rnorm(n, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
-  y <- RNG(
-    n,
-    data_link(
-      y_intercept +
-        x_y_coef * x +
-        z1_y_coef * z1 +
-        z2_y_coef * z2
-    ),
-    sigma_y
+
+  y <- do.call(
+    rng_lookup(data_family),
+    list(
+      n,
+      do.call(
+        inv_link_lookup(data_link),
+        list(
+          y_intercept +
+            x_y_coef * x +
+            z1_y_coef * z1 +
+            z2_y_coef * z2
+        )
+      ),
+      sigma_y
+    )
   )
   z4 <- rnorm(n, mean = (y_z4_coef * y + x_z4_coef * x), sd = sigma_z4)
 

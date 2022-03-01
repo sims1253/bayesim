@@ -4,19 +4,10 @@
 \alias{calibration_search}
 \title{Title}
 \usage{
-calibration_search(
-  x_y_coef_list,
-  y_intercept_list,
-  link_list,
-  likelihood_list,
-  sigma_y_list,
-  search_list,
-  ncores,
-  ...
-)
+calibration_search(parameter_df)
 }
 \arguments{
-\item{...}{}
+\item{parameter_df}{}
 }
 \value{
 

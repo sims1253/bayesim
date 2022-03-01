@@ -4,7 +4,7 @@
 \alias{parallel_run}
 \title{Title}
 \usage{
-parallel_run(prefit, brms_formula, dataset, metric_list, data_link, RNG, ...)
+parallel_run(dataset, prefit, brms_formula, metric_list, ...)
 }
 \arguments{
 \item{...}{}

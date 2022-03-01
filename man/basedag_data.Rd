@@ -21,7 +21,7 @@ basedag_data(
   sigma_x = 1,
   sigma_y = 1,
   data_link,
-  RNG,
+  data_family,
   lb,
   ub,
   oversampling = 10,

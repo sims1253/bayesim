@@ -4,7 +4,7 @@
 \alias{calibrate_formula}
 \title{Title}
 \usage{
-calibrate_formula(data_list, brms_formular, prefit, ncores, ...)
+calibrate_formula(data_list, ...)
 }
 \arguments{
 \item{...}{}
