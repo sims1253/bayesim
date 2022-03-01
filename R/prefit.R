@@ -18,7 +18,8 @@ get_prefit <- function(family) {
     control = list(adapt_delta = 0.9),
     prior = c(
       brms::prior("", class = "Intercept")
-    )
+    ),
+    backend = "cmdstanr"
   )
   return(prefit)
 }

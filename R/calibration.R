@@ -89,7 +89,8 @@ parallel_run <- function(prefit,
     control = list(adapt_delta = 0.9),
     prior = c(
       brms::prior("", class = "Intercept")
-    )
+    ),
+    backend = "cmdstanr"
   )
 
   result <- metric_list_handler(fit, metric_list, ...)
