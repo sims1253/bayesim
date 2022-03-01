@@ -9,7 +9,7 @@
 #' @examples
 likelihood_lookup <- function(identifier, link) {
   if (identifier == "beta") {
-    return(beta_custom(link = link))
+    return(brms::Beta(link = link))
   }
 
   if (identifier == "kumaraswamy") {
@@ -22,6 +22,10 @@ likelihood_lookup <- function(identifier, link) {
 
   if (identifier == "simplex") {
     return(simplex(link = link))
+  }
+
+  if (identifier == "gaussian") {
+    return(gaussian(link = link))
   }
 }
 
@@ -48,5 +52,38 @@ rng_lookup <- function(identifier) {
 
   if (identifier == "simplex") {
     return(rsimplex)
+  }
+
+  if (identifier == "gaussian") {
+    return(rnorm)
+  }
+}
+
+
+#' Title
+#'
+#' @param identifier
+#'
+#' @return
+#' @export
+#'
+#' @examples
+inv_link_lookup <- function(link) {
+  if (link == "logit") {
+    return(logistic)
+  }
+
+  if (link == "cloglog") {
+    return(inv_cloglog)
+  }
+
+  if (link == "cauchit") {
+    return(inv_cauchit)
+  }
+
+  if (link == "identity") {
+    return(function(x) {
+      x
+    })
   }
 }
