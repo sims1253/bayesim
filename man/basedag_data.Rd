@@ -6,30 +6,30 @@
 \usage{
 basedag_data(
   data_N,
-  z1_x_coef = 1,
-  z3_x_coef = 1,
-  x_y_coef = 1,
-  z1_y_coef = 1,
-  z2_y_coef = 1,
-  y_z4_coef = 1,
-  x_z4_coef = 1,
-  y_intercept = 0,
-  sigma_z1 = 1,
-  sigma_z2 = 1,
-  sigma_z3 = 1,
-  sigma_z4 = 1,
-  sigma_x = 1,
-  sigma_y = 1,
+  z1_x_coef,
+  z3_x_coef,
+  x_y_coef,
+  z1_y_coef,
+  z2_y_coef,
+  y_z4_coef,
+  x_z4_coef,
+  y_intercept,
+  sigma_z1,
+  sigma_z2,
+  sigma_z3,
+  sigma_z4,
+  sigma_x,
+  sigma_y,
   data_link,
   data_family,
   lb,
   ub,
-  oversampling = 10,
+  seed = NULL,
   ...
 )
 }
 \arguments{
-\item{...}{}
+\item{seed}{}
 }
 \value{
 

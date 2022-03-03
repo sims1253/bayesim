@@ -16,81 +16,92 @@
 #' @param sigma_x
 #' @param sigma_y
 #' @param data_link
-#' @param RNG
 #' @param lb
 #' @param ub
-#' @param oversampling
 #' @param ...
+#' @param data_family
+#' @param seed
 #'
 #' @return
 #' @export
 #'
 #' @examples
 basedag_data <- function(data_N,
-                         z1_x_coef = 1,
-                         z3_x_coef = 1,
-                         x_y_coef = 1,
-                         z1_y_coef = 1,
-                         z2_y_coef = 1,
-                         y_z4_coef = 1,
-                         x_z4_coef = 1,
-                         y_intercept = 0,
-                         sigma_z1 = 1,
-                         sigma_z2 = 1,
-                         sigma_z3 = 1,
-                         sigma_z4 = 1,
-                         sigma_x = 1,
-                         sigma_y = 1,
+                         z1_x_coef,
+                         z3_x_coef,
+                         x_y_coef,
+                         z1_y_coef,
+                         z2_y_coef,
+                         y_z4_coef,
+                         x_z4_coef,
+                         y_intercept,
+                         sigma_z1,
+                         sigma_z2,
+                         sigma_z3,
+                         sigma_z4,
+                         sigma_x,
+                         sigma_y,
                          data_link,
                          data_family,
                          lb,
                          ub,
-                         oversampling = 10,
+                         seed = NULL,
                          ...) {
-  n <- data_N * oversampling
-  z1 <- rnorm(n, sigma_z1)
-  z2 <- rnorm(n, sigma_z2)
-  z3 <- rnorm(n, sigma_z3)
-  x <- rnorm(n, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  dataset <- data.frame()
+  iter <- 0
+  while (nrow(dataset) < data_N) {
+    iter <- iter + 1
 
-  y <- do.call(
-    rng_lookup(data_family),
-    list(
-      n,
-      do.call(
-        inv_link_lookup(data_link),
-        list(
-          y_intercept +
-            x_y_coef * x +
-            z1_y_coef * z1 +
-            z2_y_coef * z2
-        )
-      ),
-      sigma_y
+    z1 <- rnorm(1, sigma_z1)
+    z2 <- rnorm(1, sigma_z2)
+    z3 <- rnorm(1, sigma_z3)
+    x <- rnorm(1, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
+
+    mu <- do.call(
+      inv_link_lookup(data_link),
+      list(
+        y_intercept +
+        x_y_coef * x +
+        z1_y_coef * z1 +
+        z2_y_coef * z2
+      )
     )
-  )
-  z4 <- rnorm(n, mean = (y_z4_coef * y + x_z4_coef * x), sd = sigma_z4)
 
-  good_indices <- seq_along(y)
-  if (lb) {
-    good_indices <- intersect(good_indices, which(y > lb))
+    if (mu > lb & mu < ub) {
+      y <- do.call(
+        rng_lookup(data_family),
+        list(
+          1,
+          mu,
+          sigma_y
+        )
+      )
+
+      if (y > lb & y < ub) {
+        z4 <- rnorm(1, mean = (y_z4_coef * y + x_z4_coef * x), sd = sigma_z4)
+
+        dataset <- rbind(
+          dataset,
+          data.frame(
+            z1 = z1,
+            z2 = z2,
+            z3 = z3,
+            z4 = z4,
+            x = x,
+            y = y
+          )
+        )
+      }
+    }
   }
-  if (ub) {
-    good_indices <- intersect(good_indices, which(y < ub))
-  }
-  if (length(good_indices) < data_N) {
-    stop("Even with resampling, there were not enough usable samples during
-         data generation. Try increasing the oversampling factor.")
-  }
-  good_indices <- good_indices[1:data_N]
+
   return(
-    data.frame(
-      x = x[good_indices],
-      z1 = z1[good_indices],
-      z2 = z2[good_indices],
-      z3 = z3[good_indices],
-      z4 = z4[good_indices],
-      y = y[good_indices]
+    list(
+      dataset = dataset,
+      n_resample = iter - data_N
     )
   )
 }

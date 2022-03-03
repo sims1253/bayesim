@@ -1,60 +1,60 @@
 #' Title
 #'
-#' @param identifier
+#' @param family
 #' @param link
 #'
 #' @return
 #' @export
 #'
 #' @examples
-likelihood_lookup <- function(identifier, link) {
-  if (identifier == "beta") {
+brms_family_lookup <- function(family, link) {
+  if (family == "beta") {
     return(brms::Beta(link = link))
   }
 
-  if (identifier == "kumaraswamy") {
+  if (family == "kumaraswamy") {
     return(kumaraswamy(link = link))
   }
 
-  if (identifier == "logitnormal") {
+  if (family == "logitnormal") {
     return(logitnormal(link = link))
   }
 
-  if (identifier == "simplex") {
+  if (family == "simplex") {
     return(simplex(link = link))
   }
 
-  if (identifier == "gaussian") {
+  if (family == "gaussian") {
     return(gaussian(link = link))
   }
 }
 
 #' Title
 #'
-#' @param identifier
+#' @param family
 #'
 #' @return
 #' @export
 #'
 #' @examples
-rng_lookup <- function(identifier) {
-  if (identifier == "beta") {
+rng_lookup <- function(family) {
+  if (family == "beta") {
     return(rbeta_custom)
   }
 
-  if (identifier == "kumaraswamy") {
+  if (family == "kumaraswamy") {
     return(rkumaraswamy)
   }
 
-  if (identifier == "logitnormal") {
+  if (family == "logitnormal") {
     return(rlogitnormal)
   }
 
-  if (identifier == "simplex") {
+  if (family == "simplex") {
     return(rsimplex)
   }
 
-  if (identifier == "gaussian") {
+  if (family == "gaussian") {
     return(rnorm)
   }
 }
@@ -85,5 +85,36 @@ inv_link_lookup <- function(link) {
     return(function(x) {
       x
     })
+  }
+}
+
+
+#' Title
+#'
+#' @param family
+#'
+#' @return
+#' @export
+#'
+#' @examples
+second_family_parameter_lookup <- function(family) {
+  if (family == "beta") {
+    return("phi")
+  }
+
+  if (family == "kumaraswamy") {
+    return("p")
+  }
+
+  if (family == "logitnormal") {
+    return("sigma")
+  }
+
+  if (family == "simplex") {
+    return("sigma")
+  }
+
+  if (family == "gaussian") {
+    return("sigma")
   }
 }

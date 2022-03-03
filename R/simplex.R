@@ -168,7 +168,7 @@ simplex <- function(link = "logit", link_sigma = "log") {
   family <- brms::custom_family(
     "simplex",
     dpars = c("mu", "sigma"),
-    links = c("logit", "log"),
+    links = c(link, link_sigma),
     lb = c(0, -NA),
     ub = c(1, NA),
     type = "real",
