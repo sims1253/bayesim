@@ -64,9 +64,9 @@ basedag_data <- function(data_N,
       inv_link_lookup(data_link),
       list(
         y_intercept +
-        x_y_coef * x +
-        z1_y_coef * z1 +
-        z2_y_coef * z2
+          x_y_coef * x +
+          z1_y_coef * z1 +
+          z2_y_coef * z2
       )
     )
 
@@ -104,4 +104,29 @@ basedag_data <- function(data_N,
       n_resample = iter - data_N
     )
   )
+}
+
+
+#' Title
+#'
+#' @param data_gen_conf
+#'
+#' @return
+#' @export
+#'
+#' @examples
+data_gen_conf_y_analysis <- function(data_gen_conf) {
+  datagen_result <- do.call(
+    basedag_data,
+    data_gen_conf
+  )
+  dataset <- datagen_result$dataset
+  n_resample <- datagen_result$n_resample
+  print(paste(data_gen_conf$data_family, data_gen_conf$data_link, "data:"))
+  print(paste("min:", min(dataset$y)))
+  print(paste("max:", max(dataset$y)))
+  print(paste("mean:", mean(dataset$y)))
+  print(paste("median:", median(dataset$y)))
+  print(paste("n_resample:", n_resample))
+  hist(dataset$y)
 }

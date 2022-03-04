@@ -10,6 +10,7 @@ logit <- function(x) {
   return(log(x) - log1p(-x))
 }
 
+
 #' Title
 #'
 #' @param x
@@ -38,6 +39,20 @@ unit_deviance <- function(y, mu) {
   )
 }
 
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+cloglog <- function(x) {
+  log(-log(1 - x))
+}
+
+
 #' Title
 #'
 #' @param x
@@ -49,6 +64,20 @@ unit_deviance <- function(y, mu) {
 inv_cloglog <- function(x) {
   return(1 - exp(-exp(x)))
 }
+
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+cauchit <- function(x) {
+  tan(pi * (0.5 - x))
+}
+
 
 #' Title
 #'

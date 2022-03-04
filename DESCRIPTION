@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: What the Package Does (Title Case)
-Version: 0.12.0.9000
+Version: 0.13.0.9000
 Author: Maximilian Scholz
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)

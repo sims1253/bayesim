@@ -226,7 +226,8 @@ reproduce_result <- function(result) {
     ub = result$ub,
     x_y_coef = result$x_y_coef,
     y_intercept = result$y_intercept,
-    sigma_y = result$sigma_y)
+    sigma_y = result$sigma_y
+  )
 
   datagen_result <- do.call(
     basedag_data,
@@ -255,17 +256,18 @@ reproduce_result <- function(result) {
     init = 0.1
   )
 
-  fit <- stats::update(prefit,
-                       newdata = dataset,
-                       formula. = brms::brmsformula(result$formula),
-                       refresh = 0,
-                       silent = 2,
-                       warmup = 500,
-                       iter = 2500,
-                       chains = 2,
-                       backend = "cmdstanr",
-                       seed = result$stan_seed,
-                       init = 0.1
+  fit <- stats::update(
+    prefit,
+    newdata = dataset,
+    formula. = brms::brmsformula(result$formula),
+    refresh = 0,
+    silent = 2,
+    warmup = 500,
+    iter = 2500,
+    chains = 2,
+    backend = "cmdstanr",
+    seed = result$stan_seed,
+    init = 0.1
   )
 
   return(
