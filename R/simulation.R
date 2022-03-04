@@ -195,3 +195,83 @@ full_simulation <- function(data_gen_confs,
   }
   return(final_result)
 }
+
+
+#' Title
+#'
+#' @param result
+#'
+#' @return
+#' @export
+#'
+#' @examples
+reproduce_result <- function(result) {
+  data_gen_conf <- list(
+    z1_x_coef = result$z1_x_coef,
+    z3_x_coef = result$z3_x_coef,
+    z1_y_coef = result$z1_y_coef,
+    z2_y_coef = result$z2_y_coef,
+    x_z4_coef = result$x_z4_coef,
+    y_z4_coef = result$y_z4_coef,
+    sigma_z1 = result$sigma_z1,
+    sigma_z2 = result$sigma_z2,
+    sigma_z3 = result$sigma_z3,
+    sigma_z4 = result$sigma_z4,
+    sigma_x = result$sigma_x,
+    data_N = result$data_N,
+    dataset_N = result$dataset_N,
+    data_family = result$data_family,
+    data_link = result$data_link,
+    lb = result$lb,
+    ub = result$ub,
+    x_y_coef = result$x_y_coef,
+    y_intercept = result$y_intercept,
+    sigma_y = result$sigma_y)
+
+  datagen_result <- do.call(
+    basedag_data,
+    c(list(result$dataset_seed), data_gen_conf)
+  )
+  dataset <- datagen_result$dataset
+  n_resample <- datagen_result$n_resample
+
+  family <- brms_family_lookup(
+    result$fit_family,
+    result$fit_link
+  )
+  prefit <- brms::brm(
+    y ~ 1 + x,
+    data = list(y = c(0.5), x = c(1)),
+    family = family,
+    stanvars = family$stanvars,
+    chains = 0,
+    refresh = 0,
+    silent = 2,
+    backend = "cmdstanr",
+    prior = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = second_family_parameter_lookup(result$fit_family))
+    ),
+    init = 0.1
+  )
+
+  fit <- stats::update(prefit,
+                       newdata = dataset,
+                       formula. = brms::brmsformula(result$formula),
+                       refresh = 0,
+                       silent = 2,
+                       warmup = 500,
+                       iter = 2500,
+                       chains = 2,
+                       backend = "cmdstanr",
+                       seed = result$stan_seed,
+                       init = 0.1
+  )
+
+  return(
+    list(
+      fit = fit,
+      dataset = dataset
+    )
+  )
+}
