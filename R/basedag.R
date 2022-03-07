@@ -129,6 +129,7 @@ data_gen_conf_y_analysis <- function(data_gen_conf) {
   dataset <- datagen_result$dataset
   n_resample <- datagen_result$n_resample
   print(paste(data_gen_conf$data_family, data_gen_conf$data_link, "data:"))
+  print(paste("y_intercept:", data_gen_conf$y_intercept, "y_sigma:", data_gen_conf$sigma_y))
   print(paste("min:", min(dataset$y)))
   print(paste("max:", max(dataset$y)))
   print(paste("mean:", mean(dataset$y)))
