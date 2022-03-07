@@ -4,7 +4,7 @@
 \alias{rng_lookup}
 \title{Title}
 \usage{
-rng_lookup(family)
+rng_lookup(family, link = NULL)
 }
 \arguments{
 \item{family}{}

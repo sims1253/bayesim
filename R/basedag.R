@@ -47,6 +47,12 @@ basedag_data <- function(data_N,
                          ub,
                          seed = NULL,
                          ...) {
+  if (data_family == "transformed_normal") {
+    link <- identity
+  } else {
+    link <- inv_link_lookup(data_link)
+  }
+
   if (!is.null(seed)) {
     set.seed(seed)
   }
@@ -61,7 +67,7 @@ basedag_data <- function(data_N,
     x <- rnorm(1, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
 
     mu <- do.call(
-      inv_link_lookup(data_link),
+      link,
       list(
         y_intercept +
           x_y_coef * x +
@@ -72,7 +78,7 @@ basedag_data <- function(data_N,
 
     if (mu > lb & mu < ub) {
       y <- do.call(
-        rng_lookup(data_family),
+        rng_lookup(data_family, data_link),
         list(
           1,
           mu,

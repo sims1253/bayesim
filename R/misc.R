@@ -10,6 +10,17 @@ logit <- function(x) {
   return(log(x) - log1p(-x))
 }
 
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+inv_logit <- function(x) {
+  return(1 / (1 + exp(-x)))
+}
 
 #' Title
 #'
@@ -20,7 +31,7 @@ logit <- function(x) {
 #'
 #' @examples
 logistic <- function(x) {
-  return(1 / (1 + exp(-x)))
+  return(inv_logit(x))
 }
 
 #' Title
@@ -75,7 +86,7 @@ inv_cloglog <- function(x) {
 #'
 #' @examples
 cauchit <- function(x) {
-  tan(pi * (0.5 - x))
+  tan(pi * (x - 0.5))
 }
 
 

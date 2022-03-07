@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-dlogitnormal <- function(x, mu, sigma, log = FALSE) {
+dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 || x >= 1))) {
     stop("x must be in (0,1).")
   }
@@ -17,8 +17,8 @@ dlogitnormal <- function(x, mu, sigma, log = FALSE) {
     stop("sigma must be above or equal to 0.")
   }
   res <- (-(log(sigma) + 0.5 * (log(2) + log(pi)))) +
-    (-(log(x) + log1p(-x))) +
-    (-(logit(x) - mu)^2) / (2 * (sigma^2))
+    -log(x - 1) + log(log1p(-x)) +
+    (-(cloglog(x) - mu)^2) / (2 * (sigma^2))
   if (log) {
     return(res)
   } else {
@@ -36,12 +36,12 @@ dlogitnormal <- function(x, mu, sigma, log = FALSE) {
 #' @export
 #'
 #' @examples
-rlogitnormal <- function(n, mu, sigma) {
+rcloglognormal <- function(n, mu, sigma) {
   if (isTRUE(any(sigma < 0))) {
     stop("P must be above or equal to 0.")
   }
   return(
-    inv_logit(rnorm(n, mu, sigma))
+    inv_cloglog(rnorm(n, mu, sigma))
   )
 }
 
@@ -54,11 +54,11 @@ rlogitnormal <- function(n, mu, sigma) {
 #'
 #'
 #' @examples
-log_lik_logitnormal <- function(i, prep) {
+log_lik_cloglognormal <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   y <- prep$data$Y[i]
-  return(dlogitnormal(y, mu, sigma, log = TRUE))
+  return(dcloglognormal(y, mu, sigma, log = TRUE))
 }
 
 #' Title
@@ -71,10 +71,10 @@ log_lik_logitnormal <- function(i, prep) {
 #'
 #'
 #' @examples
-posterior_predict_logitnormal <- function(i, prep, ...) {
+posterior_predict_cloglognormal <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
-  return(rlogitnormal(prep$ndraws, mu, sigma))
+  return(rcloglognormal(prep$ndraws, mu, sigma))
 }
 
 #' Title
@@ -85,9 +85,9 @@ posterior_predict_logitnormal <- function(i, prep, ...) {
 #'
 #'
 #' @examples
-posterior_epred_logitnormal <- function(prep) {
+posterior_epred_cloglognormal <- function(prep) {
   # https://doi.org/10.1080/03610926.2020.1752723 might solve this
-  stop("Due to the mean not having an analytical solution for the logit-normal
+  stop("Due to the mean not having an analytical solution for the cloglog-normal
         distribution, posterior_epred is currently not supported.")
 }
 
@@ -100,28 +100,28 @@ posterior_epred_logitnormal <- function(prep) {
 #' @export
 #'
 #' @examples
-logitnormal <- function(link = "identity", link_sigma = "log") {
+cloglognormal <- function(link = "identity", link_sigma = "log") {
   family <- brms::custom_family(
-    "logitnormal",
+    "cloglognormal",
     dpars = c("mu", "sigma"),
     links = c("identity", link_sigma),
     lb = c(0, 0),
     ub = c(1, NA),
     type = "real",
-    log_lik = log_lik_logitnormal,
-    posterior_predict = posterior_predict_logitnormal,
-    posterior_epred = posterior_epred_logitnormal
+    log_lik = log_lik_cloglognormal,
+    posterior_predict = posterior_predict_cloglognormal,
+    posterior_epred = posterior_epred_cloglognormal
   )
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
-      real logitnormal_lpdf(real y, real mu, real sigma) {
-        return (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
-               (-(log(y) + log1m(y))) +
-               (-(logit(y) - mu)^2) / (2 * (sigma^2));
+      real cloglognormal_lpdf(real y, real mu, real sigma) {
+        return   (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
+                 -log(y - 1) + log(log1m(y)) +
+                 (-(log(-log1m(y)) - mu)^2) / (2 * (sigma^2));
       }
 
-      real logitnormal_rng(real mu, real sigma) {
-        return inv_logit(normal_rng(logit(mu), sigma));
+      real cloglognormal_rng(real mu, real sigma) {
+        return inv_cloglog(normal_rng(cloglog(mu), sigma));
       }",
     block = "functions"
   )

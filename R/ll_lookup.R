@@ -16,8 +16,8 @@ brms_family_lookup <- function(family, link) {
     return(kumaraswamy(link = link))
   }
 
-  if (family == "logitnormal") {
-    return(logitnormal(link = link))
+  if (family == "transformed_normal") {
+    return(transformed_normal(link = link))
   }
 
   if (family == "simplex") {
@@ -37,7 +37,7 @@ brms_family_lookup <- function(family, link) {
 #' @export
 #'
 #' @examples
-rng_lookup <- function(family) {
+rng_lookup <- function(family, link = NULL) {
   if (family == "beta") {
     return(rbeta_custom)
   }
@@ -46,8 +46,12 @@ rng_lookup <- function(family) {
     return(rkumaraswamy)
   }
 
-  if (family == "logitnormal") {
-    return(rlogitnormal)
+  if (family == "transformed_normal") {
+    switch(link,
+      "logit" = return(rlogitnormal),
+      "cauchit" = return(rcauchitnormal),
+      "cloglog" = return(rcloglognormal)
+    )
   }
 
   if (family == "simplex") {
@@ -70,7 +74,7 @@ rng_lookup <- function(family) {
 #' @examples
 inv_link_lookup <- function(link) {
   if (link == "logit") {
-    return(logistic)
+    return(inv_logit())
   }
 
   if (link == "cloglog") {
@@ -106,7 +110,7 @@ second_family_parameter_lookup <- function(family) {
     return("p")
   }
 
-  if (family == "logitnormal") {
+  if (family == "transformed_normal") {
     return("sigma")
   }
 
