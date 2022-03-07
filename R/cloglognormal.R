@@ -17,7 +17,7 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
     stop("sigma must be above or equal to 0.")
   }
   res <- (-(log(sigma) + 0.5 * (log(2) + log(pi)))) +
-    -log(x - 1) + log(log1p(-x)) +
+    -log(-1 * ((1 - x) * log(1 - x))) +
     (-(cloglog(x) - mu)^2) / (2 * (sigma^2))
   if (log) {
     return(res)
@@ -116,12 +116,12 @@ cloglognormal <- function(link = "identity", link_sigma = "log") {
     scode = "
       real cloglognormal_lpdf(real y, real mu, real sigma) {
         return   (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
-                 -log(y - 1) + log(log1m(y)) +
+                 -log(-1 * ((1-y)*log(1-y))) +
                  (-(log(-log1m(y)) - mu)^2) / (2 * (sigma^2));
       }
 
       real cloglognormal_rng(real mu, real sigma) {
-        return inv_cloglog(normal_rng(cloglog(mu), sigma));
+        return inv_cloglog(normal_rng(mu, sigma));
       }",
     block = "functions"
   )

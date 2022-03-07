@@ -4,7 +4,7 @@
 \alias{p_bias}
 \title{Title}
 \usage{
-p_bias(fit, x_y_coef, ...)
+p_bias(posterior_draws, x_y_coef, ...)
 }
 \arguments{
 \item{...}{}

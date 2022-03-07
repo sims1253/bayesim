@@ -60,7 +60,7 @@ unit_deviance <- function(y, mu) {
 #'
 #' @examples
 cloglog <- function(x) {
-  log(-log(1 - x))
+  log(-log1p(-x))
 }
 
 

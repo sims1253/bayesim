@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-dcauchittnormal <- function(x, mu, sigma, log = FALSE) {
+dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 || x >= 1))) {
     stop("x must be in (0,1).")
   }
@@ -121,7 +121,7 @@ cauchitnormal <- function(link = "identity", link_sigma = "log") {
       }
 
       real cauchitnormal_rng(real mu, real sigma) {
-        return cauchy_cdf(normal_rng(logit(mu), sigma), 0, 1);
+        return cauchy_cdf(normal_rng(mu, sigma), 0, 1);
       }",
     block = "functions"
   )

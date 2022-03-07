@@ -121,7 +121,7 @@ logitnormal <- function(link = "identity", link_sigma = "log") {
       }
 
       real logitnormal_rng(real mu, real sigma) {
-        return inv_logit(normal_rng(logit(mu), sigma));
+        return inv_logit(normal_rng(mu, sigma));
       }",
     block = "functions"
   )
