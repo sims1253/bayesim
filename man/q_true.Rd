@@ -7,7 +7,7 @@
 q_true(posterior_draws, x_y_coef, ...)
 }
 \arguments{
-\item{posterior_draws}{}
+\item{...}{}
 }
 \value{
 

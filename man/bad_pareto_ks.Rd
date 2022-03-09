@@ -7,7 +7,7 @@
 bad_pareto_ks(fit)
 }
 \arguments{
-\item{k_threshold}{}
+\item{fit}{}
 }
 \value{
 

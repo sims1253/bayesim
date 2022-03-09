@@ -7,7 +7,7 @@
 p_bias(posterior_draws, x_y_coef, ...)
 }
 \arguments{
-\item{...}{}
+\item{posterior_draws}{}
 }
 \value{
 

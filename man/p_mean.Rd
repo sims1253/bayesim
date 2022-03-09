@@ -7,7 +7,7 @@
 p_mean(posterior_draws)
 }
 \arguments{
-\item{...}{}
+\item{posterior_draws}{}
 }
 \value{
 

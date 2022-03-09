@@ -7,7 +7,7 @@
 metric_lookup(identifier, fit, posterior_draws = NULL, ...)
 }
 \arguments{
-\item{...}{}
+\item{posterior_draws}{}
 }
 \value{
 

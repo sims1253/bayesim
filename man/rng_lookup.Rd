@@ -7,7 +7,7 @@
 rng_lookup(family, link = NULL)
 }
 \arguments{
-\item{family}{}
+\item{link}{}
 }
 \value{
 

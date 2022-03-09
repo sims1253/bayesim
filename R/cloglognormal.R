@@ -101,10 +101,11 @@ posterior_epred_cloglognormal <- function(prep) {
 #'
 #' @examples
 cloglognormal <- function(link = "identity", link_sigma = "log") {
+  stopifnot(link == "identity")
   family <- brms::custom_family(
     "cloglognormal",
     dpars = c("mu", "sigma"),
-    links = c("identity", link_sigma),
+    links = c(link, link_sigma),
     lb = c(0, 0),
     ub = c(1, NA),
     type = "real",

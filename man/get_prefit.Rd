@@ -7,7 +7,7 @@
 get_prefit(family_list)
 }
 \arguments{
-\item{family}{}
+\item{family_list}{}
 }
 \value{
 

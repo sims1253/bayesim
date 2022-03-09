@@ -7,7 +7,7 @@
 inv_link_lookup(link)
 }
 \arguments{
-\item{identifier}{}
+\item{link}{}
 }
 \value{
 

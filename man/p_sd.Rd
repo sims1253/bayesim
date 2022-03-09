@@ -7,7 +7,7 @@
 p_sd(posterior_draws)
 }
 \arguments{
-\item{fit}{}
+\item{posterior_draws}{}
 }
 \value{
 
