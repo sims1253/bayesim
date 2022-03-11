@@ -4,7 +4,14 @@
 \alias{dataset_sim}
 \title{Title}
 \usage{
-dataset_sim(data_gen_conf, fit_confs, prefits, metrics, seed)
+dataset_sim(
+  data_gen_conf,
+  fit_confs,
+  prefits,
+  numeric_metrics,
+  predictive_metrics,
+  seed
+)
 }
 \arguments{
 \item{data_gen_conf}{}

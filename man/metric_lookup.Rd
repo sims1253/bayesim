@@ -4,7 +4,13 @@
 \alias{metric_lookup}
 \title{Title}
 \usage{
-metric_lookup(identifier, fit, posterior_draws = NULL, ...)
+metric_lookup(
+  identifier,
+  fit,
+  posterior_draws = NULL,
+  testing_data = NULL,
+  ...
+)
 }
 \arguments{
 \item{posterior_draws}{}

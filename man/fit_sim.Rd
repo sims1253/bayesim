@@ -4,7 +4,16 @@
 \alias{fit_sim}
 \title{Title}
 \usage{
-fit_sim(prefit, dataset, metrics, data_gen_conf, fit_conf, seed)
+fit_sim(
+  prefit,
+  dataset,
+  testing_data,
+  numeric_metrics,
+  predictive_metrics,
+  data_gen_conf,
+  fit_conf,
+  seed
+)
 }
 \arguments{
 \item{fit_conf}{}

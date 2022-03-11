@@ -13,7 +13,9 @@
 #' @examples
 fit_sim <- function(prefit,
                     dataset,
-                    metrics,
+                    testing_data,
+                    numeric_metrics,
+                    predictive_metrics,
                     data_gen_conf,
                     fit_conf,
                     seed) {
@@ -30,16 +32,32 @@ fit_sim <- function(prefit,
     init = 0.1
   )
 
-  result <- do.call(
+  all_metric_results <- do.call(
     metric_list_handler,
     c(
-      list(fit = fit, metric_list = metrics),
+      list(
+        fit = fit,
+        numeric_metrics = numeric_metrics,
+        predictive_metrics = predictive_metrics,
+        testing_data = testing_data
+      ),
       data_gen_conf
     )
   )
-  result <- cbind(result, fit_conf, data_gen_conf)
-  result$stan_seed <- seed
-  return(as.data.frame(result))
+  numeric_results <- all_metric_results$numeric_results
+  loo_objects <- all_metric_results$loo_objects
+  final_result <- list(
+    numeric_results = data.frame(
+      c(
+        numeric_results,
+        fit_conf,
+        data_gen_conf,
+        c(stan_seed = seed)
+      )
+    ),
+    loo_objects = loo_objects
+  )
+  return(final_result)
 }
 
 #' Title
@@ -57,36 +75,52 @@ fit_sim <- function(prefit,
 dataset_sim <- function(data_gen_conf,
                         fit_confs,
                         prefits,
-                        metrics,
+                        numeric_metrics,
+                        predictive_metrics,
                         seed) {
-  final_result <- NULL
+  final_result <- vector(mode = "list", length = nrow(fit_confs))
+  loo_objects <- vector(mode = "list", length = nrow(fit_confs))
   set.seed(seed)
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = nrow(fit_confs)
   )
   datagen_result <- do.call(
     basedag_data,
-    c(list(seed), data_gen_conf)
+    c(list(seed = seed, testing_data = TRUE), data_gen_conf)
   )
   dataset <- datagen_result$dataset
+  testing_data <- datagen_result$testing_data
   n_resample <- datagen_result$n_resample
 
   for (i in seq_len(nrow(fit_confs))) {
     fit_conf <- fit_confs[i, ]
     prefit <- prefits[[paste0(fit_conf$fit_family, fit_conf$fit_link)]]
-    row_result <- fit_sim(
+    row_results <- fit_sim(
       prefit = prefit,
       dataset = dataset,
-      metrics = metrics,
+      testing_data = testing_data,
+      numeric_metrics = numeric_metrics,
+      predictive_metrics = predictive_metrics,
       data_gen_conf = data_gen_conf,
       fit_conf = fit_conf,
       seed = seed_list[[i]]
     )
-    final_result <- rbind(final_result, row_result)
+    final_result[[i]] <- row_results$numeric_results
+    loo_objects[[i]] <- row_results$loo_objects
   }
+
+  names(loo_objects) <- seq_len(length(loo_objects))
+  loo_compare_results <- loo_compare_handler(loo_objects, predictive_metrics)
+
+  final_result <- do.call(rbind, final_result) # TODO handle predictive performance results
+  final_result <- cbind(final_result, loo_compare_results)
+
+  #
+  # final_result <- as.data.frame(final_result[, !colnames(final_result) %in% c("elpd_loo_object", "rmse_loo_object")])
+  # final_result <- cbind(final_result, loo_compare_results)
   final_result$dataset_seed <- seed
   final_result$n_resample <- n_resample
-  return(final_result)
+  return(as.data.frame(final_result))
 }
 
 
@@ -105,7 +139,8 @@ dataset_sim <- function(data_gen_conf,
 #' @examples
 dataset_conf_sim <- function(data_gen_conf,
                              fit_confs,
-                             metrics,
+                             numeric_metrics,
+                             predictive_metrics,
                              prefits,
                              seed = NULL,
                              path = NULL) {
@@ -113,19 +148,30 @@ dataset_conf_sim <- function(data_gen_conf,
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = data_gen_conf$dataset_N
   )
-  final_result <- NULL
+  # `%dopar%` <- foreach::`%dopar%`
+  # results <- foreach::foreach(
+  #   seed = seed_list,
+  #   #.packages = c("brms", "bayesim")
+  # ) %dopar% {
+  #   dataset_sim(
+  #     data_gen_conf = data_gen_conf,
+  #     fit_confs = fit_confs,
+  #     prefits = prefits,
+  #     metrics = metrics,
+  #     seed = seed
+  #   )
+  # }
 
-  `%dopar%` <- foreach::`%dopar%`
-  results <- foreach::foreach(
-    seed = seed_list,
-    .packages = c("brms", "bayesim")
-  ) %dopar% {
-    dataset_sim(
+  # Debug Serial Code
+  results <- vector(mode = "list", length = length(seed_list))
+  for (i in seq_along(seed_list)) {
+    results[[i]] <- dataset_sim(
       data_gen_conf = data_gen_conf,
       fit_confs = fit_confs,
       prefits = prefits,
-      metrics = metrics,
-      seed = seed
+      numeric_metrics,
+      predictive_metrics,
+      seed = seed_list[[i]]
     )
   }
 
@@ -154,7 +200,8 @@ dataset_conf_sim <- function(data_gen_conf,
 #' @examples
 full_simulation <- function(data_gen_confs,
                             fit_confs,
-                            metrics,
+                            numeric_metrics,
+                            predictive_metrics,
                             ncores,
                             seed = NULL,
                             path = NULL) {
@@ -166,29 +213,38 @@ full_simulation <- function(data_gen_confs,
     size = nrow(data_gen_confs)
   )
   # Multiprocessing setup TODO serial option.
-  cluster <- parallel::makeCluster(ncores)
-  doParallel::registerDoParallel(cluster)
+  #cluster <- parallel::makeCluster(ncores, type = "FORK")
+  #doParallel::registerDoParallel(cluster)
+  #on.exit({ # Teardown of multiprocessing setup
+  #  try({
+  #    doParallel::stopImplicitCluster()
+  #    parallel::stopCluster(cluster)
+  #  })
+  #})
+  #parallel::clusterEvalQ(cl = cluster, {
+  #  library(brms) # make sure we load the package on the cluster
+  #  library(bayesim)
+  #})
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.
   prefit_list <- build_prefit_list(fit_configuration = fit_confs)
-  final_result <- NULL
+  final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results
   for (i in seq_len(nrow(data_gen_confs))) {
-    row_result <- dataset_conf_sim(
+    final_result[[i]] <- dataset_conf_sim(
       data_gen_conf = as.list(data_gen_confs[i, ]),
       fit_confs = fit_confs,
-      metrics = metrics,
+      numeric_metrics,
+      predictive_metrics,
       prefits = prefit_list,
       seed = seed_list[[i]],
       path = path
     )
-    final_result <- rbind(final_result, row_result)
   }
+  final_result <- do.call(rbind, final_result)
   final_result$global_seed <- seed
-  # Teardown of multiprocessing setup
-  parallel::stopCluster(cluster)
 
   if (!is.null(path)) {
     saveRDS(final_result, paste(path, "full_sim_result.RDS", sep = "/"))

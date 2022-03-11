@@ -11,11 +11,11 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     brms,
+    posterior,
     stats,
     graphics,
     foreach,
     parallel,
     doParallel,
-    dplyr,
-    posterior
+    dplyr
 RoxygenNote: 7.1.2

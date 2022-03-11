@@ -4,10 +4,16 @@
 \alias{metric_list_handler}
 \title{Title}
 \usage{
-metric_list_handler(fit, metric_list, ...)
+metric_list_handler(
+  fit,
+  numeric_metrics,
+  predictive_metrics,
+  testing_data,
+  ...
+)
 }
 \arguments{
-\item{...}{}
+\item{fit}{}
 }
 \value{
 

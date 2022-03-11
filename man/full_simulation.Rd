@@ -7,7 +7,8 @@
 full_simulation(
   data_gen_confs,
   fit_confs,
-  metrics,
+  numeric_metrics,
+  predictive_metrics,
   ncores,
   seed = NULL,
   path = NULL

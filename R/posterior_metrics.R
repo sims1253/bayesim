@@ -86,7 +86,7 @@ mae_s <- function(posterior_draws, x_y_coef, ...) {
 #'
 #' @examples
 p_quantiles <- function(posterior_draws, prob) {
-  return(quantile(posterior_draws, probs = prob))
+  return(unname(quantile(posterior_draws, probs = prob)))
 }
 
 
@@ -113,9 +113,11 @@ q_true <- function(posterior_draws, x_y_coef, ...) {
 #' @export
 #'
 #' @examples
-bad_pareto_ks <- function(fit) {
-  psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-  return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
+bad_pareto_ks <- function(fit, psis_object = NULL, ...) {
+  if (is.null(psis_object)){
+    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+    return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
+  }
 }
 
 
@@ -133,4 +135,16 @@ sampling_time <- function(fit) {
     "warmup" = sum(times[, 1]),
     "sample" = sum(times[, 2])
   ))
+}
+
+#' Title
+#'
+#' @param posterior_draws
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pos_prob <- function(posterior_draws) {
+  return(mean(posterior_draws > 0))
 }

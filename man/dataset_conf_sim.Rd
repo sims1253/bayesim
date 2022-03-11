@@ -7,7 +7,8 @@
 dataset_conf_sim(
   data_gen_conf,
   fit_confs,
-  metrics,
+  numeric_metrics,
+  predictive_metrics,
   prefits,
   seed = NULL,
   path = NULL

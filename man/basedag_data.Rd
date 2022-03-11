@@ -25,6 +25,7 @@ basedag_data(
   lb,
   ub,
   seed = NULL,
+  testing_data = FALSE,
   ...
 )
 }

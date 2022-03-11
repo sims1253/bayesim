@@ -46,18 +46,17 @@ basedag_data <- function(data_N,
                          lb,
                          ub,
                          seed = NULL,
+                         testing_data = FALSE,
                          ...) {
-  if (data_family == "transformed_normal") {
-    link <- identity
-  } else {
-    link <- inv_link_lookup(data_link)
-  }
-
   if (!is.null(seed)) {
     set.seed(seed)
   }
   dataset <- data.frame()
   iter <- 0
+  if (testing_data) {
+    data_N <- data_N * 2
+  }
+
   while (nrow(dataset) < data_N) {
     iter <- iter + 1
 
@@ -67,7 +66,7 @@ basedag_data <- function(data_N,
     x <- rnorm(1, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
 
     mu <- do.call(
-      link,
+      inv_link_lookup(data_link),
       list(
         y_intercept +
           x_y_coef * x +
@@ -104,12 +103,23 @@ basedag_data <- function(data_N,
     }
   }
 
-  return(
-    list(
-      dataset = dataset,
-      n_resample = iter - data_N
+  if (testing_data) {
+    return(
+      list(
+        dataset = dataset[1:data_N, ],
+        testing_data = dataset[(data_N + 1):(data_N * 2), ],
+        n_resample = (iter / 2) - data_N
+      )
     )
-  )
+  } else {
+    return(
+      list(
+        dataset = dataset,
+        testing_data = NULL,
+        n_resample = iter - data_N
+      )
+    )
+  }
 }
 
 
