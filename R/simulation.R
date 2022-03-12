@@ -145,32 +145,32 @@ dataset_conf_sim <- function(data_gen_conf,
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = data_gen_conf$dataset_N
   )
-  # `%dopar%` <- foreach::`%dopar%`
-  # results <- foreach::foreach(
-  #   seed = seed_list,
-  #   #.packages = c("brms", "bayesim")
-  # ) %dopar% {
-  #   dataset_sim(
-  #     data_gen_conf = data_gen_conf,
-  #     fit_confs = fit_confs,
-  #     prefits = prefits,
-  #     metrics = metrics,
-  #     seed = seed
-  #   )
-  # }
-
-  # Debug Serial Code
-  results <- vector(mode = "list", length = length(seed_list))
-  for (i in seq_along(seed_list)) {
-    results[[i]] <- dataset_sim(
+  `%dopar%` <- foreach::`%dopar%`
+  results <- foreach::foreach(
+    seed = seed_list,
+    # .packages = c("brms", "bayesim")
+  ) %dopar% {
+    dataset_sim(
       data_gen_conf = data_gen_conf,
       fit_confs = fit_confs,
       prefits = prefits,
-      numeric_metrics,
-      predictive_metrics,
-      seed = seed_list[[i]]
+      metrics = metrics,
+      seed = seed
     )
   }
+
+  # Debug Serial Code
+  # results <- vector(mode = "list", length = length(seed_list))
+  # for (i in seq_along(seed_list)) {
+  #   results[[i]] <- dataset_sim(
+  #     data_gen_conf = data_gen_conf,
+  #     fit_confs = fit_confs,
+  #     prefits = prefits,
+  #     numeric_metrics,
+  #     predictive_metrics,
+  #     seed = seed_list[[i]]
+  #   )
+  # }
 
   final_result <- do.call(rbind, results)
   final_result$data_config_seed <- seed
@@ -210,18 +210,18 @@ full_simulation <- function(data_gen_confs,
     size = nrow(data_gen_confs)
   )
   # Multiprocessing setup TODO serial option.
-  # cluster <- parallel::makeCluster(ncores, type = "FORK")
-  # doParallel::registerDoParallel(cluster)
-  # on.exit({ # Teardown of multiprocessing setup
-  #  try({
-  #    doParallel::stopImplicitCluster()
-  #    parallel::stopCluster(cluster)
-  #  })
-  # })
-  # parallel::clusterEvalQ(cl = cluster, {
-  #  library(brms) # make sure we load the package on the cluster
-  #  library(bayesim)
-  # })
+  cluster <- parallel::makeCluster(ncores, type = "FORK")
+  doParallel::registerDoParallel(cluster)
+  on.exit({ # Teardown of multiprocessing setup
+    try({
+      doParallel::stopImplicitCluster()
+      parallel::stopCluster(cluster)
+    })
+  })
+  parallel::clusterEvalQ(cl = cluster, {
+    library(brms) # make sure we load the package on the cluster
+    library(bayesim)
+  })
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.
@@ -250,7 +250,12 @@ full_simulation <- function(data_gen_confs,
 }
 
 
-#' Title
+#' This method will reproduce the exact dataset and fit corresponding to the
+#' supplied result dataframe row.
+#'
+#' The code in this function is written so that all seeds are set at the right
+#' time and all following code after setting the seed replicates exactly as
+#' during the simulation.
 #'
 #' @param result
 #'
@@ -326,7 +331,8 @@ reproduce_result <- function(result) {
   return(
     list(
       fit = fit,
-      dataset = dataset
+      dataset = dataset,
+      testing_data = datagen_result$testing_data
     )
   )
 }

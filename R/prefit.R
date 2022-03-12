@@ -45,18 +45,18 @@ build_prefit_list <- function(fit_configuration) {
     sort(as.numeric(rownames(prefit_configurations)))
   ), as.list)
 
-  # `%dopar%` <- foreach::`%dopar%`
-  # results <- foreach::foreach(
-  #   family_list = prefit_configurations,
-  #   #.packages = c("brms", "bayesim")
-  # ) %dopar% {
-  #   get_prefit(family_list)
-  # }
-
-  results <- vector(mode = "list", length = length(prefit_configurations))
-  for (i in seq_along(prefit_configurations)) {
-    results[[i]] <- get_prefit(prefit_configurations[[i]])
+  `%dopar%` <- foreach::`%dopar%`
+  results <- foreach::foreach(
+    family_list = prefit_configurations,
+    # .packages = c("brms", "bayesim")
+  ) %dopar% {
+    get_prefit(family_list)
   }
+
+  # results <- vector(mode = "list", length = length(prefit_configurations))
+  # for (i in seq_along(prefit_configurations)) {
+  #   results[[i]] <- get_prefit(prefit_configurations[[i]])
+  # }
 
   prefit_list <- list()
   for (i in seq_along(results)) {

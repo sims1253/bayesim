@@ -17,5 +17,6 @@ Imports:
     foreach,
     parallel,
     doParallel,
-    dplyr
+    dplyr,
+    matrixStats
 RoxygenNote: 7.1.2

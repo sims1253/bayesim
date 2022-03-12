@@ -2,7 +2,8 @@
 % Please edit documentation in R/simulation.R
 \name{reproduce_result}
 \alias{reproduce_result}
-\title{Title}
+\title{This method will reproduce the exact dataset and fit corresponding to the
+supplied result dataframe row.}
 \usage{
 reproduce_result(result)
 }
@@ -13,5 +14,7 @@ reproduce_result(result)
 
 }
 \description{
-Title
+The code in this function is written so that all seeds are set at the right
+time and all following code after setting the seed replicates exactly as
+during the simulation.
 }
