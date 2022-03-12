@@ -37,7 +37,9 @@ metric_lookup <- function(identifier,
       "p_mean" = return(p_mean(posterior_draws)),
       "p_sd" = return(p_sd(posterior_draws)),
       "elpd_loo" = return(elpd_loo_handler(fit)),
-      "pos_prob" = return(pos_prob(posterior_draws))
+      "pos_prob" = return(pos_prob(posterior_draws)),
+      "rmse_loo" = return(rmse_loo(fit, ...)),
+      "rmse_newdata" = return(rmse_newdata(fit, testing_data))
     )
   }
 }
