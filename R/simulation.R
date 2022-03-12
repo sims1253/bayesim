@@ -115,9 +115,6 @@ dataset_sim <- function(data_gen_conf,
   final_result <- do.call(rbind, final_result) # TODO handle predictive performance results
   final_result <- cbind(final_result, loo_compare_results)
 
-  #
-  # final_result <- as.data.frame(final_result[, !colnames(final_result) %in% c("elpd_loo_object", "rmse_loo_object")])
-  # final_result <- cbind(final_result, loo_compare_results)
   final_result$dataset_seed <- seed
   final_result$n_resample <- n_resample
   return(as.data.frame(final_result))
@@ -213,18 +210,18 @@ full_simulation <- function(data_gen_confs,
     size = nrow(data_gen_confs)
   )
   # Multiprocessing setup TODO serial option.
-  #cluster <- parallel::makeCluster(ncores, type = "FORK")
-  #doParallel::registerDoParallel(cluster)
-  #on.exit({ # Teardown of multiprocessing setup
+  # cluster <- parallel::makeCluster(ncores, type = "FORK")
+  # doParallel::registerDoParallel(cluster)
+  # on.exit({ # Teardown of multiprocessing setup
   #  try({
   #    doParallel::stopImplicitCluster()
   #    parallel::stopCluster(cluster)
   #  })
-  #})
-  #parallel::clusterEvalQ(cl = cluster, {
+  # })
+  # parallel::clusterEvalQ(cl = cluster, {
   #  library(brms) # make sure we load the package on the cluster
   #  library(bayesim)
-  #})
+  # })
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.

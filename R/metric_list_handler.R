@@ -17,8 +17,7 @@ metric_list_handler <- function(fit,
   posterior_draws <- posterior::extract_variable_matrix(fit, variable = "b_x")
 
   loo_objects <- vector(mode = "list", length = length(predictive_metrics))
-  predictive_results <- vector(mode = "list", length = length(numeric_metrics))
-  numeric_results <- vector(mode = "list", length = length(numeric_metrics))
+  predictive_results <- vector(mode = "list", length = length(predictive_metrics))
 
   psis_object <- NULL
   for (i in seq_along(predictive_metrics)) {
@@ -31,10 +30,10 @@ metric_list_handler <- function(fit,
       psis_object,
       ...
     )
-    if ("psis_object" %in% names(result$object)){
+    if (is.null(psis_object) & "psis_object" %in% names(result$object)) {
       psis_object <- result$object$psis_object
     }
-    loo_objects[[i]] <-result$object
+    loo_objects[[i]] <- result$object
     predictive_results[[i]] <- result[names(result) != "object"]
   }
 
@@ -45,31 +44,17 @@ metric_list_handler <- function(fit,
       identifier = identifier,
       fit = fit,
       posterior_draws = posterior_draws,
-      predictive_results = predictive_results,
+      psis_object = psis_object,
       ...
     )
-
     if (length(result) == 1) {
-      list_build <- list(result)
-      names(list_build) <- paste(identifier)
-      numeric_results[[i]] <- list_build
+      result <- list(result)
+      names(result) <- identifier
+      numeric_results[[i]] <- result
     } else {
-      for (j in seq_along(result)) {
-        list_build <- list(result[[names(result)[[j]]]])
-        if (grepl("<|>|=", identifier)) {
-          identifier <- gsub(">", "_gr_", identifier)
-          identifier <- gsub("<", "_sm_", identifier)
-          identifier <- gsub("=", "_eq_", identifier)
-        }
-        names(list_build) <- paste(identifier,
-          names(result)[[j]],
-          sep = "_"
-        )
-        numeric_results[[i]] <- list_build
-      }
+      numeric_results[[i]] <- result
     }
   }
-
 
   return(
     list(

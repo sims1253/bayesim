@@ -106,9 +106,9 @@ basedag_data <- function(data_N,
   if (testing_data) {
     return(
       list(
-        dataset = dataset[1:(data_N/2), ],
-        testing_data = dataset[((data_N/2) + 1):data_N, ],
-        n_resample = (iter / 2) - data_N/2
+        dataset = dataset[1:(data_N / 2), ],
+        testing_data = dataset[((data_N / 2) + 1):data_N, ],
+        n_resample = (iter / 2) - data_N / 2
       )
     )
   } else {
