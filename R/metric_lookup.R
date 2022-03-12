@@ -39,7 +39,8 @@ metric_lookup <- function(identifier,
       "elpd_loo" = return(elpd_loo_handler(fit)),
       "pos_prob" = return(pos_prob(posterior_draws)),
       "rmse_loo" = return(rmse_loo(fit, ...)),
-      "rmse_newdata" = return(rmse_newdata(fit, testing_data))
+      "rmse_newdata" = return(rmse_newdata(fit, testing_data)),
+      "elpd_newdata" = return(elpd_newdata(fit, testing_data))
     )
   }
 }
