@@ -38,25 +38,26 @@ get_prefit <- function(family_list) {
 #' @export
 #'
 #' @examples
-build_prefit_list <- function(fit_configuration) {
+build_prefit_list <- function(fit_configuration, ncores) {
   prefit_configurations <- unique(fit_configuration[c("fit_family", "fit_link")])
   prefit_configurations <- lapply(split(
     prefit_configurations,
     sort(as.numeric(rownames(prefit_configurations)))
   ), as.list)
 
-  `%dopar%` <- foreach::`%dopar%`
-  results <- foreach::foreach(
-    family_list = prefit_configurations,
-    # .packages = c("brms", "bayesim")
-  ) %dopar% {
-    get_prefit(family_list)
+  if (ncores > 1) {
+    `%dopar%` <- foreach::`%dopar%`
+    results <- foreach::foreach(
+      family_list = prefit_configurations
+    ) %dopar% {
+      get_prefit(family_list)
+    }
+  } else {
+    results <- vector(mode = "list", length = length(prefit_configurations))
+    for (i in seq_along(prefit_configurations)) {
+      results[[i]] <- get_prefit(prefit_configurations[[i]])
+    }
   }
-
-  # results <- vector(mode = "list", length = length(prefit_configurations))
-  # for (i in seq_along(prefit_configurations)) {
-  #   results[[i]] <- get_prefit(prefit_configurations[[i]])
-  # }
 
   prefit_list <- list()
   for (i in seq_along(results)) {

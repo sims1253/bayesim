@@ -11,7 +11,8 @@ dataset_conf_sim(
   predictive_metrics,
   prefits,
   seed = NULL,
-  path = NULL
+  path = NULL,
+  ncores
 )
 }
 \arguments{

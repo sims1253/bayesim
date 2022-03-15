@@ -16,13 +16,13 @@ dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")
   }
-  res <- (-(log(sigma) + 0.5 * (log(2) + log(pi)))) +
+  logpdf <- (-(log(sigma) + 0.5 * (log(2) + log(pi)))) +
     log(pi) + 2 * (-log(cos(pi * (x - 0.5)))) +
     (-(cauchit(x) - mu)^2) / (2 * (sigma^2))
   if (log) {
-    return(res)
+    return(logpdf)
   } else {
-    return(exp(res))
+    return(exp(logpdf))
   }
 }
 

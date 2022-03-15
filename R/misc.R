@@ -34,22 +34,6 @@ logistic <- function(x) {
   return(inv_logit(x))
 }
 
-#' Title
-#'
-#' @param y
-#' @param mu
-#'
-#' @return
-#' @export
-#'
-#' @examples
-unit_deviance <- function(y, mu) {
-  return(
-    ((y - mu)^2) /
-      (y * (1 - y) * mu^2 * (1 - mu)^2)
-  )
-}
-
 
 #' Title
 #'

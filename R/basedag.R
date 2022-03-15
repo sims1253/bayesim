@@ -21,6 +21,8 @@
 #' @param ...
 #' @param data_family
 #' @param seed
+#' @param resample
+#' @param testing_data
 #'
 #' @return
 #' @export
@@ -45,8 +47,9 @@ basedag_data <- function(data_N,
                          data_family,
                          lb,
                          ub,
+                         resample = 1.3,
                          seed = NULL,
-                         testing_data = FALSE,
+                         testing_data = TRUE,
                          ...) {
   if (!is.null(seed)) {
     set.seed(seed)
@@ -54,16 +57,16 @@ basedag_data <- function(data_N,
   dataset <- data.frame()
   iter <- 0
   if (testing_data) {
-    data_N <- data_N * 2
+    data_gen_size <- data_N * 2
+  } else {
+    data_gen_size <- data_N
   }
 
-  while (nrow(dataset) < data_N) {
-    iter <- iter + 1
-
-    z1 <- rnorm(1, sigma_z1)
-    z2 <- rnorm(1, sigma_z2)
-    z3 <- rnorm(1, sigma_z3)
-    x <- rnorm(1, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
+  while (nrow(dataset) < data_gen_size) {
+    z1 <- rnorm(n = resample * data_gen_size, mean = 0, sd = sigma_z1)
+    z2 <- rnorm(n = resample * data_gen_size, mean = 0, sd = sigma_z2)
+    z3 <- rnorm(n = resample * data_gen_size, mean = 0, sd = sigma_z3)
+    x <- rnorm(n = resample * data_gen_size, mean = (z1_x_coef * z1 + z3_x_coef * z3), sd = sigma_x)
 
     mu <- do.call(
       inv_link_lookup(data_link),
@@ -75,40 +78,46 @@ basedag_data <- function(data_N,
       )
     )
 
-    if (mu > lb & mu < ub) {
-      y <- do.call(
-        rng_lookup(data_family, data_link),
-        list(
-          1,
-          mu,
-          sigma_y
-        )
+    y <- do.call(
+      rng_lookup(data_family, data_link),
+      list(
+        length(mu),
+        mu,
+        sigma_y
       )
+    )
 
-      if (y > lb & y < ub) {
-        z4 <- rnorm(1, mean = (y_z4_coef * y + x_z4_coef * x), sd = sigma_z4)
+    sanitized_index <- which(y < ub & y > lb)
+    z1 <- z1[sanitized_index]
+    z2 <- z2[sanitized_index]
+    z3 <- z3[sanitized_index]
+    x <- x[sanitized_index]
+    y <- y[sanitized_index]
 
-        dataset <- rbind(
-          dataset,
-          data.frame(
-            z1 = z1,
-            z2 = z2,
-            z3 = z3,
-            z4 = z4,
-            x = x,
-            y = y
-          )
-        )
-      }
-    }
+    z4 <- rnorm(n = length(y), mean = (y_z4_coef * y + x_z4_coef * x), sd = sigma_z4)
+
+    dataset <- rbind(
+      dataset,
+      data.frame(
+        z1 = z1[1:min((data_gen_size - nrow(dataset)), length(y))],
+        z2 = z2[1:min((data_gen_size - nrow(dataset)), length(y))],
+        z3 = z3[1:min((data_gen_size - nrow(dataset)), length(y))],
+        z4 = z4[1:min((data_gen_size - nrow(dataset)), length(y))],
+        x = x[1:min((data_gen_size - nrow(dataset)), length(y))],
+        y = y[1:min((data_gen_size - nrow(dataset)), length(y))]
+      )
+    )
+    iter <- iter + 1
+    bad_samples <- (data_gen_size * resample) - length(y)
   }
 
   if (testing_data) {
     return(
       list(
-        dataset = dataset[1:(data_N / 2), ],
-        testing_data = dataset[((data_N / 2) + 1):data_N, ],
-        n_resample = (iter / 2) - data_N / 2
+        dataset = dataset[1:data_N, ],
+        testing_data = dataset[(data_N + 1):data_gen_size, ],
+        sampling_loops = iter,
+        bad_samples = bad_samples
       )
     )
   } else {
@@ -116,7 +125,8 @@ basedag_data <- function(data_N,
       list(
         dataset = dataset,
         testing_data = NULL,
-        n_resample = iter - data_N
+        sampling_loops = iter,
+        bad_samples = bad_samples
       )
     )
   }
@@ -145,5 +155,5 @@ data_gen_conf_y_analysis <- function(data_gen_conf) {
   print(paste("mean:", mean(dataset$y)))
   print(paste("median:", median(dataset$y)))
   print(paste("n_resample:", n_resample))
-  hist(dataset$y)
+  hist(dataset$y, main = paste(data_gen_conf$data_family, data_gen_conf$data_link, data_gen_conf$shape), breaks = 20)
 }

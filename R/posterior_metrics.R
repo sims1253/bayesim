@@ -116,8 +116,8 @@ q_true <- function(posterior_draws, x_y_coef, ...) {
 bad_pareto_ks <- function(fit, psis_object = NULL, ...) {
   if (is.null(psis_object)) {
     psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-    return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
   }
+  return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
 }
 
 
@@ -133,8 +133,8 @@ sampling_time <- function(fit) {
   times <- rstan::get_elapsed_time(fit$fit)
   return(
     list(
-      "warmup" = sum(times[, 1]),
-      "sample" = sum(times[, 2])
+      "warmup_time" = sum(times[, 1]),
+      "sampling_time" = sum(times[, 2])
     )
   )
 }

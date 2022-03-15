@@ -19,16 +19,16 @@ dkumaraswamy <- function(x, mu, p, log = FALSE) {
   if (isTRUE(any(p <= 0))) {
     stop("P must be above 0.")
   }
-  res <- log(p) +
+  logpdf <- log(p) +
     log(log(2)) -
     log(-(log1p(-mu^p))) +
     (p - 1) * log(x) +
     ((-(log(2) / log1p(-mu^p))) - 1) * log1p(-x^p)
 
   if (log) {
-    return(res)
+    return(logpdf)
   } else {
-    return(exp(res))
+    return(exp(logpdf))
   }
 }
 

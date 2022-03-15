@@ -25,7 +25,10 @@ dsimplex <- function(x, mu, sigma, log = FALSE) {
       2 * log(sigma) +
       3 * (log(x) + log1p(-x))
   ) +
-    ((-1 / (2 * sigma^2)) * unit_deviance(x, mu))
+    ((-1 / (2 * sigma^2)) * (
+      ((x - mu)^2) /
+        (x * (1 - x) * mu^2 * (1 - mu)^2)
+    ))
   if (log) {
     return(result)
   } else {

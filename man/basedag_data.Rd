@@ -24,13 +24,14 @@ basedag_data(
   data_family,
   lb,
   ub,
+  resample = 1.3,
   seed = NULL,
-  testing_data = FALSE,
+  testing_data = TRUE,
   ...
 )
 }
 \arguments{
-\item{seed}{}
+\item{testing_data}{}
 }
 \value{
 
