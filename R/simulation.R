@@ -27,9 +27,17 @@ fit_sim <- function(prefit,
     warmup = 500,
     iter = 2500,
     chains = 2,
-    backend = "cmdstanr",
+    # backend = "cmdstanr",
     seed = seed,
     init = 0.1
+  )
+
+  if (file.exists("~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS")) {
+    file.remove("~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS")
+  }
+  saveRDS(
+    list(fit = fit, data = dataset, conf = data_gen_conf, testing = testing_data),
+    "~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS"
   )
 
   all_metric_results <- do.call(
@@ -152,11 +160,10 @@ dataset_conf_sim <- function(data_gen_conf,
   if (file.exists(paste0(paste(path, data_gen_conf$id, sep = "/"), ".RDS"))) {
     return(readRDS(paste0(paste(path, data_gen_conf$id, sep = "/"), ".RDS")))
   } else {
-    if (ncores > 1){
+    if (ncores > 1) {
       `%dopar%` <- foreach::`%dopar%`
       results <- foreach::foreach(
         par_seed = seed_list
-        # .packages = c("brms", "bayesim")
       ) %dopar% {
         dataset_sim(
           data_gen_conf = data_gen_conf,
@@ -220,13 +227,16 @@ full_simulation <- function(data_gen_confs,
     size = nrow(data_gen_confs)
   )
   if (ncores > 1) {
-    # Multiprocessing setup TODO serial option.
-    cluster <- parallel::makeCluster(ncores, type = "FORK")
+    # Multiprocessing setup
+    cluster <- parallel::makeCluster(ncores, type = "PSOCK")
     doParallel::registerDoParallel(cluster)
+    # cluster <- snow::makeCluster(ncores, type = "SOCK")
+    # doSNOW::registerDoSNOW(cluster)
     on.exit({ # Teardown of multiprocessing setup
       try({
         doParallel::stopImplicitCluster()
         parallel::stopCluster(cluster)
+        # snow::stopCluster(cluster)
       })
     })
     parallel::clusterEvalQ(cl = cluster, {
@@ -336,7 +346,7 @@ reproduce_result <- function(result) {
     warmup = 500,
     iter = 2500,
     chains = 2,
-    backend = "cmdstanr",
+    # backend = "cmdstanr",
     seed = result$stan_seed,
     init = 0.1
   )

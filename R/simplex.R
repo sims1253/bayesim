@@ -36,6 +36,7 @@ dsimplex <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
+
 #' Title
 #'
 #' @param epsilon
@@ -57,6 +58,7 @@ rIG <-
     }
     return(as.numeric(xxx))
   }
+
 
 #' Title
 #'
@@ -81,6 +83,7 @@ rMIG <-
     return(as.numeric(xx))
   }
 
+
 #' Title
 #'
 #' @param n
@@ -95,12 +98,15 @@ rsimplex <-
   function(n, mu, sigma) {
     ## generating random number from simplex dist'n
     ## by transformation from inverse-gaussian mixture dist'n
-    if (isTRUE(any(mu <= 0 || mu >= 1))) {
+    if (any(mu < 0 | mu > 1)) {
       stop("The mean must be in (0,1).")
     }
-    if (isTRUE(any(sigma == 0))) {
+    mu[which(mu > 0.999999)] <- 0.999999
+    mu[which(mu < 0.000001)] <- 0.000001
+    if (any(sigma == 0)) {
       stop("sigma can not be 0.")
     }
+
     if (length(mu) == 1) {
       mu <- rep(mu, n)
     }
@@ -117,6 +123,7 @@ rsimplex <-
     return(as.vector(yy))
   }
 
+
 #' Title
 #'
 #' @param i
@@ -131,6 +138,7 @@ posterior_predict_simplex <- function(i, prep, ...) {
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(rsimplex(prep$ndraws, mu, sigma))
 }
+
 
 #' Title
 #'
@@ -147,6 +155,7 @@ log_lik_simplex <- function(i, prep) {
   return(dsimplex(y, mu, sigma, log = TRUE))
 }
 
+
 #' Title
 #'
 #' @param prep
@@ -157,6 +166,7 @@ log_lik_simplex <- function(i, prep) {
 posterior_epred_simplex <- function(prep) {
   return(brms::get_dpar(prep, "mu"))
 }
+
 
 #' Title
 #'
