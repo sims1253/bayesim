@@ -9,13 +9,15 @@ full_simulation(
   fit_confs,
   numeric_metrics,
   predictive_metrics,
-  ncores,
+  ncores_prefit = 1,
+  ncores_simulation = 1,
+  brms_backend = "cmdstanr",
   seed = NULL,
   path = NULL
 )
 }
 \arguments{
-\item{metrics}{}
+\item{fit_confs}{}
 }
 \value{
 

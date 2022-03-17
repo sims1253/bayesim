@@ -12,11 +12,12 @@ fit_sim(
   predictive_metrics,
   data_gen_conf,
   fit_conf,
+  brms_backend,
   seed
 )
 }
 \arguments{
-\item{fit_conf}{}
+\item{brms_backend}{}
 }
 \value{
 

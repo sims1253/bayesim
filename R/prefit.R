@@ -19,7 +19,7 @@ get_prefit <- function(family_list) {
     chains = 0,
     refresh = 0,
     silent = 2,
-    # backend = "cmdstanr",
+    backend = "cmdstanr",
     prior = c(
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = second_family_parameter_lookup(family_list$fit_family))
@@ -46,12 +46,24 @@ build_prefit_list <- function(fit_configuration, ncores) {
   ), as.list)
 
   if (ncores > 1) {
+    # Multiprocessing setup
+    cluster <- parallel::makeCluster(ncores, type = "PSOCK")
+    doParallel::registerDoParallel(cluster)
+    parallel::clusterEvalQ(cl = cluster, {
+      library(brms)
+      library(bayesim)
+    })
     `%dopar%` <- foreach::`%dopar%`
+
+    # Multiprocessing run
     results <- foreach::foreach(
       family_list = prefit_configurations
     ) %dopar% {
       get_prefit(family_list)
     }
+
+    # Multiprocessing teardown
+    parallel::stopCluster(cluster)
   } else {
     results <- vector(mode = "list", length = length(prefit_configurations))
     for (i in seq_along(prefit_configurations)) {

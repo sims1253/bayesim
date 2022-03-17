@@ -10,11 +10,12 @@ dataset_sim(
   prefits,
   numeric_metrics,
   predictive_metrics,
+  brms_backend,
   seed
 )
 }
 \arguments{
-\item{data_gen_conf}{}
+\item{brms_backend}{}
 }
 \value{
 

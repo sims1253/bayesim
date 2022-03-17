@@ -1,11 +1,14 @@
 #' Title
 #'
 #' @param dataset
-#' @param metrics
 #' @param seed
 #' @param data_gen_conf
 #' @param prefit
 #' @param fit_conf
+#' @param testing_data
+#' @param numeric_metrics
+#' @param predictive_metrics
+#' @param brms_backend
 #'
 #' @return
 #' @export
@@ -18,6 +21,7 @@ fit_sim <- function(prefit,
                     predictive_metrics,
                     data_gen_conf,
                     fit_conf,
+                    brms_backend,
                     seed) {
   fit <- stats::update(prefit,
     newdata = dataset,
@@ -27,17 +31,9 @@ fit_sim <- function(prefit,
     warmup = 500,
     iter = 2500,
     chains = 2,
-    # backend = "cmdstanr",
+    backend = brms_backend,
     seed = seed,
     init = 0.1
-  )
-
-  if (file.exists("~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS")) {
-    file.remove("~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS")
-  }
-  saveRDS(
-    list(fit = fit, data = dataset, conf = data_gen_conf, testing = testing_data),
-    "~/Documents/dr/choice-of-likelihood-paper/simulation_study/results/current.RDS"
   )
 
   all_metric_results <- do.call(
@@ -70,11 +66,13 @@ fit_sim <- function(prefit,
 
 #' Title
 #'
-#' @param metrics
 #' @param seed
 #' @param fit_confs
 #' @param prefits
 #' @param data_gen_conf
+#' @param numeric_metrics
+#' @param predictive_metrics
+#' @param brms_backend
 #'
 #' @return
 #' @export
@@ -85,6 +83,7 @@ dataset_sim <- function(data_gen_conf,
                         prefits,
                         numeric_metrics,
                         predictive_metrics,
+                        brms_backend,
                         seed) {
   final_result <- vector(mode = "list", length = nrow(fit_confs))
   loo_objects <- vector(mode = "list", length = nrow(fit_confs))
@@ -112,6 +111,7 @@ dataset_sim <- function(data_gen_conf,
       predictive_metrics = predictive_metrics,
       data_gen_conf = data_gen_conf,
       fit_conf = fit_conf,
+      brms_backend = brms_backend,
       seed = seed_list[[i]]
     )
     final_result[[i]] <- row_results$numeric_results
@@ -137,8 +137,11 @@ dataset_sim <- function(data_gen_conf,
 #' @param seed
 #' @param path
 #' @param fit_confs
-#' @param metrics
 #' @param prefits
+#' @param numeric_metrics
+#' @param predictive_metrics
+#' @param brms_backend
+#' @param ncores
 #'
 #' @return
 #' @export
@@ -151,6 +154,7 @@ dataset_conf_sim <- function(data_gen_conf,
                              prefits,
                              seed = NULL,
                              path = NULL,
+                             brms_backend,
                              ncores) {
   set.seed(seed)
   seed_list <- sample(1000000000:.Machine$integer.max,
@@ -161,7 +165,16 @@ dataset_conf_sim <- function(data_gen_conf,
     return(readRDS(paste0(paste(path, data_gen_conf$id, sep = "/"), ".RDS")))
   } else {
     if (ncores > 1) {
+      # Multiprocessing setup
+      cluster <- parallel::makeCluster(ncores, type = "PSOCK")
+      doParallel::registerDoParallel(cluster)
+      parallel::clusterEvalQ(cl = cluster, {
+        library(brms)
+        library(bayesim)
+      })
       `%dopar%` <- foreach::`%dopar%`
+
+      # Multiprocessing run
       results <- foreach::foreach(
         par_seed = seed_list
       ) %dopar% {
@@ -169,11 +182,15 @@ dataset_conf_sim <- function(data_gen_conf,
           data_gen_conf = data_gen_conf,
           fit_confs = fit_confs,
           prefits = prefits,
-          numeric_metrics,
-          predictive_metrics,
+          numeric_metrics = numeric_metrics,
+          predictive_metrics = predictive_metrics,
+          brms_backend = brms_backend,
           seed = par_seed
         )
       }
+
+      # Multiprocessing teardown
+      parallel::stopCluster(cluster)
     } else {
       results <- vector(mode = "list", length = length(seed_list))
       for (i in seq_along(seed_list)) {
@@ -201,12 +218,15 @@ dataset_conf_sim <- function(data_gen_conf,
 
 #' Title
 #'
-#' @param ncores
 #' @param seed
 #' @param path
 #' @param data_gen_confs
+#' @param numeric_metrics
+#' @param predictive_metrics
+#' @param ncores_prefit
+#' @param ncores_simulation
+#' @param brms_backend
 #' @param fit_confs
-#' @param metrics
 #'
 #' @return
 #' @export
@@ -216,7 +236,9 @@ full_simulation <- function(data_gen_confs,
                             fit_confs,
                             numeric_metrics,
                             predictive_metrics,
-                            ncores,
+                            ncores_prefit = 1,
+                            ncores_simulation = 1,
+                            brms_backend = "cmdstanr",
                             seed = NULL,
                             path = NULL) {
   # Set seed for reproducability.
@@ -226,28 +248,10 @@ full_simulation <- function(data_gen_confs,
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = nrow(data_gen_confs)
   )
-  if (ncores > 1) {
-    # Multiprocessing setup
-    cluster <- parallel::makeCluster(ncores, type = "PSOCK")
-    doParallel::registerDoParallel(cluster)
-    # cluster <- snow::makeCluster(ncores, type = "SOCK")
-    # doSNOW::registerDoSNOW(cluster)
-    on.exit({ # Teardown of multiprocessing setup
-      try({
-        doParallel::stopImplicitCluster()
-        parallel::stopCluster(cluster)
-        # snow::stopCluster(cluster)
-      })
-    })
-    parallel::clusterEvalQ(cl = cluster, {
-      library(brms) # make sure we load the package on the cluster
-      library(bayesim)
-    })
-  }
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.
-  prefit_list <- build_prefit_list(fit_configuration = fit_confs, ncores = ncores)
+  prefit_list <- build_prefit_list(fit_configuration = fit_confs, ncores = ncores_prefit)
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results
@@ -260,11 +264,13 @@ full_simulation <- function(data_gen_confs,
       prefits = prefit_list,
       seed = seed_list[[i]],
       path = path,
-      ncores = ncores
+      brms_backend = brms_backend,
+      ncores = ncores_simulation
     )
   }
   final_result <- do.call(rbind, final_result)
   final_result$global_seed <- seed
+  final_result$brms_backend <- brms_backend
 
   if (!is.null(path)) {
     saveRDS(final_result, paste(path, "full_sim_result.RDS", sep = "/"))
@@ -287,36 +293,6 @@ full_simulation <- function(data_gen_confs,
 #'
 #' @examples
 reproduce_result <- function(result) {
-  data_gen_conf <- list(
-    z1_x_coef = result$z1_x_coef,
-    z3_x_coef = result$z3_x_coef,
-    z1_y_coef = result$z1_y_coef,
-    z2_y_coef = result$z2_y_coef,
-    x_z4_coef = result$x_z4_coef,
-    y_z4_coef = result$y_z4_coef,
-    sigma_z1 = result$sigma_z1,
-    sigma_z2 = result$sigma_z2,
-    sigma_z3 = result$sigma_z3,
-    sigma_z4 = result$sigma_z4,
-    sigma_x = result$sigma_x,
-    data_N = result$data_N,
-    dataset_N = result$dataset_N,
-    data_family = result$data_family,
-    data_link = result$data_link,
-    lb = result$lb,
-    ub = result$ub,
-    x_y_coef = result$x_y_coef,
-    y_intercept = result$y_intercept,
-    sigma_y = result$sigma_y
-  )
-
-  datagen_result <- do.call(
-    basedag_data,
-    c(list(result$dataset_seed), data_gen_conf)
-  )
-  dataset <- datagen_result$dataset
-  n_resample <- datagen_result$n_resample
-
   family <- brms_family_lookup(
     result$fit_family,
     result$fit_link
@@ -337,17 +313,50 @@ reproduce_result <- function(result) {
     init = 0.1
   )
 
-  fit <- stats::update(
-    prefit,
+  data_gen_conf <- list(
+    z1_x_coef = result$z1_x_coef,
+    z3_x_coef = result$z3_x_coef,
+    z1_y_coef = result$z1_y_coef,
+    z2_y_coef = result$z2_y_coef,
+    x_z4_coef = result$x_z4_coef,
+    y_z4_coef = result$y_z4_coef,
+    sigma_z1 = result$sigma_z1,
+    sigma_z2 = result$sigma_z2,
+    sigma_z3 = result$sigma_z3,
+    sigma_z4 = result$sigma_z4,
+    sigma_x = result$sigma_x,
+    data_N = result$data_N,
+    dataset_N = result$dataset_N,
+    data_family = result$data_family,
+    data_link = result$data_link,
+    lb = result$lb,
+    ub = result$ub,
+    resample = result$resample,
+    x_y_coef = result$x_y_coef,
+    y_intercept = result$y_intercept,
+    sigma_y = result$sigma_y,
+    shape = result$shape
+  )
+
+  datagen_result <- do.call(
+    basedag_data,
+    c(list(seed = seed), data_gen_conf)
+  )
+  dataset <- datagen_result$dataset
+  sampling_loops <- datagen_result$sampling_loops
+  bad_samples <- datagen_result$bad_samples
+  testing_data <- datagen_result$testing_data
+
+  fit <- stats::update(prefit,
     newdata = dataset,
-    formula. = brms::brmsformula(result$formula),
+    formula. = brms::brmsformula(fit_conf$formula),
     refresh = 0,
     silent = 2,
     warmup = 500,
     iter = 2500,
     chains = 2,
-    # backend = "cmdstanr",
-    seed = result$stan_seed,
+    backend = result$brms_backend,
+    seed = seed,
     init = 0.1
   )
 
@@ -355,7 +364,9 @@ reproduce_result <- function(result) {
     list(
       fit = fit,
       dataset = dataset,
-      testing_data = datagen_result$testing_data
+      testing_data = datagen_result$testing_data,
+      sampling_loops = sampling_loops,
+      bad_samples = bad_samples
     )
   )
 }

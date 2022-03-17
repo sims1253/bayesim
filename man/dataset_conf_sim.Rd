@@ -12,11 +12,12 @@ dataset_conf_sim(
   prefits,
   seed = NULL,
   path = NULL,
+  brms_backend,
   ncores
 )
 }
 \arguments{
-\item{prefits}{}
+\item{ncores}{}
 }
 \value{
 

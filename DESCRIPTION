@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: What the Package Does (Title Case)
-Version: 0.21.1.9000
+Version: 0.21.2.9000
 Author: Maximilian Scholz
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
@@ -16,6 +16,5 @@ Imports:
     foreach,
     parallel,
     doParallel,
-    dplyr,
     matrixStats
 RoxygenNote: 7.1.2
