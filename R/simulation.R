@@ -198,8 +198,9 @@ dataset_conf_sim <- function(data_gen_conf,
           data_gen_conf = data_gen_conf,
           fit_confs = fit_confs,
           prefits = prefits,
-          numeric_metrics,
-          predictive_metrics,
+          numeric_metrics = numeric_metrics,
+          predictive_metrics = predictive_metrics,
+          brms_backend = brms_backend,
           seed = seed_list[[i]]
         )
       }
