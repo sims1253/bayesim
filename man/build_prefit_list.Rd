@@ -4,7 +4,7 @@
 \alias{build_prefit_list}
 \title{Title}
 \usage{
-build_prefit_list(fit_configuration, ncores)
+build_prefit_list(fit_configuration)
 }
 \arguments{
 \item{fit_configuration}{}

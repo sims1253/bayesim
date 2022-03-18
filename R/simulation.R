@@ -171,6 +171,7 @@ dataset_conf_sim <- function(data_gen_conf,
       parallel::clusterEvalQ(cl = cluster, {
         library(brms)
         library(bayesim)
+        options(mc.cores = 1)
       })
       `%dopar%` <- foreach::`%dopar%`
 
@@ -237,7 +238,6 @@ full_simulation <- function(data_gen_confs,
                             fit_confs,
                             numeric_metrics,
                             predictive_metrics,
-                            ncores_prefit = 1,
                             ncores_simulation = 1,
                             brms_backend = "cmdstanr",
                             seed = NULL,
@@ -252,7 +252,7 @@ full_simulation <- function(data_gen_confs,
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.
-  prefit_list <- build_prefit_list(fit_configuration = fit_confs, ncores = ncores_prefit)
+  prefit_list <- build_prefit_list(fit_configuration = fit_confs)
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results

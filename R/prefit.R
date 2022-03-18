@@ -38,37 +38,16 @@ get_prefit <- function(family_list) {
 #' @export
 #'
 #' @examples
-build_prefit_list <- function(fit_configuration, ncores) {
+build_prefit_list <- function(fit_configuration) {
   prefit_configurations <- unique(fit_configuration[c("fit_family", "fit_link")])
   prefit_configurations <- lapply(split(
     prefit_configurations,
     sort(as.numeric(rownames(prefit_configurations)))
   ), as.list)
 
-  if (ncores > 1) {
-    # Multiprocessing setup
-    cluster <- parallel::makeCluster(ncores, type = "PSOCK")
-    doParallel::registerDoParallel(cluster)
-    parallel::clusterEvalQ(cl = cluster, {
-      library(brms)
-      library(bayesim)
-    })
-    `%dopar%` <- foreach::`%dopar%`
-
-    # Multiprocessing run
-    results <- foreach::foreach(
-      family_list = prefit_configurations
-    ) %dopar% {
-      get_prefit(family_list)
-    }
-
-    # Multiprocessing teardown
-    parallel::stopCluster(cluster)
-  } else {
-    results <- vector(mode = "list", length = length(prefit_configurations))
-    for (i in seq_along(prefit_configurations)) {
-      results[[i]] <- get_prefit(prefit_configurations[[i]])
-    }
+  results <- vector(mode = "list", length = length(prefit_configurations))
+  for (i in seq_along(prefit_configurations)) {
+    results[[i]] <- get_prefit(prefit_configurations[[i]])
   }
 
   prefit_list <- list()
