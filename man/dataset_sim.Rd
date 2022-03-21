@@ -11,7 +11,7 @@ dataset_sim(
   numeric_metrics,
   predictive_metrics,
   brms_backend,
-  cmdstanr_path,
+  cmdstan_path,
   seed
 )
 }
