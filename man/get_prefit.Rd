@@ -4,7 +4,7 @@
 \alias{get_prefit}
 \title{Title}
 \usage{
-get_prefit(family_list)
+get_prefit(family_list, brms_backend)
 }
 \arguments{
 \item{family_list}{}

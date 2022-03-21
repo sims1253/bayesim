@@ -6,7 +6,7 @@
 #' @export
 #'
 #' @examples
-get_prefit <- function(family_list) {
+get_prefit <- function(family_list, brms_backend) {
   family <- brms_family_lookup(
     family_list$fit_family,
     family_list$fit_link
@@ -19,7 +19,7 @@ get_prefit <- function(family_list) {
     chains = 0,
     refresh = 0,
     silent = 2,
-    backend = "cmdstanr",
+    backend = brms_backend,
     prior = c(
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = second_family_parameter_lookup(family_list$fit_family))
@@ -38,7 +38,7 @@ get_prefit <- function(family_list) {
 #' @export
 #'
 #' @examples
-build_prefit_list <- function(fit_configuration) {
+build_prefit_list <- function(fit_configuration, brms_backend) {
   prefit_configurations <- unique(fit_configuration[c("fit_family", "fit_link")])
   prefit_configurations <- lapply(split(
     prefit_configurations,
@@ -47,7 +47,7 @@ build_prefit_list <- function(fit_configuration) {
 
   results <- vector(mode = "list", length = length(prefit_configurations))
   for (i in seq_along(prefit_configurations)) {
-    results[[i]] <- get_prefit(prefit_configurations[[i]])
+    results[[i]] <- get_prefit(family_list = prefit_configurations[[i]], brms_backend = brms_backend)
   }
 
   prefit_list <- list()

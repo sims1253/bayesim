@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: What the Package Does (Title Case)
-Version: 0.22.0.9000
+Version: 0.22.1.9000
 Author: Maximilian Scholz
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
@@ -13,8 +13,10 @@ Imports:
     brms,
     posterior,
     stats,
+    matrixStats
+Suggests:
+    cmdstanr,
     foreach,
     parallel,
     doParallel,
-    matrixStats
 RoxygenNote: 7.1.2

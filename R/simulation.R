@@ -84,7 +84,11 @@ dataset_sim <- function(data_gen_conf,
                         numeric_metrics,
                         predictive_metrics,
                         brms_backend,
+                        cmdstanr_path,
                         seed) {
+  if (brms_backend == "cmdstanr") {
+    cmdstanr::set_cmdstan_path(cmdstanr_path)
+  }
   final_result <- vector(mode = "list", length = nrow(fit_confs))
   loo_objects <- vector(mode = "list", length = nrow(fit_confs))
   set.seed(seed)
@@ -155,6 +159,7 @@ dataset_conf_sim <- function(data_gen_conf,
                              seed = NULL,
                              path = NULL,
                              brms_backend,
+                             cmdstanr_path,
                              ncores) {
   set.seed(seed)
   seed_list <- sample(1000000000:.Machine$integer.max,
@@ -186,6 +191,7 @@ dataset_conf_sim <- function(data_gen_conf,
           numeric_metrics = numeric_metrics,
           predictive_metrics = predictive_metrics,
           brms_backend = brms_backend,
+          cmdstanr_path = cmdstanr_path,
           seed = par_seed
         )
       }
@@ -202,6 +208,7 @@ dataset_conf_sim <- function(data_gen_conf,
           numeric_metrics = numeric_metrics,
           predictive_metrics = predictive_metrics,
           brms_backend = brms_backend,
+          cmdstanr_path = cmdstanr_path,
           seed = seed_list[[i]]
         )
       }
@@ -239,7 +246,8 @@ full_simulation <- function(data_gen_confs,
                             numeric_metrics,
                             predictive_metrics,
                             ncores_simulation = 1,
-                            brms_backend = "cmdstanr",
+                            brms_backend = "rstan",
+                            cmdstanr_path = "~/.cmdstanr/cmdstan-2.29.1",
                             seed = NULL,
                             path = NULL) {
   # Set seed for reproducability.
@@ -249,10 +257,13 @@ full_simulation <- function(data_gen_confs,
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = nrow(data_gen_confs)
   )
+  if (brms_backend == "cmdstanr") {
+    cmdstanr::set_cmdstan_path(cmdstanr_path)
+  }
 
   # Compile a list of model configurations to be updated throughout the simulation
   # This prevents unnecessary compilation times and prevents dll overflow.
-  prefit_list <- build_prefit_list(fit_configuration = fit_confs)
+  prefit_list <- build_prefit_list(fit_configuration = fit_confs, brms_backend = brms_backend)
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results
@@ -266,6 +277,7 @@ full_simulation <- function(data_gen_confs,
       seed = seed_list[[i]],
       path = path,
       brms_backend = brms_backend,
+      cmdstanr_path = cmdstanr_path,
       ncores = ncores_simulation
     )
   }

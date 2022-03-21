@@ -10,7 +10,8 @@ full_simulation(
   numeric_metrics,
   predictive_metrics,
   ncores_simulation = 1,
-  brms_backend = "cmdstanr",
+  brms_backend = "rstan",
+  cmdstanr_path = "~/.cmdstanr/cmdstan-2.29.1",
   seed = NULL,
   path = NULL
 )

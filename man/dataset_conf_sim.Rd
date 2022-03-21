@@ -13,6 +13,7 @@ dataset_conf_sim(
   seed = NULL,
   path = NULL,
   brms_backend,
+  cmdstanr_path,
   ncores
 )
 }
