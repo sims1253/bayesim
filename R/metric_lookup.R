@@ -36,11 +36,13 @@ metric_lookup <- function(identifier,
       "mae_s" = return(mae_s(posterior_draws, ...)),
       "p_mean" = return(p_mean(posterior_draws)),
       "p_sd" = return(p_sd(posterior_draws)),
-      "elpd_loo" = return(elpd_loo_handler(fit)),
       "pos_prob" = return(pos_prob(posterior_draws)),
+      "elpd_loo" = return(elpd_loo_handler(fit)),
+      "elpd_newdata" = return(elpd_newdata(fit, testing_data)),
       "rmse_loo" = return(rmse_loo(fit, ...)),
       "rmse_newdata" = return(rmse_newdata(fit, testing_data)),
-      "elpd_newdata" = return(elpd_newdata(fit, testing_data))
+      "r2_loo" = return(r2_loo(fit, ...)),
+      "r2_newdata" = return(r2_newdata(fit, testing_data))
     )
   }
 }
