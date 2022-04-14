@@ -318,7 +318,7 @@ reproduce_result <- function(result) {
     chains = 0,
     refresh = 0,
     silent = 2,
-    backend = "cmdstanr",
+    backend = result$brms_backend,
     prior = c(
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = second_family_parameter_lookup(result$fit_family))
