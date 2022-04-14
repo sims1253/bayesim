@@ -179,7 +179,7 @@ posterior_epred_simplex <- function(prep) {
 #' @export
 #'
 #' @examples
-simplex <- function(link = "logit", link_sigma = "log") {
+simplex <- function(link = "logit", link_sigma = "identity") {
   family <- brms::custom_family(
     "simplex",
     dpars = c("mu", "sigma"),

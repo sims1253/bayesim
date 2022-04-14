@@ -4,7 +4,7 @@
 \alias{simplex}
 \title{Title}
 \usage{
-simplex(link = "logit", link_sigma = "log")
+simplex(link = "logit", link_sigma = "identity")
 }
 \arguments{
 \item{link_sigma}{}
