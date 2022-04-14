@@ -348,12 +348,13 @@ reproduce_result <- function(result) {
     x_y_coef = result$x_y_coef,
     y_intercept = result$y_intercept,
     sigma_y = result$sigma_y,
-    shape = result$shape
+    shape = result$shape,
+    seed = result$dataset_seed
   )
 
   datagen_result <- do.call(
     basedag_data,
-    c(list(seed = seed), data_gen_conf)
+    data_gen_conf
   )
   dataset <- datagen_result$dataset
   sampling_loops <- datagen_result$sampling_loops
@@ -362,14 +363,14 @@ reproduce_result <- function(result) {
 
   fit <- stats::update(prefit,
     newdata = dataset,
-    formula. = brms::brmsformula(fit_conf$formula),
+    formula. = brms::brmsformula(result$formula),
     refresh = 0,
     silent = 2,
     warmup = 500,
     iter = 2500,
     chains = 2,
     backend = result$brms_backend,
-    seed = seed,
+    seed = result$stan_seed,
     init = 0.1
   )
 
@@ -379,7 +380,8 @@ reproduce_result <- function(result) {
       dataset = dataset,
       testing_data = datagen_result$testing_data,
       sampling_loops = sampling_loops,
-      bad_samples = bad_samples
+      bad_samples = bad_samples,
+      data_gen_conf = data_gen_conf
     )
   )
 }

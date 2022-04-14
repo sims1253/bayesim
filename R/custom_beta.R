@@ -17,3 +17,17 @@ rbeta_custom <- function(n, mu, phi) {
   }
   return(rbeta(n, mu * phi, (1 - mu) * phi))
 }
+
+#' Title
+#'
+#' @param x
+#' @param mu
+#' @param phi
+#'
+#' @return
+#' @export
+#'
+#' @examples
+dbeta_custom <- function(x, mu, phi){
+  dbeta(x, mu * phi, (1 - mu) * phi)
+}

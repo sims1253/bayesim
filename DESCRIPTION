@@ -1,8 +1,13 @@
 Package: bayesim
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.23.0.9000
-Author: Maximilian Scholz
+Title: Simulation-Study Framework for Bayesian Modeling
+Version: 0.24.0.9000
+Date: 2022-04-14
+Authors@R:
+    c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
+             role = c("aut", "cre")),
+      person("Paul-Christian", "Bürkner", email = "paul.buerkner@gmail.com",
+             role = c("ctb")))
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
@@ -13,10 +18,17 @@ Imports:
     brms,
     posterior,
     stats,
-    matrixStats
+    matrixStats,
+    latex2exp,
+    ggplot2,
+    ggthemes,
+    tidyr,
+    dplyr
 Suggests:
     cmdstanr,
     foreach,
     parallel,
     doParallel,
 RoxygenNote: 7.1.2
+
+
