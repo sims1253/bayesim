@@ -28,6 +28,6 @@ rbeta_custom <- function(n, mu, phi) {
 #' @export
 #'
 #' @examples
-dbeta_custom <- function(x, mu, phi){
+dbeta_custom <- function(x, mu, phi) {
   dbeta(x, mu * phi, (1 - mu) * phi)
 }
