@@ -49,15 +49,19 @@ plot_dist <- function(dist, bounds, pars, prefix = "d", parnames = NULL,
   if (prefix == "p") {
     gg <- gg +
       ggplot2::scale_y_continuous(breaks = c(0, 0.5, 1)) +
-      ggplot2::theme(axis.ticks.y = ggplot2::element_line(),
-            axis.text.y = ggplot2::element_text(),
-            axis.line.y = ggplot2::element_line())
+      ggplot2::theme(
+        axis.ticks.y = ggplot2::element_line(),
+        axis.text.y = ggplot2::element_text(),
+        axis.line.y = ggplot2::element_line()
+      )
   } else if (prefix == "q") {
     gg <- gg +
       ggplot2::scale_y_continuous() +
-      ggplot2::theme(axis.ticks.y = ggplot2::element_line(),
-            axis.text.y = ggplot2::element_text(),
-            axis.line.y = ggplot2::element_line())
+      ggplot2::theme(
+        axis.ticks.y = ggplot2::element_line(),
+        axis.text.y = ggplot2::element_text(),
+        axis.line.y = ggplot2::element_line()
+      )
   }
   return(gg)
 }

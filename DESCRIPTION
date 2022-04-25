@@ -1,12 +1,14 @@
 Package: bayesim
 Type: Package
 Title: Simulation-Study Framework for Bayesian Modeling
-Version: 0.24.2.9000
+Version: 0.25.0.9000
 Date: 2022-04-14
 Authors@R:
     c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
              role = c("aut", "cre")),
       person("Paul-Christian", "Bürkner", email = "paul.buerkner@gmail.com",
+             role = c("ctb")),
+      person("Yannick", "Dzubba", email = "yannick@dzubba.net",
              role = c("ctb")))
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
