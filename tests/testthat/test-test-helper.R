@@ -1,7 +1,10 @@
+
 test_that("test custom expect_eps function", {
   # wrong amount of arguments
   expect_error(expect_eps(1, 1))
   expect_error(expect_eps(1, 1, 1, 1))
+  # usage of characters, which is disallowed
+  expect_error(expect_eps(c("a", 1), c("b", 1.1), c(2, 0.2)))
   # all scalars
   expect_success(expect_eps(1, 1.1, 0.2))
   expect_success(expect_eps(1, 3, 3))
@@ -32,4 +35,25 @@ test_that("test custom expect_eps function", {
   expect_failure(expect_eps(c(1, 2), c(1.1, 1.1), c(0.2, 0.3)))
   expect_error(expect_eps(c(1, 1, 1), c(1.1, 1.1), c(0.2, 0.3)))
   expect_error(expect_eps(c(1, 1, 2), c(1.1, 1.1), c(0.2, 0.3)))
+})
+
+test_that("test custom expect_bigger", {
+  # tests, that should be correct
+  expect_success(expect_bigger(1, 0))
+  expect_success(expect_bigger(c(1, 2), 0))
+  expect_success(expect_bigger(1, c(-1, 0)))
+  expect_success(expect_bigger(c(1, 2), c(-1, 0)))
+  # tests, that should be incorrect
+  expect_failure(expect_bigger(0, 1))
+  expect_failure(expect_bigger(0, c(1, 2)))
+  expect_failure(expect_bigger(c(-1, 0), 1))
+  expect_failure(expect_bigger(c(-1, 0), c(1, 2)))
+  expect_failure(expect_bigger(1, c(0, 2)))
+  expect_failure(expect_bigger(c(2, 0), c(1, 2)))
+  # test, that are expected to throw an error
+  expect_error(expect_bigger(1))
+  expect_error(expect_bigger(1, 2, 3))
+  expect_error(expect_bigger(c(1, 2, 3), c(-1, 0)))
+  expect_error(expect_bigger("R", 1))
+  expect_error(expect_bigger(c(), 1))
 })
