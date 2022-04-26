@@ -3,7 +3,7 @@ library(testthat)
 #'
 #' @param a scalar or vector a to be compared
 #' @param b scalar or vector b to be compared
-#' @param eps scalar or vector, setting the max difference
+#' @param eps scalar or vector, setting the max differences, eps > 0
 #'
 #' @return expect_true(a close enought to b)
 #' @export
@@ -14,7 +14,11 @@ library(testthat)
 #' b <- {3, 4, 5}
 #' expect_eps(a, b, 10) should produce an error
 expect_eps <- function(a, b, eps) {
-  # first check, if vectors are of same length
+  # first check, that all eps are > 0
+  if(isTRUE(any(eps <= 0)))
+    stop("Tried checking against negative/zero differences")
+
+  # then check, if vectors are of same length
   vector_length <- max(length(a), length(b), length(eps))
 
   a_wrong   <- length(a) > 1 && length(a) != vector_length
@@ -23,6 +27,7 @@ expect_eps <- function(a, b, eps) {
   if(a_wrong || b_wrong || eps_wrong)
     stop("Used different length of vectors in test")
 
+  # last check, the actual value difference
   bool_comparison <- abs(a - b) < eps
   if(isTRUE(all(bool_comparison)))
     succeed("All entries of a and be were in the expected range")
