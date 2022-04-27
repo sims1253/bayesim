@@ -80,7 +80,7 @@ cauchit <- function(x) {
 }
 
 
-#' Invere Cauchit link function
+#' Inverse Cauchit link function equivalent to pcauchy
 #'
 #' @param x value of x to be transformed, any real scalar or vector allowed
 #'
@@ -88,7 +88,7 @@ cauchit <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -10 , to = 10 , length.out = 100)
-#' y <- logistic(x)
+#' y <- inv_cauchit(x)
 inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
