@@ -1,8 +1,8 @@
-#' Title
+#' Probability density function for the Beta-Prime distribution (aka. inverse Beta)
 #'
-#' @param x Model space, defined for x >= 0
-#' @param mu Mean parameter of pdf, mu > 0
-#' @param beta Second shape parameter of beta-prime, defined for beta > 1
+#' @param x Model space, defined for x >= 0, x may be scalar or vector
+#' @param mu Mean parameter of pdf, mu > 0, mu must be a scalar
+#' @param beta Second shape parameter of beta-prime, beta > 1 must be a scalar
 #' @param log Optional argument. If true, returns log(pdf). Normally False.
 #'
 #' @return pdf of beta-prime, with mean parameterasation
@@ -22,14 +22,25 @@ dbetaprime <- function(x, mu, beta, log = FALSE) {
   if (isTRUE(mu <= 0)) {
     stop("dbetaprime is only defined for mu > 0")
   }
+  if (isTRUE(length(mu) > 1 || length(beta) > 1)) {
+    stop("dbetaprime only works with scalar shape-parameters")
+  }
+
 
   # calculate the second argument for beta-prime, given mu
   alpha <- mu * (beta - 1)
 
-  # calculate the log of the pdf
-  lpdf <- (alpha - 1) * log(x) +
-    (-alpha - beta) * log1p(x) -
-    log(beta(alpha, beta))
+  # alpha == 1 results in a 0 * log(x), for a possible log(0), this is 0*-Inf = NaN
+  if (alpha == 1.0) {
+    lpdf <- (-alpha - beta) * log1p(x) -
+      log(beta(alpha, beta))
+  } else  {
+    # with alpha != 1, we get 0 != a <- alpha - 1. With this, we get a * -Inf,
+    # which is -Inf. And for x > 0, we get a real value. So it is fixed.
+    lpdf <- (alpha - 1) * log(x) +
+      (-alpha - beta) * log1p(x) -
+      log(beta(alpha, beta))
+  }
 
   # return either the log or the pdf itself, given the log-value
   if (log) {
