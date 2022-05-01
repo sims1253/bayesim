@@ -2,16 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{logistic}
 \alias{logistic}
-\title{Title}
+\title{Logistic link function, equivalent to Inverse-Logit link}
 \usage{
 logistic(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value of x to be transformed, any real scalar or vector allowed}
 }
 \value{
-
+logistic value of x
 }
 \description{
-Title
+Logistic link function, equivalent to Inverse-Logit link
+}
+\examples{
+x <- seq(from = -100 , to = 100 , length.out = 1000)
+y <- logistic(x)
 }

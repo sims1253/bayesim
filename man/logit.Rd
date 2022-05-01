@@ -2,16 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{logit}
 \alias{logit}
-\title{Title}
+\title{Logit link function}
 \usage{
 logit(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value of x to be transformed, 0 < x < 1}
 }
 \value{
-
+logit value of x
 }
 \description{
-Title
+Logit link function
+}
+\examples{
+x <- seq(from = 0.1 , to = 0.9 , length.out = 100)
+y <- logit(x)
 }

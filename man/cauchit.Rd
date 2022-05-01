@@ -2,16 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{cauchit}
 \alias{cauchit}
-\title{Title}
+\title{Cauchit link function}
 \usage{
 cauchit(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value of x to be transformed, not defined for x of whole integer}
 }
 \value{
-
+cauchit value of x
 }
 \description{
-Title
+Cauchit link function
+}
+\examples{
+x <- seq(from = 0.1, to = 0.9 , length.out = 100)
+y <- cauchit(x)
 }
