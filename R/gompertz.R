@@ -1,11 +1,11 @@
-#' Title
+#' Probability density function for the Gompertz distribution, with Median parametrization.
 #'
 #' @param x Model space, defined for x >= 0
 #' @param mu Median parameter of pdf, mu > 0
 #' @param eta Second shape parameter of Gompertz, defined for eta > 1
-#' @param log Optional argument. If true, returns log(pdf). Normally False.
+#' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
-#' @return pdf of gompertz distribution, with median parameterasation
+#' @return PDF of gompertz distribution, with median parametrization.
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 5, length.out = 100)
@@ -28,9 +28,9 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
   }
 
   # calculate missing argument b
-  # median = (1/b) * ln[(-1/eta)*ln(1/2)+1]
-  b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
+  # b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
   log_b <- -log(mu) + log(log1p((-1 / eta) * log(0.5)))
+  b <- exp(log_b)
   # calculate log-pdf with pdf = b * eta * exp(eta + bx - eta * exp(bx))
   lpdf <- log_b + log(eta) + (eta + b * x - eta * exp(b * x))
 
@@ -42,7 +42,7 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
   }
 }
 
-#' Title
+#' Quantile function for the Gompertz distribution, with Median parametrization.
 #'
 #' @param p Quantile to be calculated
 #' @param mu Median argument of Gompertz
@@ -75,7 +75,7 @@ qgompertz <- function(p, mu, eta) {
   return(x)
 }
 
-#' Title
+#' RNG function for the Gompertz distribution, with Median parametrization.
 #'
 #' @param n Number of draws
 #' @param mu Median argument of Gompertz
@@ -97,7 +97,7 @@ rgompertz <- function(n, mu, eta) {
   return(qgompertz(runif(n, min = 0, max = 1), mu = mu, eta = eta))
 }
 
-#' Title
+#' Log-Likelihood vignette for the Gompertz distribution, with Median parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -112,7 +112,7 @@ log_lik_gompertz <- function(i, prep) {
   return(dgompertz(y, mu, eta, log = TRUE))
 }
 
-#' Title
+#' Posterior-Prediction vignette for the Gompertz distribution, with Median parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -127,36 +127,20 @@ posterior_predict_gompertz <- function(i, prep, ...) {
   return(rgompertz(prep$ndraws, mu, eta))
 }
 
-# ei_expint <- function(x, scale = FALSE)
-#  -.External(C_expint_do_expint, "E1", -x, scale)
-# found as part of: https://cran.r-project.org/web/packages/expint/index.html
-
-#' Title
+#' Expectation-Predict vignette for the Gompertz distribution, with Median parametrization.
+#' Not defined for the Gompertz family.
 #'
 #' @param prep BRMS data
 #'
 #' @return Recover the given mean of data prep
 #'
 #' @examples
-# posterior_epred_gompertz <- function(prep) {
-#   # check for necessary package
-#   if(!installed.packages())
-#   # get the arguments out of the prep data
-#   mu <- get_dpar(prep, "mu")
-#   eta <- get_dpar(prep, "eta")
-#   # recover the missing b argument
-#   b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
-#   # calculate the mean
-#   mean <- (1 / b) * exp(eta) * ei_expint(-eta)
-#   return(mean)
-# }
 posterior_epred_gompertz <- function(prep) {
-  stop("posterior_epred is not defined for the gomperz family")
+  stop("posterior_epred is not defined for the gompertz family")
 }
 
 
-#'
-#' Title
+#' Gompertz Stan-implementation in median parametrization.
 #'
 #' @param link Link function for function
 #' @param link_eta Link function for eta argument

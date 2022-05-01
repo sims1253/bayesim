@@ -60,6 +60,7 @@ hist(data$y)
 
 fit1 <- brm(
   y ~ 1 + a,
+  init = 0.1,
   data = data,
   family = bayesim::gompertz(),
   stanvars = bayesim::gompertz()$stanvars,

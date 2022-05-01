@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{gompertz}
 \alias{gompertz}
-\title{Title}
+\title{Gompertz Stan-implementation in median parametrization.}
 \usage{
 gompertz(link = "log", link_eta = "log")
 }
@@ -15,7 +15,7 @@ gompertz(link = "log", link_eta = "log")
 BRMS gompertz distribution family
 }
 \description{
-Title
+Gompertz Stan-implementation in median parametrization.
 }
 \examples{
 data <- list(a = a, y = bayesim::rgompertz(n, exp(0.5 * a + 1), 0.2))

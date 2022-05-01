@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{log_lik_gompertz}
 \alias{log_lik_gompertz}
-\title{Title}
+\title{Log-Likelihood vignette for the Gompertz distribution, with Median parametrization.}
 \usage{
 log_lik_gompertz(i, prep)
 }
@@ -15,5 +15,5 @@ log_lik_gompertz(i, prep)
 Log-Likelihood of gompertz given data in prep
 }
 \description{
-Title
+Log-Likelihood vignette for the Gompertz distribution, with Median parametrization.
 }
