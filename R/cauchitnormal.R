@@ -128,10 +128,3 @@ cauchitnormal <- function(link = "identity", link_sigma = "log") {
   )
   return(family)
 }
-
-
-
-
-
-
-
