@@ -7,7 +7,7 @@
 #'
 #' @examples
 logit <- function(x) {
-  return(log(x) - log1p(-x))
+  return(qlogis(x))
 }
 
 #' Title
@@ -19,7 +19,7 @@ logit <- function(x) {
 #'
 #' @examples
 inv_logit <- function(x) {
-  return(1 / (1 + exp(-x)))
+  return(plogis(x))
 }
 
 #' Title
@@ -70,7 +70,7 @@ inv_cloglog <- function(x) {
 #'
 #' @examples
 cauchit <- function(x) {
-  tan(pi * (x - 0.5))
+  return(qcauchy(x))
 }
 
 

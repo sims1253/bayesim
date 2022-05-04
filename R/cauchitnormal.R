@@ -118,7 +118,7 @@ cauchitnormal <- function(link = "identity", link_sigma = "log") {
       real cauchitnormal_lpdf(real y, real mu, real sigma) {
         return (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
                log(pi()) + 2 * (-log(cos(pi() * (y - 0.5)))) +
-               (-(tan(pi() * (y - 0.5)) - mu)^2) / (2 * (sigma^2));
+               (-(cauchy_lccdf(y| 0, 1) - mu)^2) / (2 * (sigma^2));
       }
 
       real cauchitnormal_rng(real mu, real sigma) {
@@ -128,3 +128,10 @@ cauchitnormal <- function(link = "identity", link_sigma = "log") {
   )
   return(family)
 }
+
+
+
+
+
+
+
