@@ -34,7 +34,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
   alpha <- mu * (phi + 1)
 
   lpdf <- (alpha - 1) * log(x) +
-    (-(alpha + beta)) * log(1 + x) -
+    (-(alpha + beta)) * log1p(x) -
     log(beta(alpha, beta))
 
   # return either the log or the pdf itself, given the log-value
@@ -177,7 +177,7 @@ betaprime <- function(link = "log", link_phi = "log") {
         real beta = phi + 2;
         real alpha = mu * (phi + 1);
         return  (alpha-1) * log(y) +
-                (-(alpha + beta)) * log(1 + y) -
+                (-(alpha + beta)) * log1p(y) -
                 log(beta(alpha, beta));
       }
 
