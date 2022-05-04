@@ -2,16 +2,16 @@
 % Please edit documentation in R/beta_prime.R
 \name{dbetaprime}
 \alias{dbetaprime}
-\title{Title}
+\title{Probability density function for the Beta-Prime distribution (aka. inverse Beta)}
 \usage{
 dbetaprime(x, mu, beta, log = FALSE)
 }
 \arguments{
-\item{x}{Model space, defined for x >= 0}
+\item{x}{Model space, defined for x >= 0, x may be scalar or vector}
 
-\item{mu}{Mean parameter of pdf, mu > 0}
+\item{mu}{Mean parameter of pdf, mu > 0, mu must be a scalar}
 
-\item{beta}{Second shape parameter of beta-prime, defined for beta > 1}
+\item{beta}{Second shape parameter of beta-prime, beta > 1 must be a scalar}
 
 \item{log}{Optional argument. If true, returns log(pdf). Normally False.}
 }
@@ -19,7 +19,7 @@ dbetaprime(x, mu, beta, log = FALSE)
 pdf of beta-prime, with mean parameterasation
 }
 \description{
-Title
+Probability density function for the Beta-Prime distribution (aka. inverse Beta)
 }
 \examples{
 x <- seq(from = 0, to = 100, length.out = 1000)
