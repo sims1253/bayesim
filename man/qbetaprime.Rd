@@ -4,17 +4,17 @@
 \alias{qbetaprime}
 \title{Title}
 \usage{
-qbetaprime(p, mu, beta)
+qbetaprime(p, mu, phi)
 }
 \arguments{
 \item{p}{Probabilities, for which to calculate the quantiles}
 
-\item{mu}{Mean of the beta-prime, mu > 0}
+\item{mu}{Mean, mu > 0.}
 
-\item{beta}{Beta Shape Argument of beta-prime, beta > 1}
+\item{phi}{Precision, phi > 0.}
 }
 \value{
-Quantiles of the beta-prime distribution, given p, mu and beta
+Quantiles of the beta-prime distribution, given p, mu and phi
 }
 \description{
 Title

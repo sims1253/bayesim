@@ -4,21 +4,21 @@
 \alias{rbetaprime}
 \title{Title}
 \usage{
-rbetaprime(n, mu, beta)
+rbetaprime(n, mu, phi)
 }
 \arguments{
-\item{n}{Number of beta-prime samples, to be calculated for RNG.}
+\item{n}{Number of beta-prime samples.}
 
-\item{mu}{Mean of beta-prime distribution}
+\item{mu}{Mean, mu > 0.}
 
-\item{beta}{Beta shape argument, of beta-prime}
+\item{phi}{Precision, phi > 0.}
 }
 \value{
-Randomly samples distributed as beta-prime-
+Random numbers from the beta-prime distribution.
 }
 \description{
 Title
 }
 \examples{
-y <- bayesim::rbetaprime(100, mu = 1, beta = 2)
+y <- bayesim::rbetaprime(100, mu = 1, phi = 2)
 }
