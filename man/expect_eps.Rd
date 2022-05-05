@@ -2,39 +2,42 @@
 % Please edit documentation in R/test-helper.R
 \name{expect_eps}
 \alias{expect_eps}
-\title{Check that |a - b| < eps. Works with scalars and vectors on any input.}
+\title{Check that |a - b| < eps. Works with scalars and vectors on any input.
+For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.}
 \usage{
-expect_eps(a, b, eps)
+expect_eps(a, b, eps, r = 0)
 }
 \arguments{
 \item{a}{scalar or vector a to be compared}
 
 \item{b}{scalar or vector b to be compared}
 
-\item{eps}{scalar or vector, setting the max differences, eps > 0
+\item{eps}{scalar or vector, setting the max differences, eps > 0}
 
-For vector/scalar combinations, allowed are:
-all scalar
-a vector, b scalar, eps scalar -> compare a values to be close enough to b
-a scalar, b vector, eps scalar -> compare b values to be close enough to a
-a scalar, b scalar, eps vector -> compare the difference a, b too all eps
--> case not intended, but would work
-a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
-a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
-all vectors -> each entry of |a - b| is compared to the same entry in eps
--> different vector lengths != 1 dissallowed!}
+\item{r}{optional scalar (r = 0), relative number of values, that may have an difference > eps.
+Used internally, to calculate acceptable amount of deviances. Calculated absolute value will be floored.}
 }
 \value{
-expect_true(a close enought to b)
+success or failure with message
 }
 \description{
 Check that |a - b| < eps. Works with scalars and vectors on any input.
+For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
+}
+\details{
+
 }
 \examples{
-expect_eps(1, 1.1, 0.2) should pass
-expect_eps(-1, -1.1, 0.2) should pass
-expect_eps(-1.00001, -1.00001, 1e-4) should pass
-expect_eps(1, 1.3, 0.2) should fail
-expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) should produce an error
-expect_eps(1, 1.1, -0.2) should produce an error
+library(testthat)
+library(bayesim)
+expect_eps(1, 1.1, 0.2) #should pass
+expect_eps(-1, -1.1, 0.2) #should pass
+expect_eps(-1.00001, -1.00001, 1e-4) #should pass
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) #should pass (only 1/3 were wrong, but 40\% was allowed)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.1) #should fail (1/3 were wrong, but only 1/10 was allowed)
+expect_eps(1, 1.3, 0.2) #should fail (|a - b| = 0.3 > 0.2)
+expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) #should produce an error (different vector-lengths)
+expect_eps(1, 1.1, -0.2) #should produce an error (negative eps)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) #should produce an error (r too small)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) #should produce an error (r too big)
 }
