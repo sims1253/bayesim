@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{log_lik_lomax}
 \alias{log_lik_lomax}
-\title{Title}
+\title{Log-Likelihood vignette for the Lomax distribution, with Mean parametrization.}
 \usage{
 log_lik_lomax(i, prep)
 }
@@ -15,5 +15,5 @@ log_lik_lomax(i, prep)
 Log-Likelihood of Lomax given data in prep
 }
 \description{
-Title
+Log-Likelihood vignette for the Lomax distribution, with Mean parametrization.
 }

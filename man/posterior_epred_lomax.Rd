@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{posterior_epred_lomax}
 \alias{posterior_epred_lomax}
-\title{Title}
+\title{Expectation-Predict vignette for the Lomax distribution, with Mean parametrization.}
 \usage{
 posterior_epred_lomax(prep)
 }
@@ -13,5 +13,5 @@ posterior_epred_lomax(prep)
 Recover the given mean of data prep
 }
 \description{
-Title
+Expectation-Predict vignette for the Lomax distribution, with Mean parametrization.
 }

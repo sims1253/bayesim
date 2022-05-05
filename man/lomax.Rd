@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{lomax}
 \alias{lomax}
-\title{Title}
+\title{Lomax Stan-implementation in Mean parametrization.}
 \usage{
 lomax(link = "log", link_alpha = "log1p")
 }
@@ -15,7 +15,7 @@ lomax(link = "log", link_alpha = "log1p")
 BRMS Lomax distribution family
 }
 \description{
-Title
+Lomax Stan-implementation in Mean parametrization.
 }
 \examples{
 data <- list(a = a, y = bayesim::rlomax(n, exp(0.5 * a + 1), 2))

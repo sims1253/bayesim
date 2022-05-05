@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{qlomax}
 \alias{qlomax}
-\title{Title}
+\title{Quantile function for the Lomax distribution, with Mean parametrization.}
 \usage{
 qlomax(p, mu, alpha)
 }
@@ -17,7 +17,7 @@ qlomax(p, mu, alpha)
 Inverse of CDF, calculates a value, given a probability p
 }
 \description{
-Title
+Quantile function for the Lomax distribution, with Mean parametrization.
 }
 \examples{
 x <- seq(from = 0, to = 1, length.out = 100)
