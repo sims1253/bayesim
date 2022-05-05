@@ -4,7 +4,7 @@
 \alias{betaprime}
 \title{Title}
 \usage{
-betaprime(link = "log", link_beta = "log1p")
+betaprime(link = "log", link_phi = "log")
 }
 \arguments{
 \item{link}{Link function for function}

@@ -118,7 +118,7 @@ logitnormal <- function(link = "identity", link_sigma = "log") {
       real logitnormal_lpdf(real y, real mu, real sigma) {
         return (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
                (-(log(y) + log1m(y))) +
-               (-(logit(y) - mu)^2) / (2 * (sigma^2));
+               (-(logistic_lccdf(y| 0, 1) - mu)^2) / (2 * (sigma^2));
       }
 
       real logitnormal_rng(real mu, real sigma) {

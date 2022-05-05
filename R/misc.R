@@ -8,7 +8,7 @@
 #' @examples x <- seq(from = 0.1 , to = 0.9 , length.out = 100)
 #' y <- logit(x)
 logit <- function(x) {
-  return(log(x) - log1p(-x))
+  return(qlogis(x))
 }
 
 #' Inverse-Logit link function, equal to Logistic link
@@ -21,7 +21,7 @@ logit <- function(x) {
 #' @examples x <- seq(from = -100 , to = 100 , length.out = 1000)
 #' y <- inv_logit(x)
 inv_logit <- function(x) {
-  return(1 / (1 + exp(-x)))
+  return(plogis(x))
 }
 
 #' Logistic link function, equivalent to Inverse-Logit link
@@ -76,7 +76,7 @@ inv_cloglog <- function(x) {
 #' @examples x <- seq(from = 0.1, to = 0.9 , length.out = 100)
 #' y <- cauchit(x)
 cauchit <- function(x) {
-  tan(pi * (x - 0.5))
+  return(qcauchy(x))
 }
 
 

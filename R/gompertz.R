@@ -169,9 +169,10 @@ gompertz <- function(link = "log", link_eta = "log") {
   family$stanvars <- brms::stanvar(
     scode = "
       real gompertz_lpdf(real y, real mu, real eta) {
-        real b = (1 / mu) * log1p((-1 / eta) * log(0.5));
-        return((-log(mu) + log(log1p((-1 / eta) * log(0.5)))) +
-               log(eta) + (eta + b * y - eta * exp(b * y)));
+        real log_b = -log(mu) + log(log1p((-1 / eta) * log(0.5)));
+        real b = exp(log_b);
+        real lpdf = log_b + log(eta) + (eta + b * y - eta * exp(b * y));
+        return(lpdf);
       }
       real gompertz_rng(real mu, real eta) {
         return((1 / ((1 / mu) * log1p(-(1 / eta) * log(0.5)))) *

@@ -153,7 +153,9 @@ lomax <- function(link = "log", link_alpha = "log1p") {
   family$stanvars <- brms::stanvar(
     scode = "
       real lomax_lpdf(real y, real mu, real alpha) {
-        return(log(alpha) - log(mu) + log(alpha - 1) - (alpha + 1) * log1p(y / (mu * (alpha - 1))));
+        return(log(alpha) +
+               alpha * (log(mu) + log(alpha - 1)) -
+               (alpha + 1) * (log(y + (mu * (alpha - 1)))));
       }
 
       real lomax_rng(real mu, real alpha) {
