@@ -117,14 +117,12 @@ test_that("cauchit-link", {
   # check against another package
   testset_cauchit <- seq(from=eps, to=1-eps, length.out=n_testset)
   expect_eps(qcauchy(testset_cauchit), cauchit(testset_cauchit), 10*eps)
-  # cauchit is periodic, so check that
-  expect_eps(cauchit(1.1), cauchit(0.1), eps)
-  expect_eps(cauchit(1.4), cauchit(0.4), eps)
-  expect_eps(cauchit(1.5), cauchit(0.5), eps)
-  expect_eps(cauchit(1.8), cauchit(0.8), eps)
   # check values on the boundary, should logically be Inf, but just approach Inf
-  expect_bigger(abs(cauchit(0)), 1e+15)
-  expect_bigger(abs(cauchit(1)), 1e+15)
+  expect_equal(cauchit(0), -Inf)
+  expect_equal(cauchit(1), Inf)
+  # check values outside the defined scope are NaN and throw warning
+  expect_warning(expect_true(is.na(cauchit(-1))))
+  expect_warning(expect_true(is.na(cauchit(2))))
   # check, that non-numeric arguments result in an error
   expect_error(inv_cloglog("R"))
   expect_error(inv_cloglog("R", 0.5))
