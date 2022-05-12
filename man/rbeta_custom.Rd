@@ -2,16 +2,24 @@
 % Please edit documentation in R/custom_beta.R
 \name{rbeta_custom}
 \alias{rbeta_custom}
-\title{Title}
+\title{Custom Beta distribution RNG}
 \usage{
 rbeta_custom(n, mu, phi)
 }
 \arguments{
-\item{phi}{}
+\item{n}{Number of draws.}
+
+\item{mu}{Mean parameter.}
+
+\item{phi}{Phi parameter.}
 }
 \value{
-
+n samples beta distributed.
 }
 \description{
-Title
+Custom Beta distribution RNG
+}
+\examples{
+samples <- rbeta_custom(1000, 0.5, 1)
+hist(samples)
 }

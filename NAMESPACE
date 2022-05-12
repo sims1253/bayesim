@@ -2,6 +2,7 @@
 
 export(bad_pareto_ks)
 export(basedag_data)
+export(beta_custom)
 export(betaprime)
 export(brms_family_lookup)
 export(build_prefit_list)
