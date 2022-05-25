@@ -9,9 +9,6 @@ data_gen_conf_y_analysis(data_gen_conf)
 \arguments{
 \item{data_gen_conf}{}
 }
-\value{
-
-}
 \description{
 Title
 }

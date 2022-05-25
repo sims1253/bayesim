@@ -10,10 +10,10 @@
 #'
 #' @examples
 dkumaraswamy <- function(x, mu, p, log = FALSE) {
-  if (isTRUE(any(x <= 0 || x >= 1))) {
+  if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
   }
-  if (isTRUE(any(mu < 0 || mu > 1))) {
+  if (isTRUE(any(mu < 0 | mu > 1))) {
     stop("The mean must be in (0,1).")
   }
   mu[which(mu > 0.999999)] <- 0.999999
@@ -45,7 +45,7 @@ dkumaraswamy <- function(x, mu, p, log = FALSE) {
 #'
 #' @examples
 rkumaraswamy <- function(n, mu, p) {
-  if (isTRUE(any(mu < 0 || mu > 1))) {
+  if (isTRUE(any(mu < 0 | mu > 1))) {
     stop("The mean must be in (0,1).")
   }
   mu[which(mu > 0.999999)] <- 0.999999
@@ -70,10 +70,10 @@ rkumaraswamy <- function(n, mu, p) {
 #'
 #' @examples
 qkumaraswamy <- function(u, mu = 0.5, p = 1) {
-  if (isTRUE(any(u <= 0 || u >= 1))) {
+  if (isTRUE(any(u <= 0 | u >= 1))) {
     stop("u must be in (0,1).")
   }
-  if (isTRUE(any(mu <= 0 || mu >= 1))) {
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The median must be in (0,1).")
   }
   if (isTRUE(any(p <= 0))) {
@@ -98,10 +98,10 @@ qkumaraswamy <- function(u, mu = 0.5, p = 1) {
 #'
 #' @examples
 pkumaraswamy <- function(x, mu = 0.5, p = 1) {
-  if (isTRUE(any(x <= 0 || x >= 1))) {
+  if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
   }
-  if (isTRUE(any(mu <= 0 || mu >= 1))) {
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The median must be in (0,1).")
   }
   if (isTRUE(any(p <= 0))) {

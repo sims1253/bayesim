@@ -2,16 +2,32 @@
 % Please edit documentation in R/custom_beta.R
 \name{dbeta_custom}
 \alias{dbeta_custom}
-\title{Title}
+\title{Custom Beta distribibution density.}
 \usage{
 dbeta_custom(x, mu, phi)
 }
 \arguments{
-\item{phi}{}
+\item{x}{x-value}
+
+\item{mu}{Mean}
+
+\item{phi}{Precision}
 }
 \value{
-
+PDF of Custom Beta distribution, with mean parameterasation
 }
 \description{
-Title
+Custom Beta distribibution density.
+}
+\details{
+The beta-prime distribution has density
+\deqn{f(y) = {y^{\mu \phi - 1}(1 - y)^{(1 - \mu) \phi - 1} } / beta(\mu \phi, (1 - \mu) \phi) }
+}
+\examples{
+x <- seq(from = 0, to = 1, length.out = 100)
+phi <- 2
+mean <- 0.5
+y <- bayesim::dbeta_custom(x, mu = mean, phi = phi)
+plot(x, y, type = "l", ylab = "Density", main = "dbeta_custom(mu = 0.5, phi = 2)")
+# Compare to online ressources
 }

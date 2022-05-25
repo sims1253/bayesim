@@ -9,9 +9,6 @@ dkumaraswamy(x, mu, p, log = FALSE)
 \arguments{
 \item{log}{}
 }
-\value{
-
-}
 \description{
 Title
 }

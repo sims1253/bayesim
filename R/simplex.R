@@ -10,10 +10,10 @@
 #'
 #' @examples
 dsimplex <- function(x, mu, sigma, log = FALSE) {
-  if (isTRUE(any(x <= 0 || x >= 1))) {
+  if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
   }
-  if (isTRUE(any(mu < 0 || mu > 1))) {
+  if (isTRUE(any(mu < 0 | mu > 1))) {
     stop("The mean must be in (0,1).")
   }
   mu[which(mu > 0.999999)] <- 0.999999

@@ -9,9 +9,6 @@ posterior_epred_cauchitnormal(prep)
 \arguments{
 \item{prep}{}
 }
-\value{
-
-}
 \description{
 Title
 }

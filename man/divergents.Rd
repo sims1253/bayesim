@@ -9,9 +9,6 @@ divergents(fit)
 \arguments{
 \item{fit}{}
 }
-\value{
-
-}
 \description{
 Title
 }

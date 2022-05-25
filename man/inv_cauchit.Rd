@@ -9,9 +9,6 @@ inv_cauchit(x)
 \arguments{
 \item{x}{}
 }
-\value{
-
-}
 \description{
 Title
 }

@@ -10,7 +10,7 @@
 #'
 #' @examples
 dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
-  if (isTRUE(any(x <= 0 || x >= 1))) {
+  if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
   }
   if (isTRUE(any(sigma < 0))) {

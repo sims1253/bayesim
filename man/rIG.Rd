@@ -9,9 +9,6 @@ rIG(epsilon, Tau)
 \arguments{
 \item{Tau}{}
 }
-\value{
-
-}
 \description{
 Title
 }

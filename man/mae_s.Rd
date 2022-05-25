@@ -9,9 +9,6 @@ mae_s(posterior_draws, x_y_coef, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }

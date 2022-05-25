@@ -9,9 +9,6 @@ posterior_predict_cauchitnormal(i, prep, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }
