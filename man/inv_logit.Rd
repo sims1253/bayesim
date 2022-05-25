@@ -16,6 +16,6 @@ inverse logit value of x
 Inverse-Logit link function, equal to Logistic link
 }
 \examples{
-x <- seq(from = -100 , to = 100 , length.out = 1000)
+x <- seq(from = -100, to = 100, length.out = 1000)
 y <- inv_logit(x)
 }

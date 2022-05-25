@@ -13,7 +13,7 @@ test_that("logit-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(0, -1.38629436112, 0.847297860387), logit(c(0.5, 0.2, 0.7)), eps)
   # check link against link from another package
-  testset_logit <- seq(from=eps, to=1-eps, length.out=n_testset)
+  testset_logit <- seq(from = eps, to = 1 - eps, length.out = n_testset)
   expect_eps(brms:::logit(testset_logit), logit(testset_logit), eps)
   # check values outside the defined space, to throw warning
   expect_warning(logit(-1))
@@ -34,7 +34,7 @@ test_that("inverse-logit-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(0.5, 0.119202922022, 0.73105857863), inv_logit(c(0, -2, 1)), eps)
   # check link against link from another package
-  testset_invlogit <- seq(from=-10, to=10, length.out=n_testset)
+  testset_invlogit <- seq(from = -10, to = 10, length.out = n_testset)
   expect_eps(brms:::inv_logit(testset_invlogit), inv_logit(testset_invlogit), eps)
   # check values, for x to Inf
   expect_equal(1, inv_logit(Inf))
@@ -53,7 +53,7 @@ test_that("logistic-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(0.5, 0.119202922022, 0.73105857863), logistic(c(0, -2, 1)), eps)
   # equivalent to inverse logit
-  testset_logistic <- seq(from=-100, to=100, length.out=n_testset)
+  testset_logistic <- seq(from = -100, to = 100, length.out = n_testset)
   expect_equal(inv_logit(testset_logistic), logistic(testset_logistic))
   # also check against other package
   expect_eps(brms:::inv_logit(testset_logistic), logistic(testset_logistic), eps)
@@ -74,7 +74,7 @@ test_that("cloglog-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(-9.21029, -2.250367, -0.005764308, 0.475885), cloglog(c(0.0001, 0.1, 0.63, 0.8)), eps)
   # check link against link from another package
-  testset_cloglog <- seq(from=eps, to=1-eps, length.out=n_testset)
+  testset_cloglog <- seq(from = eps, to = 1 - eps, length.out = n_testset)
   expect_eps(brms:::cloglog(testset_cloglog), cloglog(testset_cloglog), eps)
   # check boundary values
   expect_equal(-Inf, cloglog(0))
@@ -96,7 +96,7 @@ test_that("inverse-cloglog-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(0.04856801, 0.3077994, 0.6321206, 0.934012), inv_cloglog(c(-3, -1, 0, 1)), eps)
   # check against another package
-  testset_invcloglog <- seq(from=-10, to=5, length.out=n_testset)
+  testset_invcloglog <- seq(from = -10, to = 5, length.out = n_testset)
   expect_eps(brms:::inv_cloglog(testset_invcloglog), inv_cloglog(testset_invcloglog), eps)
   # check, values of x to Inf, on the boundary of the defined space
   expect_equal(0, inv_cloglog(-Inf))
@@ -115,8 +115,8 @@ test_that("cauchit-link", {
   # check vector as argument returns vector with same results
   expect_eps(c(-3.077684, -0.3249197, 0, 1.376382), cauchit(c(0.1, 0.4, 0.5, 0.8)), eps)
   # check against another package
-  testset_cauchit <- seq(from=eps, to=1-eps, length.out=n_testset)
-  expect_eps(qcauchy(testset_cauchit), cauchit(testset_cauchit), 10*eps)
+  testset_cauchit <- seq(from = eps, to = 1 - eps, length.out = n_testset)
+  expect_eps(qcauchy(testset_cauchit), cauchit(testset_cauchit), 10 * eps)
   # check values on the boundary, should logically be Inf, but just approach Inf
   expect_equal(cauchit(0), -Inf)
   expect_equal(cauchit(1), Inf)
@@ -134,9 +134,9 @@ test_that("inv-cauchit-link", {
   expect_eps(0.5, inv_cauchit(0), eps)
   expect_eps(0.9682745, inv_cauchit(10), eps)
   # check vector as argument returns vector with same results
-  expect_eps(c(0.03172552, 0.5,  0.9682745), inv_cauchit(c(-10, 0, 10)), eps)
+  expect_eps(c(0.03172552, 0.5, 0.9682745), inv_cauchit(c(-10, 0, 10)), eps)
   # equivalent to pcauchy
-  testset_invcauchit <- seq(from=-10, to=10, length.out=n_testset)
+  testset_invcauchit <- seq(from = -10, to = 10, length.out = n_testset)
   expect_equal(pcauchy(testset_invcauchit), inv_cauchit(testset_invcauchit))
   # check x approaching Inf on boundry of defined space
   expect_equal(0, inv_cauchit(-Inf))

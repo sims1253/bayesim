@@ -24,10 +24,10 @@ both vectors -> compare each entry to the other entry
 -> different lengths != 1 dissallowed!
 }
 \examples{
-expect_bigger(1, 0) should pass
-expect_bigger(0, 1) should fail
-expect_bigger(c(1, 2), 0) should pass
-expect_bigger(c(0, 2), 1) should fail
-expect_bigger(c(1, 2), c(0, 3)) should fail
-expect_bigger(c(1, 2, 3), c(0, 1)) should produce an error
+expect_bigger(1, 0) # should pass
+expect_bigger(0, 1) # should fail
+expect_bigger(c(1, 2), 0) # should pass
+expect_bigger(c(0, 2), 1) # should fail
+expect_bigger(c(1, 2), c(0, 3)) # should fail
+expect_bigger(c(1, 2, 3), c(0, 1)) # should produce an error
 }

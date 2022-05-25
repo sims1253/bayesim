@@ -30,14 +30,14 @@ For vector input, one may defined, how many |a - b| >= eps are acceptable with r
 \examples{
 library(testthat)
 library(bayesim)
-expect_eps(1, 1.1, 0.2) #should pass
-expect_eps(-1, -1.1, 0.2) #should pass
-expect_eps(-1.00001, -1.00001, 1e-4) #should pass
-expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) #should pass (only 1/3 were wrong, but 40\% was allowed)
-expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.1) #should fail (1/3 were wrong, but only 1/10 was allowed)
-expect_eps(1, 1.3, 0.2) #should fail (|a - b| = 0.3 > 0.2)
-expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) #should produce an error (different vector-lengths)
-expect_eps(1, 1.1, -0.2) #should produce an error (negative eps)
-expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) #should produce an error (r too small)
-expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) #should produce an error (r too big)
+expect_eps(1, 1.1, 0.2) # should pass
+expect_eps(-1, -1.1, 0.2) # should pass
+expect_eps(-1.00001, -1.00001, 1e-4) # should pass
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) # should pass (only 1/3 were wrong, but 40\% was allowed)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.1) # should fail (1/3 were wrong, but only 1/10 was allowed)
+expect_eps(1, 1.3, 0.2) # should fail (|a - b| = 0.3 > 0.2)
+expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) # should produce an error (different vector-lengths)
+expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
+expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
 }

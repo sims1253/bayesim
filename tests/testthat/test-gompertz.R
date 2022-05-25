@@ -16,9 +16,9 @@ get_a <- function(mu, eta) {
   return(a)
 }
 
-n <- 10000   # number of testvalues
+n <- 10000 # number of testvalues
 eps <- 1e-6
-x <- exp(seq(from = eps , to = 200 , length.out = n)) # testset, exp(200) comes close to Max-Double
+x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 10
@@ -54,17 +54,17 @@ test_that("custom-gompertz", {
 
 
   # check many shape parameters
-  for(m in mus) {
-    for(eta in etas) {
+  for (m in mus) {
+    for (eta in etas) {
       expect_eps(bayesim::dgompertz(x, mu = m, eta = eta), extraDistr::dgompertz(x, get_a(m, eta), get_b(m, eta)), eps)
       expect_eps(bayesim::qgompertz(unit, mu = m, eta = eta), extraDistr::qgompertz(unit, get_a(m, eta), get_b(m, eta)), eps)
     }
   }
 
-  for(eta in etas_r) {
+  for (eta in etas_r) {
     length_mus_r <- length(mus_r)
     gompertz_rng_medians <- vector(length = length_mus_r)
-    for(i in 0:length_mus_r) {
+    for (i in 0:length_mus_r) {
       gompertz_rng_medians[i] <- median(bayesim::rgompertz(n, mu = mus_r[i], eta = eta))
     }
     expect_eps(gompertz_rng_medians, mus_r, accepted_median_eps, p_acceptable_failures)
@@ -75,21 +75,21 @@ test_that("custom-gompertz", {
   expect_error(bayesim::dgompertz(1, 2)) # to few arguments
   expect_error(bayesim::dgompertz(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::dgompertz(-1, mu = 2, eta = 2)) # x is not allowed to be smaller 0
-  expect_error(bayesim::dgompertz(1, mu = 0, eta = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::dgompertz(1, mu = 1, eta = 0))  # eta is not allowed to be 0 or smaller
-  expect_error(bayesim::dgompertz(1, mu = 0, eta = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::dgompertz(1, mu = 1, eta = 0))  # eta is not allowed to be 1 or smaller
+  expect_error(bayesim::dgompertz(1, mu = 0, eta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::dgompertz(1, mu = 1, eta = 0)) # eta is not allowed to be 0 or smaller
+  expect_error(bayesim::dgompertz(1, mu = 0, eta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::dgompertz(1, mu = 1, eta = 0)) # eta is not allowed to be 1 or smaller
   expect_error(bayesim::dgompertz("r", mu = 2, eta = 2)) # non-numeric arguments are disallowed
 
   # do same for quantile function
   expect_error(bayesim::qgompertz(1, 2)) # to few arguments
   expect_error(bayesim::qgompertz(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::qgompertz(-1, mu = 2, eta = 2)) # x is not allowed to be smaller 0
-  expect_error(bayesim::qgompertz(1, mu = 0, eta = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(1, mu = 1, eta = 0))  # eta is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, eta = 2))  # q is not allowed to be outside [0, 1]
-  expect_error(bayesim::qgompertz(1, mu = 0, eta = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(1, mu = 1, eta = 0))  # eta is not allowed to be 1 or smaller
+  expect_error(bayesim::qgompertz(1, mu = 0, eta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::qgompertz(1, mu = 1, eta = 0)) # eta is not allowed to be 0 or smaller
+  expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, eta = 2)) # q is not allowed to be outside [0, 1]
+  expect_error(bayesim::qgompertz(1, mu = 0, eta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::qgompertz(1, mu = 1, eta = 0)) # eta is not allowed to be 1 or smaller
   expect_error(bayesim::qgompertz("r", mu = 2, eta = 2)) # non-numeric arguments are disallowed
 
 
@@ -99,9 +99,8 @@ test_that("custom-gompertz", {
   expect_error(bayesim::rgompertz(-1, mu = 2, eta = 2)) # number of drawn samples cannot be smaller 0
   expect_warning(expect_error(bayesim::rgompertz("r", mu = 2, eta = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
-  expect_error(bayesim::rgompertz(100, mu = 0, eta = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::rgompertz(100, mu = 1, eta = -1))  # eta is not allowed to be 0 or smaller
-  expect_error(bayesim::rgompertz(100, mu = -1, eta = 2))  # mu is not allowed to be smaller than 0
-  expect_error(bayesim::rgompertz(100, mu = 1, eta = -1))  # eta is not allowed to be 1 or smaller
-
+  expect_error(bayesim::rgompertz(100, mu = 0, eta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::rgompertz(100, mu = 1, eta = -1)) # eta is not allowed to be 0 or smaller
+  expect_error(bayesim::rgompertz(100, mu = -1, eta = 2)) # mu is not allowed to be smaller than 0
+  expect_error(bayesim::rgompertz(100, mu = 1, eta = -1)) # eta is not allowed to be 1 or smaller
 })

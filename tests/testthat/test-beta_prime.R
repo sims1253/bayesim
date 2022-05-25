@@ -15,9 +15,9 @@ get_beta <- function(phi) {
   return(beta)
 }
 
-n <- 10000   # number of testvalues
+n <- 10000 # number of testvalues
 eps <- 1e-6
-x <- exp(seq(from = eps , to = 200 , length.out = n)) # testset, exp(200) comes close to Max-Double
+x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 10
@@ -30,7 +30,7 @@ mus_r <- seq(from = 1 + eps, to = 20, length.out = n_small)
 phis_r <- seq(from = 2 + eps, to = 20, length.out = n_small)
 
 test_that("custom-betaprime", {
-  #skip("Beta-Prime tests need to be updated for new parametrisation!")
+  # skip("Beta-Prime tests need to be updated for new parametrisation!")
   # calculate beta-prime
   dbetaprime_results <- bayesim::dbetaprime(x, mu = 1, phi = 2)
   qbetaprime_results <- bayesim::qbetaprime(unit, mu = 1, phi = 2)
@@ -45,8 +45,8 @@ test_that("custom-betaprime", {
   expect_eps(bayesim::qbetaprime(unit, mu = 1, phi = 4), extraDistr::qbetapr(unit, get_alpha(1, 4), get_beta(4)), eps)
 
   # check many shape parameters
-  for(m in mus) {
-    for(phi in phis) {
+  for (m in mus) {
+    for (phi in phis) {
       expect_eps(bayesim::dbetaprime(x, mu = m, phi = phi), extraDistr::dbetapr(x, get_alpha(m, phi), get_beta(phi)), eps)
       expect_eps(bayesim::qbetaprime(unit, mu = m, phi = phi), extraDistr::qbetapr(unit, get_alpha(m, phi), get_beta(phi)), eps)
     }
@@ -58,10 +58,10 @@ test_that("custom-betaprime", {
   expect_equal(n, length(betaprime_samples))
   expect_eps(mean(betaprime_samples), mu, accepted_means_eps) # this test should work most of the time, but might fail sometimes
 
-  for(phi in phis_r) {
+  for (phi in phis_r) {
     length_mus_r <- length(mus_r)
     beta_prime_rng_means <- vector(length = length_mus_r)
-    for(i in 0:length_mus_r) {
+    for (i in 0:length_mus_r) {
       beta_prime_rng_means[i] <- mean(bayesim::rbetaprime(n, mu = mus_r[i], phi = phi))
     }
     expect_eps(beta_prime_rng_means, mus_r, accepted_means_eps, p_acceptable_failures)
@@ -73,21 +73,21 @@ test_that("custom-betaprime", {
   expect_error(bayesim::dbetaprime(1, 2)) # to few arguments
   expect_error(bayesim::dbetaprime(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::dbetaprime(-1, mu = 2, phi = 2)) # x is not allowed to be smaller 0
-  expect_error(bayesim::dbetaprime(1, mu = 0, phi = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::dbetaprime(1, mu = 1, phi = 0))  # phi is not allowed to be 0 or smaller
-  expect_error(bayesim::dbetaprime(1, mu = 0, phi = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::dbetaprime(1, mu = 1, phi = 0))  # phi is not allowed to be 1 or smaller
+  expect_error(bayesim::dbetaprime(1, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::dbetaprime(1, mu = 1, phi = 0)) # phi is not allowed to be 0 or smaller
+  expect_error(bayesim::dbetaprime(1, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::dbetaprime(1, mu = 1, phi = 0)) # phi is not allowed to be 1 or smaller
   expect_error(bayesim::dbetaprime("r", mu = 2, phi = 2)) # non-numeric arguments are disallowed
 
   # do same for quantile function
   expect_error(bayesim::qbetaprime(1, 2)) # to few arguments
   expect_error(bayesim::qbetaprime(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::qbetaprime(-1, mu = 2, phi = 2)) # x is not allowed to be smaller 0
-  expect_error(bayesim::qbetaprime(1, mu = 0, phi = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::qbetaprime(1, mu = 1, phi = 0))  # phi is not allowed to be 0 or smaller
-  expect_error(bayesim::qbetaprime(c(-1, 2), mu = 2, phi = 2))  # q is not allowed to be outside [0, 1]
-  expect_error(bayesim::qbetaprime(1, mu = 0, phi = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::qbetaprime(1, mu = 1, phi = 0))  # phi is not allowed to be 1 or smaller
+  expect_error(bayesim::qbetaprime(1, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::qbetaprime(1, mu = 1, phi = 0)) # phi is not allowed to be 0 or smaller
+  expect_error(bayesim::qbetaprime(c(-1, 2), mu = 2, phi = 2)) # q is not allowed to be outside [0, 1]
+  expect_error(bayesim::qbetaprime(1, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::qbetaprime(1, mu = 1, phi = 0)) # phi is not allowed to be 1 or smaller
   expect_error(bayesim::qbetaprime("r", mu = 2, phi = 2)) # non-numeric arguments are disallowed
 
 
@@ -97,8 +97,8 @@ test_that("custom-betaprime", {
   expect_error(bayesim::rbetaprime(-1, mu = 2, phi = 2)) # number of drawn samples cannot be smaller 0
   expect_warning(expect_error(bayesim::rbetaprime("r", mu = 2, phi = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
-  expect_error(bayesim::rbetaprime(100, mu = 0, phi = 2))  # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::rbetaprime(100, mu = 1, phi = -1))  # phi is not allowed to be 0 or smaller
-  expect_error(bayesim::rbetaprime(100, mu = -1, phi = 2))  # mu is not allowed to be smaller than 0
-  expect_error(bayesim::rbetaprime(100, mu = 1, phi = -1))  # phi is not allowed to be 1 or smaller
+  expect_error(bayesim::rbetaprime(100, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(bayesim::rbetaprime(100, mu = 1, phi = -1)) # phi is not allowed to be 0 or smaller
+  expect_error(bayesim::rbetaprime(100, mu = -1, phi = 2)) # mu is not allowed to be smaller than 0
+  expect_error(bayesim::rbetaprime(100, mu = 1, phi = -1)) # phi is not allowed to be 1 or smaller
 })

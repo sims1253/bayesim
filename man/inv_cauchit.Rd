@@ -16,6 +16,6 @@ inverse cauchit of x
 Inverse Cauchit link function equivalent to pcauchy
 }
 \examples{
-x <- seq(from = -10 , to = 10 , length.out = 100)
+x <- seq(from = -10, to = 10, length.out = 100)
 y <- inv_cauchit(x)
 }

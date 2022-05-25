@@ -16,6 +16,6 @@ logit value of x
 Logit link function
 }
 \examples{
-x <- seq(from = 0.1 , to = 0.9 , length.out = 100)
+x <- seq(from = 0.1, to = 0.9, length.out = 100)
 y <- logit(x)
 }

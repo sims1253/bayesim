@@ -16,6 +16,6 @@ logistic value of x
 Logistic link function, equivalent to Inverse-Logit link
 }
 \examples{
-x <- seq(from = -100 , to = 100 , length.out = 1000)
+x <- seq(from = -100, to = 100, length.out = 1000)
 y <- logistic(x)
 }

@@ -16,6 +16,6 @@ inverse-cloglog value of x
 Inverse CLogLog link function
 }
 \examples{
-x <- seq(from = -3, to = 1 , length.out = 100)
+x <- seq(from = -3, to = 1, length.out = 100)
 y <- inv_cloglog(x)
 }
