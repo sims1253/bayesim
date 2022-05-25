@@ -9,9 +9,9 @@ dbeta_custom(x, mu, phi)
 \arguments{
 \item{x}{x-value}
 
-\item{mu}{Mean parameter.}
+\item{mu}{Mean}
 
-\item{phi}{Phi parameter.}
+\item{phi}{Precision}
 }
 \value{
 PDF of Custom Beta distribution, with mean parameterasation

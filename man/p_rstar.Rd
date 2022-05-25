@@ -9,9 +9,6 @@ p_rstar(fit)
 \arguments{
 \item{fit}{}
 }
-\value{
-
-}
 \description{
 Title
 }

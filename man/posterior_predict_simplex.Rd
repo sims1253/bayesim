@@ -9,9 +9,6 @@ posterior_predict_simplex(i, prep, ...)
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }

@@ -33,9 +33,6 @@ basedag_data(
 \arguments{
 \item{testing_data}{}
 }
-\value{
-
-}
 \description{
 Title
 }

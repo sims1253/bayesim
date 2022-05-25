@@ -9,9 +9,6 @@ logistic(x)
 \arguments{
 \item{x}{}
 }
-\value{
-
-}
 \description{
 Title
 }

@@ -85,18 +85,3 @@ cauchit <- function(x) {
 inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
-
-
-#' Title
-#'
-#' @param n
-#' @param mu
-#' @param phi
-#'
-#' @return
-#' @export
-#'
-#' @examples
-rbeta_mu <- function(n, mu, phi) {
-  rbeta(n, mu * phi, (1 - mu) * phi)
-}

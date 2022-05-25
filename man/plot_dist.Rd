@@ -18,9 +18,6 @@ plot_dist(
 \arguments{
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }

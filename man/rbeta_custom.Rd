@@ -9,9 +9,9 @@ rbeta_custom(n, mu, phi)
 \arguments{
 \item{n}{Number of draws.}
 
-\item{mu}{Mean parameter.}
+\item{mu}{Mean}
 
-\item{phi}{Phi parameter.}
+\item{phi}{Precision}
 }
 \value{
 n samples beta distributed.

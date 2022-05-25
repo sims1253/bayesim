@@ -9,9 +9,6 @@ rmse_newdata(fit, newdata)
 \arguments{
 \item{yrep}{}
 }
-\value{
-
-}
 \description{
 Title
 }

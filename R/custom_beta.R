@@ -1,8 +1,8 @@
 #' Custom Beta distribution RNG
 #'
 #' @param n Number of draws.
-#' @param mu Mean parameter.
-#' @param phi Phi parameter.
+#' @param mu Mean
+#' @param phi Precision
 #'
 #' @return n samples beta distributed.
 #' @export
@@ -22,10 +22,10 @@ rbeta_custom <- function(n, mu, phi) {
 #' Custom Beta distribibution density.
 #'
 #' @param x x-value
-#' @param mu Mean parameter.
-#' @param phi Phi parameter.
+#' @param mu Mean
+#' @param phi Precision
 #'
-#'@details The beta-prime distribution has density
+#' @details The beta-prime distribution has density
 #' \deqn{f(y) = {y^{\mu \phi - 1}(1 - y)^{(1 - \mu) \phi - 1} } / beta(\mu \phi, (1 - \mu) \phi) }
 #'
 #' @return PDF of Custom Beta distribution, with mean parameterasation
@@ -46,9 +46,6 @@ dbeta_custom <- function(x, mu, phi) {
   }
   dbeta(x, mu * phi, (1 - mu) * phi)
 }
-
-
-
 
 #' Log-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.
 #'
@@ -98,7 +95,6 @@ posterior_epred_beta <- function(prep) {
 #' @param link_phi Link function for phi argument
 #'
 #' @return BRMS Beta-Custom distribution family
-#' @export
 #'
 #' @examples n <- 10000
 #' a <- rnorm(n)

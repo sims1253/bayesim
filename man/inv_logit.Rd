@@ -9,9 +9,6 @@ inv_logit(x)
 \arguments{
 \item{x}{}
 }
-\value{
-
-}
 \description{
 Title
 }
