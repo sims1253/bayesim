@@ -9,9 +9,6 @@ inv_link_lookup(link)
 \arguments{
 \item{link}{}
 }
-\value{
-
-}
 \description{
 Title
 }

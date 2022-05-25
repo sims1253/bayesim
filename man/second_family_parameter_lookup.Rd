@@ -9,9 +9,6 @@ second_family_parameter_lookup(family)
 \arguments{
 \item{family}{}
 }
-\value{
-
-}
 \description{
 Title
 }

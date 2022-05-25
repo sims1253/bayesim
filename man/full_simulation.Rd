@@ -19,9 +19,6 @@ full_simulation(
 \arguments{
 \item{fit_confs}{}
 }
-\value{
-
-}
 \description{
 Title
 }

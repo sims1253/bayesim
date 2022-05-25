@@ -9,9 +9,6 @@ log_lik_simplex(i, prep)
 \arguments{
 \item{prep}{}
 }
-\value{
-
-}
 \description{
 Title
 }

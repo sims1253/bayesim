@@ -9,9 +9,6 @@ log_lik_cloglognormal(i, prep)
 \arguments{
 \item{prep}{}
 }
-\value{
-
-}
 \description{
 Title
 }

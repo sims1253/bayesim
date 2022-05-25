@@ -9,9 +9,6 @@ posterior_epred_kumaraswamy(prep)
 \arguments{
 \item{prep}{}
 }
-\value{
-
-}
 \description{
 Title
 }

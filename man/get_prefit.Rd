@@ -9,9 +9,6 @@ get_prefit(family_list, brms_backend)
 \arguments{
 \item{family_list}{}
 }
-\value{
-
-}
 \description{
 Title
 }

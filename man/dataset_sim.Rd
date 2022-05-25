@@ -18,9 +18,6 @@ dataset_sim(
 \arguments{
 \item{brms_backend}{}
 }
-\value{
-
-}
 \description{
 Title
 }

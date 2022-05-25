@@ -9,9 +9,6 @@ rkumaraswamy(n, mu, p)
 \arguments{
 \item{p}{}
 }
-\value{
-
-}
 \description{
 Title
 }
