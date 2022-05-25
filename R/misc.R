@@ -92,3 +92,41 @@ cauchit <- function(x) {
 inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+erf <- function(x) {
+  return(2 * pnorm(x * sqrt(2)) - 1)
+}
+
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+softplus <- function(x) {
+  return(log(exp(x) + 1))
+}
+
+
+#' Title
+#'
+#' @param x
+#'
+#' @return
+#' @export
+#'
+#' @examples
+inv_softplus <- function(x) {
+  return(log(exp(x) - 1))
+}

@@ -86,9 +86,9 @@ posterior_predict_logitnormal <- function(i, prep, ...) {
 #'
 #' @examples
 posterior_epred_logitnormal <- function(prep) {
-  # https://doi.org/10.1080/03610926.2020.1752723 might solve this
-  stop("Due to the mean not having an analytical solution for the logit-normal
-        distribution, posterior_epred is currently not supported.")
+  mu <- brms::get_dpar(prep, "mu", i = i)
+  sigma <- brms::get_dpar(prep, "sigma", i = i)
+  return(exp(mu + sigma^2 / 2))
 }
 
 #' Title

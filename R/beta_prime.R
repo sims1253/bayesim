@@ -20,13 +20,13 @@
 dbetaprime <- function(x, mu, phi, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
-    stop("dbetaprime is only defined for x > 0")
+    stop("betaprime is only defined for x > 0")
   }
   if (isTRUE(phi <= 0)) {
-    stop("dbetaprime is only defined for phi > 0")
+    stop("betaprime is only defined for phi > 0")
   }
   if (isTRUE(mu <= 0)) {
-    stop("dbetaprime is only defined for mu > 0")
+    stop("betaprime is only defined for mu > 0")
   }
 
   # calculate the second argument for beta-prime, given mu
@@ -63,10 +63,10 @@ qbetaprime <- function(p, mu, phi) {
     stop("p has to be in an interval of [0, 1]")
   }
   if (isTRUE(phi <= 0)) {
-    stop("qbetaprime is only defined for phi > 0")
+    stop("betaprime is only defined for phi > 0")
   }
   if (isTRUE(mu <= 0)) {
-    stop("qbetaprime is only defined for mu > 0")
+    stop("betaprime is only defined for mu > 0")
   }
 
   # calculate argument alpha of phi/betaprime
@@ -91,10 +91,10 @@ qbetaprime <- function(p, mu, phi) {
 rbetaprime <- function(n, mu, phi) {
   # check the arguments
   if (isTRUE(phi <= 0)) {
-    stop("qbetaprime is only defined for phi > 0")
+    stop("betaprime is only defined for phi > 0")
   }
   if (isTRUE(mu <= 0)) {
-    stop("qbetaprime is only defined for mu > 0")
+    stop("betaprime is only defined for mu > 0")
   }
   return(qbetaprime(runif(n, min = 0, max = 1), mu, phi))
 }
