@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{qgompertz}
 \alias{qgompertz}
-\title{Title}
+\title{Quantile function for the Gompertz distribution, with Median parametrization.}
 \usage{
 qgompertz(p, mu, eta)
 }
@@ -17,7 +17,7 @@ qgompertz(p, mu, eta)
 Inverse of CDF, calculates a value, given a probability p
 }
 \description{
-Title
+Quantile function for the Gompertz distribution, with Median parametrization.
 }
 \examples{
 x <- seq(from = 0, to = 1, length.out = 100)

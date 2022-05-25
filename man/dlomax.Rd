@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{dlomax}
 \alias{dlomax}
-\title{Title}
+\title{Probability density function for the Lomax distribution, with Mean parametrization.}
 \usage{
 dlomax(x, mu, alpha, log = FALSE)
 }
@@ -19,7 +19,7 @@ dlomax(x, mu, alpha, log = FALSE)
 PDF of Lomax Distribution
 }
 \description{
-Title
+Probability density function for the Lomax distribution, with Mean parametrization.
 }
 \examples{
 x <- seq(from = 0, to = 10, length.out = n)

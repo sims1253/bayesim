@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{rlomax}
 \alias{rlomax}
-\title{Title}
+\title{RNG function for the Lomax distribution, with Mean parametrization.}
 \usage{
 rlomax(n, mu, alpha)
 }
@@ -17,7 +17,7 @@ rlomax(n, mu, alpha)
 A Lomax distributed RNG vector of size n
 }
 \description{
-Title
+RNG function for the Lomax distribution, with Mean parametrization.
 }
 \examples{
 y <- bayesim::rlomax(n, mu = 2, eta = 2)

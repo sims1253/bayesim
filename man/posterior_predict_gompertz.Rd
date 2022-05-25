@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{posterior_predict_gompertz}
 \alias{posterior_predict_gompertz}
-\title{Title}
+\title{Posterior-Prediction vignette for the Gompertz distribution, with Median parametrization.}
 \usage{
 posterior_predict_gompertz(i, prep, ...)
 }
@@ -17,5 +17,5 @@ posterior_predict_gompertz(i, prep, ...)
 Posterior prediction of gompertz, given data in prep
 }
 \description{
-Title
+Posterior-Prediction vignette for the Gompertz distribution, with Median parametrization.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{dgompertz}
 \alias{dgompertz}
-\title{Title}
+\title{Probability density function for the Gompertz distribution, with Median parametrization.}
 \usage{
 dgompertz(x, mu, eta, log = FALSE)
 }
@@ -13,13 +13,13 @@ dgompertz(x, mu, eta, log = FALSE)
 
 \item{eta}{Second shape parameter of Gompertz, defined for eta > 1}
 
-\item{log}{Optional argument. If true, returns log(pdf). Normally False.}
+\item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
 }
 \value{
-pdf of gompertz distribution, with median parameterasation
+PDF of gompertz distribution, with median parametrization.
 }
 \description{
-Title
+Probability density function for the Gompertz distribution, with Median parametrization.
 }
 \examples{
 x <- seq(from = 0, to = 5, length.out = 100)

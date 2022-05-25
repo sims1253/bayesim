@@ -2,7 +2,7 @@
 % Please edit documentation in R/lomax.R
 \name{posterior_predict_lomax}
 \alias{posterior_predict_lomax}
-\title{Title}
+\title{Posterior-Prediction vignette for the Lomax distribution, with Mean parametrization.}
 \usage{
 posterior_predict_lomax(i, prep, ...)
 }
@@ -17,5 +17,5 @@ posterior_predict_lomax(i, prep, ...)
 Posterior prediction of Lomax, given data in prep
 }
 \description{
-Title
+Posterior-Prediction vignette for the Lomax distribution, with Mean parametrization.
 }

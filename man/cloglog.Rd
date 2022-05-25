@@ -2,13 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{cloglog}
 \alias{cloglog}
-\title{Title}
+\title{Complementary-Log-Log link function}
 \usage{
 cloglog(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value of x to be transformed, 0 < x < 1}
+}
+\value{
+cloglog value of x
 }
 \description{
-Title
+Complementary-Log-Log link function
+}
+\examples{
+x <- seq(from = 0.1, to = 0.9, length.out = 100)
+y <- cloglog(x)
 }

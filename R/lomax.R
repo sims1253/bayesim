@@ -1,4 +1,4 @@
-#' Title
+#' Probability density function for the Lomax distribution, with Mean parametrization.
 #'
 #' @param x Model space, defined for x >= 0
 #' @param mu Mean parameter of pdf, mu > 0
@@ -33,7 +33,7 @@ dlomax <- function(x, mu, alpha, log = FALSE) {
   }
 }
 
-#' Title
+#' Quantile function for the Lomax distribution, with Mean parametrization.
 #'
 #' @param p Quantile to be calculated
 #' @param mu Median argument of Lomax
@@ -46,7 +46,7 @@ dlomax <- function(x, mu, alpha, log = FALSE) {
 #' plot(x, bayesim::qgompertz(x, mu = 2, eta = 0.1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=2, eta=0.1)")
 qlomax <- function(p, mu, alpha) {
   # check arguments
-  if (isTRUE(any(x < 0))) {
+  if (isTRUE(any(p < 0))) {
     stop("The Lomax quantile function is defined only on the positive scale")
   }
   if (isTRUE(alpha <= 1)) {
@@ -60,7 +60,7 @@ qlomax <- function(p, mu, alpha) {
   return((mu * (alpha - 1)) * ((1 - p)^(-1 / alpha) - 1))
 }
 
-#' Title
+#' RNG function for the Lomax distribution, with Mean parametrization.
 #'
 #' @param n Number of draws
 #' @param mu Median argument of Lomax
@@ -82,7 +82,7 @@ rlomax <- function(n, mu, alpha) {
   return(qlomax(runif(n, min = 0, max = 1), mu = mu, alpha = alpha))
 }
 
-#' Title
+#' Log-Likelihood vignette for the Lomax distribution, with Mean parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -97,7 +97,7 @@ log_lik_lomax <- function(i, prep) {
   return(dlomax(y, mu, alpha, log = TRUE))
 }
 
-#' Title
+#' Posterior-Prediction vignette for the Lomax distribution, with Mean parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -112,7 +112,7 @@ posterior_predict_lomax <- function(i, prep, ...) {
   return(rgompertz(prep$ndraws, mu, alpha))
 }
 
-#' Title
+#' Expectation-Predict vignette for the Lomax distribution, with Mean parametrization.
 #'
 #' @param prep BRMS data
 #'
@@ -124,7 +124,7 @@ posterior_epred_lomax <- function(prep) {
   return(mu)
 }
 
-#' Title
+#' Lomax Stan-implementation in Mean parametrization.
 #'
 #' @param link Link function for function
 #' @param link_alpha Link function for eta argument

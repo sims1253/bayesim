@@ -2,7 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{rgompertz}
 \alias{rgompertz}
-\title{Title}
+\title{RNG function for the Gompertz distribution, with Median parametrization.}
 \usage{
 rgompertz(n, mu, eta)
 }
@@ -17,7 +17,7 @@ rgompertz(n, mu, eta)
 A Gompertz distributed RNG vector of size n
 }
 \description{
-Title
+RNG function for the Gompertz distribution, with Median parametrization.
 }
 \examples{
 y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)

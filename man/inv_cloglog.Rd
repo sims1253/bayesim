@@ -2,13 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{inv_cloglog}
 \alias{inv_cloglog}
-\title{Title}
+\title{Inverse CLogLog link function}
 \usage{
 inv_cloglog(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value of x to be transformed, any real scalar or vector allowed}
+}
+\value{
+inverse-cloglog value of x
 }
 \description{
-Title
+Inverse CLogLog link function
+}
+\examples{
+x <- seq(from = -3, to = 1, length.out = 100)
+y <- inv_cloglog(x)
 }
