@@ -72,10 +72,10 @@ basedag_data <- function(data_N,
       inv_link_lookup(data_link),
       list(
         y_intercept +
-          x_y_coef * x +
-          z1_y_coef * z1 +
-          z2_y_coef * z2
-      )
+        x_y_coef * x +
+        z1_y_coef * z1 +
+        z2_y_coef * z2
+        )
     )
 
     y <- do.call(

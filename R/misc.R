@@ -115,7 +115,7 @@ erf <- function(x) {
 #'
 #' @examples
 softplus <- function(x) {
-  return(log(exp(x) + 1))
+  return(log(exp(x) - 1))
 }
 
 
@@ -128,5 +128,5 @@ softplus <- function(x) {
 #'
 #' @examples
 inv_softplus <- function(x) {
-  return(log(exp(x) - 1))
+  return(log(exp(x) + 1))
 }

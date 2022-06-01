@@ -29,10 +29,10 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
 
   # calculate missing argument b
   # b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
-  log_b <- -log(mu) + log(log1p((-1 / eta) * log(0.5)))
+  log_b <- log(log1p((-1 / eta) * log(0.5))) -log(mu)
   b <- exp(log_b)
   # calculate log-pdf with pdf = b * eta * exp(eta + bx - eta * exp(bx))
-  lpdf <- log_b + log(eta) + (eta + b * x - eta * exp(b * x))
+  lpdf <- log_b + log(eta) + eta + b * x - eta * exp(b * x)
 
   # now return either log or normal value
   if (log) {
@@ -41,6 +41,7 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
     return(exp(lpdf))
   }
 }
+
 
 #' Quantile function for the Gompertz distribution, with Median parametrization.
 #'
