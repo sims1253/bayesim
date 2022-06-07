@@ -29,7 +29,7 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
 
   # calculate missing argument b
   # b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
-  log_b <- log(log1p((-1 / eta) * log(0.5))) -log(mu)
+  log_b <- log(log1p((-1 / eta) * log(0.5))) - log(mu)
   b <- exp(log_b)
   # calculate log-pdf with pdf = b * eta * exp(eta + bx - eta * exp(bx))
   lpdf <- log_b + log(eta) + eta + b * x - eta * exp(b * x)

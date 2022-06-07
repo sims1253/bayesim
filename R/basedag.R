@@ -72,10 +72,10 @@ basedag_data <- function(data_N,
       inv_link_lookup(data_link),
       list(
         y_intercept +
-        x_y_coef * x +
-        z1_y_coef * z1 +
-        z2_y_coef * z2
-        )
+          x_y_coef * x +
+          z1_y_coef * z1 +
+          z2_y_coef * z2
+      )
     )
 
     y <- do.call(
@@ -155,5 +155,5 @@ data_gen_conf_y_analysis <- function(data_gen_conf) {
   print(paste("mean:", mean(dataset$y)))
   print(paste("median:", median(dataset$y)))
   print(paste("n_resample:", n_resample))
-  hist(dataset$y, main = paste(data_gen_conf$data_family, data_gen_conf$data_link, data_gen_conf$shape), breaks = 20)
+  hist(dataset$y, main = paste(data_gen_conf$data_family, data_gen_conf$data_link, data_gen_conf$shape, "x_y_coef: ", data_gen_conf$x_y_coef), breaks = 20)
 }

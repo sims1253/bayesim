@@ -4,12 +4,12 @@
 \alias{rfrechet_custom}
 \title{Title}
 \usage{
-rfrechet_custom(n, mu, k)
+rfrechet_custom(n, mu, nu)
 }
 \arguments{
 \item{mu}{Mean}
 
-\item{k}{Shape}
+\item{nu}{Shape}
 }
 \description{
 Title

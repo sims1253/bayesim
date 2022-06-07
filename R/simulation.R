@@ -9,6 +9,8 @@
 #' @param numeric_metrics
 #' @param predictive_metrics
 #' @param brms_backend
+#' @param debug
+#' @param path
 #'
 #' @return
 #' @export
@@ -22,7 +24,9 @@ fit_sim <- function(prefit,
                     data_gen_conf,
                     fit_conf,
                     brms_backend,
-                    seed) {
+                    seed,
+                    debug,
+                    path) {
   fit <- stats::update(prefit,
     newdata = dataset,
     formula. = brms::brmsformula(fit_conf$formula),
@@ -35,6 +39,9 @@ fit_sim <- function(prefit,
     seed = seed,
     init = 0.1
   )
+  if (debug == TRUE) {
+    saveRDS(fit, paste0(paste(path, "fit", sep = "/"), ".RDS"))
+  }
 
   all_metric_results <- do.call(
     metric_list_handler,
@@ -48,6 +55,9 @@ fit_sim <- function(prefit,
       data_gen_conf
     )
   )
+  if (debug == TRUE) {
+    saveRDS(all_metric_results, paste0(paste(path, "all_metric_results", sep = "/"), ".RDS"))
+  }
   numeric_results <- all_metric_results$numeric_results
   loo_objects <- all_metric_results$loo_objects
   final_result <- list(
@@ -61,6 +71,9 @@ fit_sim <- function(prefit,
     ),
     loo_objects = loo_objects
   )
+  if (debug == TRUE) {
+    saveRDS(final_result, paste0(paste(path, "fit_result", sep = "/"), ".RDS"))
+  }
   return(final_result)
 }
 
@@ -73,6 +86,10 @@ fit_sim <- function(prefit,
 #' @param numeric_metrics
 #' @param predictive_metrics
 #' @param brms_backend
+#' @param cmdstan_path
+#' @param seed
+#' @param debug
+#' @param path
 #'
 #' @return
 #' @export
@@ -85,7 +102,9 @@ dataset_sim <- function(data_gen_conf,
                         predictive_metrics,
                         brms_backend,
                         cmdstan_path,
-                        seed) {
+                        seed,
+                        debug,
+                        path) {
   if (brms_backend == "cmdstanr") {
     cmdstanr::set_cmdstan_path(cmdstan_path)
   }
@@ -99,6 +118,10 @@ dataset_sim <- function(data_gen_conf,
     basedag_data,
     c(list(seed = seed), data_gen_conf)
   )
+  if (debug == TRUE) {
+    saveRDS(datagen_result, paste0(paste(path, "datagen_result", sep = "/"), ".RDS"))
+    saveRDS(data_gen_conf, paste0(paste(path, "data_gen_conf", sep = "/"), ".RDS"))
+  }
   dataset <- datagen_result$dataset
   sampling_loops <- datagen_result$sampling_loops
   bad_samples <- datagen_result$bad_samples
@@ -116,7 +139,9 @@ dataset_sim <- function(data_gen_conf,
       data_gen_conf = data_gen_conf,
       fit_conf = fit_conf,
       brms_backend = brms_backend,
-      seed = seed_list[[i]]
+      seed = seed_list[[i]],
+      debug = debug,
+      path = path
     )
     final_result[[i]] <- row_results$numeric_results
     loo_objects[[i]] <- row_results$loo_objects
@@ -131,6 +156,11 @@ dataset_sim <- function(data_gen_conf,
   final_result$dataset_seed <- seed
   final_result$bad_samples <- bad_samples
   final_result$sampling_loops <- sampling_loops
+
+  if (debug == TRUE) {
+    saveRDS(final_result, paste0(paste(path, "dataset_result", sep = "/"), ".RDS"))
+  }
+
   return(as.data.frame(final_result))
 }
 
@@ -146,6 +176,7 @@ dataset_sim <- function(data_gen_conf,
 #' @param predictive_metrics
 #' @param brms_backend
 #' @param ncores
+#' @param debug
 #'
 #' @return
 #' @export
@@ -160,7 +191,8 @@ dataset_conf_sim <- function(data_gen_conf,
                              path = NULL,
                              brms_backend,
                              cmdstan_path,
-                             ncores) {
+                             ncores,
+                             debug) {
   set.seed(seed)
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = data_gen_conf$dataset_N
@@ -192,7 +224,9 @@ dataset_conf_sim <- function(data_gen_conf,
           predictive_metrics = predictive_metrics,
           brms_backend = brms_backend,
           cmdstan_path = cmdstan_path,
-          seed = par_seed
+          seed = par_seed,
+          debug = debug,
+          path
         )
       }
 
@@ -208,8 +242,10 @@ dataset_conf_sim <- function(data_gen_conf,
           numeric_metrics = numeric_metrics,
           predictive_metrics = predictive_metrics,
           brms_backend = brms_backend,
-          cmdstanr_path = cmdstanr_path,
-          seed = seed_list[[i]]
+          cmdstan_path = cmdstan_path,
+          seed = seed_list[[i]],
+          debug = debug,
+          path
         )
       }
     }
@@ -236,6 +272,7 @@ dataset_conf_sim <- function(data_gen_conf,
 #' @param ncores_simulation
 #' @param brms_backend
 #' @param fit_confs
+#' @param debug
 #'
 #' @return
 #' @export
@@ -247,9 +284,10 @@ full_simulation <- function(data_gen_confs,
                             predictive_metrics,
                             ncores_simulation = 1,
                             brms_backend = "rstan",
-                            cmdstan_path = "~/.cmdstanr/cmdstan-2.29.1",
+                            cmdstan_path = "~/.cmdstanr/cmdstan-2.29.2",
                             seed = NULL,
-                            path = NULL) {
+                            path = NULL,
+                            debug = FALSE) {
   # Set seed for reproducability.
   if (!is.null(seed)) {
     set.seed(seed)
@@ -278,7 +316,8 @@ full_simulation <- function(data_gen_confs,
       path = path,
       brms_backend = brms_backend,
       cmdstan_path = cmdstan_path,
-      ncores = ncores_simulation
+      ncores = ncores_simulation,
+      debug = debug
     )
   }
   final_result <- do.call(rbind, final_result)
