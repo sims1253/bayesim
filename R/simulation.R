@@ -130,6 +130,10 @@ dataset_sim <- function(data_gen_conf,
   for (i in seq_len(nrow(fit_confs))) {
     fit_conf <- fit_confs[i, ]
     prefit <- prefits[[paste0(fit_conf$fit_family, fit_conf$fit_link)]]
+    if (debug == TRUE) {
+      saveRDS(fit_conf, paste0(paste(path, "fit_conf", sep = "/"), ".RDS"))
+      saveRDS(prefit, paste0(paste(path, "prefit", sep = "/"), ".RDS"))
+    }
     row_results <- fit_sim(
       prefit = prefit,
       dataset = dataset,
@@ -192,7 +196,8 @@ dataset_conf_sim <- function(data_gen_conf,
                              brms_backend,
                              cmdstan_path,
                              ncores,
-                             debug) {
+                             debug,
+                             global_seed) {
   set.seed(seed)
   seed_list <- sample(1000000000:.Machine$integer.max,
     size = data_gen_conf$dataset_N
@@ -252,6 +257,8 @@ dataset_conf_sim <- function(data_gen_conf,
 
     final_result <- do.call(rbind, results)
     final_result$data_config_seed <- seed
+    final_result$global_seed <- global_seed
+    final_result$brms_backend <- brms_backend
 
     if (!is.null(path)) {
       saveRDS(final_result, paste0(paste(path, data_gen_conf$id, sep = "/"), ".RDS"))
@@ -317,12 +324,11 @@ full_simulation <- function(data_gen_confs,
       brms_backend = brms_backend,
       cmdstan_path = cmdstan_path,
       ncores = ncores_simulation,
-      debug = debug
+      debug = debug,
+      global_seed = seed
     )
   }
   final_result <- do.call(rbind, final_result)
-  final_result$global_seed <- seed
-  final_result$brms_backend <- brms_backend
 
   if (!is.null(path)) {
     saveRDS(final_result, paste(path, "full_sim_result.RDS", sep = "/"))
@@ -358,11 +364,7 @@ reproduce_result <- function(result) {
     refresh = 0,
     silent = 2,
     backend = result$brms_backend,
-    prior = c(
-      brms::set_prior("", class = "Intercept"),
-      brms::set_prior("", class = second_family_parameter_lookup(result$fit_family))
-    ),
-    init = 0.1
+    prior = prior_lookup(result$fit_family)
   )
 
   data_gen_conf <- list(

@@ -15,7 +15,8 @@ dataset_conf_sim(
   brms_backend,
   cmdstan_path,
   ncores,
-  debug
+  debug,
+  global_seed
 )
 }
 \arguments{

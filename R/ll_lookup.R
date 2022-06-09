@@ -7,7 +7,7 @@
 #' @export
 #'
 #' @examples
-brms_family_lookup <- function(family, link) {
+brms_family_lookup <- function(family, link = NULL) {
   switch(family,
     "beta" = brms::brmsfamily("beta", link = link),
     "kumaraswamy" = kumaraswamy(link = link),
@@ -37,7 +37,7 @@ brms_family_lookup <- function(family, link) {
 #' @export
 #'
 #' @examples
-rng_lookup <- function(family, link = NULL) {
+rng_lookup <- function(family) {
   switch(family,
     "beta" = rbeta_custom,
     "kumaraswamy" = rkumaraswamy,
@@ -78,7 +78,6 @@ inv_link_lookup <- function(link) {
   )
 }
 
-
 #' Title
 #'
 #' @param family
@@ -88,22 +87,26 @@ inv_link_lookup <- function(link) {
 #'
 #' @examples
 second_family_parameter_lookup <- function(family) {
+  brms_family_lookup(family)$dpars[2]
+}
+
+#' Title
+#'
+#' @param family
+#'
+#' @return
+#' @export
+#'
+#' @examples
+prior_lookup <- function(family) {
   switch(family,
-    "beta" = "phi",
-    "kumaraswamy" = "p",
-    "logitnormal" = "sigma",
-    "cauchitnormal" = "sigma",
-    "cloglognormal" = "sigma",
-    "simplex" = "sigma",
-    "gaussian" = "sigma",
-    "gamma" = "shape",
-    "weibull" = "shape",
-    "lognormal" = "sigma",
-    "softplusnormal" = "sigma",
-    "lomax" = "alpha",
-    "frechet" = "nu",
-    "inverse.gaussian" = "shape",
-    "betaprime" = "phi",
-    "gompertz" = "eta"
+    "frechet" = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = "nu", lb = 1.00001)
+    ),
+    c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = second_family_parameter_lookup(family))
+    )
   )
 }

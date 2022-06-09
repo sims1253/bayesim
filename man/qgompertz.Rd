@@ -4,7 +4,7 @@
 \alias{qgompertz}
 \title{Quantile function for the Gompertz distribution, with Median parametrization.}
 \usage{
-qgompertz(p, mu, eta)
+qgompertz(p, mu, b)
 }
 \arguments{
 \item{p}{Quantile to be calculated}

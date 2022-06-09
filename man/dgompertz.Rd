@@ -4,16 +4,16 @@
 \alias{dgompertz}
 \title{Probability density function for the Gompertz distribution, with Median parametrization.}
 \usage{
-dgompertz(x, mu, eta, log = FALSE)
+dgompertz(x, mu, b, log = FALSE)
 }
 \arguments{
 \item{x}{Model space, defined for x >= 0}
 
 \item{mu}{Median parameter of pdf, mu > 0}
 
-\item{eta}{Second shape parameter of Gompertz, defined for eta > 1}
-
 \item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
+
+\item{eta}{Second shape parameter of Gompertz, defined for eta > 1}
 }
 \value{
 PDF of gompertz distribution, with median parametrization.

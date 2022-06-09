@@ -79,7 +79,7 @@ basedag_data <- function(data_N,
     )
 
     y <- do.call(
-      rng_lookup(data_family, data_link),
+      rng_lookup(data_family),
       list(
         length(mu),
         mu,

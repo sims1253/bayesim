@@ -15,26 +15,8 @@
 #' y <- bayesim::dgompertz(x, mu = median, eta = eta)
 #' plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=2.0708, eta=0.1) or dgompertz(b=1, eta=0.1)")
 #' # Compare to online ressources
-dgompertz <- function(x, mu, eta, log = FALSE) {
-  # check arguments
-  if (isTRUE(mu <= 0)) {
-    stop("The Gompertz PDF is only defined for mu > 0")
-  }
-  if (isTRUE(eta <= 0)) {
-    stop("The Gompertz PDF is only defined for eta > 0")
-  }
-  if (isTRUE(any(x < 0))) {
-    stop("The Gompertz PDF is only defined on the positive scale")
-  }
-
-  # calculate missing argument b
-  # b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
-  log_b <- log(log1p((-1 / eta) * log(0.5))) - log(mu)
-  b <- exp(log_b)
-  # calculate log-pdf with pdf = b * eta * exp(eta + bx - eta * exp(bx))
-  lpdf <- log_b + log(eta) + eta + b * x - eta * exp(b * x)
-
-  # now return either log or normal value
+dgompertz <- function(x, mu, b, log = FALSE) {
+  lpdf <- log(-b * log(0.5)) - log(exp(mu * b) - 1) + b * x - (-log(0.5)/(exp(mu * b) - 1)) * (exp(b * x) - 1)
   if (log) {
     return(lpdf)
   } else {
@@ -54,25 +36,9 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
 #' plot(x, bayesim::qgompertz(x, mu = 2, eta = 0.1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=2, eta=0.1)")
-qgompertz <- function(p, mu, eta) {
-  # check arguments
-  if (isTRUE(mu <= 0)) {
-    stop("The Gompertz Qunatile-function is only defined for mu > 0")
-  }
-  if (isTRUE(eta <= 0)) {
-    stop("The Gompertz Qunatile-function is only defined for eta > 0")
-  }
-  if (isTRUE(any(p < 0))) {
-    stop("The Gompertz Qunatile-function is only defined on the positive scale")
-  }
-
-  # calculate missing argument b
-  # median = (1/b) * ln[(-1/eta)*ln(1/2)+1]
-  b <- (1 / mu) * log1p((-1 / eta) * log(0.5))
-
-  # calculate the QDF as inverse of CDF
-  x <- (1 / b) * log1p(-(1 / eta) * log1p(-p))
-
+qgompertz <- function(p, mu, b) {
+  a <- -(b * log(0.5)) / (exp(mu * b) - 1)
+  x <- (1 / b) * log1p(-(b/a) * log1p(-p))
   return(x)
 }
 
@@ -87,15 +53,8 @@ qgompertz <- function(p, mu, eta) {
 #'
 #' @examples y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
 #' hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
-rgompertz <- function(n, mu, eta) {
-  # check arguments
-  if (isTRUE(mu <= 0)) {
-    stop("The Gompertz RNG is only defined for mu > 0")
-  }
-  if (isTRUE(eta <= 0)) {
-    stop("The Gompertz RNG is only defined for eta > 0")
-  }
-  return(qgompertz(runif(n, min = 0, max = 1), mu = mu, eta = eta))
+rgompertz <- function(n, mu, b) {
+  return(qgompertz(runif(n), mu, b))
 }
 
 #' Log-Likelihood vignette for the Gompertz distribution, with Median parametrization.
@@ -108,9 +67,9 @@ rgompertz <- function(n, mu, eta) {
 #' @examples
 log_lik_gompertz <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
-  eta <- brms::get_dpar(prep, "eta", i = i)
+  b <- brms::get_dpar(prep, "beta", i = i)
   y <- prep$data$Y[i]
-  return(dgompertz(y, mu, eta, log = TRUE))
+  return(dgompertz(y, mu, b, log = TRUE))
 }
 
 #' Posterior-Prediction vignette for the Gompertz distribution, with Median parametrization.
@@ -124,8 +83,8 @@ log_lik_gompertz <- function(i, prep) {
 #' @examples
 posterior_predict_gompertz <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
-  eta <- brms::get_dpar(prep, "eta", i = i)
-  return(rgompertz(prep$ndraws, mu, eta))
+  b <- brms::get_dpar(prep, "beta", i = i)
+  return(rgompertz(prep$ndraws, mu, b))
 }
 
 #' Expectation-Predict vignette for the Gompertz distribution, with Median parametrization.
@@ -155,11 +114,11 @@ posterior_epred_gompertz <- function(prep) {
 #'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan"
 #' )
 #' plot(fit1)
-gompertz <- function(link = "log", link_eta = "log") {
+gompertz <- function(link = "log", link_b = "log") {
   family <- brms::custom_family(
     "gompertz",
-    dpars = c("mu", "eta"),
-    links = c(link, link_eta),
+    dpars = c("mu", "beta"),
+    links = c(link, link_b),
     lb = c(0, 0),
     ub = c(NA, NA),
     type = "real",
@@ -167,18 +126,19 @@ gompertz <- function(link = "log", link_eta = "log") {
     posterior_predict = posterior_predict_gompertz,
     posterior_epred = posterior_epred_gompertz
   )
+
   family$stanvars <- brms::stanvar(
     scode = "
-      real gompertz_lpdf(real y, real mu, real eta) {
-        real log_b = -log(mu) + log(log1p((-1 / eta) * log(0.5)));
-        real b = exp(log_b);
-        real lpdf = log_b + log(eta) + (eta + b * y - eta * exp(b * y));
+      real gompertz_lpdf(real y, real mu, real beta) {
+        real log_a = log(-beta * log(0.5)) - log(exp(mu * beta) - 1);
+        real a_div_b = -log(0.5)/(exp(mu * beta) - 1);
+        real lpdf = log_a + beta * y - a_div_b * (exp(beta * y) - 1);
         return(lpdf);
       }
-      real gompertz_rng(real mu, real eta) {
-        return((1 / ((1 / mu) * log1p(-(1 / eta) * log(0.5)))) *
-                log1p((-1 / eta) *
-                log(uniform_rng(0, 1))));
+      real gompertz_rng(real mu, real beta) {
+        real a = -(beta * log(0.5)) / (exp(mu * beta) - 1);
+        real x = (1 / beta) * log1p(-(beta/a) * log1p(uniform_rng(-1, 0)));
+        return(x);
       }",
     block = "functions"
   )
