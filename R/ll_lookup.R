@@ -24,7 +24,8 @@ brms_family_lookup <- function(family, link = NULL) {
     "frechet" = brms::brmsfamily("frechet", link = link),
     "inverse.gaussian" = brms::brmsfamily("inverse.gaussian", link = link),
     "betaprime" = betaprime(link = link),
-    "gompertz" = gompertz(link = link)
+    "gompertz" = gompertz(link = link),
+    "inversegaussian_custom" = inversegaussian_custom(link = link)
   )
 }
 
@@ -54,7 +55,8 @@ rng_lookup <- function(family) {
     "frechet" = rfrechet_custom,
     "inverse.gaussian" = brms::rinv_gaussian,
     "betaprime" = rbetaprime,
-    "gompertz" = rgompertz
+    "gompertz" = rgompertz,
+    "inversegaussian_custom" = rinversegaussian_custom
   )
 }
 
