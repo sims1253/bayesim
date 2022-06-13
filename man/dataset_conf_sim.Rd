@@ -14,11 +14,13 @@ dataset_conf_sim(
   path = NULL,
   brms_backend,
   cmdstan_path,
-  ncores
+  ncores,
+  debug,
+  global_seed
 )
 }
 \arguments{
-\item{ncores}{}
+\item{debug}{}
 }
 \description{
 Title

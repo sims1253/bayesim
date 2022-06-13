@@ -79,7 +79,7 @@ basedag_data <- function(data_N,
     )
 
     y <- do.call(
-      rng_lookup(data_family, data_link),
+      rng_lookup(data_family),
       list(
         length(mu),
         mu,
@@ -155,5 +155,5 @@ data_gen_conf_y_analysis <- function(data_gen_conf) {
   print(paste("mean:", mean(dataset$y)))
   print(paste("median:", median(dataset$y)))
   print(paste("n_resample:", n_resample))
-  hist(dataset$y, main = paste(data_gen_conf$data_family, data_gen_conf$data_link, data_gen_conf$shape), breaks = 20)
+  hist(dataset$y, main = paste(data_gen_conf$data_family, data_gen_conf$data_link, data_gen_conf$shape, "x_y_coef: ", data_gen_conf$x_y_coef), breaks = 20)
 }

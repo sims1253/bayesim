@@ -14,13 +14,16 @@ dsoftplusnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0))) {
     stop("softplusnormal is only defined for x > 0")
   }
+  if (isTRUE(mu <= 0)) {
+    stop("softplusnormal is only defined for mu > 0")
+  }
   if (isTRUE(sigma <= 0)) {
     stop("softplusnormal is only defined for sigma > 0")
   }
   logpdf <-
-    -log(sigma) + 0.5 * (log(2) + log(pi)) +
-    x - log(exp(x) + 1) +
-    (-(log(exp(x) + 1) - mu)^2 / (2 * sigma^2))
+    -(log(sigma) + 0.5 * (log(2) - log(pi))) +
+    x - log(exp(x) - 1) +
+    -0.5 * ((log(exp(x) - 1) - mu) / sigma)^2
   if (log) {
     return(logpdf)
   } else {
@@ -40,11 +43,14 @@ dsoftplusnormal <- function(x, mu, sigma, log = FALSE) {
 #' @examples
 rsoftplusnormal <- function(n, mu, sigma) {
   # check the arguments
+  if (isTRUE(mu <= 0)) {
+    stop("softplusnormal is only defined for mu > 0")
+  }
   if (isTRUE(sigma <= 0)) {
     stop("softplusnormal is only defined for sigma > 0")
   }
   return(
-    log(exp(rnorm(n, mu, sigma)) - 1)
+    log(exp(rnorm(n, mu, sigma)) + 1)
   )
 }
 
@@ -91,7 +97,7 @@ posterior_predict_softplusnormal <- function(i, prep, ...) {
 posterior_epred_softplusnormal <- function(prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
-  return(0.5 * erf((log(exp(x) + 1) - mu) / sqrt(2) * sigma))
+  return(-0.5 * erf((0.707107 * (mu - log(1 + exp(x)))) / sigma))
 }
 
 #' Title
@@ -119,9 +125,9 @@ softplusnormal <- function(link = "identity", link_sigma = "log") {
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
       real softplusnormal_lpdf(real y, real mu, real sigma) {
-        return - log(sigma) + 0.5 * (log(2) + log(pi())) +
-      x - log(exp(y) + 1) +
-      (-(log(exp(y)+1)-mu)/(2*sigma^2));
+      return -(log(sigma) + 0.5 * (log(2) - log(pi()))) +
+              y - log(exp(y) - 1) +
+              -0.5 * ((log(exp(y) - 1) - mu)/sigma)^2;
       }
 
       real softplusnormal_rng(real mu, real sigma) {

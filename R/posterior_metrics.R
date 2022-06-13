@@ -114,10 +114,17 @@ q_true <- function(posterior_draws, x_y_coef, ...) {
 #'
 #' @examples
 bad_pareto_ks <- function(fit, psis_object = NULL, ...) {
-  if (is.null(psis_object)) {
-    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-  }
-  return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
+  tryCatch(
+    expr = {
+      if (is.null(psis_object)) {
+        psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+      }
+      return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
+    },
+    error = function(e) {
+      return(NA)
+    }
+  )
 }
 
 

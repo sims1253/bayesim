@@ -11,13 +11,14 @@ full_simulation(
   predictive_metrics,
   ncores_simulation = 1,
   brms_backend = "rstan",
-  cmdstan_path = "~/.cmdstanr/cmdstan-2.29.1",
+  cmdstan_path = "~/.cmdstanr/cmdstan-2.29.2",
   seed = NULL,
-  path = NULL
+  path = NULL,
+  debug = FALSE
 )
 }
 \arguments{
-\item{fit_confs}{}
+\item{debug}{}
 }
 \description{
 Title

@@ -4,12 +4,12 @@
 \alias{dfrechet_custom}
 \title{Title}
 \usage{
-dfrechet_custom(x, mu, a)
+dfrechet_custom(x, mu, nu)
 }
 \arguments{
 \item{mu}{Mean}
 
-\item{k}{Shape}
+\item{nu}{Shape}
 }
 \description{
 Title
