@@ -27,54 +27,77 @@ fit_sim <- function(prefit,
                     seed,
                     debug,
                     path) {
-  fit <- stats::update(prefit,
-    newdata = dataset,
-    formula. = brms::brmsformula(fit_conf$formula),
-    refresh = 0,
-    silent = 2,
-    warmup = 500,
-    iter = 2500,
-    chains = 2,
-    backend = brms_backend,
-    seed = seed,
-    init = 0.1
-  )
-  if (debug == TRUE) {
-    saveRDS(fit, paste0(paste(path, "fit", sep = "/"), ".RDS"))
-  }
-
-  all_metric_results <- do.call(
-    metric_list_handler,
-    c(
-      list(
-        fit = fit,
-        numeric_metrics = numeric_metrics,
-        predictive_metrics = predictive_metrics,
-        testing_data = testing_data
-      ),
-      data_gen_conf
-    )
-  )
-  if (debug == TRUE) {
-    saveRDS(all_metric_results, paste0(paste(path, "all_metric_results", sep = "/"), ".RDS"))
-  }
-  numeric_results <- all_metric_results$numeric_results
-  loo_objects <- all_metric_results$loo_objects
-  final_result <- list(
-    numeric_results = data.frame(
-      c(
-        numeric_results,
-        fit_conf,
-        data_gen_conf,
-        c(stan_seed = seed)
+  tryCatch(
+    expr = {
+      fit <- stats::update(prefit,
+        newdata = dataset,
+        formula. = brms::brmsformula(fit_conf$formula),
+        refresh = 0,
+        silent = 2,
+        warmup = 500,
+        iter = 2500,
+        chains = 2,
+        backend = brms_backend,
+        seed = seed,
+        init = 0.1
       )
-    ),
-    loo_objects = loo_objects
+      if (debug == TRUE) {
+        saveRDS(fit, paste0(paste(path, "fit", sep = "/"), ".RDS"))
+      }
+
+      all_metric_results <- do.call(
+        metric_list_handler,
+        c(
+          list(
+            fit = fit,
+            numeric_metrics = numeric_metrics,
+            predictive_metrics = predictive_metrics,
+            testing_data = testing_data
+          ),
+          data_gen_conf
+        )
+      )
+      if (debug == TRUE) {
+        saveRDS(all_metric_results, paste0(paste(path, "all_metric_results", sep = "/"), ".RDS"))
+      }
+      numeric_results <- all_metric_results$numeric_results
+      loo_objects <- all_metric_results$loo_objects
+      final_result <- list(
+        numeric_results = data.frame(
+          c(
+            numeric_results,
+            fit_conf,
+            data_gen_conf,
+            c(stan_seed = seed)
+          )
+        ),
+        loo_objects = loo_objects
+      )
+      if (debug == TRUE) {
+        saveRDS(final_result, paste0(paste(path, "fit_result", sep = "/"), ".RDS"))
+      }
+      return(final_result)
+    },
+    error = function(e) {
+      numeric_results <- NA
+      loo_objects <- NULL
+      final_result <- list(
+        numeric_results = data.frame(
+          c(
+            numeric_results,
+            fit_conf,
+            data_gen_conf,
+            c(stan_seed = seed)
+          )
+        ),
+        loo_objects = loo_objects
+      )
+      if (debug == TRUE) {
+        saveRDS(final_result, paste0(paste(path, "fit_result", sep = "/"), ".RDS"))
+      }
+      return(final_result)
+    }
   )
-  if (debug == TRUE) {
-    saveRDS(final_result, paste0(paste(path, "fit_result", sep = "/"), ".RDS"))
-  }
-  return(final_result)
 }
 
 #' Title
@@ -154,7 +177,10 @@ dataset_sim <- function(data_gen_conf,
   names(loo_objects) <- seq_len(length(loo_objects))
   loo_compare_results <- loo_compare_handler(loo_objects, predictive_metrics)
 
-  final_result <- do.call(rbind, final_result) # TODO handle predictive performance results
+  final_result <- do.call(plyr::rbind.fill, final_result)
+  if ("NA." %in% colnames(final_result)) {
+    final_result <- subset(final_result, select = -c(which(colnames(final_result) == "NA.")))
+  }
   final_result <- cbind(final_result, loo_compare_results)
 
   final_result$dataset_seed <- seed

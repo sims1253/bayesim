@@ -121,11 +121,10 @@ bad_pareto_ks <- function(fit, psis_object = NULL, ...) {
       }
       return(length(which(psis_object$diagnostics$pareto_k > 0.7)))
     },
-    error = function(e){
+    error = function(e) {
       return(NA)
     }
   )
-
 }
 
 
