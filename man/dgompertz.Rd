@@ -4,16 +4,16 @@
 \alias{dgompertz}
 \title{Probability density function for the Gompertz distribution, with Median parametrization.}
 \usage{
-dgompertz(x, mu, b, log = FALSE)
+dgompertz(x, mu, beta, log = FALSE)
 }
 \arguments{
-\item{x}{Model space, defined for x >= 0}
+\item{x}{Value}
 
-\item{mu}{Median parameter of pdf, mu > 0}
+\item{mu}{Median parameter}
 
-\item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
+\item{beta}{Scale parameter}
 
-\item{eta}{Second shape parameter of Gompertz, defined for eta > 1}
+\item{log}{Optional argument. If TRUE, returns log(pdf).}
 }
 \value{
 PDF of gompertz distribution, with median parametrization.
@@ -23,10 +23,7 @@ Probability density function for the Gompertz distribution, with Median parametr
 }
 \examples{
 x <- seq(from = 0, to = 5, length.out = 100)
-eta <- 0.1
-b <- 1
-median <- (1 / b) * log((-1 / eta) * log(1 / 2) + 1)
-y <- bayesim::dgompertz(x, mu = median, eta = eta)
-plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=2.0708, eta=0.1) or dgompertz(b=1, eta=0.1)")
+y <- bayesim::dgompertz(x, mu = 10, beta = 10)
+plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=10, beta=10)")
 # Compare to online ressources
 }

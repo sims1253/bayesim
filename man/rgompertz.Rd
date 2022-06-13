@@ -4,14 +4,14 @@
 \alias{rgompertz}
 \title{RNG function for the Gompertz distribution, with Median parametrization.}
 \usage{
-rgompertz(n, mu, b)
+rgompertz(n, mu, beta)
 }
 \arguments{
 \item{n}{Number of draws}
 
-\item{mu}{Median argument of Gompertz}
+\item{mu}{Median parameter}
 
-\item{eta}{Eta argument of Gompertz}
+\item{beta}{Scale parameter}
 }
 \value{
 A Gompertz distributed RNG vector of size n
