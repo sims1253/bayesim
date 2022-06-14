@@ -44,7 +44,7 @@ rinversegaussian_custom <- function(n, mu, shape) {
   if (isTRUE(shape <= 0)) {
     stop("Inverse Gaussian density is only defined for shape > 0")
   }
-  rinv_gaussian(n, mu, shape)
+  brms::rinv_gaussian(n, mu, shape)
 }
 
 
