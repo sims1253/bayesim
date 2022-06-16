@@ -20,6 +20,9 @@ dataset_conf_sim(
 \arguments{
 \item{ncores}{}
 }
+\value{
+
+}
 \description{
 Title
 }

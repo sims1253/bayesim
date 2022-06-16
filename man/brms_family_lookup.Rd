@@ -9,6 +9,9 @@ brms_family_lookup(family, link)
 \arguments{
 \item{link}{}
 }
+\value{
+
+}
 \description{
 Title
 }

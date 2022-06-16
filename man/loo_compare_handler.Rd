@@ -9,6 +9,9 @@ loo_compare_handler(loo_object_matrix, predictive_metrics)
 \arguments{
 \item{predictive_metrics}{}
 }
+\value{
+
+}
 \description{
 Title
 }

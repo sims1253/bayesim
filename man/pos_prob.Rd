@@ -9,6 +9,9 @@ pos_prob(posterior_draws)
 \arguments{
 \item{posterior_draws}{}
 }
+\value{
+
+}
 \description{
 Title
 }

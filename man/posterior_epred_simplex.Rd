@@ -9,6 +9,9 @@ posterior_epred_simplex(prep)
 \arguments{
 \item{prep}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -11,6 +11,9 @@ dgamma_custom(x, mu, a)
 
 \item{k}{Shape}
 }
+\value{
+
+}
 \description{
 Title
 }

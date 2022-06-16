@@ -9,6 +9,9 @@ qkumaraswamy(u, mu = 0.5, p = 1)
 \arguments{
 \item{p}{}
 }
+\value{
+
+}
 \description{
 Title
 }

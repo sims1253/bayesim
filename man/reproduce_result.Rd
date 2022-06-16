@@ -10,6 +10,9 @@ reproduce_result(result)
 \arguments{
 \item{result}{}
 }
+\value{
+
+}
 \description{
 The code in this function is written so that all seeds are set at the right
 time and all following code after setting the seed replicates exactly as

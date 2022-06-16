@@ -9,6 +9,9 @@ posterior_epred_softplusnormal(prep)
 \arguments{
 \item{prep}{}
 }
+\value{
+
+}
 \description{
 Title
 }

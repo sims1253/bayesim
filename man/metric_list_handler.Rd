@@ -15,6 +15,9 @@ metric_list_handler(
 \arguments{
 \item{fit}{}
 }
+\value{
+
+}
 \description{
 Title
 }

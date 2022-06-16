@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{posterior_epred_betaprime}
 \alias{posterior_epred_betaprime}
-\title{Title}
+\title{Posterior-Expectation-Predict vignette for the Beta-Prime distribution, in mean parametrization.}
 \usage{
 posterior_epred_betaprime(prep)
 }
@@ -13,5 +13,5 @@ posterior_epred_betaprime(prep)
 Recover the given mean of data prep
 }
 \description{
-Title
+Posterior-Expectation-Predict vignette for the Beta-Prime distribution, in mean parametrization.
 }

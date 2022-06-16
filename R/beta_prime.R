@@ -45,7 +45,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
   }
 }
 
-#' Title
+#' Quantile function of the Beta-Prime distributions using mean parametrization
 #'
 #' @param p Probabilities, for which to calculate the quantiles
 #' @param mu Mean, mu > 0.
@@ -77,7 +77,7 @@ qbetaprime <- function(p, mu, phi) {
   return(exp(lqbp))
 }
 
-#' Title
+#' RNG function of the Beta-Prime distributions using mean parametrization
 #'
 #' @param n Number of beta-prime samples.
 #' @param mu Mean, mu > 0.
@@ -99,7 +99,7 @@ rbetaprime <- function(n, mu, phi) {
   return(qbetaprime(runif(n, min = 0, max = 1), mu, phi))
 }
 
-#' Title
+#' Log-Likelihood vignette for the Beta-Prime distribution, in mean parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -115,7 +115,7 @@ log_lik_betaprime <- function(i, prep) {
 }
 
 
-#' Title
+#' Posterior-Predict vignette for the Beta-Prime distribution, in mean parametrization.
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -130,7 +130,7 @@ posterior_predict_betaprime <- function(i, prep, ...) {
   return(rbetaprime(prep$ndraws, mu, phi))
 }
 
-#' Title
+#' Posterior-Expectation-Predict vignette for the Beta-Prime distribution, in mean parametrization.
 #'
 #' @param prep BRMS data
 #'
@@ -142,7 +142,7 @@ posterior_epred_betaprime <- function(prep) {
 }
 
 
-#' Title
+#' Custom Beta-Prime BRMS-implementation in median parametrization.
 #'
 #' @param link Link function for function
 #' @param link_beta Link function for beta argument

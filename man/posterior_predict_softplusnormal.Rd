@@ -9,6 +9,9 @@ posterior_predict_softplusnormal(i, prep, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 Title
 }

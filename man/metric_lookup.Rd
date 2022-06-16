@@ -15,6 +15,9 @@ metric_lookup(
 \arguments{
 \item{posterior_draws}{}
 }
+\value{
+
+}
 \description{
 Title
 }

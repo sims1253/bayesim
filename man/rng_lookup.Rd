@@ -9,6 +9,9 @@ rng_lookup(family, link = NULL)
 \arguments{
 \item{link}{}
 }
+\value{
+
+}
 \description{
 Title
 }

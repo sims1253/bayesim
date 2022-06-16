@@ -9,6 +9,9 @@ r2_newdata(fit, newdata)
 \arguments{
 \item{newdata}{}
 }
+\value{
+
+}
 \description{
 Title
 }

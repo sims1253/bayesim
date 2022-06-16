@@ -9,6 +9,9 @@ posterior_predict_cloglognormal(i, prep, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 Title
 }

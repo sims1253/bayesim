@@ -11,6 +11,9 @@ rgamma_custom(n, mu, a)
 
 \item{k}{Shape}
 }
+\value{
+
+}
 \description{
 Title
 }

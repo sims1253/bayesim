@@ -11,6 +11,9 @@ dweibull_custom(x, mu, k)
 
 \item{k}{Shape}
 }
+\value{
+
+}
 \description{
 Title
 }

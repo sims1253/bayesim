@@ -9,6 +9,9 @@ p_sd(posterior_draws)
 \arguments{
 \item{posterior_draws}{}
 }
+\value{
+
+}
 \description{
 Title
 }

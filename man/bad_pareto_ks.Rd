@@ -9,6 +9,9 @@ bad_pareto_ks(fit, psis_object = NULL, ...)
 \arguments{
 \item{fit}{}
 }
+\value{
+
+}
 \description{
 Title
 }

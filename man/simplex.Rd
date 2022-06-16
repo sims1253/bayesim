@@ -9,6 +9,9 @@ simplex(link = "logit", link_sigma = "identity")
 \arguments{
 \item{link_sigma}{}
 }
+\value{
+
+}
 \description{
 Title
 }

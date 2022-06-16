@@ -9,6 +9,9 @@ dcauchitnormal(x, mu, sigma, log = FALSE)
 \arguments{
 \item{log}{}
 }
+\value{
+
+}
 \description{
 Title
 }

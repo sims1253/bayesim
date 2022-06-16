@@ -9,6 +9,9 @@ log_lik_cauchitnormal(i, prep)
 \arguments{
 \item{prep}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -9,6 +9,9 @@ logitnormal(link = "identity", link_sigma = "log")
 \arguments{
 \item{link_sigma}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -140,7 +140,7 @@ posterior_epred_gompertz <- function(prep) {
 }
 
 
-#' Gompertz Stan-implementation in median parametrization.
+#' Custom Gompertz BRMS-implementation in median parametrization.
 #'
 #' @param link Link function for function
 #' @param link_eta Link function for eta argument

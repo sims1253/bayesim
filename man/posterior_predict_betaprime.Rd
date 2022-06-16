@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{posterior_predict_betaprime}
 \alias{posterior_predict_betaprime}
-\title{Title}
+\title{Posterior-Predict vignette for the Beta-Prime distribution, in mean parametrization.}
 \usage{
 posterior_predict_betaprime(i, prep, ...)
 }
@@ -17,5 +17,5 @@ posterior_predict_betaprime(i, prep, ...)
 Posterior prediction of beta-prime, given data in prep
 }
 \description{
-Title
+Posterior-Predict vignette for the Beta-Prime distribution, in mean parametrization.
 }

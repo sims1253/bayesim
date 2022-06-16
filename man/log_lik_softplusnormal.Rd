@@ -9,6 +9,9 @@ log_lik_softplusnormal(i, prep)
 \arguments{
 \item{prep}{}
 }
+\value{
+
+}
 \description{
 Title
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{rbetaprime}
 \alias{rbetaprime}
-\title{Title}
+\title{RNG function of the Beta-Prime distributions using mean parametrization}
 \usage{
 rbetaprime(n, mu, phi)
 }
@@ -17,7 +17,7 @@ rbetaprime(n, mu, phi)
 Random numbers from the beta-prime distribution.
 }
 \description{
-Title
+RNG function of the Beta-Prime distributions using mean parametrization
 }
 \examples{
 y <- bayesim::rbetaprime(100, mu = 1, phi = 2)

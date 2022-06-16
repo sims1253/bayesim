@@ -9,6 +9,9 @@ elpd_loo_handler(fit)
 \arguments{
 \item{fit}{}
 }
+\value{
+
+}
 \description{
 Title
 }

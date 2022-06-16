@@ -9,6 +9,9 @@ kumaraswamy(link = "logit", link_p = "log")
 \arguments{
 \item{link_p}{}
 }
+\value{
+
+}
 \description{
 Title
 }

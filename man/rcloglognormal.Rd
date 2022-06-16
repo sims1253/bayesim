@@ -9,6 +9,9 @@ rcloglognormal(n, mu, sigma)
 \arguments{
 \item{sigma}{}
 }
+\value{
+
+}
 \description{
 Title
 }

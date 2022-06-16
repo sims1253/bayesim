@@ -9,6 +9,9 @@ sampling_time(fit)
 \arguments{
 \item{fit}{}
 }
+\value{
+
+}
 \description{
 Title
 }

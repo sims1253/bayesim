@@ -9,6 +9,9 @@ rsoftplusnormal(n, mu, sigma)
 \arguments{
 \item{sigma}{}
 }
+\value{
+
+}
 \description{
 Title
 }

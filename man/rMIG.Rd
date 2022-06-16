@@ -9,6 +9,9 @@ rMIG(epsilon, Tau, mu)
 \arguments{
 \item{mu}{}
 }
+\value{
+
+}
 \description{
 Title
 }

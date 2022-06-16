@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{betaprime}
 \alias{betaprime}
-\title{Title}
+\title{Custom Beta-Prime BRMS-implementation in median parametrization.}
 \usage{
 betaprime(link = "log", link_phi = "log")
 }
@@ -15,7 +15,7 @@ betaprime(link = "log", link_phi = "log")
 BRMS beta-prime distribution family
 }
 \description{
-Title
+Custom Beta-Prime BRMS-implementation in median parametrization.
 }
 \examples{
 data <- list(a = a, y = bayesim::rbetaprime(

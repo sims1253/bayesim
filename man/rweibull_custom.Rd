@@ -11,6 +11,9 @@ rweibull_custom(n, mu, k)
 
 \item{k}{Shape}
 }
+\value{
+
+}
 \description{
 Title
 }

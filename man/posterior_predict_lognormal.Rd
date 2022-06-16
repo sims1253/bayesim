@@ -9,6 +9,9 @@ posterior_predict_lognormal(i, prep, ...)
 \arguments{
 \item{...}{}
 }
+\value{
+
+}
 \description{
 Title
 }

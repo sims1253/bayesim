@@ -9,6 +9,9 @@ posterior_epred_cloglognormal(prep)
 \arguments{
 \item{prep}{}
 }
+\value{
+
+}
 \description{
 Title
 }
