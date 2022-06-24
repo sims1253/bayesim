@@ -4,7 +4,7 @@
 \alias{dbeta_custom}
 \title{Custom Beta distribibution density.}
 \usage{
-dbeta_custom(x, mu, phi)
+dbeta_custom(x, mu, phi, log = FALSE)
 }
 \arguments{
 \item{x}{x-value}
