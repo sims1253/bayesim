@@ -2,16 +2,23 @@
 % Please edit documentation in R/cloglognormal.R
 \name{rcloglognormal}
 \alias{rcloglognormal}
-\title{Title}
+\title{Cloglognormal RNG-function in median parametrization.}
 \usage{
 rcloglognormal(n, mu, sigma)
 }
 \arguments{
-\item{sigma}{}
+\item{n}{Number of draws}
+
+\item{mu}{Median parameter, mu e (0, 1)}
+
+\item{sigma}{Shape parameter}
 }
 \value{
-
+n Cloglog-normally ditributed samples
 }
 \description{
-Title
+Cloglognormal RNG-function in median parametrization.
+}
+\examples{
+hist(rcauchitnormal(100, 0.5, 2))
 }

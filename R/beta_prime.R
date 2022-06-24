@@ -142,7 +142,7 @@ posterior_epred_betaprime <- function(prep) {
 }
 
 
-#' Custom Beta-Prime BRMS-implementation in median parametrization.
+#' Custom Beta-Prime BRMS-implementation in mean parametrization.
 #'
 #' @param link Link function for function
 #' @param link_beta Link function for beta argument
@@ -150,14 +150,11 @@ posterior_epred_betaprime <- function(prep) {
 #' @return BRMS beta-prime distribution family
 #' @export
 #'
-#' @examples data <- list(a = a, y = bayesim::rbetaprime(
-#'   n,
-#'   exp(0.5 * rnorm(1000) + 1), 2
-#' ))
-#' fit1 <- brm(y ~ 1 + a,
-#'   data = data, family = bayesim::betaprime(),
-#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan"
-#' )
+#' @examples library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rbetaprime(n, exp(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
+#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan")
 #' plot(fit1)
 betaprime <- function(link = "log", link_phi = "log") {
   family <- brms::custom_family(

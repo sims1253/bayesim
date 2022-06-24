@@ -2,16 +2,27 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{dcauchitnormal}
 \alias{dcauchitnormal}
-\title{Title}
+\title{Cauchitnormal density distribution in median parametrization.}
 \usage{
 dcauchitnormal(x, mu, sigma, log = FALSE)
 }
 \arguments{
-\item{log}{}
+\item{x}{Value space of the distribution, x e (0, 1)}
+
+\item{mu}{Median parameter, mu e (0, 1)}
+
+\item{sigma}{Sigma shape parameter, sigma >= 0}
+
+\item{log}{Bool argument, if true, returns the logarithmic density}
 }
 \value{
-
+Normal distribution density with cauchit link function
 }
 \description{
-Title
+Cauchitnormal density distribution in median parametrization.
+}
+\examples{
+x <- seq(from = 0, to = 1, length.out = 1000)
+y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
+plot(x, y, type = "l", ylab = "Density", main = "dcauchitnormal(mu=0.5, sigma=2)")
 }

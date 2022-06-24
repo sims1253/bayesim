@@ -2,16 +2,27 @@
 % Please edit documentation in R/cloglognormal.R
 \name{cloglognormal}
 \alias{cloglognormal}
-\title{Title}
+\title{Custom BRMS family CLogLog-Normal in median parametrization.}
 \usage{
 cloglognormal(link = "identity", link_sigma = "log")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function argument (as string) for Median argument. Left as identity!}
+
+\item{link_sigma}{Link function argument (as string) for Shape argument}
 }
 \value{
-
+Cloglog BRMS model-object
 }
 \description{
-Title
+Custom BRMS family CLogLog-Normal in median parametrization.
+}
+\examples{
+library(brms)
+a <- rnorm(1000)
+data <- list(a = a, y = rcloglognormal(1000, inv_logit_scaled(0.2 + 0.5 * a), 4))
+hist(data$y)
+fit1 <- brm(y ~ 1 + a, data = data, family = cloglognormal(),
+            stanvars = cloglognormal()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

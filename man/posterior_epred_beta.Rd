@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{posterior_epred_beta}
 \alias{posterior_epred_beta}
-\title{Title}
+\title{Posterior expected value prediction of the custom-beta implementation.}
 \usage{
 posterior_epred_beta(prep)
 }
@@ -13,5 +13,5 @@ posterior_epred_beta(prep)
 Recover the given mean of data prep
 }
 \description{
-Title
+Posterior expected value prediction of the custom-beta implementation.
 }

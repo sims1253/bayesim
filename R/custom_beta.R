@@ -77,7 +77,7 @@ posterior_predict_beta <- function(i, prep, ...) {
   return(rbeta_custom(prep$ndraws, mu, phi))
 }
 
-#' Title
+#' Posterior expected value prediction of the custom-beta implementation.
 #'
 #' @param prep BRMS data
 #'

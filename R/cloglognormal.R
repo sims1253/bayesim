@@ -1,17 +1,22 @@
-#' Title
+#' Probability density functin of the Cloglognormal-distribution in Median parametrization.
 #'
-#' @param x
-#' @param mu
-#' @param sigma
-#' @param log
+#' @param x Value space of the function, x e (0, 1)
+#' @param mu Median parameter, mu e (0, 1)
+#' @param sigma Shape parameter, sigma >= 0
+#' @param log optional argument. If true, returns Lograthmic probability. Default = FALSE
 #'
-#' @return
+#' @return Normal distribution density with cloglog link function
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0, to = 1, length.out = 1000)
+#' y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
+#' plot(x, y, type = "l", ylab = "Density", main = "dcloglognormal(mu=0.5, sigma=2)")
 dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
+  }
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
+    stop("mu must be in (0,1).")
   }
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")
@@ -26,17 +31,20 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
-#' Title
+#' Cloglognormal RNG-function in median parametrization.
 #'
-#' @param n
-#' @param mu
-#' @param sigma
+#' @param n Number of draws
+#' @param mu Median parameter, mu e (0, 1)
+#' @param sigma Shape parameter
 #'
-#' @return
+#' @return n Cloglog-normally ditributed samples
 #' @export
 #'
-#' @examples
+#' @examples hist(rcauchitnormal(100, 0.5, 2))
 rcloglognormal <- function(n, mu, sigma) {
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
+    stop("mu must be in (0,1).")
+  }
   if (isTRUE(any(sigma < 0))) {
     stop("P must be above or equal to 0.")
   }
@@ -45,12 +53,12 @@ rcloglognormal <- function(n, mu, sigma) {
   )
 }
 
-#' Title
+#' Log-Likelihood vignette for the Chauchitnormal distribution, with Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i indices
+#' @param prep BRMS data
 #'
-#' @return
+#' @return log_lik
 #'
 #'
 #' @examples
@@ -61,13 +69,13 @@ log_lik_cloglognormal <- function(i, prep) {
   return(dcloglognormal(y, mu, sigma, log = TRUE))
 }
 
-#' Title
+#' Posterior-predict vignette for the Chauchitnormal distribution, with Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i Indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
+#' @return Posterior prediction of the data
 #'
 #'
 #' @examples
@@ -77,11 +85,11 @@ posterior_predict_cloglognormal <- function(i, prep, ...) {
   return(rcloglognormal(prep$ndraws, mu, sigma))
 }
 
-#' Title
+#' Posterior expected value prediction. Mean undefined for CLogLog-Normal
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
+#' @return Nothing
 #'
 #'
 #' @examples
@@ -91,15 +99,21 @@ posterior_epred_cloglognormal <- function(prep) {
         distribution, posterior_epred is currently not supported.")
 }
 
-#' Title
+#' Custom BRMS family CLogLog-Normal in median parametrization.
 #'
-#' @param link
-#' @param link_sigma
+#' @param link Link function argument (as string) for Median argument. Left as identity!
+#' @param link_sigma Link function argument (as string) for Shape argument
 #'
-#' @return
+#' @return Cloglog BRMS model-object
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = rcloglognormal(1000, inv_logit_scaled(0.2 + 0.5 * a), 4))
+#' hist(data$y)
+#' fit1 <- brm(y ~ 1 + a, data = data, family = cloglognormal(),
+#'             stanvars = cloglognormal()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 cloglognormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")
   family <- brms::custom_family(

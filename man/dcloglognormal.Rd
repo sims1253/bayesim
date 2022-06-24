@@ -2,16 +2,27 @@
 % Please edit documentation in R/cloglognormal.R
 \name{dcloglognormal}
 \alias{dcloglognormal}
-\title{Title}
+\title{Probability density functin of the Cloglognormal-distribution in Median parametrization.}
 \usage{
 dcloglognormal(x, mu, sigma, log = FALSE)
 }
 \arguments{
-\item{log}{}
+\item{x}{Value space of the function, x e (0, 1)}
+
+\item{mu}{Median parameter, mu e (0, 1)}
+
+\item{sigma}{Shape parameter, sigma >= 0}
+
+\item{log}{optional argument. If true, returns Lograthmic probability. Default = FALSE}
 }
 \value{
-
+Normal distribution density with cloglog link function
 }
 \description{
-Title
+Probability density functin of the Cloglognormal-distribution in Median parametrization.
+}
+\examples{
+x <- seq(from = 0, to = 1, length.out = 1000)
+y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
+plot(x, y, type = "l", ylab = "Density", main = "dcloglognormal(mu=0.5, sigma=2)")
 }

@@ -1,17 +1,22 @@
-#' Title
+#' Cauchitnormal density distribution in median parametrization.
 #'
-#' @param x
-#' @param mu
-#' @param sigma
-#' @param log
+#' @param x Value space of the distribution, x e (0, 1)
+#' @param mu Median parameter, mu e (0, 1)
+#' @param sigma Sigma shape parameter, sigma >= 0
+#' @param log Bool argument, if true, returns the logarithmic density
 #'
-#' @return
+#' @return Normal distribution density with cauchit link function
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0, to = 1, length.out = 1000)
+#' y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
+#' plot(x, y, type = "l", ylab = "Density", main = "dcauchitnormal(mu=0.5, sigma=2)")
 dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
+  }
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
+    stop("mu must be in (0,1).")
   }
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")
@@ -26,31 +31,35 @@ dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
-#' Title
+#' Cauchitnormal RNG-function in median parametrization.
 #'
-#' @param n
-#' @param mu
-#' @param sigma
+#' @param n Number of draws
+#' @param mu Median paramameter, mu e (0, 1)
+#' @param sigma Sigma shape parameter, sigma > 0
 #'
-#' @return
+#' @returns n Chauchitnormally ditributed samples
+#'
 #' @export
 #'
-#' @examples
+#' @examples hist(rcauchitnormal(100, 0.5, 2))
 rcauchitnormal <- function(n, mu, sigma) {
   if (isTRUE(any(sigma < 0))) {
     stop("P must be above or equal to 0.")
+  }
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
+    stop("mu must be in (0,1).")
   }
   return(
     inv_cauchit(rnorm(n, mu, sigma))
   )
 }
 
-#' Title
+#' Log-Likelihood vignette for the Chauchitnormal distribution, with Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i Indices
+#' @param prep BRMS data
 #'
-#' @return
+#' @return log_likelihood of the Cauchitnormal distribution, given some BRMS data.
 #'
 #'
 #' @examples
@@ -61,27 +70,24 @@ log_lik_cauchitnormal <- function(i, prep) {
   return(dcauchitnormal(y, mu, sigma, log = TRUE))
 }
 
-#' Title
+#' Posterior-predict vignette for the Chauchitnormal distribution, with Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i Indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
-#'
-#'
-#' @examples
+#' @return The posterior prediction of the Cauchitnormal distribution, given some BRMS data.
 posterior_predict_cauchitnormal <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(rcauchitnormal(prep$ndraws, mu, sigma))
 }
 
-#' Title
+#' Posterior expected value prediction. Mean undefined for Cauchit-Normal
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
+#' @return Nothing
 #'
 #'
 #' @examples
@@ -91,15 +97,21 @@ posterior_epred_cauchitnormal <- function(prep) {
         distribution, posterior_epred is currently not supported.")
 }
 
-#' Title
+#' Custom BRMS family Cauchit-Normal in median parametrization.
 #'
-#' @param link
-#' @param link_sigma
+#' @param link Link function argument (as string) for Median argument. Left as identity!
+#' @param link_sigma Link function argument (as string) for Shape argument
 #'
-#' @return
+#' @return Cauchitnormal BRMS model-object
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = rcauchitnormal(1000, inv_logit_scaled(0.2 + 0.5 * a), 4))
+#' hist(data$y)
+#' fit1 <- brm(y ~ 1 + a, data = data, family = cauchitnormal(),
+#'             stanvars = cauchitnormal()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 cauchitnormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")
   family <- brms::custom_family(
