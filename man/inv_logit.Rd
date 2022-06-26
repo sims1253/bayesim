@@ -7,10 +7,10 @@
 inv_logit(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, any real scalar or vector allowed}
+\item{x}{value of x to be transformed, x unbound}
 }
 \value{
-inverse logit value of x, x e (0, 1)
+inverse logit value of x, result is e (0, 1)
 }
 \description{
 Inverse-Logit link function, equal to Logistic link

@@ -7,7 +7,7 @@
 logit(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, 0 < x < 1}
+\item{x}{value of x to be transformed, x e (0, 1)}
 }
 \value{
 logit value of x, x unbound

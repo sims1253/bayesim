@@ -2,16 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{softplus}
 \alias{softplus}
-\title{Title}
+\title{Softplus link function}
 \usage{
 softplus(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value to be transformed, x unbound}
 }
 \value{
-
+softplus function of x, result is positive unbound
 }
 \description{
-Title
+Softplus link function
+}
+\examples{
+x <- seq(from = -5, to = 5, length.out = 100)
+plot(x, softplus(x), type="l")
 }

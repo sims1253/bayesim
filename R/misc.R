@@ -1,6 +1,6 @@
 #' Logit link function
 #'
-#' @param x value of x to be transformed, 0 < x < 1
+#' @param x value of x to be transformed, x e (0, 1)
 #'
 #' @return logit value of x, x unbound
 #' @export
@@ -13,9 +13,9 @@ logit <- function(x) {
 
 #' Inverse-Logit link function, equal to Logistic link
 #'
-#' @param x value of x to be transformed, any real scalar or vector allowed
+#' @param x value of x to be transformed, x unbound
 #'
-#' @return inverse logit value of x, x e (0, 1)
+#' @return inverse logit value of x, result is e (0, 1)
 #' @export
 #'
 #' @examples x <- seq(from = -5, to = 5, length.out = 100)
@@ -26,13 +26,13 @@ inv_logit <- function(x) {
 
 #' Logistic link function, equivalent to Inverse-Logit link
 #'
-#' @param x value of x to be transformed, any real scalar or vector allowed
+#' @param x value of x to be transformed, unbound
 #'
-#' @return logistic value of x, x e (0, 1)
+#' @return logistic value of x, result ise (0, 1)
 #' @export
 #'
 #' @examples x <- seq(from = -100, to = 100, length.out = 100)
-#' plot(x, logistic(x))
+#' plot(x, logistic(x), type="l")
 logistic <- function(x) {
   return(inv_logit(x))
 }
@@ -40,13 +40,13 @@ logistic <- function(x) {
 
 #' Complementary-Log-Log link function
 #'
-#' @param x value of x to be transformed, 0 < x < 1
+#' @param x value of x to be transformed, x e (0, 1)
 #'
-#' @return cloglog value of x, x unbound
+#' @return cloglog value of x, result is unbound
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' plot(x, cloglog(x))
+#' plot(x, cloglog(x), type="l")
 cloglog <- function(x) {
   log(-log1p(-x))
 }
@@ -54,13 +54,13 @@ cloglog <- function(x) {
 
 #' Inverse CLogLog link function
 #'
-#' @param x value of x to be transformed, any real scalar or vector allowed
+#' @param x value of x to be transformed, x unbound
 #'
-#' @return inverse-cloglog value of x
+#' @return inverse-cloglog value of x, result is e (0, 1)
 #' @export
 #'
 #' @examples x <- seq(from = -3, to = 1, length.out = 100)
-#' y <- inv_cloglog(x)
+#' plot(x, inv_cloglog(x), type="l")
 inv_cloglog <- function(x) {
   return(1 - exp(-exp(x)))
 }
@@ -70,11 +70,11 @@ inv_cloglog <- function(x) {
 #'
 #' @param x value of x to be transformed, not defined for x of whole integer
 #'
-#' @return cauchit value of x
+#' @return cauchit value of x, result is unbound
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' y <- cauchit(x)
+#' plot(x, cauchit(x), type="l")
 cauchit <- function(x) {
   return(qcauchy(x))
 }
@@ -84,49 +84,52 @@ cauchit <- function(x) {
 #'
 #' @param x value of x to be transformed, any real scalar or vector allowed
 #'
-#' @return inverse cauchit of x
+#' @return inverse cauchit of x, result is e (0, 1)
 #' @export
 #'
 #' @examples x <- seq(from = -10, to = 10, length.out = 100)
-#' y <- inv_cauchit(x)
+#' plot(x, inv_cauchit(x), type="l")
 inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
 
-#' Title
+#' Gaussion Error link function
 #'
-#' @param x
+#' @param x value to be transformed, x unbound
 #'
-#' @return
+#' @return erf function of x, result e (0, 1)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = -2, to = 2, length.out = 100)
+#' plot(x, erf(x), type="l")
 erf <- function(x) {
   return(2 * pnorm(x * sqrt(2)) - 1)
 }
 
 
-#' Title
+#' Softplus link function
 #'
-#' @param x
+#' @param x value to be transformed, x unbound
 #'
-#' @return
+#' @return softplus function of x, result is positive unbound
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = -5, to = 5, length.out = 100)
+#' plot(x, softplus(x), type="l")
 softplus <- function(x) {
   return(log(exp(x) + 1))
 }
 
 
-#' Title
+#' Inverse Softplus link function
 #'
-#' @param x
+#' @param x value to be transformed, x is unbound
 #'
-#' @return
+#' @return inv_softplus of x, result is positive unbound
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = -5, to = 5, length.out = 100)
+#' plot(x, softplus(x), type="l")
 inv_softplus <- function(x) {
   return(log(exp(x) - 1))
 }

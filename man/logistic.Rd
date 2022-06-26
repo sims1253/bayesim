@@ -7,15 +7,15 @@
 logistic(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, any real scalar or vector allowed}
+\item{x}{value of x to be transformed, unbound}
 }
 \value{
-logistic value of x, x e (0, 1)
+logistic value of x, result ise (0, 1)
 }
 \description{
 Logistic link function, equivalent to Inverse-Logit link
 }
 \examples{
 x <- seq(from = -100, to = 100, length.out = 100)
-plot(x, logistic(x))
+plot(x, logistic(x), type="l")
 }
