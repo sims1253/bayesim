@@ -2,11 +2,11 @@
 #'
 #' @param x value of x to be transformed, 0 < x < 1
 #'
-#' @return logit value of x
+#' @return logit value of x, x unbound
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' y <- logit(x)
+#' plot(x, logit(x), type="l")
 logit <- function(x) {
   return(qlogis(x))
 }
@@ -15,11 +15,11 @@ logit <- function(x) {
 #'
 #' @param x value of x to be transformed, any real scalar or vector allowed
 #'
-#' @return inverse logit value of x
+#' @return inverse logit value of x, x e (0, 1)
 #' @export
 #'
-#' @examples x <- seq(from = -100, to = 100, length.out = 1000)
-#' y <- inv_logit(x)
+#' @examples x <- seq(from = -5, to = 5, length.out = 100)
+#' plot(x, inv_logit(x), type="l")
 inv_logit <- function(x) {
   return(plogis(x))
 }
@@ -28,11 +28,11 @@ inv_logit <- function(x) {
 #'
 #' @param x value of x to be transformed, any real scalar or vector allowed
 #'
-#' @return logistic value of x
+#' @return logistic value of x, x e (0, 1)
 #' @export
 #'
-#' @examples x <- seq(from = -100, to = 100, length.out = 1000)
-#' y <- logistic(x)
+#' @examples x <- seq(from = -100, to = 100, length.out = 100)
+#' plot(x, logistic(x))
 logistic <- function(x) {
   return(inv_logit(x))
 }
@@ -42,11 +42,11 @@ logistic <- function(x) {
 #'
 #' @param x value of x to be transformed, 0 < x < 1
 #'
-#' @return cloglog value of x
+#' @return cloglog value of x, x unbound
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' y <- cloglog(x)
+#' plot(x, cloglog(x))
 cloglog <- function(x) {
   log(-log1p(-x))
 }

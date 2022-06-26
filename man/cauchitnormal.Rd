@@ -19,6 +19,7 @@ Custom BRMS family Cauchit-Normal in median parametrization.
 }
 \examples{
 library(brms)
+library(bayesim)
 a <- rnorm(1000)
 data <- list(a = a, y = rcauchitnormal(1000, inv_logit_scaled(0.2 + 0.5 * a), 4))
 hist(data$y)

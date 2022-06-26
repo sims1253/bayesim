@@ -18,12 +18,10 @@ BRMS Beta-Custom distribution family
 Custom-Beta Stan-implementation in mean parametrization.
 }
 \examples{
-n <- 10000
-a <- rnorm(n)
-data <- list(a = a, y = bayesim::rbeta_custom(n, bayesim::inv_logit(0.5 * a + 1), 2))
-fit1 <- brm(y ~ 1 + a,
-  data = data, family = bayesim::beta_custom(),
-  stanvars = bayesim::beta_custom()$stanvars, backend = "cmdstan"
-)
+library(brms)
+a <- rnorm(10000)
+data <- list(a = a, y = bayesim::rbeta_custom(10000, bayesim::inv_logit(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::beta_custom(),
+  stanvars = bayesim::beta_custom()$stanvars, backend = "cmdstan")
 plot(fit1)
 }

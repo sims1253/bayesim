@@ -10,12 +10,12 @@ inv_logit(x)
 \item{x}{value of x to be transformed, any real scalar or vector allowed}
 }
 \value{
-inverse logit value of x
+inverse logit value of x, x e (0, 1)
 }
 \description{
 Inverse-Logit link function, equal to Logistic link
 }
 \examples{
-x <- seq(from = -100, to = 100, length.out = 1000)
-y <- inv_logit(x)
+x <- seq(from = -5, to = 5, length.out = 100)
+plot(x, inv_logit(x), type="l")
 }

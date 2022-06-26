@@ -10,12 +10,12 @@ cloglog(x)
 \item{x}{value of x to be transformed, 0 < x < 1}
 }
 \value{
-cloglog value of x
+cloglog value of x, x unbound
 }
 \description{
 Complementary-Log-Log link function
 }
 \examples{
 x <- seq(from = 0.1, to = 0.9, length.out = 100)
-y <- cloglog(x)
+plot(x, cloglog(x))
 }

@@ -10,12 +10,12 @@ logistic(x)
 \item{x}{value of x to be transformed, any real scalar or vector allowed}
 }
 \value{
-logistic value of x
+logistic value of x, x e (0, 1)
 }
 \description{
 Logistic link function, equivalent to Inverse-Logit link
 }
 \examples{
-x <- seq(from = -100, to = 100, length.out = 1000)
-y <- logistic(x)
+x <- seq(from = -100, to = 100, length.out = 100)
+plot(x, logistic(x))
 }
