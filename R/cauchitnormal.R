@@ -1,7 +1,7 @@
 #' Cauchitnormal density distribution in median parametrization.
 #'
 #' @param x Value space of the distribution, x e (0, 1)
-#' @param mu Median parameter, mu e (0, 1)
+#' @param mu Median parameter, mu is already cauchit-transformed, mu unbound
 #' @param sigma Sigma shape parameter, sigma >= 0
 #' @param log Bool argument, if true, returns the logarithmic density
 #'
@@ -14,9 +14,6 @@
 dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
-  }
-  if (isTRUE(any(mu <= 0 | mu >= 1))) {
-    stop("mu must be in (0,1).")
   }
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")

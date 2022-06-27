@@ -9,7 +9,7 @@ dcloglognormal(x, mu, sigma, log = FALSE)
 \arguments{
 \item{x}{Value space of the function, x e (0, 1)}
 
-\item{mu}{Median parameter, mu e (0, 1)}
+\item{mu}{Median parameter, mu is already cloglog-transformed, mu unbound}
 
 \item{sigma}{Shape parameter, sigma >= 0}
 

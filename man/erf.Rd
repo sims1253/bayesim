@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{erf}
 \alias{erf}
-\title{Gaussion Error link function}
+\title{Gaussion Error function}
 \usage{
 erf(x)
 }
@@ -13,7 +13,7 @@ erf(x)
 erf function of x, result e (0, 1)
 }
 \description{
-Gaussion Error link function
+Gaussion Error function
 }
 \examples{
 x <- seq(from = -2, to = 2, length.out = 100)

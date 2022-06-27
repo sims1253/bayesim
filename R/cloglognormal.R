@@ -1,7 +1,7 @@
 #' Probability density functin of the Cloglognormal-distribution in Median parametrization.
 #'
 #' @param x Value space of the function, x e (0, 1)
-#' @param mu Median parameter, mu e (0, 1)
+#' @param mu Median parameter, mu is already cloglog-transformed, mu unbound
 #' @param sigma Shape parameter, sigma >= 0
 #' @param log optional argument. If true, returns Lograthmic probability. Default = FALSE
 #'
@@ -14,9 +14,6 @@
 dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
-  }
-  if (isTRUE(any(mu <= 0 | mu >= 1))) {
-    stop("mu must be in (0,1).")
   }
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")

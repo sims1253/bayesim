@@ -9,7 +9,7 @@ dcauchitnormal(x, mu, sigma, log = FALSE)
 \arguments{
 \item{x}{Value space of the distribution, x e (0, 1)}
 
-\item{mu}{Median parameter, mu e (0, 1)}
+\item{mu}{Median parameter, mu is already cauchit-transformed, mu unbound}
 
 \item{sigma}{Sigma shape parameter, sigma >= 0}
 

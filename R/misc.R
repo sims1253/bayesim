@@ -93,7 +93,7 @@ inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
 
-#' Gaussion Error link function
+#' Gaussion Error function
 #'
 #' @param x value to be transformed, x unbound
 #'
