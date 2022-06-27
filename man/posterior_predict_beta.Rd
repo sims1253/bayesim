@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{posterior_predict_beta}
 \alias{posterior_predict_beta}
-\title{Posterior predictionLog-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.}
+\title{Posterior prediction vignette for the Custom-Beta distribution, in Mean parametrization.}
 \usage{
 posterior_predict_beta(i, prep, ...)
 }
@@ -17,5 +17,5 @@ posterior_predict_beta(i, prep, ...)
 Posterior prediction of Beta-Custom, given data in prep
 }
 \description{
-Posterior predictionLog-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.
+Posterior prediction vignette for the Custom-Beta distribution, in Mean parametrization.
 }

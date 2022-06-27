@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{beta_custom}
 \alias{beta_custom}
-\title{Custom-Beta Stan-implementation in mean parametrization.}
+\title{Custom-Beta BRMS-implementation in mean parametrization.}
 \usage{
 beta_custom(link = "logit", link_phi = "log")
 }
@@ -15,7 +15,7 @@ beta_custom(link = "logit", link_phi = "log")
 BRMS Beta-Custom distribution family
 }
 \description{
-Custom-Beta Stan-implementation in mean parametrization.
+Custom-Beta BRMS-implementation in mean parametrization.
 }
 \examples{
 library(brms)

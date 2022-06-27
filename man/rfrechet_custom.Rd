@@ -2,18 +2,23 @@
 % Please edit documentation in R/custom_frechet.R
 \name{rfrechet_custom}
 \alias{rfrechet_custom}
-\title{Title}
+\title{Frechet RNG function in Mean parametrisation}
 \usage{
 rfrechet_custom(n, mu, k)
 }
 \arguments{
-\item{mu}{Mean}
+\item{n}{Number of samples as whole integer}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter, mu > 0}
+
+\item{k}{Shape parameter, k > 0}
 }
 \value{
-
+n samples as Frechet-distribution
 }
 \description{
-Title
+Frechet RNG function in Mean parametrisation
+}
+\examples{
+hist(log(rfrechet_custom(10000, mu=2, k=1)))
 }

@@ -2,18 +2,31 @@
 % Please edit documentation in R/custom_frechet.R
 \name{dfrechet_custom}
 \alias{dfrechet_custom}
-\title{Title}
+\title{Frechet density function in mean parametrisation.}
 \usage{
-dfrechet_custom(x, mu, a)
+dfrechet_custom(x, mu, k, log = FALSE)
 }
 \arguments{
-\item{mu}{Mean}
+\item{x}{Value space, x > 0}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter, mu > 0}
+
+\item{k}{Shape parameter, k > 0}
 }
 \value{
-
+dfrechet(x | mu, k)
 }
 \description{
-Title
+Frechet density function in mean parametrisation.
+}
+\details{
+Define scale parameter sigma as
+\deqn{\sigma(\mu, k) := \mu / \Gamma(1 + 1 / k)}
+
+The Frechet distribution has density
+\deqn{f(y) = (k /\sigma) * (y / \sigma)^{-(1 + k)} * exp(-(x / \sigma)^{-k}) }
+}
+\examples{
+x <- seq(from=0.01, to=10, length.out=1000)
+plot(x, dfrechet_custom(x, mu=2, k=1), type="l")
 }

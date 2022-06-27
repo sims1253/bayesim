@@ -2,16 +2,23 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{rkumaraswamy}
 \alias{rkumaraswamy}
-\title{Title}
+\title{Kuramaswamy RNG function in Median parametrisations.}
 \usage{
 rkumaraswamy(n, mu, p)
 }
 \arguments{
-\item{p}{}
+\item{n}{Number of samples to draw, as a natural number scalar.}
+
+\item{mu}{Median parameter, mu e (0, 1)}
+
+\item{p}{Phi shape parameter, Phi > 0}
 }
 \value{
-
+n samples in Kuramaswamy distribution.
 }
 \description{
-Title
+Kuramaswamy RNG function in Median parametrisations.
+}
+\examples{
+hist(rkuramaswamy(10000, mu=0.5, p=4))
 }

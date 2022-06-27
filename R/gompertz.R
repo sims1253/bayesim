@@ -1,21 +1,19 @@
 #' Probability density function for the Gompertz distribution, with Median parametrization.
-#' \deqn{b = (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
-#' \deqn{f(x) = eta*b*exp(\eta + bx - \eta * e^{bx})}
 #'
 #' @param x Model space, defined for x >= 0
 #' @param mu Median parameter of pdf, mu > 0
 #' @param eta Second shape parameter of Gompertz, defined for eta > 1
 #' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
+#' @details PDF of Gompertz implementation, with constant b:
+#' \deqn{b(\mu,\eta) := (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
+#' \deqn{f(x) = \eta*b*exp(\eta + bx - \eta * e^{bx})}
+#'
 #' @return f(x | mu, eta)
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 5, length.out = 100)
-#' eta <- 0.1
-#' median <- (1 / b) * log((-1 / eta) * log(1 / 2) + 1)
-#' y <- bayesim::dgompertz(x, mu = median, eta = eta)
-#' plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=2.0708, eta=0.1) or dgompertz(mu=1, eta=0.1)")
-#' # Compare to online ressources
+#' @examples x <- seq(from = 0, to = 10, length.out = 100)
+#' plot(x, dgompertz(x, mu=2, eta=0.2), type = "l")
 dgompertz <- function(x, mu, eta, log = FALSE) {
   # check arguments
   if (isTRUE(mu <= 0)) {
@@ -53,7 +51,7 @@ dgompertz <- function(x, mu, eta, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qgompertz(x, mu = 2, eta = 0.1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=2, eta=0.1)")
+#' plot(x, qgompertz(x, mu=2, eta=0.2), type = "l")
 qgompertz <- function(p, mu, eta) {
   # check arguments
   if (isTRUE(mu <= 0)) {
@@ -85,8 +83,7 @@ qgompertz <- function(p, mu, eta) {
 #' @return A Gompertz distributed RNG vector of size n
 #' @export
 #'
-#' @examples y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
-#' hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
+#' @examples hist(log(rgompertz(n, mu = 2, eta = 0.1)))
 rgompertz <- function(n, mu, eta) {
   # check arguments
   if (isTRUE(mu <= 0)) {
@@ -149,11 +146,10 @@ posterior_epred_gompertz <- function(prep) {
 #' @return BRMS gompertz distribution family
 #' @export
 #'
-#' @examples data <- list(a = a, y = bayesim::rgompertz(n, exp(0.5 * a + 1), 0.2))
-#' fit1 <- brm(y ~ 1 + a,
-#'   data = data, family = bayesim::gompertz(),
-#'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan"
-#' )
+#' @examples a <- rnorm(10000)
+#' data <- list(a = a, y = bayesim::rgompertz(10000, exp(0.5 * a + 1), 0.2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::gompertz(),
+#'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan")
 #' plot(fit1)
 gompertz <- function(link = "log", link_eta = "log") {
   family <- brms::custom_family(

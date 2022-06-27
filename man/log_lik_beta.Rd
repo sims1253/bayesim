@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{log_lik_beta}
 \alias{log_lik_beta}
-\title{Log-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.}
+\title{Log-Likelihood vignette for the Custom-Beta distribution, in Mean parametrization.}
 \usage{
 log_lik_beta(i, prep)
 }
@@ -15,5 +15,5 @@ log_lik_beta(i, prep)
 Log-Likelihood of Beta-Custom given data in prep
 }
 \description{
-Log-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.
+Log-Likelihood vignette for the Custom-Beta distribution, in Mean parametrization.
 }

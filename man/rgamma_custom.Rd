@@ -2,18 +2,23 @@
 % Please edit documentation in R/custom_gamma.R
 \name{rgamma_custom}
 \alias{rgamma_custom}
-\title{Title}
+\title{Custom Gamma RNG function in mean parametrisation.}
 \usage{
 rgamma_custom(n, mu, a)
 }
 \arguments{
-\item{mu}{Mean}
+\item{n}{Number of samples, scalar natural number.}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter, mu > 0.}
+
+\item{k}{Shape parameter, k > 0.}
 }
 \value{
-
+n Gamma distributed samples.
 }
 \description{
-Title
+Custom Gamma RNG function in mean parametrisation.
+}
+\examples{
+hist(log(rgamma_custom(10000, mu=2, a=1)))
 }

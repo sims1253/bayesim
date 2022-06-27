@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{pkumaraswamy}
 \alias{pkumaraswamy}
-\title{Title}
+\title{TODO: What's this?}
 \usage{
 pkumaraswamy(x, mu = 0.5, p = 1)
 }
@@ -13,5 +13,5 @@ pkumaraswamy(x, mu = 0.5, p = 1)
 
 }
 \description{
-Title
+TODO: What's this?
 }

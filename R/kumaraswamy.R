@@ -1,14 +1,17 @@
-#' Title
+#' Kuramaswamy density function in median parametrisation.
 #'
-#' @param x
-#' @param mu
-#' @param p
-#' @param log
+#' @param x value space, x e (0, 1)
+#' @param mu Median parameter of pdf, mu e (0, 1)
+#' @param p shape parameter, p > 0
+#' @param log if true, returns log(pdf). Normally FALSE.
 #'
-#' @return
+#' @details TODO: How to write down DAT formula and have it still look ok?! :P
+#'
+#' @return f(x | mu, p)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+#' plot(x, dkuramaswamy(x, mu = 0.5, p = 1), type = "l")
 dkumaraswamy <- function(x, mu, p, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -34,16 +37,16 @@ dkumaraswamy <- function(x, mu, p, log = FALSE) {
   }
 }
 
-#' Title
+#' Kuramaswamy RNG function in Median parametrisations.
 #'
-#' @param n
-#' @param mu
-#' @param p
+#' @param n Number of samples to draw, as a natural number scalar.
+#' @param mu Median parameter, mu e (0, 1)
+#' @param p Phi shape parameter, Phi > 0
 #'
-#' @return
+#' @return n samples in Kuramaswamy distribution.
 #' @export
 #'
-#' @examples
+#' @examples hist(rkuramaswamy(10000, mu=0.5, p=4))
 rkumaraswamy <- function(n, mu, p) {
   if (isTRUE(any(mu < 0 | mu > 1))) {
     stop("The mean must be in (0,1).")
@@ -59,16 +62,17 @@ rkumaraswamy <- function(n, mu, p) {
   )
 }
 
-#' Title
+#' Quantile function of the Kuramaswamy distribution in Median parametrisation.
 #'
-#' @param u
-#' @param mu
-#' @param p
+#' @param u Quantile to be calculated, u e (0, 1)
+#' @param mu Median parameter, mu e (0, 1)
+#' @param p Phi shape parameter, p > 0
 #'
-#' @return
+#' @return q(u | mu, p)
 #' @export
 #'
-#' @examples
+#' @examples u <- seq(from = 0.01, to = 0.09, length.out = 1000)
+#' plot(u, qkuramaswamy(u, mu = 0.5, p = 1), type = "l")
 qkumaraswamy <- function(u, mu = 0.5, p = 1) {
   if (isTRUE(any(u <= 0 | u >= 1))) {
     stop("u must be in (0,1).")
@@ -87,7 +91,7 @@ qkumaraswamy <- function(u, mu = 0.5, p = 1) {
   )
 }
 
-#' Title
+#' TODO: What's this?
 #'
 #' @param x
 #' @param mu
@@ -111,12 +115,12 @@ pkumaraswamy <- function(x, mu = 0.5, p = 1) {
   return(1 + (x^p - 1)^q)
 }
 
-#' Title
+#' Log-Likelihood vignette for the Kuramaswamy distribution, in Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #'
-#' @return
+#' @return Log-Likelihood of Beta-Custom given data in prep
 #'
 #' @examples
 log_lik_kumaraswamy <- function(i, prep) {
@@ -126,13 +130,13 @@ log_lik_kumaraswamy <- function(i, prep) {
   return(dkumaraswamy(y, mu, p, log = TRUE))
 }
 
-#' Title
+#' Posterior prediction vignette for the Kuramaswamy distribution, in Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
+#' @return Posterior prediction of Kuramaswamy, given data in prep
 #'
 #' @examples
 posterior_predict_kumaraswamy <- function(i, prep, ...) {
@@ -141,11 +145,11 @@ posterior_predict_kumaraswamy <- function(i, prep, ...) {
   return(rkumaraswamy(prep$ndraws, mu, p))
 }
 
-#' Title
+#' Posterior expected value prediction of the Kuramaswamy implementation.
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
+#' @return Recover the given mean of data prep
 #'
 #' @examples
 posterior_epred_kumaraswamy <- function(prep) {
@@ -155,15 +159,20 @@ posterior_epred_kumaraswamy <- function(prep) {
   return(q * beta((1 + 1 / p), q))
 }
 
-#' Title
+#' Kuramaswamy BRMS-implementation in median parametrization.
 #'
-#' @param link
-#' @param link_p
+#' @param link Link function for function
+#' @param link_p Link function for p argument
 #'
-#' @return
+#' @return BRMS Beta-Custom distribution family
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = rkuramaswamy(10000, bayesim::inv_logit(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = kuramaswamy(),
+#'   stanvars = kuramaswamy()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 kumaraswamy <- function(link = "logit", link_p = "log") {
   family <- brms::custom_family(
     "kumaraswamy",

@@ -1,14 +1,21 @@
-#' Title
+#' Custom Weibull PDF in mean parametrisation.
 #'
-#' @param x
-#' @param mu Mean
-#' @param k Shape
+#' @param x Value space, x > 0.
+#' @param mu Mean parameter, mu > 0.
+#' @param k Shape parameter, k > 0.
+#' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
-#' @return
+#' @details Define constant sigma as
+#' \deqn{\sigma(\mu, k) := \mu / \Gamma(1 + 1 / k)}
+#' @details The Weibull distribution density is defined as
+#' \deqn{f(y) = \frac{k}{\sigma} * (\frac{x}{\sigma})^{\alpha - 1} * exp(-(\frac{x}{\sigma})^\alpha)}
+#'
+#' @return f(x | mu, k)
 #' @export
 #'
-#' @examples
-dweibull_custom <- function(x, mu, k) {
+#' @examples x <- seq(from=0.01, to=10, length.out=1000)
+#' plot(x, dweibull_custom(x, mu=2, k=1), type="l")
+dweibull_custom <- function(x, mu, k, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
     stop("weibull is only defined for x > 0")
@@ -19,20 +26,20 @@ dweibull_custom <- function(x, mu, k) {
   if (isTRUE(mu <= 0)) {
     stop("weibull is only defined for mu > 0")
   }
-  return(dweibull(x = x, shape = k, scale = mu / gamma(1 + 1 / k)))
+  return(dweibull(x = x, shape = k, scale = mu / gamma(1 + 1 / k), log))
 }
 
 
-#' Title
+#' Custom Weibull RNG function in mean parametrisation.
 #'
-#' @param n
-#' @param mu Mean
-#' @param k Shape
+#' @param n Number of samples, scalar natural number.
+#' @param mu Mean parameter, mu > 0.
+#' @param k Shape parameter, k > 0.
 #'
-#' @return
+#' @return n Weibull distributed samples.
 #' @export
 #'
-#' @examples
+#' @examples hist(log(rweibull_custom(10000, mu=2, k=1)))
 rweibull_custom <- function(n, mu, k) {
   # check the arguments
   if (isTRUE(k <= 0)) {

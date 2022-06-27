@@ -2,9 +2,7 @@
 % Please edit documentation in R/gompertz.R
 \name{dgompertz}
 \alias{dgompertz}
-\title{Probability density function for the Gompertz distribution, with Median parametrization.
-\deqn{b = (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
-\deqn{f(x) = eta*b*exp(\eta + bx - \eta * e^{bx})}}
+\title{Probability density function for the Gompertz distribution, with Median parametrization.}
 \usage{
 dgompertz(x, mu, eta, log = FALSE)
 }
@@ -22,14 +20,13 @@ f(x | mu, eta)
 }
 \description{
 Probability density function for the Gompertz distribution, with Median parametrization.
-\deqn{b = (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
-\deqn{f(x) = eta*b*exp(\eta + bx - \eta * e^{bx})}
+}
+\details{
+PDF of Gompertz implementation, with constant b:
+\deqn{b(\mu,\eta) := (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
+\deqn{f(x) = \eta*b*exp(\eta + bx - \eta * e^{bx})}
 }
 \examples{
-x <- seq(from = 0, to = 5, length.out = 100)
-eta <- 0.1
-median <- (1 / b) * log((-1 / eta) * log(1 / 2) + 1)
-y <- bayesim::dgompertz(x, mu = median, eta = eta)
-plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=2.0708, eta=0.1) or dgompertz(mu=1, eta=0.1)")
-# Compare to online ressources
+x <- seq(from = 0, to = 10, length.out = 100)
+plot(x, dgompertz(x, mu=2, eta=0.2), type = "l")
 }

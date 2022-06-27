@@ -2,18 +2,31 @@
 % Please edit documentation in R/custom_gamma.R
 \name{dgamma_custom}
 \alias{dgamma_custom}
-\title{Title}
+\title{Custom Gamma density function in mean parametrisation.}
 \usage{
-dgamma_custom(x, mu, a)
+dgamma_custom(x, mu, a, log = FALSE)
 }
 \arguments{
-\item{mu}{Mean}
+\item{x}{Value space, x > 0.}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter of the density, mu > 0.}
+
+\item{k}{Shape parameter, k > 0.}
 }
 \value{
-
+f(x | mu, k)
 }
 \description{
-Title
+Custom Gamma density function in mean parametrisation.
+}
+\details{
+Define rate constante rho as:
+\deqn{\rho(\alpha, \mu) = \alpha / \mu}
+
+The Frechet distribution density is defined as
+\deqn{f(y) = \frac{x^{\alpha - 1} * exp(-y * / \rho)}{\rho^\alpha \Gamma(\alpha)} }
+}
+\examples{
+x <- seq(from=0.01, to=10, length.out=1000)
+plot(x, dgamma_custom(x, mu=2, a=1), type="l")
 }

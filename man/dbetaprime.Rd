@@ -31,6 +31,5 @@ The beta-prime distribution has density
 }
 \examples{
 x <- seq(from = 0, to = 100, length.out = 1000)
-y <- dbetaprime(x, mu = 4, phi = 2)
-plot(x, y, type = "l", ylab = "Density", main = "dbetaprime(mu=4, phi=2)")
+plot(x, dbetaprime(x, mu = 4, phi = 2), type = "l")
 }

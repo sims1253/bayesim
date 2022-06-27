@@ -2,16 +2,29 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{dkumaraswamy}
 \alias{dkumaraswamy}
-\title{Title}
+\title{Kuramaswamy density function in median parametrisation.}
 \usage{
 dkumaraswamy(x, mu, p, log = FALSE)
 }
 \arguments{
-\item{log}{}
+\item{x}{value space, x e (0, 1)}
+
+\item{mu}{Median parameter of pdf, mu e (0, 1)}
+
+\item{p}{shape parameter, p > 0}
+
+\item{log}{if true, returns log(pdf). Normally FALSE.}
 }
 \value{
-
+f(x | mu, p)
 }
 \description{
-Title
+Kuramaswamy density function in median parametrisation.
+}
+\details{
+TODO: How to write down DAT formula and have it still look ok?! :P
+}
+\examples{
+x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+plot(x, dkuramaswamy(x, mu = 0.5, p = 1), type = "l")
 }
