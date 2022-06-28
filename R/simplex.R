@@ -1,14 +1,17 @@
-#' Title
+#' Simplex density function in mean parametrisation.
 #'
-#' @param x
-#' @param mu
-#' @param sigma
-#' @param log
+#' @param x value space, x e (0, 1)
+#' @param mu Median parameter of pdf, mu e (0, 1)
+#' @param sigma shape parameter, sigma unbound
+#' @param log if true, returns log(pdf). Normally FALSE.
 #'
-#' @return
+#' @details TODO: How to write down DAT formula and have it still look ok?! :P
+#'
+#' @return f(x | mu, signma)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+#' plot(x, dsimplex(x, mu = 0.5, p = 1), type = "l")
 dsimplex <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -86,16 +89,16 @@ rMIG <-
   }
 
 
-#' Title
+#' Kuramaswamy RNG function in Median parametrisations.
 #'
-#' @param n
-#' @param mu
-#' @param sigma
+#' @param n Number of samples to draw, as a natural number scalar.
+#' @param mu Mean parameter, mu e (0, 1)
+#' @param sigma shape parameter, Sigma unbound
 #'
-#' @return
+#' @return n samples in Kuramaswamy distribution.
 #' @export
 #'
-#' @examples
+#' @examples hist(rsimplex(10000, mu=0.5, p=4))
 rsimplex <-
   function(n, mu, sigma) {
     ## generating random number from simplex dist'n
@@ -126,15 +129,13 @@ rsimplex <-
   }
 
 
-#' Title
+#' Posterior prediction vignette for the Simplex distribution, in Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
-#'
-#' @examples
+#' @return Posterior prediction of Simplex, given data in prep
 posterior_predict_simplex <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -142,14 +143,12 @@ posterior_predict_simplex <- function(i, prep, ...) {
 }
 
 
-#' Title
+#' Log-Likelihood vignette for the Simplex distribution, in Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #'
-#' @return
-#'
-#' @examples
+#' @return Log-Likelihood of Simplex given data in prep
 log_lik_simplex <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -158,27 +157,30 @@ log_lik_simplex <- function(i, prep) {
 }
 
 
-#' Title
+#' Posterior expected value prediction of the Simplex implementation.
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
-#'
-#' @examples
+#' @return Recover the given mean of data prep
 posterior_epred_simplex <- function(prep) {
   return(brms::get_dpar(prep, "mu"))
 }
 
 
-#' Title
+#' Kuramaswamy BRMS-implementation in median parametrization.
 #'
-#' @param link
-#' @param link_sigma
+#' @param link Link function for function
+#' @param link_sigma Link function for sigma argument
 #'
-#' @return
+#' @return BRMS Beta-Custom distribution family
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = rsimplex(10000, bayesim::inv_logit(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = simplex(),
+#'   stanvars = simplex()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 simplex <- function(link = "logit", link_sigma = "identity") {
   family <- brms::custom_family(
     "simplex",

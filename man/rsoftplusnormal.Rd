@@ -2,16 +2,23 @@
 % Please edit documentation in R/softplusnormal.R
 \name{rsoftplusnormal}
 \alias{rsoftplusnormal}
-\title{Title}
+\title{Softplus RNG-function in median parametrization.}
 \usage{
 rsoftplusnormal(n, mu, sigma)
 }
 \arguments{
-\item{sigma}{}
+\item{n}{Number of draws}
+
+\item{mu}{Median paramameter, mu unbound, mu already log transformed}
+
+\item{sigma}{Sigma shape parameter, sigma > 0}
 }
 \value{
-
+n Softplussy ditributed samples
 }
 \description{
-Title
+Softplus RNG-function in median parametrization.
+}
+\examples{
+hist(log(rsoftplusnormal(100, 0.5, 2)))
 }

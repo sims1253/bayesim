@@ -22,7 +22,6 @@ Normal distribution density with cloglog link function
 Probability density functin of the Cloglognormal-distribution in Median parametrization.
 }
 \examples{
-x <- seq(from = 0, to = 1, length.out = 1000)
-y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
-plot(x, y, type = "l", ylab = "Density", main = "dcloglognormal(mu=0.5, sigma=2)")
+x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+plot(x, dcloglognormal(x, mu = 0.5, sigma = 2), type = "l")
 }

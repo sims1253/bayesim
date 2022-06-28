@@ -29,6 +29,6 @@ With parameterisation of the usual Beta-Distribution's shape parameters a and b 
 \deqn{a := \mu\phi, b := (1 - \mu)\phi}
 }
 \examples{
-x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+x <- seq(from = 0.01, to = 0.99, length.out = 1000)
 plot(x, dbeta_custom(x, mu = 0.5, phi = 1), type = "l")
 }

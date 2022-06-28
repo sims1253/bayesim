@@ -9,7 +9,7 @@ rcauchitnormal(n, mu, sigma)
 \arguments{
 \item{n}{Number of draws}
 
-\item{mu}{Median paramameter, mu e (0, 1)}
+\item{mu}{Median paramameter, mu unbound, mu already cauchit transformed}
 
 \item{sigma}{Sigma shape parameter, sigma > 0}
 }

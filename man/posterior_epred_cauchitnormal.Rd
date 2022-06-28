@@ -2,7 +2,7 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{posterior_epred_cauchitnormal}
 \alias{posterior_epred_cauchitnormal}
-\title{Posterior expected value prediction. Mean undefined for Cauchit-Normal}
+\title{Posterior expected value prediction. Mean undefined for Cauchit-Normal.}
 \usage{
 posterior_epred_cauchitnormal(prep)
 }
@@ -13,5 +13,5 @@ posterior_epred_cauchitnormal(prep)
 Nothing
 }
 \description{
-Posterior expected value prediction. Mean undefined for Cauchit-Normal
+Posterior expected value prediction. Mean undefined for Cauchit-Normal.
 }

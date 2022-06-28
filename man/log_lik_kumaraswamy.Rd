@@ -12,7 +12,7 @@ log_lik_kumaraswamy(i, prep)
 \item{prep}{BRMS data}
 }
 \value{
-Log-Likelihood of Beta-Custom given data in prep
+Log-Likelihood of Kuramaswamy given data in prep
 }
 \description{
 Log-Likelihood vignette for the Kuramaswamy distribution, in Median parametrization.

@@ -25,6 +25,6 @@ Kuramaswamy density function in median parametrisation.
 TODO: How to write down DAT formula and have it still look ok?! :P
 }
 \examples{
-x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+x <- seq(from = 0.01, to = 0.99, length.out = 1000)
 plot(x, dkuramaswamy(x, mu = 0.5, p = 1), type = "l")
 }

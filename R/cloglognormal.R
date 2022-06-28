@@ -8,9 +8,8 @@
 #' @return Normal distribution density with cloglog link function
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 1, length.out = 1000)
-#' y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
-#' plot(x, y, type = "l", ylab = "Density", main = "dcloglognormal(mu=0.5, sigma=2)")
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+#' plot(x, dcloglognormal(x, mu = 0.5, sigma = 2), type = "l")
 dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -31,7 +30,7 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
 #' Cloglognormal RNG-function in median parametrization.
 #'
 #' @param n Number of draws
-#' @param mu Median parameter, mu e (0, 1)
+#' @param mu Median paramameter, mu unbound, mu already cloglog transformed
 #' @param sigma Shape parameter
 #'
 #' @return n Cloglog-normally ditributed samples

@@ -2,16 +2,26 @@
 % Please edit documentation in R/lognormal.R
 \name{lognormal}
 \alias{lognormal}
-\title{Title}
+\title{Custom BRMS family Log-Normal in median parametrization.}
 \usage{
 lognormal(link = "identity", link_sigma = "log")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function argument (as string) for Median argument. Left as identity!}
+
+\item{link_sigma}{Link function argument (as string) for Shape argument}
 }
 \value{
-
+Lognormal BRMS model-object
 }
 \description{
-Title
+Custom BRMS family Log-Normal in median parametrization.
+}
+\examples{
+library(brms)
+a <- rnorm(1000)
+data <- list(a = a, y = rlognormal(n, exp(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = lognormal(),
+  stanvars = lognormal()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

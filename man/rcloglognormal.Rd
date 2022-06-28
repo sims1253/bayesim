@@ -9,7 +9,7 @@ rcloglognormal(n, mu, sigma)
 \arguments{
 \item{n}{Number of draws}
 
-\item{mu}{Median parameter, mu e (0, 1)}
+\item{mu}{Median paramameter, mu unbound, mu already cloglog transformed}
 
 \item{sigma}{Shape parameter}
 }

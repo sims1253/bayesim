@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 10, length.out = n)
-#' plot(x, bayesim::dlomax(x, mu = 2, alpha = 2), type = "l", ylab = "Density", main = "high starting Lomax(mu=2, eta=2)")
+#' plot(x, dlomax(x, mu = 2, alpha = 2), type = "l")
 dlomax <- function(x, mu, alpha, log = FALSE) {
   # check arguments
   if (isTRUE(any(x < 0))) {
@@ -43,7 +43,7 @@ dlomax <- function(x, mu, alpha, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qgompertz(x, mu = 2, eta = 0.1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=2, eta=0.1)")
+#' plot(x, qgompertz(x, mu = 2, eta = 0.1), type = "l")
 qlomax <- function(p, mu, alpha) {
   # check arguments
   if (isTRUE(any(p < 0))) {
@@ -69,8 +69,7 @@ qlomax <- function(p, mu, alpha) {
 #' @return A Lomax distributed RNG vector of size n
 #' @export
 #'
-#' @examples y <- bayesim::rlomax(n, mu = 2, eta = 2)
-#' hist(log(y), main = c(paste("Median:", mean(y)), " for RNG of high starting Lomax(mu=2, eta=0.1)"))
+#' @examples hist(log(rlomax(n, mu = 2, eta = 2)))
 rlomax <- function(n, mu, alpha) {
   # check arguments
   if (isTRUE(mu <= 0)) {
@@ -132,11 +131,11 @@ posterior_epred_lomax <- function(prep) {
 #' @return BRMS Lomax distribution family
 #' @export
 #'
-#' @examples data <- list(a = a, y = bayesim::rlomax(n, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a,
-#'   data = data, family = bayesim::lomax(),
-#'   stanvars = bayesim::lomax()$stanvars, backend = "cmdstan"
-#' )
+#' @examples library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rlomax(10000, exp(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
+#'   stanvars = bayesim::lomax()$stanvars, backend = "cmdstan")
 #' plot(fit1)
 lomax <- function(link = "log", link_alpha = "log1p") {
   family <- brms::custom_family(

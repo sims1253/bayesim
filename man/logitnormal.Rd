@@ -2,16 +2,28 @@
 % Please edit documentation in R/logitnormal.R
 \name{logitnormal}
 \alias{logitnormal}
-\title{Title}
+\title{Custom BRMS family Logit-Normal in median parametrization.}
 \usage{
 logitnormal(link = "identity", link_sigma = "log")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function argument (as string) for Median argument. Left as identity!}
+
+\item{link_sigma}{Link function argument (as string) for Shape argument}
 }
 \value{
-
+Logitnormal BRMS model-object
 }
 \description{
-Title
+Custom BRMS family Logit-Normal in median parametrization.
+}
+\examples{
+library(brms)
+library(bayesim)
+a <- rnorm(1000)
+data <- list(a = a, y = rlogitnormal(1000, inv_logit_scaled(0.2 + 0.5 * a), 4))
+hist(data$y)
+fit1 <- brm(y ~ 1 + a, data = data, family = logitnormal(),
+            stanvars = logitnormal()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

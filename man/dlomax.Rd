@@ -23,5 +23,5 @@ Probability density function for the Lomax distribution, with Mean parametrizati
 }
 \examples{
 x <- seq(from = 0, to = 10, length.out = n)
-plot(x, bayesim::dlomax(x, mu = 2, alpha = 2), type = "l", ylab = "Density", main = "high starting Lomax(mu=2, eta=2)")
+plot(x, dlomax(x, mu = 2, alpha = 2), type = "l")
 }

@@ -2,16 +2,26 @@
 % Please edit documentation in R/softplusnormal.R
 \name{softplusnormal}
 \alias{softplusnormal}
-\title{Title}
+\title{Custom BRMS family Softplus in median parametrization.}
 \usage{
 softplusnormal(link = "identity", link_sigma = "log")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function argument (as string) for Median argument. Left as identity!}
+
+\item{link_sigma}{Link function argument (as string) for Shape argument}
 }
 \value{
-
+Softplus BRMS model-object
 }
 \description{
-Title
+Custom BRMS family Softplus in median parametrization.
+}
+\examples{
+library(brms)
+a <- rnorm(1000)
+data <- list(a = a, y = rsoftplus(n, exp(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = softplus(),
+  stanvars = softplus()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

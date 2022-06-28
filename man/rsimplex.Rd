@@ -2,16 +2,23 @@
 % Please edit documentation in R/simplex.R
 \name{rsimplex}
 \alias{rsimplex}
-\title{Title}
+\title{Kuramaswamy RNG function in Median parametrisations.}
 \usage{
 rsimplex(n, mu, sigma)
 }
 \arguments{
-\item{sigma}{}
+\item{n}{Number of samples to draw, as a natural number scalar.}
+
+\item{mu}{Mean parameter, mu e (0, 1)}
+
+\item{sigma}{shape parameter, Sigma unbound}
 }
 \value{
-
+n samples in Kuramaswamy distribution.
 }
 \description{
-Title
+Kuramaswamy RNG function in Median parametrisations.
+}
+\examples{
+hist(rsimplex(10000, mu=0.5, p=4))
 }

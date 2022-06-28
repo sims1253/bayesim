@@ -8,9 +8,8 @@
 #' @return Normal distribution density with cauchit link function
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 1, length.out = 1000)
-#' y <- dcauchitnormal(x, mu = 0.5, sigma = 2)
-#' plot(x, y, type = "l", ylab = "Density", main = "dcauchitnormal(mu=0.5, sigma=2)")
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+#' plot(x, dcauchitnormal(x, mu = 0.5, sigma = 2), type = "l")
 dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -31,7 +30,7 @@ dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
 #' Cauchitnormal RNG-function in median parametrization.
 #'
 #' @param n Number of draws
-#' @param mu Median paramameter, mu e (0, 1)
+#' @param mu Median paramameter, mu unbound, mu already cauchit transformed
 #' @param sigma Sigma shape parameter, sigma > 0
 #'
 #' @returns n Chauchitnormally ditributed samples
@@ -51,15 +50,12 @@ rcauchitnormal <- function(n, mu, sigma) {
   )
 }
 
-#' Log-Likelihood vignette for the Chauchitnormal distribution, with Median parametrization.
+#' Log-Likelihood vignette for the Chauchitnormal distribution, in Median parametrization.
 #'
 #' @param i Indices
 #' @param prep BRMS data
 #'
 #' @return log_likelihood of the Cauchitnormal distribution, given some BRMS data.
-#'
-#'
-#' @examples
 log_lik_cauchitnormal <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -80,14 +76,11 @@ posterior_predict_cauchitnormal <- function(i, prep, ...) {
   return(rcauchitnormal(prep$ndraws, mu, sigma))
 }
 
-#' Posterior expected value prediction. Mean undefined for Cauchit-Normal
+#' Posterior expected value prediction. Mean undefined for Cauchit-Normal.
 #'
 #' @param prep BRMS data
 #'
 #' @return Nothing
-#'
-#'
-#' @examples
 posterior_epred_cauchitnormal <- function(prep) {
   # https://doi.org/10.1080/03610926.2020.1752723 might solve this
   stop("Due to the mean not having an analytical solution for the cauchit-normal

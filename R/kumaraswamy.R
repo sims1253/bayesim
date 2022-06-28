@@ -10,7 +10,7 @@
 #' @return f(x | mu, p)
 #' @export
 #'
-#' @examples x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
 #' plot(x, dkuramaswamy(x, mu = 0.5, p = 1), type = "l")
 dkumaraswamy <- function(x, mu, p, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
@@ -91,16 +91,17 @@ qkumaraswamy <- function(u, mu = 0.5, p = 1) {
   )
 }
 
-#' TODO: What's this?
+#' Kuramaswamy CDF in median parametrisation
 #'
-#' @param x
-#' @param mu
-#' @param p
+#' @param x CDF of x over lower tail, x e (0, 1)
+#' @param mu Median parameter, mu e (0, 1)
+#' @param p shape parameter, p > 0
 #'
-#' @return
+#' @return p(x | mu, p)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+#' plot(x, pkuramaswamy(x, mu = 0.5, p = 1), type = "l")
 pkumaraswamy <- function(x, mu = 0.5, p = 1) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -120,9 +121,7 @@ pkumaraswamy <- function(x, mu = 0.5, p = 1) {
 #' @param i BRMS indices
 #' @param prep BRMS data
 #'
-#' @return Log-Likelihood of Beta-Custom given data in prep
-#'
-#' @examples
+#' @return Log-Likelihood of Kuramaswamy given data in prep
 log_lik_kumaraswamy <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   p <- brms::get_dpar(prep, "p", i = i)
@@ -137,8 +136,6 @@ log_lik_kumaraswamy <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of Kuramaswamy, given data in prep
-#'
-#' @examples
 posterior_predict_kumaraswamy <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   p <- brms::get_dpar(prep, "p", i = i)
@@ -150,8 +147,6 @@ posterior_predict_kumaraswamy <- function(i, prep, ...) {
 #' @param prep BRMS data
 #'
 #' @return Recover the given mean of data prep
-#'
-#' @examples
 posterior_epred_kumaraswamy <- function(prep) {
   mu <- brms::get_dpar(prep, "mu")
   p <- brms::get_dpar(prep, "p")

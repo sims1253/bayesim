@@ -13,7 +13,7 @@
 #' @return PDF of Custom Beta distribution, with mean parameterasation
 #' @export
 #'
-#' @examples x <- seq(from = 0.01, to = 0.09, length.out = 1000)
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
 #' plot(x, dbeta_custom(x, mu = 0.5, phi = 1), type = "l")
 dbeta_custom <- function(x, mu, phi, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
@@ -25,7 +25,15 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
   if (isTRUE(any(phi <= 0))) {
     stop("P must be above 0.")
   }
-  dbeta(x, mu * phi, (1 - mu) * phi, log)
+  # May be improved, by custom implementation.
+  #lpdf <- dbeta(x, mu * phi, (1 - mu) * phi, log=TRUE)
+  lpdf <- (log(gamma(phi)) - log(gamma(mu*phi)) - log(gamma((1 - mu)*phi))) +
+   log(x) * (mu * phi - 1) + log1p(-x) * ((1 - mu) * phi - 1)
+  if(log)
+    return(lpdf)
+  else
+    return(exp(lpdf))
+  # TODO: needs indepth stability testing!!!
 }
 
 #' Custom Beta distribution RNG
@@ -115,6 +123,7 @@ beta_custom <- function(link = "logit", link_phi = "log") {
     posterior_predict = posterior_predict_beta,
     posterior_epred = posterior_epred_beta
   )
+  # TODO: optimize Stan code as well (or not! May be unused, given beta is implemented in BRMS)
   family$stanvars <- brms::stanvar(
     scode = "
       real beta_custom_lpdf(real y, real mu, real phi) {

@@ -2,16 +2,18 @@
 % Please edit documentation in R/lognormal.R
 \name{log_lik_lognormal}
 \alias{log_lik_lognormal}
-\title{Title}
+\title{Log-Likelihood vignette for the Lognormal distribution, in Median parametrization.}
 \usage{
 log_lik_lognormal(i, prep)
 }
 \arguments{
-\item{prep}{}
+\item{i}{Indices}
+
+\item{prep}{BRMS data}
 }
 \value{
-
+log_likelihood of the Lognormal distribution, given some BRMS data.
 }
 \description{
-Title
+Log-Likelihood vignette for the Lognormal distribution, in Median parametrization.
 }

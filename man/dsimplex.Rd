@@ -2,16 +2,29 @@
 % Please edit documentation in R/simplex.R
 \name{dsimplex}
 \alias{dsimplex}
-\title{Title}
+\title{Simplex density function in mean parametrisation.}
 \usage{
 dsimplex(x, mu, sigma, log = FALSE)
 }
 \arguments{
-\item{log}{}
+\item{x}{value space, x e (0, 1)}
+
+\item{mu}{Median parameter of pdf, mu e (0, 1)}
+
+\item{sigma}{shape parameter, sigma unbound}
+
+\item{log}{if true, returns log(pdf). Normally FALSE.}
 }
 \value{
-
+f(x | mu, signma)
 }
 \description{
-Title
+Simplex density function in mean parametrisation.
+}
+\details{
+TODO: How to write down DAT formula and have it still look ok?! :P
+}
+\examples{
+x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+plot(x, dsimplex(x, mu = 0.5, p = 1), type = "l")
 }

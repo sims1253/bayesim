@@ -1,14 +1,15 @@
-#' Title
+#' Lognormal density distribution in median parametrization.
 #'
-#' @param x
-#' @param mu
-#' @param sigma
-#' @param log
+#' @param x Value space of the distribution, x > 0
+#' @param mu Median parameter, mu is already log-transformed, mu unbound
+#' @param sigma Sigma shape parameter, sigma >= 0
+#' @param log Bool argument, if true, returns the logarithmic density
 #'
-#' @return
+#' @return Normal distribution density with logit link function
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
+#' plot(x, dlognormal(x, mu = 2, sigma = 2), type = "l")
 dlognormal <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -27,16 +28,17 @@ dlognormal <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
-#' Title
+#' Lognormal RNG-function in median parametrization.
 #'
-#' @param n
-#' @param mu
-#' @param sigma
+#' @param n Number of draws
+#' @param mu Median paramameter, mu unbound, mu already log transformed
+#' @param sigma Sigma shape parameter, sigma > 0
 #'
-#' @return
+#' @returns n Lognormally ditributed samples
+#'
 #' @export
 #'
-#' @examples
+#' @examples hist(log(rlognormal(100, 0.5, 2)))
 rlognormal <- function(n, mu, sigma) {
   # check the arguments
   if (isTRUE(sigma <= 0)) {
@@ -47,15 +49,12 @@ rlognormal <- function(n, mu, sigma) {
   )
 }
 
-#' Title
+#' Log-Likelihood vignette for the Lognormal distribution, in Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i Indices
+#' @param prep BRMS data
 #'
-#' @return
-#'
-#'
-#' @examples
+#' @return log_likelihood of the Lognormal distribution, given some BRMS data.
 log_lik_lognormal <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -63,45 +62,44 @@ log_lik_lognormal <- function(i, prep) {
   return(dlognormal(y, mu, sigma, log = TRUE))
 }
 
-#' Title
+#' Posterior-predict vignette for the Lognormal distribution, with Median parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i Indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
-#'
-#'
-#' @examples
+#' @return The posterior prediction of the Lognormal distribution, given some BRMS data.
 posterior_predict_lognormal <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(rlognormal(prep$ndraws, mu, sigma))
 }
 
-#' Title
+#' Posterior expected value prediction vignette for Lognormal distribution.
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
-#'
-#'
-#' @examples
+#' @return Mean of Posterior
 posterior_epred_lognormal <- function(prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(exp(mu + sigma^2 / 2))
 }
 
-#' Title
+#' Custom BRMS family Log-Normal in median parametrization.
 #'
-#' @param link
-#' @param link_sigma
+#' @param link Link function argument (as string) for Median argument. Left as identity!
+#' @param link_sigma Link function argument (as string) for Shape argument
 #'
-#' @return
+#' @return Lognormal BRMS model-object
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = rlognormal(n, exp(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = lognormal(),
+#'   stanvars = lognormal()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 lognormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")
   family <- brms::custom_family(

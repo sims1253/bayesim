@@ -2,16 +2,26 @@
 % Please edit documentation in R/simplex.R
 \name{simplex}
 \alias{simplex}
-\title{Title}
+\title{Kuramaswamy BRMS-implementation in median parametrization.}
 \usage{
 simplex(link = "logit", link_sigma = "identity")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function for function}
+
+\item{link_sigma}{Link function for sigma argument}
 }
 \value{
-
+BRMS Beta-Custom distribution family
 }
 \description{
-Title
+Kuramaswamy BRMS-implementation in median parametrization.
+}
+\examples{
+library(brms)
+a <- rnorm(10000)
+data <- list(a = a, y = rsimplex(10000, bayesim::inv_logit(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = simplex(),
+  stanvars = simplex()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

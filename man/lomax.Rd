@@ -18,10 +18,10 @@ BRMS Lomax distribution family
 Lomax Stan-implementation in Mean parametrization.
 }
 \examples{
-data <- list(a = a, y = bayesim::rlomax(n, exp(0.5 * a + 1), 2))
-fit1 <- brm(y ~ 1 + a,
-  data = data, family = bayesim::lomax(),
-  stanvars = bayesim::lomax()$stanvars, backend = "cmdstan"
-)
+library(brms)
+a <- rnorm(1000)
+data <- list(a = a, y = bayesim::rlomax(10000, exp(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
+  stanvars = bayesim::lomax()$stanvars, backend = "cmdstan")
 plot(fit1)
 }
