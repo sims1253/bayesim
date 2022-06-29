@@ -128,7 +128,7 @@ softplus <- function(x) {
 #' @return inv_softplus of x, result is positive unbound
 #' @export
 #'
-#' @examples x <- seq(from = -5, to = 5, length.out = 100)
+#' @examples x <- seq(from = 0.1, to = 5, length.out = 100)
 #' plot(x, softplus(x), type="l")
 inv_softplus <- function(x) {
   return(log(exp(x) - 1))

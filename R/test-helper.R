@@ -52,9 +52,10 @@ expect_eps <- function(a, b, eps, r = 0.0) {
     stop("The relative number of tolerated deviances r has to be in [0, 1].")
   }
 
-  # then check, that all eps are > 0
-  if (isTRUE(any(eps <= 0))) {
-    stop("Tried checking against negative or zero differences. For zero difference, use expect_equal.")
+  # then check, that all eps are >= 0
+  # (changed to >= given the r might also prove interesting for i.e. integer comparisons)
+  if (isTRUE(any(eps < 0))) {
+    stop("Tried checking against negative differences.")
   }
 
   # then check, if vectors are of same length
@@ -81,6 +82,49 @@ expect_eps <- function(a, b, eps, r = 0.0) {
     }
     fail(message)
   }
+}
+
+
+#' Distribution RNG test vingette
+#'
+#' @param rng_fun RNG function under test
+#' @param metric_mu Metric to be used on RNG data (usually mean or median)
+#' @param mus Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param shapes Shape arguemnts
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#'
+#' @return Nothing actually, just wraps the test
+#' @export
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mus <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=10000, mus=mus,
+#'          shapes=phis, mu_eps=0.2, p_acceptable_failures=0.05)
+test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures) {
+  if(isFALSE(is.function(rng_fun) && is.function(metric_mu))) {
+    stop("RNG- or Metric-function argument was not a function!")
+  }
+  if(isFALSE(is.numeric(n) && length(n) == 1 && n >= 1)) {
+    stop("n must be a numeric, positive scalar!")
+  }
+  if(isFALSE(length(mu_eps) == 1)) {
+    stop("mu_eps has to be a scalar in this test-function!")
+  }
+
+  lenx <- length(shapes)
+  leny <- length(mus)
+  expected_mus <- rep(mus, times=leny)
+  rng_mus <- vector(length=lenx * leny)
+
+  for (x in 1:lenx) {
+    for (y in 1:leny) {
+      rng_mus[(x-1) * leny + y] <- metric_mu(rng_fun(n, mu = mus[y], shapes[x]))
+    }
+  }
+  expect_eps(rng_mus, expected_mus, mu_eps, p_acceptable_failures)
 }
 
 #' Check, if a is bigger than b. expect_smaller(a, b) can be done,

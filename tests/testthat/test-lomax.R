@@ -20,10 +20,11 @@ unit <- seq(from = eps, to = 1 - eps, length.out = n)
 n_small <- 10
 mus <- seq(from = eps, to = 10, length.out = n_small)
 alphas <- seq(from = 1 + eps, to = 10, length.out = n_small)
-mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
-alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
 
-p_acceptable_failures <- 0.2 # with arbitrary median_eps of 0.1, about 8-20% of medians will be outside that range
+# mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
+alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
+accepted_means_eps <- 0.3
+p_acceptable_failures <- 0.05
 
 test_that("custom-lomax", {
   # calculate lomax
@@ -39,13 +40,6 @@ test_that("custom-lomax", {
   expect_eps(bayesim::dlomax(x, mu = 2, alpha = 2), extraDistr::dlomax(x, get_lambda(2, 2), 2), eps)
   expect_eps(bayesim::qlomax(unit, mu = 2, alpha = 2), extraDistr::qlomax(unit, get_lambda(2, 2), 2), eps)
 
-  # check the RNG for one test with mu = 1 and alpha = 3
-  mu <- 1
-  accepted_mean_eps <- 0.5
-  lomax_samples <- bayesim::rlomax(n, mu, 3)
-  expect_equal(n, length(lomax_samples))
-  expect_eps(mean(lomax_samples), mu, accepted_mean_eps) # this test should work most of the time, but might fail sometimes
-
   # check many shape parameters on pdf and qdf
   for (alpha in alphas) {
     for (m in mus) {
@@ -54,15 +48,15 @@ test_that("custom-lomax", {
     }
   }
 
-  # check many shapre parameters on RNG. Uses values further away, from definition edge
-  for (alpha in alphas_r) {
-    mu_r_length <- length(mus_r)
-    lomax_rng_means <- vector(length = mu_r_length)
-    for (i in 0:mu_r_length) {
-      lomax_rng_means[i] <- mean(bayesim::rlomax(n, mu = mus_r[i], alpha = alpha))
-    }
-    expect_eps(lomax_rng_means, mus_r, accepted_mean_eps, p_acceptable_failures)
-  }
+
+  # check the RNG will return the correct number of samples
+  lomax_samples <- bayesim::rlomax(n, 1, 3)
+  expect_equal(n, length(lomax_samples))
+
+  # shape variable -> bound gets instable RNG, arbitrary bound instead with alpha_r
+  test_rng(rng_fun=bayesim::rlomax, metric_mu=mean, n=n, mus=mus, shapes=alphas_r,
+           mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures)
+  # check the RNG is not too far of the input value
 
   # now check density function for some errors
   expect_error(bayesim::dlomax(1, 2)) # to few arguments
