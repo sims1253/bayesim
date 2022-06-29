@@ -55,9 +55,6 @@ rcloglognormal <- function(n, mu, sigma) {
 #' @param prep BRMS data
 #'
 #' @return log_lik
-#'
-#'
-#' @examples
 log_lik_cloglognormal <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -72,9 +69,6 @@ log_lik_cloglognormal <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of the data
-#'
-#'
-#' @examples
 posterior_predict_cloglognormal <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -86,9 +80,6 @@ posterior_predict_cloglognormal <- function(i, prep, ...) {
 #' @param prep BRMS data
 #'
 #' @return Nothing
-#'
-#'
-#' @examples
 posterior_epred_cloglognormal <- function(prep) {
   # https://doi.org/10.1080/03610926.2020.1752723 might solve this
   stop("Due to the mean not having an analytical solution for the cloglog-normal

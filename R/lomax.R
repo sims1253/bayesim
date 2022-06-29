@@ -87,8 +87,6 @@ rlomax <- function(n, mu, alpha) {
 #' @param prep BRMS data
 #'
 #' @return Log-Likelihood of Lomax given data in prep
-#'
-#' @examples
 log_lik_lomax <- function(i, prep) {
   mu <- get_dpar(prep, "mu", i = i)
   alpha <- get_dpar(prep, "alpha", i = i)
@@ -103,8 +101,6 @@ log_lik_lomax <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of Lomax, given data in prep
-#'
-#' @examples
 posterior_predict_lomax <- function(i, prep, ...) {
   mu <- get_dpar(prep, "mu", i = i)
   alpha <- get_dpar(prep, "alpha", i = i)
@@ -116,8 +112,6 @@ posterior_predict_lomax <- function(i, prep, ...) {
 #' @param prep BRMS data
 #'
 #' @return Recover the given mean of data prep
-#'
-#' @examples
 posterior_epred_lomax <- function(prep) {
   mu <- get_dpar(prep, "mu")
   return(mu)

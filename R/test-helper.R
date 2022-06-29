@@ -2,25 +2,26 @@
 #' Check that |a - b| < eps. Works with scalars and vectors on any input.
 #' For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
 #'
-#' @param a scalar or vector a to be compared
-#' @param b scalar or vector b to be compared
-#' @param eps scalar or vector, setting the max differences, eps > 0
-#' @param r optional scalar (r = 0), relative number of values, that may have an difference > eps.
+#' @param a numeric scalar or vector a to be compared
+#' @param b numeric scalar or vector b to be compared
+#' @param eps numeric scalar or vector, setting the max differences, eps > 0
+#' @param r optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
 #' Used internally, to calculate acceptable amount of deviances. Calculated absolute value will be floored.
 #'
-#' @details For vector/scalar combinations, allowed are (r always scalar!):
-#' \describe{
-#'   \item{- all scalar}
-#'   \item{- a vector, b scalar, eps scalar -> compare a values to be close enough to b}
-#'   \item{- a scalar, b vector, eps scalar -> compare b values to be close enough to a}
-#'   \item{- a scalar, b scalar, eps vector -> compare the difference a, b too all eps
-#'   -> case not intended, but would work}
-#'   \item{- a vector, b scalar, eps vector -> compare each vector-difference entry against each eps}
-#'   \item{- all vectors -> each entry of |a - b| is compared to the same entry in eps}
-#'   -> different vector lengths != 1 dissallowed!}
-#' }
+#' @md
+#' @details For vector/scalar combinations, allowed are (r has to always be a scalar!):
+#'   * all scalar
+#'   * a vector, b scalar, eps scalar -> compare a values to be close enough to b
+#'   * a scalar, b vector, eps scalar -> compare b values to be close enough to a
+#'   * a scalar, b scalar, eps vector -> compare the difference a, b too all eps
+#'   -> case not intended, but would work
+#'   * a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
+#'   * all vectors -> each entry of |a - b| is compared to the same entry in eps
+#'   -> different vector lengths != 1 dissallowed!
 #'
 #' @return success or failure with message
+#'
+#' @export
 #'
 #' @examples library(testthat)
 #' library(bayesim)
@@ -28,7 +29,7 @@
 #' expect_eps(-1, -1.1, 0.2) # should pass
 #' expect_eps(-1.00001, -1.00001, 1e-4) # should pass
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) # should pass (only 1/3 were wrong, but 40% was allowed)
-#' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.1) # should fail (1/3 were wrong, but only 1/10 was allowed)
+#' expect_eps(c(0, 1, 3), c(1, 1, 2), 1e-4, 1/3) # should fail (2/3 were wrong, but only 1/3 was allowed)
 #' expect_eps(1, 1.3, 0.2) # should fail (|a - b| = 0.3 > 0.2)
 #' expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) # should produce an error (different vector-lengths)
 #' expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)
@@ -96,6 +97,8 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #' @param b tested against, should be real scalar or vector
 #'
 #' @return expect(a > threshold)
+#'
+#' @export
 #'
 #' @examples expect_bigger(1, 0) # should pass
 #' expect_bigger(0, 1) # should fail

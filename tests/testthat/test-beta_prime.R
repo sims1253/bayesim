@@ -25,7 +25,7 @@ mus <- seq(from = eps, to = 20, length.out = n_small)
 phis <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
 accepted_means_eps <- 0.2
-p_acceptable_failures <- 0.1
+p_acceptable_failures <- 0.05
 mus_r <- seq(from = 1 + eps, to = 20, length.out = n_small)
 phis_r <- seq(from = 2 + eps, to = 20, length.out = n_small)
 
@@ -56,16 +56,21 @@ test_that("custom-betaprime", {
   mu <- 2
   betaprime_samples <- bayesim::rbetaprime(n, mu, 3)
   expect_equal(n, length(betaprime_samples))
-  expect_eps(mean(betaprime_samples), mu, accepted_means_eps) # this test should work most of the time, but might fail sometimes
+  # check number return values
 
-  for (phi in phis_r) {
-    length_mus_r <- length(mus_r)
-    beta_prime_rng_means <- vector(length = length_mus_r)
-    for (i in 0:length_mus_r) {
-      beta_prime_rng_means[i] <- mean(bayesim::rbetaprime(n, mu = mus_r[i], phi = phi))
+  lenx <- length(phis_r)
+  leny <- length(mus_r)
+  expected_mus <- rep(mus_r, times=leny)
+  beta_prime_rng_means <- vector(length=lenx * leny)
+  for (x in 1:lenx) {
+    for (y in 1:leny) {
+      #idx <- (x-1) * leny + y
+      #print(idx)
+      beta_prime_rng_means[(x-1) * leny + y] <- mean(bayesim::rbetaprime(n, mu = mus_r[y], phi = phis_r[x]))
     }
-    expect_eps(beta_prime_rng_means, mus_r, accepted_means_eps, p_acceptable_failures)
   }
+  expect_eps(beta_prime_rng_means, expected_mus, accepted_means_eps, p_acceptable_failures)
+  # check the RNG is not too far of the input value
 
 
 

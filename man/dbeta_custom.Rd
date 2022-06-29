@@ -23,7 +23,7 @@ Custom Beta distribibution density.
 }
 \details{
 The beta distribution has density
-\deqn{f(y) = \frac{\Gamma(\mu\phi + (1 - \mu)\phi)}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} * x^{\mu\phi - 1}*(1 - x)^{(1-\mu)\phi} }
+\deqn{f(y | \mu, \phi) = \frac{\Gamma(\phi) x^{\mu\phi - 1} (1 - x)^{(1-\mu)\phi}}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} }
 
 With parameterisation of the usual Beta-Distribution's shape parameters a and b as:
 \deqn{a := \mu\phi, b := (1 - \mu)\phi}

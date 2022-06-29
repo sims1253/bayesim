@@ -101,8 +101,6 @@ rgompertz <- function(n, mu, eta) {
 #' @param prep BRMS data
 #'
 #' @return Log-Likelihood of gompertz given data in prep
-#'
-#' @examples
 log_lik_gompertz <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   eta <- brms::get_dpar(prep, "eta", i = i)
@@ -117,8 +115,6 @@ log_lik_gompertz <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of gompertz, given data in prep
-#'
-#' @examples
 posterior_predict_gompertz <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   eta <- brms::get_dpar(prep, "eta", i = i)
@@ -130,9 +126,7 @@ posterior_predict_gompertz <- function(i, prep, ...) {
 #'
 #' @param prep BRMS data
 #'
-#' @return Recover the given mean of data prep
-#'
-#' @examples
+#' @return Nothing
 posterior_epred_gompertz <- function(prep) {
   stop("posterior_epred is not defined for the gompertz family")
 }

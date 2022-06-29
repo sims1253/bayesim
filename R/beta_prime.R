@@ -104,8 +104,6 @@ rbetaprime <- function(n, mu, phi) {
 #' @param prep BRMS data
 #'
 #' @return Log-Likelihood of betaprime given data in prep
-#'
-#' @examples
 log_lik_betaprime <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   phi <- brms::get_dpar(prep, "phi", i = i)
@@ -121,8 +119,6 @@ log_lik_betaprime <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of beta-prime, given data in prep
-#'
-#' @examples
 posterior_predict_betaprime <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   phi <- brms::get_dpar(prep, "phi", i = i)
@@ -134,8 +130,6 @@ posterior_predict_betaprime <- function(i, prep, ...) {
 #' @param prep BRMS data
 #'
 #' @return Recover the given mean of data prep
-#'
-#' @examples
 posterior_epred_betaprime <- function(prep) {
   return(brms::get_dpar(prep, "mu"))
 }

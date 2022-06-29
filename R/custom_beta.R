@@ -6,7 +6,7 @@
 #' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
 #' @details The beta distribution has density
-#' \deqn{f(y) = \frac{\Gamma(\mu\phi + (1 - \mu)\phi)}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} * x^{\mu\phi - 1}*(1 - x)^{(1-\mu)\phi} }
+#' \deqn{f(y | \mu, \phi) = \frac{\Gamma(\phi) x^{\mu\phi - 1} (1 - x)^{(1-\mu)\phi}}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} }
 #' @details With parameterisation of the usual Beta-Distribution's shape parameters a and b as:
 #' \deqn{a := \mu\phi, b := (1 - \mu)\phi}
 #'
@@ -62,8 +62,6 @@ rbeta_custom <- function(n, mu, phi) {
 #' @param prep BRMS data
 #'
 #' @return Log-Likelihood of Beta-Custom given data in prep
-#'
-#' @examples
 log_lik_beta <- function(i, prep) {
   mu <- get_dpar(prep, "mu", i = i)
   phi <- get_dpar(prep, "phi", i = i)
@@ -78,8 +76,6 @@ log_lik_beta <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of Beta-Custom, given data in prep
-#'
-#' @examples
 posterior_predict_beta <- function(i, prep, ...) {
   mu <- get_dpar(prep, "mu", i = i)
   phi <- get_dpar(prep, "phi", i = i)
@@ -91,8 +87,6 @@ posterior_predict_beta <- function(i, prep, ...) {
 #' @param prep BRMS data
 #'
 #' @return Recover the given mean of data prep
-#'
-#' @examples
 posterior_epred_beta <- function(prep) {
   mu <- get_dpar(prep, "mu")
   return(mu)
