@@ -2,40 +2,34 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-
-n <- 10000 # number of testvalues
+n <- 10000
 eps <- 1e-6
-x <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 10
-mus <- seq(from = eps, to = 20, length.out = n_small)
+x <- seq(from = eps, to = 1 - eps, length.out = n)
+mus <- seq(from = -5, to = 20, length.out = n_small)
 sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
-accepted_medians_eps <- 0.2
+accepted_medians_eps <- 0.5
 p_acceptable_failures <- 0.05
-# mus_r <- seq(from = 1 + eps, to = 20, length.out = n_small)
-# sigmas_r <- seq(from = 2 + eps, to = 20, length.out = n_small)
 
 test_that("custom-cauchitnormal", {
   # calculate beta-prime
   dcauchitnormal_results <- bayesim::dcauchitnormal(x, mu = 1, sigma = 2)
   # check length
   expect_equal(n, length(dcauchitnormal_results))
+  # check against one precalculated value
+  expect_eps(0.5530229, bayesim::dcauchitnormal(x=0.5, mu=1, sigma=2), eps)
 
-  # check many shape parameters
-  for (m in mus) {
-    for (sigma in sigmas) {
-      #expect_eps(bayesim::dcauchitnormal(x, mu = m, sigma = sigma), extraDistr::dbetapr(x, get_alpha(m, sigma), get_beta(sigma)), eps)
-    }
-  }
+  warning("Think about, how to check dcauchitnormal against a reference implementation, or precalculated values.")
 
   # check the RNG will return the correct number of samples
   cauchitnormal_samples <- bayesim::rcauchitnormal(n, 2, 3)
   expect_equal(n, length(cauchitnormal_samples))
 
   # check the RNG is not too far of the input value
-  #test_rng(rng_fun=bayesim::rcauchitnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
-  #         mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(rng_fun=bayesim::rcauchitnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
+           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=cauchit)
 
 
 

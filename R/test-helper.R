@@ -1,4 +1,6 @@
 
+# used only for an internal function
+
 #' Check that |a - b| < eps. Works with scalars and vectors on any input.
 #' For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
 #'
@@ -174,4 +176,27 @@ expect_bigger <- function(a, b) {
   } else {
     fail("At least one number a was smaller than b")
   }
+}
+
+
+#' Vector combinator. Used in a few link-normal tests (to simplify indexing, hehe).
+#' Not meant to be used by users. (Hence no at-export)
+#'
+#' @param a Vector a
+#' @param b Vector b
+#'
+#' @return combination c(c(a[1], b[1]), c(a[1], b[2]), ...)
+#'
+#' @examples print(bayesim:::vector_combinator(seq(0, 1, length.out=3), seq(0, 2, length.out=3)))
+vector_combinator <- function(a, b) {
+  length_a <- length(a)
+  length_b <- length(b)
+  total_length <- length_a * length_b
+  output <- list(length = total_length)
+  for (x in 1:length_a) {
+    for (y in 1:length_b) {
+      output[[(x-1) * length_a + y]] <- c(a[x], b[y])
+    }
+  }
+  return(output)
 }
