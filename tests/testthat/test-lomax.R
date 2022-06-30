@@ -33,12 +33,6 @@ test_that("custom-lomax", {
   # check length
   expect_equal(n, length(dlomax_results))
   expect_equal(n, length(qlomax_results))
-  # check values against comparable implementation
-  expect_eps(dlomax_results, extraDistr::dlomax(x, get_lambda(8, 2), 2), eps)
-  expect_eps(qlomax_results, extraDistr::qlomax(unit, get_lambda(8, 2), 2), eps)
-  # also check other shape parameters
-  expect_eps(bayesim::dlomax(x, mu = 2, alpha = 2), extraDistr::dlomax(x, get_lambda(2, 2), 2), eps)
-  expect_eps(bayesim::qlomax(unit, mu = 2, alpha = 2), extraDistr::qlomax(unit, get_lambda(2, 2), 2), eps)
 
   # check many shape parameters on pdf and qdf
   for (alpha in alphas) {
@@ -65,19 +59,14 @@ test_that("custom-lomax", {
   expect_error(bayesim::dlomax("r", mu = 2, alpha = 2)) # non-numeric arguments are disallowed
   expect_error(bayesim::dlomax(1, mu = 0, alpha = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::dlomax(1, mu = 1, alpha = 0)) # alpha is not allowed to be 1 or smaller
-  expect_error(bayesim::dlomax(1, mu = -1, alpha = 2)) # mu is not allowed to be smaller than 0
-  expect_error(bayesim::dlomax(1, mu = 1, alpha = 0)) # alpha is not allowed to be 1 or smaller
 
   # do same for quantile function
   expect_error(bayesim::qlomax(1, 2)) # to few arguments
   expect_error(bayesim::qlomax(1, 2, 3, 4, 5)) # to many arguments
-  expect_error(bayesim::qlomax(-1, mu = 2, alpha = 2)) # q is not allowed to be smaller 0
   expect_error(bayesim::qlomax("r", mu = 2, alpha = 2)) # non-numeric arguments are disallowed
   expect_error(bayesim::qlomax(1, mu = 0, alpha = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::qlomax(1, mu = 1, alpha = 0)) # alpha is not allowed to be 0 or smaller
   expect_error(bayesim::qlomax(c(-1, 2), mu = 2, alpha = 2)) # q is not allowed to be outside [0, 1]
-  expect_error(bayesim::qlomax(1, mu = -1, alpha = 2)) # mu is not allowed to be smaller than 0
-  expect_error(bayesim::qlomax(1, mu = 1, alpha = 0)) # alpha is not allowed to be 1 or smaller
 
   # do same for RNG function
   expect_error(bayesim::rlomax(100, 2)) # to few arguments
@@ -87,6 +76,4 @@ test_that("custom-lomax", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rlomax(100, mu = 0, alpha = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rlomax(100, mu = 1, alpha = 0)) # alpha is not allowed to be 0 or smaller
-  expect_error(bayesim::rlomax(100, mu = -1, alpha = 2)) # mu is not allowed to be smaller than 0
-  expect_error(bayesim::rlomax(100, mu = 1, alpha = 0)) # alpha is not allowed to be 1 or smaller
 })

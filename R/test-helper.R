@@ -93,6 +93,8 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #' @param shapes Shape arguemnts
 #' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
 #' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#' useful in link-normal-distributions
 #'
 #' @return Nothing actually, just wraps the test
 #' @export
@@ -103,9 +105,9 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
 #' test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=10000, mus=mus,
 #'          shapes=phis, mu_eps=0.2, p_acceptable_failures=0.05)
-test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures) {
-  if(isFALSE(is.function(rng_fun) && is.function(metric_mu))) {
-    stop("RNG- or Metric-function argument was not a function!")
+test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures, mu_link=identity) {
+  if(isFALSE(is.function(rng_fun) && is.function(metric_mu) && is.function(mu_link))) {
+    stop("RNG-, Metric- or mu_link-function argument was not a function!")
   }
   if(isFALSE(is.numeric(n) && length(n) == 1 && n >= 1)) {
     stop("n must be a numeric, positive scalar!")
@@ -121,7 +123,7 @@ test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_fa
 
   for (x in 1:lenx) {
     for (y in 1:leny) {
-      rng_mus[(x-1) * leny + y] <- metric_mu(rng_fun(n, mu = mus[y], shapes[x]))
+      rng_mus[(x-1) * leny + y] <- mu_link(metric_mu(rng_fun(n, mu = mus[y], shapes[x])))
     }
   }
   expect_eps(rng_mus, expected_mus, mu_eps, p_acceptable_failures)

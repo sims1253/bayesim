@@ -4,7 +4,16 @@
 \alias{test_rng}
 \title{Distribution RNG test vingette}
 \usage{
-test_rng(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures)
+test_rng(
+  rng_fun,
+  metric_mu,
+  n,
+  mus,
+  shapes,
+  mu_eps,
+  p_acceptable_failures,
+  mu_link = identity
+)
 }
 \arguments{
 \item{rng_fun}{RNG function under test}
@@ -18,6 +27,9 @@ test_rng(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures)
 \item{mu_eps}{Acceptable difference of |mu - metric_mu(rng_fun)}
 
 \item{p_acceptable_failures}{Acceptable rate of failure, relative value of difference bigger mu_eps}
+
+\item{mu_link}{Default=identity, optional link-function argument, for example
+useful in link-normal-distributions}
 }
 \value{
 Nothing actually, just wraps the test
