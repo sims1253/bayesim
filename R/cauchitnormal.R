@@ -42,9 +42,6 @@ rcauchitnormal <- function(n, mu, sigma) {
   if (isTRUE(any(sigma < 0))) {
     stop("P must be above or equal to 0.")
   }
-  if (isTRUE(any(mu <= 0 | mu >= 1))) {
-    stop("mu must be in (0,1).")
-  }
   return(
     inv_cauchit(rnorm(n, mu, sigma))
   )

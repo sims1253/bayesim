@@ -38,9 +38,6 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
 #'
 #' @examples hist(rcauchitnormal(100, 0.5, 2))
 rcloglognormal <- function(n, mu, sigma) {
-  if (isTRUE(any(mu <= 0 | mu >= 1))) {
-    stop("mu must be in (0,1).")
-  }
   if (isTRUE(any(sigma < 0))) {
     stop("P must be above or equal to 0.")
   }
