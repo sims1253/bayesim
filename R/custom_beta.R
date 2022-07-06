@@ -1,7 +1,7 @@
 #' Custom Beta distribibution density.
 #'
 #' @param x x-value, x e (0, 1)
-#' @param mu Mean parameter, mean e (0, 1)
+#' @param mu Mean parameter, mu e (0, 1)
 #' @param phi Precision parameter, phi > 0
 #' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
@@ -41,10 +41,10 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
 #' @param n Number of draws.
 #' @param mu Mean
 #' @param phi Precision
+#' @param log TRUE if log pdf is wanted
 #'
 #' @return n samples beta distributed.
 #' @export
-#'
 #' @examples hist(rbeta_custom(1000, mu=0.5, phi=1))
 rbeta_custom <- function(n, mu, phi) {
   if (isTRUE(any(mu <= 0 | mu >= 1))) {

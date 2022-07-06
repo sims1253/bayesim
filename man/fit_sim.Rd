@@ -13,11 +13,13 @@ fit_sim(
   data_gen_conf,
   fit_conf,
   brms_backend,
-  seed
+  seed,
+  debug,
+  path
 )
 }
 \arguments{
-\item{brms_backend}{}
+\item{path}{}
 }
 \value{
 

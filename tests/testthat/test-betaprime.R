@@ -46,8 +46,15 @@ test_that("custom-betaprime", {
     }
   }
 
+<<<<<<< HEAD:tests/testthat/test-betaprime.R
   # check the RNG will return the correct number of samples
   betaprime_samples <- bayesim::rbetaprime(n, 2, 3)
+=======
+  # check RNG
+  n <- 100000
+  mu <- 2
+  betaprime_samples <- bayesim::rbetaprime(n, mu, 3)
+>>>>>>> master:tests/testthat/test-beta_prime.R
   expect_equal(n, length(betaprime_samples))
 
   # check the RNG is not too far of the input value

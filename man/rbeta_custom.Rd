@@ -12,6 +12,8 @@ rbeta_custom(n, mu, phi)
 \item{mu}{Mean}
 
 \item{phi}{Precision}
+
+\item{log}{TRUE if log pdf is wanted}
 }
 \value{
 n samples beta distributed.

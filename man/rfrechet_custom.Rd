@@ -4,21 +4,16 @@
 \alias{rfrechet_custom}
 \title{Frechet RNG function in Mean parametrisation}
 \usage{
-rfrechet_custom(n, mu, k)
+rfrechet_custom(n, mu, nu)
 }
 \arguments{
-\item{n}{Number of samples as whole integer}
+\item{mu}{Mean}
 
-\item{mu}{Mean parameter, mu > 0}
-
-\item{k}{Shape parameter, k > 0}
+\item{nu}{Shape}
 }
 \value{
 n samples as Frechet-distribution
 }
 \description{
 Frechet RNG function in Mean parametrisation
-}
-\examples{
-hist(log(rfrechet_custom(10000, mu=2, k=1)))
 }

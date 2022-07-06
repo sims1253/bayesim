@@ -4,14 +4,12 @@
 \alias{dfrechet_custom}
 \title{Frechet density function in mean parametrisation.}
 \usage{
-dfrechet_custom(x, mu, k, log = FALSE)
+dfrechet_custom(x, mu, nu)
 }
 \arguments{
-\item{x}{Value space, x > 0}
+\item{mu}{Mean}
 
-\item{mu}{Mean parameter, mu > 0}
-
-\item{k}{Shape parameter, k > 0}
+\item{nu}{Shape}
 }
 \value{
 dfrechet(x | mu, k)
@@ -25,8 +23,4 @@ Define scale parameter sigma as
 
 The Frechet distribution has density
 \deqn{f(y) = (k /\sigma) * (y / \sigma)^{-(1 + k)} * exp(-(x / \sigma)^{-k}) }
-}
-\examples{
-x <- seq(from=0.01, to=10, length.out=1000)
-plot(x, dfrechet_custom(x, mu=2, k=1), type="l")
 }

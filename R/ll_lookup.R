@@ -7,15 +7,26 @@
 #' @export
 #'
 #' @examples
-brms_family_lookup <- function(family, link) {
+brms_family_lookup <- function(family, link = NULL) {
   switch(family,
-    "beta" = return(brms::Beta(link = link)),
-    "kumaraswamy" = return(kumaraswamy(link = link)),
-    "logitnormal" = return(logitnormal(link = link)),
-    "cauchitnormal" = return(cauchitnormal(link = link)),
-    "cloglognormal" = return(cloglognormal(link = link)),
-    "simplex" = return(simplex(link = link)),
-    "gaussian" = return(gaussian(link = link))
+    "beta" = brms::brmsfamily("beta", link = link),
+    "kumaraswamy" = kumaraswamy(link = link),
+    "logitnormal" = logitnormal(link = link),
+    "cauchitnormal" = cauchitnormal(link = link),
+    "cloglognormal" = cloglognormal(link = link),
+    "simplex" = simplex(link = link),
+    "gaussian" = brms::brmsfamily("gaussian", link = link),
+    "gamma" = brms::brmsfamily("gamma", link = link),
+    "weibull" = brms::brmsfamily("weibull", link = link),
+    "lognormal" = brms::brmsfamily("lognormal", link = link),
+    "lognormal_custom" = lognormal_custom(link = link),
+    "softplusnormal" = softplusnormal(link = link),
+    "lomax" = lomax(link = link),
+    "frechet" = brms::brmsfamily("frechet", link = link),
+    "inverse.gaussian" = brms::brmsfamily("inverse.gaussian", link = link),
+    "betaprime" = betaprime(link = link),
+    "gompertz" = gompertz(link = link),
+    "inversegaussian_custom" = inversegaussian_custom(link = link)
   )
 }
 
@@ -28,15 +39,26 @@ brms_family_lookup <- function(family, link) {
 #' @export
 #'
 #' @examples
-rng_lookup <- function(family, link = NULL) {
+rng_lookup <- function(family) {
   switch(family,
-    "beta" = return(rbeta_custom),
-    "kumaraswamy" = return(rkumaraswamy),
-    "logitnormal" = return(rlogitnormal),
-    "cauchitnormal" = return(rcauchitnormal),
-    "cloglognormal" = return(rcloglognormal),
-    "simplex" = return(rsimplex),
-    "gaussian" = return(rnorm)
+    "beta" = rbeta_custom,
+    "kumaraswamy" = rkumaraswamy,
+    "logitnormal" = rlogitnormal,
+    "cauchitnormal" = rcauchitnormal,
+    "cloglognormal" = rcloglognormal,
+    "simplex" = rsimplex,
+    "gaussian" = rnorm,
+    "gamma" = rgamma_custom,
+    "weibull" = rweibull_custom,
+    "lognormal" = rlognormal_custom,
+    "lognormal_custom" = rlognormal_custom,
+    "softplusnormal" = rsoftplusnormal,
+    "lomax" = rlomax,
+    "frechet" = rfrechet_custom,
+    "inverse.gaussian" = brms::rinv_gaussian,
+    "betaprime" = rbetaprime,
+    "gompertz" = rgompertz,
+    "inversegaussian_custom" = rinversegaussian_custom
   )
 }
 
@@ -51,13 +73,14 @@ rng_lookup <- function(family, link = NULL) {
 #' @examples
 inv_link_lookup <- function(link) {
   switch(link,
-    "logit" = return(inv_logit),
-    "cauchit" = return(inv_cauchit),
-    "cloglog" = return(inv_cloglog),
-    "identity" = return(identity)
+    "logit" = inv_logit,
+    "cauchit" = inv_cauchit,
+    "cloglog" = inv_cloglog,
+    "identity" = identity,
+    "log" = exp,
+    "softplus" = inv_softplus
   )
 }
-
 
 #' Title
 #'
@@ -68,13 +91,26 @@ inv_link_lookup <- function(link) {
 #'
 #' @examples
 second_family_parameter_lookup <- function(family) {
+  brms_family_lookup(family)$dpars[2]
+}
+
+#' Title
+#'
+#' @param family
+#'
+#' @return
+#' @export
+#'
+#' @examples
+prior_lookup <- function(family) {
   switch(family,
-    "beta" = return("phi"),
-    "kumaraswamy" = return("p"),
-    "logitnormal" = return("sigma"),
-    "cauchitnormal" = return("sigma"),
-    "cloglognormal" = return("sigma"),
-    "simplex" = return("sigma"),
-    "gaussian" = return("sigma")
+    "frechet" = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = "nu", lb = 1.00001)
+    ),
+    c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = second_family_parameter_lookup(family))
+    )
   )
 }

@@ -4,7 +4,7 @@
 \alias{gompertz}
 \title{Custom Gompertz BRMS-implementation in median parametrization.}
 \usage{
-gompertz(link = "log", link_eta = "log")
+gompertz(link = "log", link_b = "log")
 }
 \arguments{
 \item{link}{Link function for function}

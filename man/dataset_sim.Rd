@@ -12,11 +12,13 @@ dataset_sim(
   predictive_metrics,
   brms_backend,
   cmdstan_path,
-  seed
+  seed,
+  debug,
+  path
 )
 }
 \arguments{
-\item{brms_backend}{}
+\item{path}{}
 }
 \value{
 

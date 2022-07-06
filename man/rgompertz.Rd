@@ -4,14 +4,14 @@
 \alias{rgompertz}
 \title{RNG function for the Gompertz distribution, with Median parametrization.}
 \usage{
-rgompertz(n, mu, eta)
+rgompertz(n, mu, beta)
 }
 \arguments{
 \item{n}{Number of draws}
 
-\item{mu}{Median argument of Gompertz}
+\item{mu}{Median parameter}
 
-\item{eta}{Eta argument of Gompertz}
+\item{beta}{Scale parameter}
 }
 \value{
 A Gompertz distributed RNG vector of size n
@@ -20,5 +20,6 @@ A Gompertz distributed RNG vector of size n
 RNG function for the Gompertz distribution, with Median parametrization.
 }
 \examples{
-hist(log(rgompertz(n, mu = 2, eta = 0.1)))
+y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
+hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
 }

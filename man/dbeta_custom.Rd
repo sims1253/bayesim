@@ -9,7 +9,7 @@ dbeta_custom(x, mu, phi, log = FALSE)
 \arguments{
 \item{x}{x-value, x e (0, 1)}
 
-\item{mu}{Mean parameter, mean e (0, 1)}
+\item{mu}{Mean parameter, mu e (0, 1)}
 
 \item{phi}{Precision parameter, phi > 0}
 

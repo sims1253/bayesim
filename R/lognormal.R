@@ -8,9 +8,8 @@
 #' @return Normal distribution density with logit link function
 #' @export
 #'
-#' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
-#' plot(x, dlognormal(x, mu = 2, sigma = 2), type = "l")
-dlognormal <- function(x, mu, sigma, log = FALSE) {
+#' @examples
+dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
     stop("lognormal is only defined for x > 0")
@@ -38,8 +37,8 @@ dlognormal <- function(x, mu, sigma, log = FALSE) {
 #'
 #' @export
 #'
-#' @examples hist(log(rlognormal(100, 0.5, 2)))
-rlognormal <- function(n, mu, sigma) {
+#' @examples
+rlognormal_custom <- function(n, mu, sigma) {
   # check the arguments
   if (isTRUE(sigma <= 0)) {
     stop("lognormal is only defined for sigma > 0")
@@ -54,12 +53,13 @@ rlognormal <- function(n, mu, sigma) {
 #' @param i Indices
 #' @param prep BRMS data
 #'
-#' @return log_likelihood of the Lognormal distribution, given some BRMS data.
-log_lik_lognormal <- function(i, prep) {
+#' @return Log-Likelihood for BRMS
+#'
+log_lik_lognormal_custom <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   y <- prep$data$Y[i]
-  return(dlognormal(y, mu, sigma, log = TRUE))
+  return(dlognormal_custom(y, mu, sigma, log = TRUE))
 }
 
 #' Posterior-predict vignette for the Lognormal distribution, with Median parametrization.
@@ -68,19 +68,21 @@ log_lik_lognormal <- function(i, prep) {
 #' @param prep BRMS data
 #' @param ...
 #'
-#' @return The posterior prediction of the Lognormal distribution, given some BRMS data.
-posterior_predict_lognormal <- function(i, prep, ...) {
+#' @return Posterior prediction for BRMS
+#'
+posterior_predict_lognormal_custom <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
-  return(rlognormal(prep$ndraws, mu, sigma))
+  return(rlognormal_custom(prep$ndraws, mu, sigma))
 }
 
 #' Posterior expected value prediction vignette for Lognormal distribution.
 #'
 #' @param prep BRMS data
 #'
-#' @return Mean of Posterior
-posterior_epred_lognormal <- function(prep) {
+#' @return Expectation value prediction for BRMS
+#'
+posterior_epred_lognormal_custom <- function(prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(exp(mu + sigma^2 / 2))
@@ -96,31 +98,31 @@ posterior_epred_lognormal <- function(prep) {
 #'
 #' @examples library(brms)
 #' a <- rnorm(1000)
-#' data <- list(a = a, y = rlognormal(n, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = lognormal(),
-#'   stanvars = lognormal()$stanvars, backend = "cmdstan")
+#' data <- list(a = a, y = rlognormal_custom(n, exp(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = lognormal_custom(),
+#'   stanvars = lognormal_custom()$stanvars, backend = "cmdstan")
 #' plot(fit1)
-lognormal <- function(link = "identity", link_sigma = "log") {
+lognormal_custom <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")
   family <- brms::custom_family(
-    "lognormal",
+    "lognormal_custom",
     dpars = c("mu", "sigma"),
     links = c(link, link_sigma),
     lb = c(0, 0),
     ub = c(NA, NA),
     type = "real",
-    log_lik = log_lik_lognormal,
-    posterior_predict = posterior_predict_lognormal,
-    posterior_epred = posterior_epred_lognormal
+    log_lik = log_lik_lognormal_custom,
+    posterior_predict = posterior_predict_lognormal_custom,
+    posterior_epred = posterior_epred_lognormal_custom
   )
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
-      real lognormal_lpdf(real y, real mu, real sigma) {
+      real lognormal_custom_lpdf(real y, real mu, real sigma) {
         return -(log(y) + log(sigma) + 0.5 * (log(2) + log(pi()))) +
                 (-(log(y) - mu)^2 / (2 * sigma^2));
       }
 
-      real lognormal_rng(real mu, real sigma) {
+      real lognormal_custom_rng(real mu, real sigma) {
         return exp(normal_rng(mu, sigma));
       }",
     block = "functions"
