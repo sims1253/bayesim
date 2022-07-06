@@ -2,16 +2,16 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{posterior_epred_inversegaussian_custom}
 \alias{posterior_epred_inversegaussian_custom}
-\title{Title}
+\title{Posterior-Expectation-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.}
 \usage{
 posterior_epred_inversegaussian_custom(prep)
 }
 \arguments{
-\item{prep}{}
+\item{prep}{BRMS data}
 }
 \value{
-
+Recover the given mean of data prep
 }
 \description{
-Title
+Posterior-Expectation-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.
 }

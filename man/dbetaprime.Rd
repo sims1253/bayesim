@@ -27,9 +27,12 @@ Probability density function for the Beta-Prime distribution (aka. inverse Beta)
 }
 \details{
 The beta-prime distribution has density
-\deqn{f(y) = y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))} / beta(\mu(1+\Phi), \Phi +2)}
+\deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
+
+With the usual Betaprime parameters
+\deqn{\beta = \Phi + 2, \alpha = \mu(\Phi + 1)}
 }
 \examples{
-x <- seq(from = 0, to = 100, length.out = 1000)
+x <- seq(from = 0.1, to = 20, length.out = 1000)
 plot(x, dbetaprime(x, mu = 4, phi = 2), type = "l")
 }

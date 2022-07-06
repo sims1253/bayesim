@@ -4,7 +4,9 @@
 #' A new regression model for positive data (https://arxiv.org/abs/1804.07734)
 #'
 #' @details The beta-prime distribution has density
-#' \deqn{f(y) = y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))} / beta(\mu(1+\Phi), \Phi +2)}
+#' \deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
+#' @details With the usual Betaprime parameters
+#' \deqn{\beta = \Phi + 2, \alpha = \mu(\Phi + 1)}
 #'
 #' @param x Value, x > 0.
 #' @param mu Mean, mu > 0.
@@ -14,7 +16,7 @@
 #' @return density of the pdf given x, mu and phi.
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 100, length.out = 1000)
+#' @examples x <- seq(from = 0.1, to = 20, length.out = 1000)
 #' plot(x, dbetaprime(x, mu = 4, phi = 2), type = "l")
 dbetaprime <- function(x, mu, phi, log = FALSE) {
   # check the arguments
@@ -54,8 +56,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#  y = bayesim::qbetaprime(x, mu = 1, phi = 2)
-#  plot(x, y, type="l", ylab = "Quantile", main = "left-leaning Beta-Prime(mu=1,phi=2)"))
+#  plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type="l")
 qbetaprime <- function(p, mu, phi) {
   # check the arguments
   if (isTRUE(any(p < 0 | p > 1))) {
@@ -85,8 +86,7 @@ qbetaprime <- function(p, mu, phi) {
 #' @return Random numbers from the beta-prime distribution.
 #' @export
 #'
-#' @examples y <- bayesim::rbetaprime(100, mu = 1, phi = 2)
-#  hist(y, main = c(paste("Mean:", mean(y)), " for RNG of left-leaning Beta-Prime(mu=1,phi=2)"))
+#' @examples hist(bayesim::rbetaprime(100, mu = 1, phi = 2))
 rbetaprime <- function(n, mu, phi) {
   # check the arguments
   if (isTRUE(phi <= 0)) {
@@ -144,8 +144,8 @@ posterior_epred_betaprime <- function(prep) {
 #' @export
 #'
 #' @examples library(brms)
-#' a <- rnorm(1000)
-#' data <- list(a = a, y = bayesim::rbetaprime(n, exp(0.5 * a + 1), 2))
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = bayesim::rbetaprime(10000, exp(0.5 * a + 1), 2))
 #' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
 #'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan")
 #' plot(fit1)

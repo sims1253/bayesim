@@ -2,16 +2,18 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{log_lik_inversegaussian_custom}
 \alias{log_lik_inversegaussian_custom}
-\title{Title}
+\title{Log-Likelihood vignette for the Inverse-Gaussian distribution, in mean parametrization.}
 \usage{
 log_lik_inversegaussian_custom(i, prep)
 }
 \arguments{
-\item{prep}{}
+\item{i}{BRMS indices}
+
+\item{prep}{BRMS data}
 }
 \value{
-
+Log-Likelihood of inversegaussian given data in prep
 }
 \description{
-Title
+Log-Likelihood vignette for the Inverse-Gaussian distribution, in mean parametrization.
 }

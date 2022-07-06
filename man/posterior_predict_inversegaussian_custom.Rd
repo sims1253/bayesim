@@ -2,16 +2,20 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{posterior_predict_inversegaussian_custom}
 \alias{posterior_predict_inversegaussian_custom}
-\title{Title}
+\title{Posterior-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.}
 \usage{
 posterior_predict_inversegaussian_custom(i, prep, ...)
 }
 \arguments{
+\item{i}{BRMS indices}
+
+\item{prep}{BRMS data}
+
 \item{...}{}
 }
 \value{
-
+Posterior prediction of inversegaussian, given data in prep
 }
 \description{
-Title
+Posterior-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.
 }

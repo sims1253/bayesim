@@ -12,10 +12,8 @@
 #' @return f(x | mu, eta)
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 5, length.out = 100)
-#' y <- bayesim::dgompertz(x, mu = 10, beta = 10)
-#' plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=10, beta=10)")
-#' # Compare to online ressources
+#' @examples x <- seq(from = 0.1, to = 5, length.out = 100)
+#' plot(x, dgompertz(x, mu = 2, beta = 4), type = "l")
 dgompertz <- function(x, mu, beta, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {

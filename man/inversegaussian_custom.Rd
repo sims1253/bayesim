@@ -2,16 +2,26 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{inversegaussian_custom}
 \alias{inversegaussian_custom}
-\title{Title}
+\title{Custom Inverse-Gaussian BRMS-implementation in mean parametrization.}
 \usage{
 inversegaussian_custom(link = "log", link_shape = "log")
 }
 \arguments{
-\item{link_shape}{}
+\item{link}{Link function for function}
+
+\item{link_shape}{Link function for the shape argument}
 }
 \value{
-
+BRMS inversegaussian distribution family
 }
 \description{
-Title
+Custom Inverse-Gaussian BRMS-implementation in mean parametrization.
+}
+\examples{
+library(brms)
+a <- rnorm(10000)
+data <- list(a = a, y = bayesim::rinversegaussian_custom(10000, exp(0.5 * a + 1), 2))
+fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::rinversegaussian_custom(),
+  stanvars = bayesim::rinversegaussian_custom()$stanvars, backend = "cmdstan")
+plot(fit1)
 }

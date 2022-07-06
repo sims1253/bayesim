@@ -7,10 +7,10 @@
 softplus(x)
 }
 \arguments{
-\item{x}{value to be transformed, x unbound}
+\item{x}{value to be transformed, x positive unbound}
 }
 \value{
-softplus function of x, result is positive unbound
+softplus function of x, result is unbound
 }
 \description{
 Softplus link function

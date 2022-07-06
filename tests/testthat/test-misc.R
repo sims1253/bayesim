@@ -15,9 +15,6 @@ test_that("logit-link", {
   # check link against link from another package
   testset_logit <- seq(from = eps, to = 1 - eps, length.out = n_testset)
   expect_eps(brms:::logit(testset_logit), logit(testset_logit), eps)
-  # check values outside the defined space, to throw warning
-  expect_warning(logit(-1))
-  expect_warning(logit(2))
   # check values at the boundary of the defined space
   expect_equal(logit(0), -Inf)
   expect_equal(logit(1), Inf)
@@ -25,6 +22,9 @@ test_that("logit-link", {
   expect_error(logit("R"))
   # check, that wrong number of arguments produce an error
   expect_error(logit(0.1, 0.5))
+  # check for NaN and warning
+  expect_warning(expect_true(is.na(logit(-1))))
+  expect_warning(expect_true(is.na(logit(2))))
 })
 
 test_that("inverse-logit-link", {
@@ -82,13 +82,13 @@ test_that("cloglog-link", {
   # check boundary values
   expect_equal(-Inf, cloglog(0))
   expect_equal(Inf, cloglog(1))
-  # check values outside of the defined space to throw warning
-  expect_warning(logit(-1))
-  expect_warning(logit(2))
   # check, that non-numeric arguments result in an error
   expect_error(cloglog("R"))
   # check, that wrong number of arguments produce an error
   expect_error(cloglog(0.1, 0.5))
+  # check values outside the defined scope are NaN and throw warning
+  expect_warning(expect_true(is.na(cloglog(-1))))
+  expect_warning(expect_true(is.na(cloglog(2))))
 })
 
 test_that("inverse-cloglog-link", {
@@ -171,31 +171,33 @@ test_that("gaussian-error-function", {
 
 test_that("Softplus link-function", {
   # check, that the error is within reason
-  expect_eps(0.126928, softplus(-2), eps)
-  expect_eps(0.6931472, softplus(0), eps)
-  expect_eps(1.313262, softplus(1), eps)
+  expect_eps(-2.252168, softplus(0.1), eps)
+  expect_eps(0.5413249, softplus(1), eps)
+  expect_eps(3.981515, softplus(4), eps)
   expect_equal(100, softplus(100)) # should be equal to machine precision (I think)
   # check vector as argument returns vector with same results
-  expect_eps(c(0.126928, 0.6931472, 1.313262, 100), softplus(c(-2, 0, 1, 100)), eps)
+  expect_eps(c(-2.252168, 0.5413249, 3.981515, 100), softplus(c(0.1, 1, 4, 100)), eps)
   # check x approaching Inf on boundry of defined space
-  expect_equal(0, softplus(-Inf))
+  expect_equal(-Inf, softplus(0))
   expect_equal(Inf, softplus(Inf))
   # check, that non-numeric arguments result in an error
   expect_error(softplus("R"))
   # check, that wrong number of arguments produce an error
   expect_error(softplus(0.1, 0.5))
+  # check values outside the defined scope are NaN and throw warning
+  expect_warning(expect_true(is.na(softplus(-1))))
 })
 
-test_that("Softplus link-function", {
+test_that("Inverse Softplus link-function", {
   # check, that the error is within reason
-  expect_eps(-2.252168, inv_softplus(0.1), eps)
-  expect_eps(0.5413249, inv_softplus(1), eps)
-  expect_eps(4.993239, inv_softplus(5), eps)
+  expect_eps(4.53989e-05, inv_softplus(-10), eps)
+  expect_eps(0.3132617, inv_softplus(-1), eps)
+  expect_eps(1.313262, inv_softplus(1), eps)
   expect_equal(100, inv_softplus(100)) # should be equal to machine precision (I think)
   # check vector as argument returns vector with same results
-  expect_eps(c(-2.252168, 0.5413249, 4.993239, 100), inv_softplus(c(0.1, 1, 5, 100)), eps)
+  expect_eps(c(4.53989e-05, 0.3132617, 1.313262, 100), inv_softplus(c(-10, -1, 1, 100)), eps)
   # check x approaching Inf on boundry of defined space
-  expect_equal(-Inf, inv_softplus(0))
+  expect_equal(0, inv_softplus(-Inf))
   expect_equal(Inf, inv_softplus(Inf))
   # check, that non-numeric arguments result in an error
   expect_error(inv_softplus("R"))

@@ -2,16 +2,23 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{rinversegaussian_custom}
 \alias{rinversegaussian_custom}
-\title{Title}
+\title{Custom Inverse-Gaussian RNG function in mean parametrisation.}
 \usage{
 rinversegaussian_custom(n, mu, shape)
 }
 \arguments{
-\item{shape}{}
+\item{n}{Number of samples, scalar natural number.}
+
+\item{mu}{Mean parameter, mu > 0.}
+
+\item{shape}{shape > 0.}
 }
 \value{
-
+n Inverse-Gaussian distributed samples.
 }
 \description{
-Title
+Custom Inverse-Gaussian RNG function in mean parametrisation.
+}
+\examples{
+hist(log(rinversegaussian_custom(10000, mu=2, shape=1)))
 }

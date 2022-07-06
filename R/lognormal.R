@@ -8,7 +8,8 @@
 #' @return Normal distribution density with logit link function
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.1, to = 10, length.out = 100)
+#' plot(x, dlognormal_custom(x, mu = 2, sigma = 2), type = "l")
 dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -97,8 +98,8 @@ posterior_epred_lognormal_custom <- function(prep) {
 #' @export
 #'
 #' @examples library(brms)
-#' a <- rnorm(1000)
-#' data <- list(a = a, y = rlognormal_custom(n, exp(0.5 * a + 1), 2))
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = rlognormal_custom(10000, exp(0.5 * a + 1), 2))
 #' fit1 <- brm(y ~ 1 + a, data = data, family = lognormal_custom(),
 #'   stanvars = lognormal_custom()$stanvars, backend = "cmdstan")
 #' plot(fit1)

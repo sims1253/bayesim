@@ -109,9 +109,9 @@ erf <- function(x) {
 
 #' Softplus link function
 #'
-#' @param x value to be transformed, x unbound
+#' @param x value to be transformed, x positive unbound
 #'
-#' @return softplus function of x, result is positive unbound
+#' @return softplus function of x, result is unbound
 #' @export
 #'
 #' @examples x <- seq(from = -5, to = 5, length.out = 100)

@@ -21,12 +21,12 @@ Custom Gamma density function in mean parametrisation.
 }
 \details{
 Define rate constante rho as:
-\deqn{\rho(\alpha, \mu) = \alpha / \mu}
+\deqn{\rho(\alpha, \mu) = \frac{\alpha}{\mu}}
 
 The Frechet distribution density is defined as
-\deqn{f(y) = \frac{x^{\alpha - 1} * exp(-y * / \rho)}{\rho^\alpha \Gamma(\alpha)} }
+\deqn{f(y) = \frac{y^{\alpha - 1} exp(-\frac{y}{\rho})} {\rho^\alpha \Gamma(\alpha)} }
 }
 \examples{
 x <- seq(from=0.01, to=10, length.out=1000)
-plot(x, dgamma_custom(x, mu=2, a=1), type="l")
+plot(x, dgamma_custom(x, mu=2, a=2), type="l")
 }

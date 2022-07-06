@@ -20,5 +20,5 @@ Random numbers from the beta-prime distribution.
 RNG function of the Beta-Prime distributions using mean parametrization
 }
 \examples{
-y <- bayesim::rbetaprime(100, mu = 1, phi = 2)
+hist(bayesim::rbetaprime(100, mu = 1, phi = 2))
 }

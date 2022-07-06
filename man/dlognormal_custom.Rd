@@ -21,3 +21,7 @@ Normal distribution density with logit link function
 \description{
 Lognormal density distribution in median parametrization.
 }
+\examples{
+x <- seq(from = 0.1, to = 10, length.out = 100)
+plot(x, dlognormal_custom(x, mu = 2, sigma = 2), type = "l")
+}

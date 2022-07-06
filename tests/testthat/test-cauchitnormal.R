@@ -2,7 +2,7 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-n <- 10000
+n <- 100000
 eps <- 1e-6
 
 n_small <- 10
@@ -10,7 +10,7 @@ x <- seq(from = eps, to = 1 - eps, length.out = n)
 mus <- seq(from = -5, to = 20, length.out = n_small)
 sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
-accepted_medians_eps <- 0.5
+accepted_medians_eps <- 0.15
 p_acceptable_failures <- 0.05
 
 test_that("custom-cauchitnormal", {
@@ -27,7 +27,7 @@ test_that("custom-cauchitnormal", {
   cauchitnormal_samples <- bayesim::rcauchitnormal(n, 2, 3)
   expect_equal(n, length(cauchitnormal_samples))
 
-  # check the RNG is not too far of the input value
+  # check the RNG is not too far of the input value p_acceptable_failures
   test_rng(rng_fun=bayesim::rcauchitnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=cauchit)
 

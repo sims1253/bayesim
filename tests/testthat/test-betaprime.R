@@ -22,12 +22,13 @@ unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 10
 mus <- seq(from = eps, to = 20, length.out = n_small)
-phis <- seq(from = 1 + eps, to = 20, length.out = n_small)
+phis <- seq(from = eps, to = 20, length.out = n_small)
 
 accepted_means_eps <- 0.2
 p_acceptable_failures <- 0.05
 # mus_r <- seq(from = 1 + eps, to = 20, length.out = n_small)
-# phis_r <- seq(from = 2 + eps, to = 20, length.out = n_small)
+phis_r <- seq(from = 0.9 + eps, to = 20, length.out = n_small)
+# parameter for RNG test (going to close to 0 makes it a bit unstable)
 
 test_that("custom-betaprime", {
   # skip("Beta-Prime tests need to be updated for new parametrisation!")
@@ -46,19 +47,12 @@ test_that("custom-betaprime", {
     }
   }
 
-<<<<<<< HEAD:tests/testthat/test-betaprime.R
   # check the RNG will return the correct number of samples
   betaprime_samples <- bayesim::rbetaprime(n, 2, 3)
-=======
-  # check RNG
-  n <- 100000
-  mu <- 2
-  betaprime_samples <- bayesim::rbetaprime(n, mu, 3)
->>>>>>> master:tests/testthat/test-beta_prime.R
   expect_equal(n, length(betaprime_samples))
 
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=n, mus=mus, shapes=phis,
+  test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=n, mus=mus, shapes=phis_r,
            mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures)
 
 

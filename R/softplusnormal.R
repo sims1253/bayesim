@@ -103,8 +103,8 @@ posterior_epred_softplusnormal <- function(prep) {
 #' @export
 #'
 #' @examples library(brms)
-#' a <- rnorm(1000)
-#' data <- list(a = a, y = rsoftplus(n, exp(0.5 * a + 1), 2))
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = rsoftplus(10000, exp(0.5 * a + 1), 2))
 #' fit1 <- brm(y ~ 1 + a, data = data, family = softplus(),
 #'   stanvars = softplus()$stanvars, backend = "cmdstan")
 #' plot(fit1)

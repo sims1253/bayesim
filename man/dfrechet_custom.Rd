@@ -7,20 +7,26 @@
 dfrechet_custom(x, mu, nu)
 }
 \arguments{
+\item{x}{x value space, x > 0}
+
 \item{mu}{Mean}
 
 \item{nu}{Shape}
 }
 \value{
-dfrechet(x | mu, k)
+dfrechet(x | mu, nu)
 }
 \description{
 Frechet density function in mean parametrisation.
 }
 \details{
 Define scale parameter sigma as
-\deqn{\sigma(\mu, k) := \mu / \Gamma(1 + 1 / k)}
+\deqn{\sigma(\mu, \nu) := \mu / \Gamma(1 - 1 / \nu)}
 
 The Frechet distribution has density
-\deqn{f(y) = (k /\sigma) * (y / \sigma)^{-(1 + k)} * exp(-(x / \sigma)^{-k}) }
+\deqn{f(y) = (\nu /\sigma) * (y / \sigma)^{-(1 - \nu)} * exp(-(y / \sigma)^{-\nu}) }
+}
+\examples{
+x <- seq(from = 0.1, to = 20, length.out = 1000)
+plot(x, dfrechet_custom(x, mu = 6, nu = 4), type = "l")
 }

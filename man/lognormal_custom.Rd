@@ -19,8 +19,8 @@ Custom BRMS family Log-Normal in median parametrization.
 }
 \examples{
 library(brms)
-a <- rnorm(1000)
-data <- list(a = a, y = rlognormal_custom(n, exp(0.5 * a + 1), 2))
+a <- rnorm(10000)
+data <- list(a = a, y = rlognormal_custom(10000, exp(0.5 * a + 1), 2))
 fit1 <- brm(y ~ 1 + a, data = data, family = lognormal_custom(),
   stanvars = lognormal_custom()$stanvars, backend = "cmdstan")
 plot(fit1)

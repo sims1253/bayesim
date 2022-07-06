@@ -19,8 +19,8 @@ Custom Beta-Prime BRMS-implementation in mean parametrization.
 }
 \examples{
 library(brms)
-a <- rnorm(1000)
-data <- list(a = a, y = bayesim::rbetaprime(n, exp(0.5 * a + 1), 2))
+a <- rnorm(10000)
+data <- list(a = a, y = bayesim::rbetaprime(10000, exp(0.5 * a + 1), 2))
 fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan")
 plot(fit1)

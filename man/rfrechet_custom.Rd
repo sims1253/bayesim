@@ -17,3 +17,6 @@ n samples as Frechet-distribution
 \description{
 Frechet RNG function in Mean parametrisation
 }
+\examples{
+hist(bayesim::rbetaprime(100, mu = 1, nu = 2))
+}

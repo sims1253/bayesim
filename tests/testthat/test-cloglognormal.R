@@ -2,7 +2,7 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-n <- 10000
+n <- 100000
 eps <- 1e-6
 
 n_small <- 10
@@ -11,7 +11,7 @@ mus <- seq(from = -20, to = 3, length.out = n_small)
 # weirdly enough, the cloglog(median(RNG)) yields Infs for mu >= 4 ?
 sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
-accepted_medians_eps <- 0.5
+accepted_medians_eps <- 0.12
 p_acceptable_failures <- 0.05
 
 test_that("custom-cloglognormal", {

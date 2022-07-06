@@ -12,7 +12,7 @@ get_lambda <- function(mu, alpha) {
   return(1 / lambda)
 }
 
-n <- 10000 # number of testvalues
+n <- 100000 # number of testvalues
 eps <- 1e-6
 x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
@@ -22,8 +22,8 @@ mus <- seq(from = eps, to = 10, length.out = n_small)
 alphas <- seq(from = 1 + eps, to = 10, length.out = n_small)
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
-alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
-accepted_means_eps <- 0.3
+alphas_r <- seq(from = 1.6 + eps, to = 10, length.out = n_small)
+accepted_means_eps <- 0.2
 p_acceptable_failures <- 0.05
 
 test_that("custom-lomax", {

@@ -2,16 +2,28 @@
 % Please edit documentation in R/custom_invgaussian.R
 \name{dinversegaussian_custom}
 \alias{dinversegaussian_custom}
-\title{Title}
+\title{Probability density function for the Inverse-Gaussion distribution}
 \usage{
 dinversegaussian_custom(x, mu, shape, log = FALSE)
 }
 \arguments{
-\item{shape}{}
+\item{x}{Value space, x > 0.}
+
+\item{mu}{Mean parameter of the density, mu > 0.}
+
+\item{shape}{shape > 0}
 }
 \value{
-
+f(x | mu, shape)
 }
 \description{
-Title
+Probability density function for the Inverse-Gaussion distribution
+}
+\details{
+The PDF is defined with shape parameter alpha as
+\deqn{TODO: PDF equation here}
+}
+\examples{
+x <- seq(from=0.01, to=10, length.out=1000)
+plot(x, dinversegaussian_custom(x, mu=2, shape=2), type="l")
 }

@@ -1,13 +1,17 @@
-#' Title
+#' Probability density function for the Inverse-Gaussion distribution
 #'
-#' @param x
-#' @param mu
-#' @param shape
+#' @param x Value space, x > 0.
+#' @param mu Mean parameter of the density, mu > 0.
+#' @param shape shape > 0
 #'
-#' @return
+#' @details The PDF is defined with shape parameter alpha as
+#' \deqn{TODO: PDF equation here}
+#'
+#' @return f(x | mu, shape)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from=0.01, to=10, length.out=1000)
+#' plot(x, dinversegaussian_custom(x, mu=2, shape=2), type="l")
 dinversegaussian_custom <- function(x, mu, shape, log = FALSE) {
   if (isTRUE(any(x <= 0))) {
     stop("Inverse Gaussian density is only defined for x > 0")
@@ -27,16 +31,16 @@ dinversegaussian_custom <- function(x, mu, shape, log = FALSE) {
   }
 }
 
-#' Title
+#' Custom Inverse-Gaussian RNG function in mean parametrisation.
 #'
-#' @param n
-#' @param mu
-#' @param shape
+#' @param n Number of samples, scalar natural number.
+#' @param mu Mean parameter, mu > 0.
+#' @param shape shape > 0.
 #'
-#' @return
+#' @return n Inverse-Gaussian distributed samples.
 #' @export
 #'
-#' @examples
+#' @examples hist(log(rinversegaussian_custom(10000, mu=2, shape=1)))
 rinversegaussian_custom <- function(n, mu, shape) {
   if (isTRUE(mu <= 0)) {
     stop("Inverse Gaussian density is only defined for mu > 0")
@@ -48,15 +52,12 @@ rinversegaussian_custom <- function(n, mu, shape) {
 }
 
 
-#' Title
+#' Log-Likelihood vignette for the Inverse-Gaussian distribution, in mean parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return Log-Likelihood of inversegaussian given data in prep
 log_lik_inversegaussian_custom <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   shape <- brms::get_dpar(prep, "shape", i = i)
@@ -65,16 +66,13 @@ log_lik_inversegaussian_custom <- function(i, prep) {
 }
 
 
-#' Title
+#' Posterior-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.
 #'
-#' @param i
-#' @param prep
+#' @param i BRMS indices
+#' @param prep BRMS data
 #' @param ...
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return Posterior prediction of inversegaussian, given data in prep
 posterior_predict_inversegaussian_custom <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   shape <- brms::get_dpar(prep, "shape", i = i)
@@ -82,14 +80,11 @@ posterior_predict_inversegaussian_custom <- function(i, prep, ...) {
 }
 
 
-#' Title
+#' Posterior-Expectation-Predict vignette for the Inverse-Gaussian distribution, in mean parametrization.
 #'
-#' @param prep
+#' @param prep BRMS data
 #'
-#' @return
-#' @export
-#'
-#' @examples
+#' @return Recover the given mean of data prep
 posterior_epred_inversegaussian_custom <- function(prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   return(mu)
@@ -97,15 +92,20 @@ posterior_epred_inversegaussian_custom <- function(prep) {
 
 
 
-#' Title
+#' Custom Inverse-Gaussian BRMS-implementation in mean parametrization.
 #'
-#' @param link
-#' @param link_shape
+#' @param link Link function for function
+#' @param link_shape Link function for the shape argument
 #'
-#' @return
+#' @return BRMS inversegaussian distribution family
 #' @export
 #'
-#' @examples
+#' @examples library(brms)
+#' a <- rnorm(10000)
+#' data <- list(a = a, y = bayesim::rinversegaussian_custom(10000, exp(0.5 * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::rinversegaussian_custom(),
+#'   stanvars = bayesim::rinversegaussian_custom()$stanvars, backend = "cmdstan")
+#' plot(fit1)
 inversegaussian_custom <- function(link = "log", link_shape = "log") {
   family <- brms::custom_family(
     "inversegaussian_custom",

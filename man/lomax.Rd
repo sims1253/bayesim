@@ -19,7 +19,7 @@ Lomax Stan-implementation in Mean parametrization.
 }
 \examples{
 library(brms)
-a <- rnorm(1000)
+a <- rnorm(10000)
 data <- list(a = a, y = bayesim::rlomax(10000, exp(0.5 * a + 1), 2))
 fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
   stanvars = bayesim::lomax()$stanvars, backend = "cmdstan")
