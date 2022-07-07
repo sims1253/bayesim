@@ -47,7 +47,7 @@ test_that("custom-gompertz", {
   expect_eps(median(gompertz_samples), mu, accepted_median_eps) # this test should work most of the time, but might fail sometimes
   n_failed_medians <- 0
   p_acceptable_failures <- 0.001 # with arbitrary median_eps of 0.1, about 8-20% of medians will be outside that range
-  n_acceptable_failures <- ceiling(length(mus) * length(bs) * p_acceptable_failures)
+  n_acceptable_failures <- ceiling(length(mus) * length(betas) * p_acceptable_failures)
 
 
   # check many shape parameters
