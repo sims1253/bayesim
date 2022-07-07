@@ -14,14 +14,11 @@ dsoftplusnormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0))) {
     stop("softplusnormal is only defined for x > 0")
   }
-  if (isTRUE(mu <= 0)) {
-    stop("softplusnormal is only defined for mu > 0")
-  }
   if (isTRUE(sigma <= 0)) {
     stop("softplusnormal is only defined for sigma > 0")
   }
   logpdf <-
-    -(log(sigma) + 0.5 * (log(2) - log(pi))) +
+    -(log(sigma) + 0.5 * log(2 * pi)) +
     x - log(exp(x) - 1) +
     -0.5 * ((log(exp(x) - 1) - mu) / sigma)^2
   if (log) {
@@ -125,7 +122,7 @@ softplusnormal <- function(link = "identity", link_sigma = "log") {
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
       real softplusnormal_lpdf(real y, real mu, real sigma) {
-      return -(log(sigma) + 0.5 * (log(2) - log(pi()))) +
+      return -(log(sigma) + 0.5 * log(2 * pi())) +
               y - log(exp(y) - 1) +
               -0.5 * ((log(exp(y) - 1) - mu)/sigma)^2;
       }
