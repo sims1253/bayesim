@@ -131,7 +131,9 @@ dataset_sim <- function(data_gen_conf,
                         result_path) {
   if (brms_backend == "cmdstanr") {
     cmdstanr::set_cmdstan_path(cmdstan_path)
-    options(cmdstanr_write_stan_file_dir = cmdstan_write_path)
+    if (!is.null(cmdstan_write_path)) {
+      options(cmdstanr_write_stan_file_dir = cmdstan_write_path)
+    }
   }
   final_result <- vector(mode = "list", length = nrow(fit_confs))
   loo_objects <- vector(mode = "list", length = nrow(fit_confs))
@@ -336,7 +338,9 @@ full_simulation <- function(data_gen_confs,
   )
   if (brms_backend == "cmdstanr") {
     cmdstanr::set_cmdstan_path(cmdstan_path)
-    options(cmdstanr_write_stan_file_dir = cmdstan_write_path)
+    if (!is.null(cmdstan_write_path)) {
+      options(cmdstanr_write_stan_file_dir = cmdstan_write_path)
+    }
   }
 
   # Compile a list of model configurations to be updated throughout the simulation

@@ -146,6 +146,7 @@ sampling_time <- function(fit) {
   )
 }
 
+
 #' Title
 #'
 #' @param posterior_draws
