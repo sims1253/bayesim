@@ -70,9 +70,10 @@ test_that("custom-inversegaussian_custom", {
 
 
   skip("Some issues (probably different parametrizations) between Bayesim and rmutil.")
-  # check many shape parameters on pdf and qdf
+  # check many shape parameters on pdf
   for (shape in shapes) {
     for (m in mus) {
+      # check against BRMS implementation
       expect_eps(bayesim::dinversegaussian_custom(x, mu = m, shape = shape), rmutil::dinvgauss(x, m, shape), eps)
     }
   }

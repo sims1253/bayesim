@@ -83,22 +83,8 @@ test_that("custom-betaprime", {
   expect_error(bayesim::rbetaprime(100, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rbetaprime(100, mu = 1, phi = 0)) # phi is not allowed to be 0 or smaller
 
-  warning("How to check the fitted parameters, like intercept or a? BTW, how to surpress all the Chain info?^^")
-  skip("BRMS test not implemented yet!")
-  # BRMS fit test
-  n = 1000
-  a = rnorm(n)
-  data = list(a = a, y = bayesim::rbetaprime(n, exp(0.5 * a + 1), 2))
-  layout(1)
-  hist(data$y)
+  warning("BTW, how to surpress all the Chain info?^^")
+  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::betaprime,
+                     rng=bayesim::rbetaprime, shape_name="phi", thresh = 0.025)
 
-  fit1 <- brm(
-    y ~ 1 + a,
-    data = data,
-    family = bayesim::betaprime(),
-    stanvars = bayesim::betaprime()$stanvars,
-    backend = "cmdstan",
-    cores = 4,
-    silent = 2
-  )
 })

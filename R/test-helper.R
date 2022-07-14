@@ -178,6 +178,73 @@ expect_bigger <- function(a, b) {
   }
 }
 
+expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name, thresh) {
+  if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
+    stop("The shape name argument has to be a single string")
+  }
+  posterior_fit <- construct_brms(n, ba, int, shape, link, family, rng)
+
+  expect_brms_quantile(posterior_fit, "b_a", ba, thresh)
+  expect_brms_quantile(posterior_fit, "b_Intercept", int, thresh)
+  expect_brms_quantile(posterior_fit, shape_name, shape, thresh)
+}
+
+construct_brms <- function(n, ba, int, shape, link, family, rng) {
+  if(isFALSE(is.function(family) && is.function(rng))) {
+    stop("family or rng argument were not a function!")
+  }
+
+  a <- rnorm(n)
+  data <- list(a = a, y = rng(n, link(ba * a + int), shape))
+  posterior_fit <- brm(
+    y ~ 1 + a,
+    data = data,
+    family = family(),
+    stanvars = family()$stanvars,
+    backend = "cmdstan",
+    cores = 4,
+    silent = 2,
+    refresh = 0
+  )
+
+  return(posterior_fit)
+}
+
+#' Check, that data of the posterior is close enough to the reference data.
+#'
+#' @param posterior_data Data fitted and drawn
+#' @param name Name of the variable to check
+#' @param reference Reference value to check against
+#' @param thresh Scalar or 2-length vector of quantile bounds.
+#' For scalar constructs bound as [tresh, 1-thresh]
+#'
+#' @return succeess, fail or error
+#' @export
+#'
+#' @examples n <- 1000
+#' a <- rnorm(n)
+#' ba_in <- 0.5
+#' data <- list(a = a, y = bayesim::rbetaprime(n, exp(ba_in * a + 1), 2))
+#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
+#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
+#'   cores = 4, silent = 2, refresh = 0)
+#' expect_brms_quantile(fit1, "b_a", ba_in, 0.025)
+expect_brms_quantile <- function(posterior_data, name, reference, thresh) {
+  if(isTRUE(length(thresh) == 1))
+    bounds = c(thresh, 1-thresh)
+  else if(isTRUE(length(thresh) == 2))
+    bounds = thresh
+  else
+    stop("The quantile-thresholds can only be a scalar, or a 2 length vector")
+
+  calculated <- posterior::extract_variable_matrix(posterior_data, variable = name)
+  quantiles <- unname(quantile(calculated, probs = bounds))
+  if(quantiles[1] < reference && reference < quantiles[2])
+    succeed()
+  else
+    fail("The reference value was not within the quantiles of the given posterior data!")
+}
+
 
 #' Vector combinator. Used in a few link-normal tests (to simplify indexing, hehe).
 #' Not meant to be used by users. (Hence no at-export)

@@ -6,6 +6,7 @@
 #'
 #' @details The PDF is defined with shape parameter alpha as
 #' \deqn{TODO: PDF equation here}
+#' https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
 #'
 #' @return f(x | mu, shape)
 #' @export
