@@ -48,8 +48,19 @@ elpd_loo_handler <- function(fit) {
 #'
 #' @examples
 loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
+  compare_metrics <- substr(
+    predictive_metrics[
+      grep(
+        "_compare",
+        predictive_metrics
+      )
+    ],
+    1,
+    nchar(predictive_metrics[1]) - 8
+  )
+
   final_result <- data.frame(matrix(nrow = length(loo_object_matrix), ncol = 2 * length(predictive_metrics)))
-  colnames(final_result) <- unlist(lapply(predictive_metrics, function(x) {
+  colnames(final_result) <- unlist(lapply(compare_metrics, function(x) {
     c(paste0(x, "_delta"), paste0(x, "_se_delta"))
   }))
   index <- names(loo_object_matrix)
@@ -64,8 +75,8 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
   }
 
   if (length(valid_entries) < 2) {
-    for (i in seq_along(predictive_metrics)) {
-      metric <- predictive_metrics[[i]]
+    for (i in seq_along(compare_metrics)) {
+      metric <- compare_metrics[[i]]
       deltas <- numeric(length = length(index))
       errors <- numeric(length = length(index))
       for (i in seq_along(index)) {
@@ -76,8 +87,8 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
       final_result[paste0(metric, "_se_delta")] <- errors
     }
   } else {
-    for (i in seq_along(predictive_metrics)) {
-      metric <- predictive_metrics[[i]]
+    for (i in seq_along(compare_metrics)) {
+      metric <- compare_metrics[[i]]
 
       loo_result <- loo_compare(lapply(loo_object_matrix[valid_entries], function(x) {
         x[[i]]

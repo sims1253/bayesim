@@ -178,14 +178,16 @@ dataset_sim <- function(data_gen_conf,
     loo_objects[[i]] <- row_results$loo_objects
   }
 
-  names(loo_objects) <- seq_len(length(loo_objects))
-  loo_compare_results <- loo_compare_handler(loo_objects, predictive_metrics)
-
   final_result <- do.call(plyr::rbind.fill, final_result)
   if ("NA." %in% colnames(final_result)) {
     final_result <- subset(final_result, select = -c(which(colnames(final_result) == "NA.")))
   }
-  final_result <- cbind(final_result, loo_compare_results)
+
+  if (any(grep("_compare", predictive_metrics))) {
+    names(loo_objects) <- seq_len(length(loo_objects))
+    loo_compare_results <- loo_compare_handler(loo_objects, predictive_metrics)
+    final_result <- cbind(final_result, loo_compare_results)
+  }
 
   final_result$dataset_seed <- seed
   final_result$bad_samples <- bad_samples
