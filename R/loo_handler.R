@@ -103,6 +103,8 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 }
 
 
+
+
 #' Builds a loo object that contains any pointwise criterion, acting as elpd
 #' for compatibility.
 #'

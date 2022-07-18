@@ -185,7 +185,17 @@ dataset_sim <- function(data_gen_conf,
   if ("NA." %in% colnames(final_result)) {
     final_result <- subset(final_result, select = -c(which(colnames(final_result) == "NA.")))
   }
-  final_result <- cbind(final_result, loo_compare_results)
+
+  tryCatch(
+    expr = {
+      final_result <- cbind(final_result, loo_compare_results)
+    },
+    error = function(e) {
+      paste("hi")
+    }
+  )
+
+
 
   final_result$dataset_seed <- seed
   final_result$bad_samples <- bad_samples
