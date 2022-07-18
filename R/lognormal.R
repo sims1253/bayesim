@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-dlognormal <- function(x, mu, sigma, log = FALSE) {
+dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
     stop("lognormal is only defined for x > 0")
@@ -37,7 +37,7 @@ dlognormal <- function(x, mu, sigma, log = FALSE) {
 #' @export
 #'
 #' @examples
-rlognormal <- function(n, mu, sigma) {
+rlognormal_custom <- function(n, mu, sigma) {
   # check the arguments
   if (isTRUE(sigma <= 0)) {
     stop("lognormal is only defined for sigma > 0")
@@ -56,11 +56,11 @@ rlognormal <- function(n, mu, sigma) {
 #'
 #'
 #' @examples
-log_lik_lognormal <- function(i, prep) {
+log_lik_lognormal_custom <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   y <- prep$data$Y[i]
-  return(dlognormal(y, mu, sigma, log = TRUE))
+  return(dlognormal_custom(y, mu, sigma, log = TRUE))
 }
 
 #' Title
@@ -73,10 +73,10 @@ log_lik_lognormal <- function(i, prep) {
 #'
 #'
 #' @examples
-posterior_predict_lognormal <- function(i, prep, ...) {
+posterior_predict_lognormal_custom <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
-  return(rlognormal(prep$ndraws, mu, sigma))
+  return(rlognormal_custom(prep$ndraws, mu, sigma))
 }
 
 #' Title
@@ -87,7 +87,7 @@ posterior_predict_lognormal <- function(i, prep, ...) {
 #'
 #'
 #' @examples
-posterior_epred_lognormal <- function(prep) {
+posterior_epred_lognormal_custom <- function(prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(exp(mu + sigma^2 / 2))
@@ -102,27 +102,27 @@ posterior_epred_lognormal <- function(prep) {
 #' @export
 #'
 #' @examples
-lognormal <- function(link = "identity", link_sigma = "log") {
+lognormal_custom <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")
   family <- brms::custom_family(
-    "lognormal",
+    "lognormal_custom",
     dpars = c("mu", "sigma"),
     links = c(link, link_sigma),
     lb = c(0, 0),
     ub = c(NA, NA),
     type = "real",
-    log_lik = log_lik_lognormal,
-    posterior_predict = posterior_predict_lognormal,
-    posterior_epred = posterior_epred_lognormal
+    log_lik = log_lik_lognormal_custom,
+    posterior_predict = posterior_predict_lognormal_custom,
+    posterior_epred = posterior_epred_lognormal_custom
   )
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
-      real lognormal_lpdf(real y, real mu, real sigma) {
+      real lognormal_custom_lpdf(real y, real mu, real sigma) {
         return -(log(y) + log(sigma) + 0.5 * (log(2) + log(pi()))) +
                 (-(log(y) - mu)^2 / (2 * sigma^2));
       }
 
-      real lognormal_rng(real mu, real sigma) {
+      real lognormal_custom_rng(real mu, real sigma) {
         return exp(normal_rng(mu, sigma));
       }",
     block = "functions"

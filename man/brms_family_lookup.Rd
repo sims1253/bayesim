@@ -4,7 +4,7 @@
 \alias{brms_family_lookup}
 \title{Title}
 \usage{
-brms_family_lookup(family, link)
+brms_family_lookup(family, link = NULL)
 }
 \arguments{
 \item{link}{}

@@ -4,7 +4,7 @@
 \alias{dbeta_custom}
 \title{Custom Beta distribibution density.}
 \usage{
-dbeta_custom(x, mu, phi)
+dbeta_custom(x, mu, phi, log = FALSE)
 }
 \arguments{
 \item{x}{x-value}
@@ -12,6 +12,8 @@ dbeta_custom(x, mu, phi)
 \item{mu}{Mean}
 
 \item{phi}{Precision}
+
+\item{log}{TRUE if log pdf is wanted}
 }
 \value{
 PDF of Custom Beta distribution, with mean parameterasation

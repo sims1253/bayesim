@@ -20,10 +20,7 @@ get_prefit <- function(family_list, brms_backend) {
     refresh = 0,
     silent = 2,
     backend = brms_backend,
-    prior = c(
-      brms::set_prior("", class = "Intercept"),
-      brms::set_prior("", class = second_family_parameter_lookup(family_list$fit_family))
-    ),
+    prior = prior_lookup(family_list$fit_family),
     init = 0.1
   )
   return(prefit)

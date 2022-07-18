@@ -53,6 +53,7 @@ test_that("custom-betaprime", {
   }
 
   # check RNG
+  n <- 100000
   mu <- 2
   betaprime_samples <- bayesim::rbetaprime(n, mu, 3)
   expect_equal(n, length(betaprime_samples))

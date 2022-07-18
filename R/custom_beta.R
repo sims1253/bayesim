@@ -24,6 +24,7 @@ rbeta_custom <- function(n, mu, phi) {
 #' @param x x-value
 #' @param mu Mean
 #' @param phi Precision
+#' @param log TRUE if log pdf is wanted
 #'
 #' @details The beta-prime distribution has density
 #' \deqn{f(y) = {y^{\mu \phi - 1}(1 - y)^{(1 - \mu) \phi - 1} } / beta(\mu \phi, (1 - \mu) \phi) }
@@ -37,14 +38,14 @@ rbeta_custom <- function(n, mu, phi) {
 #' y <- bayesim::dbeta_custom(x, mu = mean, phi = phi)
 #' plot(x, y, type = "l", ylab = "Density", main = "dbeta_custom(mu = 0.5, phi = 2)")
 #' # Compare to online ressources
-dbeta_custom <- function(x, mu, phi) {
+dbeta_custom <- function(x, mu, phi, log = FALSE) {
   if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The mean must be in (0, 1).")
   }
   if (isTRUE(any(phi <= 0))) {
     stop("P must be above 0.")
   }
-  dbeta(x, mu * phi, (1 - mu) * phi)
+  dbeta(x, mu * phi, (1 - mu) * phi, log = log)
 }
 
 #' Log-Likelihood vignette for the Custom-Beta distribution, with Mean parametrization.

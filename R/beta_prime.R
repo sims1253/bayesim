@@ -178,7 +178,7 @@ betaprime <- function(link = "log", link_phi = "log") {
         real alpha = mu * (phi + 1);
         return  (alpha-1) * log(y) +
                 (-(alpha + beta)) * log1p(y) -
-                log(beta(alpha, beta));
+                lbeta(alpha, beta));
       }
 
       real betaprime_rng(real mu, real phi) {

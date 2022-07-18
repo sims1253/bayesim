@@ -56,6 +56,10 @@ metric_list_handler <- function(fit,
     }
   }
 
+  if(is.null(loo_objects)){
+    paste("Hi")
+  }
+
   return(
     list(
       numeric_results = unlist(c(numeric_results, predictive_results)),
