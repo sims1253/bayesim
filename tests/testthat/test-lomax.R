@@ -78,5 +78,5 @@ test_that("custom-lomax", {
   expect_error(bayesim::rlomax(100, mu = 1, alpha = 0)) # alpha is not allowed to be 0 or smaller
 
   expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::lomax,
-                     rng=bayesim::rlomax, shape_name="alpha", thresh = 0.025)
+                     rng=bayesim::rlomax, shape_name="alpha", thresh = 0.05)
 })

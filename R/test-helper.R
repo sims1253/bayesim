@@ -178,6 +178,7 @@ expect_bigger <- function(a, b) {
   }
 }
 
+# TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
 expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name, thresh) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
@@ -189,6 +190,7 @@ expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name,
   expect_brms_quantile(posterior_fit, shape_name, shape, thresh)
 }
 
+# TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
 construct_brms <- function(n, ba, int, shape, link, family, rng) {
   if(isFALSE(is.function(family) && is.function(rng))) {
     stop("family or rng argument were not a function!")
@@ -229,6 +231,7 @@ construct_brms <- function(n, ba, int, shape, link, family, rng) {
 #'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
 #'   cores = 4, silent = 2, refresh = 0)
 #' expect_brms_quantile(fit1, "b_a", ba_in, 0.025)
+#' TODO: how to test this function (and is this to be tested)?
 expect_brms_quantile <- function(posterior_data, name, reference, thresh) {
   if(isTRUE(length(thresh) == 1))
     bounds = c(thresh, 1-thresh)
