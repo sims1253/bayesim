@@ -19,7 +19,7 @@
 #'   -> case not intended, but would work
 #'   * a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
 #'   * all vectors -> each entry of |a - b| is compared to the same entry in eps
-#'   -> different vector lengths != 1 dissallowed!
+#'   -> different vector lengths != 1 dissallowed!expect_brms_family
 #'
 #' @return success or failure with message
 #'
@@ -179,11 +179,11 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name, thresh) {
+expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name, thresh, postrng_link=identity) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(n, ba, int, shape, link, family, rng)
+  posterior_fit <- construct_brms(n, ba, int, shape, link, family, rng, postrng_link)
 
   expect_brms_quantile(posterior_fit, "b_a", ba, thresh)
   expect_brms_quantile(posterior_fit, "b_Intercept", int, thresh)
@@ -191,13 +191,14 @@ expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name,
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-construct_brms <- function(n, ba, int, shape, link, family, rng) {
-  if(isFALSE(is.function(family) && is.function(rng))) {
+construct_brms <- function(n, ba, int, shape, link, family, rng, postrng_link) {
+  if(isFALSE(is.function(family) && is.function(rng) && is.function(postrng_link))) {
     stop("family or rng argument were not a function!")
   }
 
   a <- rnorm(n)
-  data <- list(a = a, y = rng(n, link(ba * a + int), shape))
+  y_data <- postrng_link(rng(n, link(ba * a + int), shape))
+  data <- list(a = a, y = y_data)
   posterior_fit <- brm(
     y ~ 1 + a,
     data = data,

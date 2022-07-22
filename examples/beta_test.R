@@ -10,7 +10,7 @@ get_beta <- function(mu, phi) {
 
 n <- 10000   # number of testvalues
 
-x = seq(from = 0, to = 1 , length.out=n)
+x = seq(from = 0.01, to = 0.99 , length.out=n)
 
 # PDF test
 layout(matrix(1:2, ncol = 2))
@@ -37,8 +37,8 @@ hist(data$y)
 fit1 <- brm(
   y ~ 1 + a,
   data = data,
-  family = bayesim::beta_custom(),
-  stanvars = bayesim::beta_custom()$stanvars,
+  family = bayesim:::beta_custom(),
+  stanvars = bayesim:::beta_custom()$stanvars,
   backend = "cmdstan",
   cores = 4
 )

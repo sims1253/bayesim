@@ -34,7 +34,7 @@ For vector/scalar combinations, allowed are (r has to always be a scalar!):
 -> case not intended, but would work
 \item a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
 \item all vectors -> each entry of |a - b| is compared to the same entry in eps
--> different vector lengths != 1 dissallowed!
+-> different vector lengths != 1 dissallowed!expect_brms_family
 }
 }
 \examples{
