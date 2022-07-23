@@ -23,9 +23,6 @@ get_q <- function(mu, p) {
 
 test_that("custom-kumaraswamy", {
 
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=inv_logit,family=bayesim::kumaraswamy,
-                     rng=bayesim::rkumaraswamy, shape_name="p", thresh = 0.3)
-  warning("coarse BRMS acceptance threshold")
 
   # calculate kumaraswamy
   dkumaraswamy_results <- bayesim::dkumaraswamy(x, mu = 0.8, p = 2)
@@ -89,8 +86,8 @@ test_that("custom-kumaraswamy", {
   expect_error(bayesim::rkuramaswamy(100, mu = 0.8, p = 1)) # kumaraswamy has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-
-  #skip("implement RNG first")
+  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=inv_logit,family=bayesim::kumaraswamy,
+                     rng=bayesim::rkumaraswamy, shape_name="p", thresh = 0.05)
 
 })
 

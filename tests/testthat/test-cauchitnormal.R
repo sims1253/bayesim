@@ -50,7 +50,7 @@ test_that("custom-cauchitnormal", {
   # also non-numeric arguments for n will throw warning
   # expect_error(bayesim::rcauchitnormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  #skip("BRMS fit settings wrong?")
+  skip("BRMS fit settings wrong?")
   expect_brms_family(n=1000, ba=0.5, int=0.2, shape=4, link=identity, family=bayesim::cauchitnormal,
                      rng=bayesim::rcauchitnormal, shape_name="sigma", thresh = 0.025, postrng_link=bayesim::inv_cauchit)
 })

@@ -51,5 +51,5 @@ test_that("custom-lognormal", {
   expect_error(bayesim::rlognormal_custom(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
   expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=identity,family=bayesim::lognormal_custom,
-                     rng=bayesim::rlognormal_custom, shape_name="sigma", thresh=0.025)
+                     rng=bayesim::rlognormal_custom, shape_name="sigma", thresh=0.05)
 })

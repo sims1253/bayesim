@@ -85,6 +85,6 @@ test_that("custom-betaprime", {
 
   warning("BTW, how to surpress all the Chain info?^^")
   expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::betaprime,
-                     rng=bayesim::rbetaprime, shape_name="phi", thresh = 0.025)
+                     rng=bayesim::rbetaprime, shape_name="phi", thresh = 0.05)
 
 })
