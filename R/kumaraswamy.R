@@ -48,7 +48,7 @@ dkumaraswamy <- function(x, mu, p, log = FALSE) {
 #'
 #' @examples hist(rkuramaswamy(10000, mu=0.5, p=4))
 rkumaraswamy <- function(n, mu, p) {
-  if (isTRUE(any(mu < 0 | mu > 1))) {
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The mean must be in (0,1).")
   }
   mu[which(mu > 0.999999)] <- 0.999999
