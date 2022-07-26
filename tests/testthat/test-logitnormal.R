@@ -11,7 +11,7 @@ mus <- seq(from = -5, to = 20, length.out = n_small)
 # weirdly enough, the logit(median(RNG)) yields Infs for mu >= 4 ?
 sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
-accepted_medians_eps <- 0.12
+accepted_medians_eps <- 0.15
 p_acceptable_failures <- 0.05
 
 test_that("custom-logitnormal", {

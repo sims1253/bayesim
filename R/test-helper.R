@@ -205,6 +205,7 @@ construct_brms <- function(n, ba, int, shape, link, family, rng, postrng_link) {
     family = family(),
     stanvars = family()$stanvars,
     backend = "cmdstan",
+    # cmdstanr hates me and does not recovery correctly?!
     cores = 4,
     silent = 2,
     refresh = 0
