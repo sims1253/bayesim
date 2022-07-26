@@ -70,7 +70,7 @@ test_that("custom-inversegaussian_custom", {
 
 
   expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::inversegaussian_custom,
-                     rng=bayesim::rinversegaussian_custom, shape_name="shape", thresh = 0.05)
+                     rng=bayesim::rinversegaussian_custom, shape_name="shape", thresh = 0.025)
 
   skip("Some issues (probably different parametrizations) between Bayesim and rmutil.")
   # check many shape parameters on pdf

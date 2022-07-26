@@ -204,7 +204,7 @@ construct_brms <- function(n, ba, int, shape, link, family, rng, postrng_link) {
     data = data,
     family = family(),
     stanvars = family()$stanvars,
-    backend = "cmdstan",
+    backend = "cmdstanr",
     cores = 4,
     silent = 2,
     refresh = 0

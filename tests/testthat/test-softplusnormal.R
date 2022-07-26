@@ -50,4 +50,8 @@ test_that("custom-softplusnormal", {
   # check the RNG is not too far of the input value
   test_rng(rng_fun=bayesim::rsoftplusnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=softplus)
+
+  # check custom BRMS family implementation
+  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::softplusnormal,
+                     rng=bayesim::rsoftplusnormal, shape_name="sigma", thresh = 0.025)
 })

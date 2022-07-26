@@ -31,18 +31,12 @@ test_that("custom-kumaraswamy", {
   expect_equal(n, length(dkumaraswamy_results))
   expect_equal(n, length(qkumaraswamy_results))
 
+  warning("In expect_eps quantile function, the parameters had to be quite restricted.")
   # check many shape parameters on pdf and qdf
   for (p in ps) {
     for (m in mus) {
       expect_eps(bayesim::dkumaraswamy(x, mu = m, p = p), VGAM::dkumar(x, p, get_q(m, p)), eps)
       expect_eps(bayesim::qkumaraswamy(x, mu = m, p = p), VGAM::qkumar(x, p, get_q(m, p)), eps)
-      # diff <- abs(bayesim::qkumaraswamy(x, mu = m, p = p) - VGAM::qkumar(x, p, get_q(m, p)))
-      # if(isTRUE(any(diff > eps))) {
-      #   print(c("p, m", p, m))
-      #   data <- VGAM::qkumar(x, p, get_q(m, p))
-      #   print(data)
-      #   plot(x, data)
-      # }
     }
   }
 
@@ -87,7 +81,7 @@ test_that("custom-kumaraswamy", {
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
   expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=inv_logit,family=bayesim::kumaraswamy,
-                     rng=bayesim::rkumaraswamy, shape_name="p", thresh = 0.05)
+                     rng=bayesim::rkumaraswamy, shape_name="p", thresh = 0.025)
 
 })
 
