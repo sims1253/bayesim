@@ -11,7 +11,7 @@ mus <- seq(from = -5, to = 20, length.out = n_small)
 # weirdly enough, the log(median(RNG)) yields Infs for mu >= 4 ?
 sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
 
-accepted_medians_eps <- 0.13
+accepted_medians_eps <- 0.15
 p_acceptable_failures <- 0.05
 
 test_that("custom-lognormal", {
@@ -50,6 +50,5 @@ test_that("custom-lognormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rlognormal_custom(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=identity,family=bayesim::lognormal_custom,
-                     rng=bayesim::rlognormal_custom, shape_name="sigma", thresh=0.05)
+  expect_brms_family(link=identity, family=bayesim::lognormal_custom, rng=bayesim::rlognormal_custom, shape_name="sigma")
 })

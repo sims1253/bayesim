@@ -179,36 +179,43 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-expect_brms_family <- function(n, ba, int, shape, link, family, rng, shape_name, thresh, postrng_link=identity) {
+expect_brms_family <- function(n_data_sampels=1000, ba=0.5, int=1, shape=2, link, family, rng, shape_name, thresh=0.025, num_parallel=2) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(n, ba, int, shape, link, family, rng, postrng_link)
+  posterior_fit <- construct_brms(n_data_sampels, ba, int, shape, link, family, rng, num_parallel)
 
-  expect_brms_quantile(posterior_fit, "b_a", ba, thresh)
-  expect_brms_quantile(posterior_fit, "b_Intercept", int, thresh)
-  expect_brms_quantile(posterior_fit, shape_name, shape, thresh)
+  s_ba <- expect_brms_quantile(posterior_fit, "b_a", ba, thresh)
+  s_int <- expect_brms_quantile(posterior_fit, "b_Intercept", int, thresh)
+  s_sh <- expect_brms_quantile(posterior_fit, shape_name, shape, thresh)
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-construct_brms <- function(n, ba, int, shape, link, family, rng, postrng_link) {
-  if(isFALSE(is.function(family) && is.function(rng) && is.function(postrng_link))) {
+construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, num_parallel, seed=NA) {
+  if(isFALSE(is.function(family) && is.function(rng))) {
     stop("family or rng argument were not a function!")
   }
 
-  a <- rnorm(n)
-  y_data <- postrng_link(rng(n, link(ba * a + int), shape))
+  # TODO: is seeding even a good idea?
+  if(isFALSE(is.na(seed)))
+    set.seed(seed)
+
+  a <- rnorm(n_data_sampels)
+  y_data <- rng(n_data_sampels, link(ba * a + int), shape)
   data <- list(a = a, y = y_data)
   posterior_fit <- brm(
     y ~ 1 + a,
     data = data,
     family = family(),
     stanvars = family()$stanvars,
-    backend = "cmdstan",
+    backend = "cmdstanr",
     # cmdstanr hates me and does not recovery correctly?!
-    cores = 4,
+    chains = num_parallel,
+    cores = num_parallel,
+    seed = seed,
     silent = 2,
-    refresh = 0
+    refresh = 0,
+    init = 0.1
   )
 
   return(posterior_fit)

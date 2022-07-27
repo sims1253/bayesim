@@ -50,4 +50,6 @@ test_that("custom-cloglognormal", {
   expect_warning(expect_error(bayesim::rcloglognormal("r", mu = 2, sigma = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rcloglognormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
+
+  warning("BRMS missing")
 })

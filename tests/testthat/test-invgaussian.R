@@ -69,8 +69,7 @@ test_that("custom-inversegaussian_custom", {
   expect_error(bayesim::rinversegaussian_custom(100, mu = 1, shape = 0)) # shape is not allowed to be 0 or smaller
 
 
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::inversegaussian_custom,
-                     rng=bayesim::rinversegaussian_custom, shape_name="shape", thresh = 0.025)
+  expect_brms_family(link=exp,family=bayesim::inversegaussian_custom, rng=bayesim::rinversegaussian_custom, shape_name="shape")
 
   skip("Some issues (probably different parametrizations) between Bayesim and rmutil.")
   # check many shape parameters on pdf

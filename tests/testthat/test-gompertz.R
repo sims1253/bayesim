@@ -66,7 +66,7 @@ test_that("custom-gompertz", {
   expect_error(bayesim::qgompertz(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::qgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::qgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
+   expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
   expect_error(bayesim::qgompertz("r", mu = 2, beta = 2)) # non-numeric arguments are disallowed
 
 
@@ -79,13 +79,5 @@ test_that("custom-gompertz", {
   expect_error(bayesim::rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
 
-  warning("BRMS recovery threshold of 10% seems quite high?")
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::gompertz,
-                     rng=bayesim::rgompertz, shape_name="beta", thresh = 0.1)
-  # OK. Fails with thresh=1 (after failing before with thresh=0.1)
-  # This even after install&restart?!
-  # Maybe I should rethink my approach here, could another calling hierachie help this issue?
-  # even failed after Session Restart + rebuild?! I am quite confused here!!!
-
-  # But only for alltest? This file on its own works just fine...
+  expect_brms_family(link=exp, family=bayesim::gompertz, rng=bayesim::rgompertz, shape_name="beta")
 })

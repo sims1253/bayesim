@@ -80,9 +80,7 @@ test_that("custom-kumaraswamy", {
   expect_error(bayesim::rkuramaswamy(100, mu = 0.8, p = 1)) # kumaraswamy has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  warning("BRMS recovery threshold of 10% seems quite high?")
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=inv_logit,family=bayesim::kumaraswamy,
-                     rng=bayesim::rkumaraswamy, shape_name="p", thresh = 0.1)
+  expect_brms_family(link=inv_logit, family=bayesim::kumaraswamy, rng=bayesim::rkumaraswamy, shape_name="p")
 
 })
 
