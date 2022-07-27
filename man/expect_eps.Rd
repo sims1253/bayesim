@@ -15,7 +15,7 @@ expect_eps(a, b, eps, r = 0)
 \item{eps}{numeric scalar or vector, setting the max differences, eps > 0}
 
 \item{r}{optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
-Used internally, to calculate acceptable amount of deviances. Calculated absolute value will be floored.}
+Used internally, tlo calculate acceptable amount of deviances. Calculated absolute value will be floored.}
 }
 \value{
 success or failure with message
