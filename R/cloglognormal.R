@@ -16,9 +16,10 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(sigma < 0))) {
     stop("sigma must be above or equal to 0.")
   }
-  logpdf <- (-(log(sigma) + 0.5 * (log(2) + log(pi)))) +
-    -log(-1 * ((1 - x) * log(1 - x))) +
-    (-(cloglog(x) - mu)^2) / (2 * (sigma^2))
+  logpdf <-
+    -(log(sigma) + 0.5 * (log(2 * pi))) +
+    -(log((x - 1) * log1p(-x))) +
+    -(cloglog(x) - mu)^2 / (2 * sigma^2)
   if (log) {
     return(logpdf)
   } else {
@@ -116,9 +117,9 @@ cloglognormal <- function(link = "identity", link_sigma = "log") {
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
       real cloglognormal_lpdf(real y, real mu, real sigma) {
-        return   (-(log(sigma) + 0.5 * (log(2) + log(pi())))) +
-                 -log(-1 * ((1-y)*log(1-y))) +
-                 (-(log(-log1m(y)) - mu)^2) / (2 * (sigma^2));
+        return  -(log(sigma) + 0.5 * (log(2 * pi()))) +
+                -(log((y - 1) * log1m(y))) +
+                -(log(-log(1 - y)) - mu)^2 / (2 * sigma^2);
       }
 
       real cloglognormal_rng(real mu, real sigma) {
