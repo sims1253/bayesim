@@ -83,7 +83,6 @@ test_that("custom-betaprime", {
   expect_error(bayesim::rbetaprime(100, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rbetaprime(100, mu = 1, phi = 0)) # phi is not allowed to be 0 or smaller
 
-  warning("BTW, how to surpress all the Chain info?^^")
   expect_brms_family(link=exp, family=bayesim::betaprime, rng=bayesim::rbetaprime, shape_name="phi")
 
 })

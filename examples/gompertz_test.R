@@ -64,7 +64,7 @@ fit1 <- brm(
   data = data,
   family = bayesim::gompertz(),
   stanvars = bayesim::gompertz()$stanvars,
-  backend = "cmdstan",
+  backend = "cmdstanr",
   cores = 4
 )
 

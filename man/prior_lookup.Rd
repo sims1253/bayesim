@@ -9,9 +9,6 @@ prior_lookup(family)
 \arguments{
 \item{family}{}
 }
-\value{
-
-}
 \description{
 Title
 }

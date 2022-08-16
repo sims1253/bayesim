@@ -11,9 +11,10 @@ dataset_conf_sim(
   predictive_metrics,
   prefits,
   seed = NULL,
-  path = NULL,
+  result_path = NULL,
   brms_backend,
   cmdstan_path,
+  cmdstan_write_path,
   ncores,
   debug,
   global_seed
@@ -21,9 +22,6 @@ dataset_conf_sim(
 }
 \arguments{
 \item{debug}{}
-}
-\value{
-
 }
 \description{
 Title

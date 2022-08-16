@@ -6,9 +6,6 @@
 \usage{
 r2(y, yrep, weights = NULL)
 }
-\value{
-
-}
 \description{
 Title
 }

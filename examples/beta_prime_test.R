@@ -58,7 +58,7 @@ fit1 <- brm(
   data = data,
   family = bayesim::betaprime(),
   stanvars = bayesim::betaprime()$stanvars,
-  backend = "cmdstan",
+  backend = "cmdstanr",
   cores = 4
 )
 

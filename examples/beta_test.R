@@ -39,7 +39,7 @@ fit1 <- brm(
   data = data,
   family = bayesim:::beta_custom(),
   stanvars = bayesim:::beta_custom()$stanvars,
-  backend = "cmdstan",
+  backend = "cmdstanr",
   cores = 4
 )
 

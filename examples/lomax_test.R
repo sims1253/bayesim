@@ -58,7 +58,7 @@ fit1 <- brm(
   data = data,
   family = bayesim::lomax(),
   stanvars = bayesim::lomax()$stanvars,
-  backend = "cmdstan",
+  backend = "cmdstanr",
   cores = 4
 )
 

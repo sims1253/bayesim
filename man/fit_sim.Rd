@@ -15,14 +15,11 @@ fit_sim(
   brms_backend,
   seed,
   debug,
-  path
+  result_path
 )
 }
 \arguments{
 \item{path}{}
-}
-\value{
-
 }
 \description{
 Title

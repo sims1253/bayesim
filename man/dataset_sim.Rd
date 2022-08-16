@@ -12,16 +12,14 @@ dataset_sim(
   predictive_metrics,
   brms_backend,
   cmdstan_path,
+  cmdstan_write_path,
   seed,
   debug,
-  path
+  result_path
 )
 }
 \arguments{
 \item{path}{}
-}
-\value{
-
 }
 \description{
 Title

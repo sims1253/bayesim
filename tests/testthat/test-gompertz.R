@@ -34,6 +34,27 @@ test_that("custom-gompertz", {
   # check length
   expect_equal(n, length(dgompertz_results))
   expect_equal(n, length(qgompertz_results))
+# <<<<<<< HEAD
+# =======
+#   # check values against comparable implementation
+#   expect_eps(dgompertz_results, extraDistr::dgompertz(x, get_a(10, 1), 1), eps)
+#   expect_eps(qgompertz_results, extraDistr::qgompertz(unit, get_a(10, 1), 1), eps)
+#   # also check other shape parameters
+#   expect_eps(bayesim::dgompertz(x, mu = 1, b = 4), extraDistr::dgompertz(x, get_a(1, 4), 4), eps)
+#   expect_eps(bayesim::qgompertz(unit, mu = 1, b = 4), extraDistr::qgompertz(unit, get_a(1, 4), 4), eps)
+#
+#   # check the RNG
+#   n <- 1000000
+#   mu <- 1
+#   accepted_median_eps <- 0.001
+#   gompertz_samples <- bayesim::rgompertz(n, mu, 3)
+#   expect_equal(n, length(gompertz_samples))
+#   expect_eps(median(gompertz_samples), mu, accepted_median_eps) # this test should work most of the time, but might fail sometimes
+#   n_failed_medians <- 0
+#   p_acceptable_failures <- 0.001 # with arbitrary median_eps of 0.1, about 8-20% of medians will be outside that range
+#   n_acceptable_failures <- ceiling(length(mus) * length(betas) * p_acceptable_failures)
+#
+# >>>>>>> master
 
   # check many shape parameters
   accepted_median_eps <- 0.01
@@ -66,7 +87,7 @@ test_that("custom-gompertz", {
   expect_error(bayesim::qgompertz(1, 2, 3, 4, 5)) # to many arguments
   expect_error(bayesim::qgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::qgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
-   expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
+  expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
   expect_error(bayesim::qgompertz("r", mu = 2, beta = 2)) # non-numeric arguments are disallowed
 
 

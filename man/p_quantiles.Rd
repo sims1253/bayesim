@@ -9,9 +9,6 @@ p_quantiles(posterior_draws, prob)
 \arguments{
 \item{posterior_draws}{}
 }
-\value{
-
-}
 \description{
 Title
 }

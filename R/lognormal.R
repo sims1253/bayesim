@@ -19,7 +19,8 @@ dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
     stop("lognormal is only defined for sigma > 0")
   }
   logpdf <-
-    -(log(x) + log(sigma) + 0.5 * (log(2) + log(pi))) +
+    -(log(sigma) + 0.5 * (log(2 * pi))) +
+    -log(x) +
     (-(log(x) - mu)^2 / (2 * sigma^2))
   if (log) {
     return(logpdf)
@@ -119,8 +120,8 @@ lognormal_custom <- function(link = "identity", link_sigma = "log") {
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
       real lognormal_custom_lpdf(real y, real mu, real sigma) {
-        return -(log(y) + log(sigma) + 0.5 * (log(2) + log(pi()))) +
-                (-(log(y) - mu)^2 / (2 * sigma^2));
+        return -(log(y) + log(sigma) + 0.5 * (log(2 * pi()))) +
+               -(log(y) - mu)^2 / (2 * sigma^2);
       }
 
       real lognormal_custom_rng(real mu, real sigma) {
