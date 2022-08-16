@@ -180,15 +180,16 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-expect_brms_family <- function(n_data_sampels=1000, ba=0.5, int=1, shape=2, link, family, rng, shape_name, thresh=0.1, num_parallel=2) {
+expect_brms_family <- function(n_data_sampels=1000, ba=0.5, int=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(n_data_sampels, ba, int, shape, link, family, rng, num_parallel, seed=1337)
+  posterior_fit <- construct_brms(n_data_sampels, ba, int, shape, link, family, rng, num_parallel, seed=1337, suppress_output=!debug)
+  plot(posterior_fit)
 
-  s_ba <- expect_brms_quantile(posterior_fit, "b_a", ba, thresh)
-  s_int <- expect_brms_quantile(posterior_fit, "b_Intercept", int, thresh)
-  s_sh <- expect_brms_quantile(posterior_fit, shape_name, shape, thresh)
+  s_ba <- expect_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
+  s_int <- expect_brms_quantile(posterior_fit, "b_int", int, thresh, debug)
+  s_sh <- expect_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
@@ -264,7 +265,7 @@ construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, nu
 #'   cores = 4, silent = 2, refresh = 0)
 #' expect_brms_quantile(fit1, "b_a", ba_in, 0.025)
 #' TODO: how to test this function (and is this to be tested)?
-expect_brms_quantile <- function(posterior_data, name, reference, thresh) {
+expect_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
   if(isTRUE(length(thresh) == 1))
     bounds = c(thresh, 1-thresh)
   else if(isTRUE(length(thresh) == 2))
@@ -274,6 +275,11 @@ expect_brms_quantile <- function(posterior_data, name, reference, thresh) {
 
   calculated <- posterior::extract_variable_matrix(posterior_data, variable = name)
   quantiles <- unname(quantile(calculated, probs = bounds))
+  if(debug) {
+    print(paste("At: ", bounds, " the quantile is: ", quantiles))
+    print(paste("The supplied reference value was: ", reference))
+  }
+
   if(quantiles[1] < reference && reference < quantiles[2])
     succeed()
   else
