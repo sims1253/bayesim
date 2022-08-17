@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: Simulation-Study Framework for Bayesian Modeling
-Version: 0.29.4.9000
+Version: 0.29.5.9000
 Date: 2022-04-14
 Authors@R:
     c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
@@ -32,4 +32,4 @@ Suggests:
     foreach,
     parallel,
     doParallel,
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.1
