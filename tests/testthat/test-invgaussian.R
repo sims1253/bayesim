@@ -12,23 +12,21 @@ get_lambda <- function(mu, shape) {
   return(1 / lambda)
 }
 
-# n <- 100000 # number of testvalues
-# eps <- 1e-6
-# x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
-# unit <- seq(from = eps, to = 1 - eps, length.out = n)
-#
-# n_small <- 10
-# mus <- seq(from = eps, to = 10, length.out = n_small)
-# shapes <- seq(from = eps, to = 10, length.out = n_small)
+n <- 100000 # number of testvalues
+eps <- 1e-6
+x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
+unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
-data_in <-
-
-# mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
-shapes_r <- seq(from = 0.5 + eps, to = 10, length.out = n_small)
-accepted_means_eps <- 0.1
-p_acceptable_failures <- 0.05
+n_small <- 10
+mus <- seq(from = eps, to = 10, length.out = n_small)
+shapes <- seq(from = eps, to = 10, length.out = n_small)
 
 test_that("custom-inversegaussian_custom", {
+
+  # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
+  shapes_r <- seq(from = 0.5 + eps, to = 10, length.out = n_small)
+  accepted_means_eps <- 0.1
+  p_acceptable_failures <- 0.05
 
   dinversegaussian_custom_results <- bayesim::dinversegaussian_custom(x, mu = 8, shape = 2)
   rinversegaussian_custom_samples <- bayesim::rinversegaussian_custom(n, 1, 3)

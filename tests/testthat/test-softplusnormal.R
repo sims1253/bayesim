@@ -2,19 +2,25 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-n <- 100000
-eps <- 1e-6
-
-n_small <- 10
-x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
-mus <- seq(from = eps, to = 20, length.out = n_small)
-# weirdly enough, the softplus(median(RNG)) yields Infs for mu >= 4 ?
-sigmas <- seq(from = eps, to = 20, length.out = n_small)
-
-accepted_medians_eps <- 0.13
-p_acceptable_failures <- 0.05
-
 test_that("custom-softplusnormal", {
+
+  # load in values
+  data_inp <- readRDS("precalc_values/softplusnormal_inp")
+  data_ref <- readRDS("precalc_values/softplusnormal_ref")
+
+  # one might build one extra set with only scalars. But way more work for miniscule space savings!
+  # (yes, n_small is really that small!)
+  n <- data_inp$n[1]
+  n_small <- data_inp$n_small[1]
+  eps <- data_inp$eps[1]
+  mus <- data_inp$mus
+  sigmas <- data_inp$shapes
+
+  x <- data_ref$x
+  data_subref <- subset(data_ref, select = -x)
+  pdf_ref <- as.matrix(data_subref)
+
+
   # calculate beta-prime
   dsoftplusnormal_results <- bayesim::dsoftplusnormal(x, mu = 1, sigma = 2)
   # check length
@@ -24,7 +30,13 @@ test_that("custom-softplusnormal", {
   # ??? The constant in this test was wrong? Probably corrected implementation, or something
   # Now it is not 1.27.. anymore, but 0.392.. Maybe that is more correct?
 
-  warning("Think about, how to check dsoftplusnormal against a reference implementation, or precalculated values.")
+  for(outer in 1:n_small) {
+    for(inner in 1:n_small) {
+      mu <- mus[outer]
+      sigma <- sigmas[inner]
+      expect_eps(bayesim::dsoftplusnormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
+    }
+  }
 
   # now check density function for some errors
   expect_error(bayesim::dsoftplusnormal(0.5, 2)) # to few arguments
@@ -32,8 +44,6 @@ test_that("custom-softplusnormal", {
   expect_error(bayesim::dsoftplusnormal(-1, mu = 2, sigma = 2)) # x is not allowed to be smaller 0
   expect_error(bayesim::dsoftplusnormal(0.5, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
   expect_error(bayesim::dsoftplusnormal("r", mu = 2, sigma = 2)) # non-numeric arguments are disallowed
-
-  #skip("Softplusnormal-RNG throws NaNs constantly. Repair Softplusnormal and remove skip!")
 
   # do same for RNG function
   expect_error(bayesim::rsoftplusnormal(100, 2)) # to few arguments
@@ -48,12 +58,15 @@ test_that("custom-softplusnormal", {
   softplusnormal_samples <- bayesim::rsoftplusnormal(n, 2, 3)
   expect_equal(n, length(softplusnormal_samples))
 
+  n_rng <- 100000
+  accepted_medians_eps <- 0.13
+  p_acceptable_failures <- 0.05
+
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rsoftplusnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
+  test_rng(rng_fun=bayesim::rsoftplusnormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=softplus)
 
-  skip("Wrong BRMS setting (maybe wrong link?)")
   # check custom BRMS family implementation
-  expect_brms_family(n=1000, ba=0.5, int=1, shape=2, link=exp,family=bayesim::softplusnormal,
-                     rng=bayesim::rsoftplusnormal, shape_name="sigma", thresh = 0.025)
+  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::softplusnormal,
+                     rng=bayesim::rsoftplusnormal, shape_name="sigma")
 })
