@@ -5,7 +5,7 @@
 #' @param shape shape > 0
 #'
 #' @details The PDF is defined with shape parameter alpha as
-#' \deqn{TODO: PDF equation here}
+#' \deqn{f(y) = \sqrt{\frac{\alpha}{2 \pi y^3}} exp(\frac{-\alpha(y-\mu)^2}{2 \mu^2 y}) }
 #' https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
 #'
 #' @return f(x | mu, shape)

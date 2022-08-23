@@ -48,9 +48,7 @@ test_that("custom-cauchitnormal", {
   expect_error(bayesim::rcauchitnormal(-1, mu = 2, sigma = 2)) # number of drawn samples cannot be smaller 0
   expect_warning(expect_error(bayesim::rcauchitnormal("r", mu = 2, sigma = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
-  # expect_error(bayesim::rcauchitnormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  skip("Still BRMS recovery issues")
-  expect_brms_family(ba=0.5, int=0.2, shape=4, link=bayesim::inv_cauchit, family=bayesim::cauchitnormal,
+  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::cauchitnormal,
                      rng=bayesim::rcauchitnormal, shape_name="sigma")
 })

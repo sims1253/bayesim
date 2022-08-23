@@ -51,5 +51,6 @@ test_that("custom-logitnormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rlogitnormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  warning("BRMS missing")
+  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::logitnormal,
+                     rng=bayesim::rlogitnormal, shape_name="sigma")
 })

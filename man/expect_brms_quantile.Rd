@@ -4,7 +4,7 @@
 \alias{expect_brms_quantile}
 \title{Check, that data of the posterior is close enough to the reference data.}
 \usage{
-expect_brms_quantile(posterior_data, name, reference, thresh)
+expect_brms_quantile(posterior_data, name, reference, thresh, debug = FALSE)
 }
 \arguments{
 \item{posterior_data}{Data fitted and drawn}

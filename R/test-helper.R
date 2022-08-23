@@ -1,4 +1,6 @@
-library(BBmisc)
+library(BBmisc)       # to surpress unnecassary BRMS/Stan output
+library(posterior)    # used to extract BRMS data
+library(brms)         # to test custom BRMS families
 
 # used only for an internal function
 
@@ -180,20 +182,20 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-expect_brms_family <- function(n_data_sampels=1000, ba=0.5, int=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE) {
+expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(n_data_sampels, ba, int, shape, link, family, rng, num_parallel, seed=1337, suppress_output=!debug)
-  plot(posterior_fit)
+  posterior_fit <- construct_brms(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=1337, suppress_output=!debug)
+  #plot(posterior_fit)
 
-  s_ba <- expect_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
-  s_int <- expect_brms_quantile(posterior_fit, "b_int", int, thresh, debug)
-  s_sh <- expect_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
+  expect_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
+  expect_brms_quantile(posterior_fit, "b_Intercept", intercept, thresh, debug)
+  expect_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE) {
+construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE) {
   if(isFALSE(is.function(family) && is.function(rng))) {
     stop("family or rng argument were not a function!")
   }
@@ -201,7 +203,7 @@ construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, nu
   old_seed <- .Random.seed
   set.seed(seed)
   a <- rnorm(n_data_sampels)
-  y_data <- rng(n_data_sampels, link(ba * a + int), shape)
+  y_data <- rng(n_data_sampels, link(ba * a + intercept), shape)
   set.seed(old_seed)
 
   data <- list(a = a, y = y_data)
@@ -209,7 +211,7 @@ construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, nu
   if(isTRUE(suppress_output)) {
     # if printout suppression is wished, use suppressAll as wrapper
     BBmisc::suppressAll({
-      posterior_fit <- brm(
+      posterior_fit <- brms::brm(
         y ~ 1 + a,
         data = data,
         family = family(),
@@ -226,7 +228,7 @@ construct_brms <- function(n_data_sampels, ba, int, shape, link, family, rng, nu
   }
   else {
     # and if not, do nothing special
-    posterior_fit <- brm(
+    posterior_fit <- brms::brm(
       y ~ 1 + a,
       data = data,
       family = family(),
@@ -297,6 +299,7 @@ expect_brms_quantile <- function(posterior_data, name, reference, thresh, debug 
 #'
 #' @examples print(bayesim:::vector_combinator(seq(0, 1, length.out=3), seq(0, 2, length.out=3)))
 vector_combinator <- function(a, b) {
+  # TODO: not only is this unused by now. Also I do think, this might be possible in vanilla R.
   length_a <- length(a)
   length_b <- length(b)
   total_length <- length_a * length_b

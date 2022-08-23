@@ -12,14 +12,16 @@ get_lambda <- function(mu, shape) {
   return(1 / lambda)
 }
 
-n <- 100000 # number of testvalues
-eps <- 1e-6
-x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
-unit <- seq(from = eps, to = 1 - eps, length.out = n)
+# n <- 100000 # number of testvalues
+# eps <- 1e-6
+# x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
+# unit <- seq(from = eps, to = 1 - eps, length.out = n)
+#
+# n_small <- 10
+# mus <- seq(from = eps, to = 10, length.out = n_small)
+# shapes <- seq(from = eps, to = 10, length.out = n_small)
 
-n_small <- 10
-mus <- seq(from = eps, to = 10, length.out = n_small)
-shapes <- seq(from = eps, to = 10, length.out = n_small)
+data_in <-
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
 shapes_r <- seq(from = 0.5 + eps, to = 10, length.out = n_small)
@@ -27,16 +29,20 @@ accepted_means_eps <- 0.1
 p_acceptable_failures <- 0.05
 
 test_that("custom-inversegaussian_custom", {
-  # calculate inversegaussian_custom
+
   dinversegaussian_custom_results <- bayesim::dinversegaussian_custom(x, mu = 8, shape = 2)
+  rinversegaussian_custom_samples <- bayesim::rinversegaussian_custom(n, 1, 3)
   # check length
   expect_equal(n, length(dinversegaussian_custom_results))
+  expect_equal(n, length(rinversegaussian_custom_samples))
 
-
-
-  # check the RNG will return the correct number of samples
-  inversegaussian_custom_samples <- bayesim::rinversegaussian_custom(n, 1, 3)
-  expect_equal(n, length(inversegaussian_custom_samples))
+  # check many shape parameters on pdf
+  for (shape in shapes) {
+    for (m in mus) {
+      # check against BRMS implementation
+      expect_eps(bayesim::dinversegaussian_custom(x, mu = m, shape = shape), rmutil::dinvgauss(x, m, 1/shape), eps)
+    }
+  }
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with shape_r
   test_rng(rng_fun=bayesim::rinversegaussian_custom, metric_mu=mean, n=n, mus=mus, shapes=shapes_r,
@@ -68,16 +74,6 @@ test_that("custom-inversegaussian_custom", {
   expect_error(bayesim::rinversegaussian_custom(100, mu = 0, shape = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rinversegaussian_custom(100, mu = 1, shape = 0)) # shape is not allowed to be 0 or smaller
 
-
   expect_brms_family(link=exp,family=bayesim::inversegaussian_custom, rng=bayesim::rinversegaussian_custom, shape_name="shape")
-
-  skip("Some issues (probably different parametrizations) between Bayesim and rmutil.")
-  # check many shape parameters on pdf
-  for (shape in shapes) {
-    for (m in mus) {
-      # check against BRMS implementation
-      expect_eps(bayesim::dinversegaussian_custom(x, mu = m, shape = shape), rmutil::dinvgauss(x, m, shape), eps)
-    }
-  }
 
 })
