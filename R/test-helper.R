@@ -311,3 +311,94 @@ vector_combinator <- function(a, b) {
   }
   return(output)
 }
+
+#' Yannick's super dooper density lookup data generator!
+#' This is meant for development only. Use at your own risk (and sanity). You have been warned!
+#'
+#' @param n_param Number of paramerter for each mu and shape. Will yield n_param^2 permutations of both.
+#' @param n_x Number of the x values.
+#' @param eps Allowed precision tolerance.
+#' @param mu_int Interval of the densities mu variable.
+#' @param shape_int Interval of the densities shape variable.
+#' @param density_fun The PDF to be saved.
+#' @param density_name The name of the whole pre-calculated thingy. Probably the one of the density.
+#' @param x_int_prelink Interval of x-values, before the x_link function is used on them.
+#' @param x_link Link function to be used on x_int_prelink. Default is identity.
+#'
+#' @return Nothing, but saves input and reference files for later use!
+#' @export
+#'
+#' @examples library(bayesim)
+#' eps <- 1e-6
+#' density_lookup_generator  (mu_int=c(eps, 1-eps), shape_int=c(2,10), x_int_prelink=c(eps, 1-eps),
+#'                           density_fun=bayesim::dcauchitnormal, density_name="cauchitnormal_demodata")
+density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, shape_int, x_int_prelink, x_link=identity, density_fun, density_name) {
+  # assert parameters (why all the assertions, if only I ever get to use it?)
+  # dunno, just felt like it :P
+  if(isFALSE(is.function(density_fun))) {
+    stop("The given density_fun was no function. Expect density-function as input.")
+  }
+  if(isFALSE(isSingleString(density_name))) {
+    stop("The given density_name has to be a single string.")
+  }
+  if(isFALSE(is.function(x_link))) {
+    stop("The given x_link was no function. Expect link-function as input.")
+  }
+  if(isFALSE(isNum_len(mu_int, 2))) {
+    stop("The mu_int interval has to be a two long vector")
+  }
+  if(isFALSE(isNum_len(shape_int, 2))) {
+    stop("The shape_int interval has to be a two long vector")
+  }
+  if(isFALSE(isNum_len(x_int_prelink, 2))) {
+    stop("The x_int_prelink interval has to be a two long vector")
+  }
+  if(isFALSE(isInt_len(n_param) && n_param > 0)) {
+    stop("The n_param has to be a single whole integer bigger 0")
+  }
+  if(isFALSE(isInt_len(n_x) && n_x > 0)) {
+    stop("The n_x has to be a single whole integer bigger 0")
+  }
+  if(isFALSE(isNum_len(eps) && eps > 0)) {
+    stop("The eps has to be a scalar bigger 0")
+  }
+
+  # generate input data
+  mus <- seq(from=mu_int[1], to=mu_int[2], length.out=n_param)
+  shapes <- seq(from=shape_int[1], to=shape_int[2], length.out=n_param)
+
+  x_ref <- x_link(seq(from=x_int_prelink[1], to=x_int_prelink[2], length.out=n_x))
+  y_ref <- matrix(data=list(), nrow=n_param, ncol=n_param)
+
+  # generate reference data
+  for(outer in 1:n_param) {
+    for(inner in 1:n_param) {
+      mu <- mus[outer]
+      shape <- shapes[inner]
+      y_ref[[outer, inner]] <- density_fun(x_ref, mu, shape)
+    }
+  }
+
+  inp_scalars <- data.frame(n=n_x, n_small=n_param, eps=eps)
+  inp_vectors <- data.frame(mus=mus, shapes=shapes)
+  x_data <- data.frame(x=x_ref)
+  y_data <- data.frame(y=y_ref)
+
+  return_data <- c(inp_scalars, inp_vectors, x_data)
+  saveRDS(return_data, paste("tests/testthat/precalc_values/", density_name, "_refdata", sep=""))
+  saveRDS(y_data, paste("tests/testthat/precalc_values/", density_name, "_refpdf", sep=""))
+
+  print(paste("Generated lookup data \"", density_name, "\" and saved to file in precalc_values folder for tests", sep=""))
+}
+
+isNum_len <- function(num, len=1) {
+  return(is.numeric(num) && length(num) == len)
+}
+
+isInt_len <- function(int, len=1) {
+  return((int %% 1 == 0) && length(int) == len)
+}
+
+isSingleString <- function(input) {
+  return (is.character(input) && length(input) == 1)
+}

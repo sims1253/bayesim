@@ -5,20 +5,17 @@ library(testthat)
 test_that("custom-softplusnormal", {
 
   # load in values
-  data_inp <- readRDS("precalc_values/softplusnormal_inp")
-  data_ref <- readRDS("precalc_values/softplusnormal_ref")
+  data <- readRDS("precalc_values/softplusnormal_refdata")
+  pdf_data <- readRDS("precalc_values/softplusnormal_refpdf")
 
-  # one might build one extra set with only scalars. But way more work for miniscule space savings!
-  # (yes, n_small is really that small!)
-  n <- data_inp$n[1]
-  n_small <- data_inp$n_small[1]
-  eps <- data_inp$eps[1]
-  mus <- data_inp$mus
-  sigmas <- data_inp$shapes
+  n <- data$n
+  n_small <- data$n_small
+  eps <- data$eps
+  mus <- data$mus
+  sigmas <- data$shapes
 
-  x <- data_ref$x
-  data_subref <- subset(data_ref, select = -x)
-  pdf_ref <- as.matrix(data_subref)
+  x <- data$x
+  pdf_ref <- as.matrix(pdf_data)
 
 
   # calculate beta-prime

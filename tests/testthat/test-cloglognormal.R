@@ -52,6 +52,6 @@ test_that("custom-cloglognormal", {
   expect_error(bayesim::rcloglognormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
   skip("Issues with log-pdf?!")
-  expect_brms_family(ba=0.2, int=0.4, shape=2, link=identity, family=bayesim::cloglognormal,
+  expect_brms_family(ba=0.2, int=0.4, shape=2, link=bayesim::inv_cloglog, family=bayesim::cloglognormal,
                      rng=bayesim::rcloglognormal, shape_name="sigma")
 })
