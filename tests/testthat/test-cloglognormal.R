@@ -2,19 +2,22 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-n <- 100000
-eps <- 1e-6
-
-n_small <- 10
-x <- seq(from = eps, to = 1 - eps, length.out = n)
-mus <- seq(from = -20, to = 3, length.out = n_small)
-# weirdly enough, the cloglog(median(RNG)) yields Infs for mu >= 4 ?
-sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
-
-accepted_medians_eps <- 0.12
-p_acceptable_failures <- 0.05
 
 test_that("custom-cloglognormal", {
+
+  # load in values
+  data <- readRDS("precalc_values/cloglognormal_refdata")
+  pdf_data <- readRDS("precalc_values/cloglognormal_refpdf")
+
+  n <- data$n
+  n_small <- data$n_small
+  eps <- data$eps
+  mus <- data$mus
+  sigmas <- data$shapes
+
+  x <- data$x
+  pdf_ref <- as.matrix(pdf_data)
+
   # calculate beta-prime
   dcloglognormal_results <- bayesim::dcloglognormal(x, mu = 1, sigma = 2)
   # check length
@@ -22,14 +25,24 @@ test_that("custom-cloglognormal", {
   # check against one precalculated value
   expect_eps(0.4557343, bayesim::dcloglognormal(x=0.5, mu=1, sigma=2), eps)
 
-  warning("Think about, how to check dcloglognormal against a reference implementation, or precalculated values.")
-
   # check the RNG will return the correct number of samples
   cloglognormal_samples <- bayesim::rcloglognormal(n, 2, 3)
   expect_equal(n, length(cloglognormal_samples))
 
+  for(outer in 1:n_small) {
+    for(inner in 1:n_small) {
+      mu <- mus[outer]
+      sigma <- sigmas[inner]
+      expect_eps(bayesim::dcloglognormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
+    }
+  }
+
+  n_rng <- 100000
+  accepted_medians_eps <- 0.12
+  p_acceptable_failures <- 0.05
+
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rcloglognormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
+  test_rng(rng_fun=bayesim::rcloglognormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=cloglog)
 
 

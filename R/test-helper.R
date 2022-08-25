@@ -387,6 +387,8 @@ density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, sha
   return_data <- c(inp_scalars, inp_vectors, x_data)
   saveRDS(return_data, paste("tests/testthat/precalc_values/", density_name, "_refdata", sep=""))
   saveRDS(y_data, paste("tests/testthat/precalc_values/", density_name, "_refpdf", sep=""))
+  # after reading the help, the issue with saveRDS (and save for that matter) is,
+  # that it might be used incorrectly, which will not occur, if any bayesim dev implements them
 
   print(paste("Generated lookup data \"", density_name, "\" and saved to file in precalc_values folder for tests", sep=""))
 }

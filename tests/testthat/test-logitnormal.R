@@ -2,19 +2,22 @@ library(bayesim)
 library(brms)
 library(testthat)
 
-n <- 100000
-eps <- 1e-6
-
-n_small <- 10
-x <- seq(from = eps, to = 1 - eps, length.out = n)
-mus <- seq(from = -5, to = 20, length.out = n_small)
-# weirdly enough, the logit(median(RNG)) yields Infs for mu >= 4 ?
-sigmas <- seq(from = 1 + eps, to = 20, length.out = n_small)
-
-accepted_medians_eps <- 0.15
-p_acceptable_failures <- 0.05
 
 test_that("custom-logitnormal", {
+
+  # load in values
+  data <- readRDS("precalc_values/logitnormal_refdata")
+  pdf_data <- readRDS("precalc_values/logitnormal_refpdf")
+
+  n <- data$n
+  n_small <- data$n_small
+  eps <- data$eps
+  mus <- data$mus
+  sigmas <- data$shapes
+
+  x <- data$x
+  pdf_ref <- as.matrix(pdf_data)
+
   # calculate beta-prime
   dlogitnormal_results <- bayesim::dlogitnormal(x, mu = 1, sigma = 2)
   # check length
@@ -22,14 +25,23 @@ test_that("custom-logitnormal", {
   # check against one precalculated value
   expect_eps(0.7041307, bayesim::dlogitnormal(x=0.5, mu=1, sigma=2), eps)
 
-  warning("Think about, how to check dlogitnormal against a reference implementation, or precalculated values.")
-
   # check the RNG will return the correct number of samples
   logitnormal_samples <- bayesim::rlogitnormal(n, 2, 3)
   expect_equal(n, length(logitnormal_samples))
 
+  for(outer in 1:n_small) {
+    for(inner in 1:n_small) {
+      mu <- mus[outer]
+      sigma <- sigmas[inner]
+      expect_eps(bayesim::dlogitnormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
+    }
+  }
+
+  n_rng <- 100000
+  accepted_medians_eps <- 0.15
+  p_acceptable_failures <- 0.05
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rlogitnormal, metric_mu=median, n=n, mus=mus, shapes=sigmas,
+  test_rng(rng_fun=bayesim::rlogitnormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=logit)
 
 
