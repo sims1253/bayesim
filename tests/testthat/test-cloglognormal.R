@@ -1,7 +1,16 @@
 library(bayesim)
 library(brms)
 library(testthat)
+library(BBmisc)
 
+# expect_clolog_brms(fit, intercept, shape, tresh) {
+#   int_succ  <- test_brms_quantile(fit, "b_Intercept", intercept, thresh)
+#   shap_succ <- test_brms_quantile(fit, "sigma", shape, thresh)
+#   if(int_succ && shap_succ)
+#     succeed()
+#   else
+#     fail("One or both values have not been recovered")
+# }
 
 test_that("custom-cloglognormal", {
 
@@ -64,7 +73,23 @@ test_that("custom-cloglognormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rcloglognormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  skip("Issues with log-pdf?!")
-  expect_brms_family(ba=0.2, int=0.4, shape=2, link=bayesim::inv_cloglog, family=bayesim::cloglognormal,
-                     rng=bayesim::rcloglognormal, shape_name="sigma")
+  warning("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to [1e-9, 1 - 1e-9].")
+  n_brms <- 1000
+  intercept <- 0.5
+  sigma <- 1
+  thresh <- 0.05
+  old_seed <- .Random.seed
+  set.seed(9001)
+  cloglog_data <- bayesim::rcloglognormal(n_brms, intercept, sigma)
+  set.seed(old_seed)
+  eps_brms <- 1e-9
+  cloglog_data <- bayesim:::limit_data(cloglog_data, c(eps_brms, 1-eps_brms))
+
+  BBmisc::suppressAll({
+    fit <- brms::brm(y~1, family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
+                     backend = "cmdstanr", cores = 2, data = list(y=cloglog_data))
+  })
+
+  expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, thresh) &&
+                bayesim::test_brms_quantile(fit, "sigma", sigma, thresh))
 })

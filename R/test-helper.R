@@ -182,20 +182,31 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE) {
+expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE, data_threshold=NULL, seed=1337) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=1337, suppress_output=!debug)
+  posterior_fit <- construct_brms(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=seed, suppress_output=!debug, data_threshold=data_threshold)
   #plot(posterior_fit)
 
-  expect_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
-  expect_brms_quantile(posterior_fit, "b_Intercept", intercept, thresh, debug)
-  expect_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
+  ba_succ  <- test_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
+  int_succ <- test_brms_quantile(posterior_fit, "b_Intercept", intercept, thresh, debug)
+  sha_succ <- test_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
+  success  <- ba_succ && int_succ && sha_succ
+
+  if(debug && !success) {
+    print("Data were not recovered correctly! Print plot.")
+    plot(posterior_fit)
+  }
+
+  if(success)
+    succeed()
+  else
+    fail("One or more variables have not been recovered correctly! You may set debug true and check the plot.")
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE) {
+construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE, data_threshold=NULL) {
   if(isFALSE(is.function(family) && is.function(rng))) {
     stop("family or rng argument were not a function!")
   }
@@ -204,6 +215,8 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
   set.seed(seed)
   a <- rnorm(n_data_sampels)
   y_data <- rng(n_data_sampels, link(ba * a + intercept), shape)
+  if(!is.null(data_threshold))
+    y_data <- limit_data(y_data, data_threshold)
   set.seed(old_seed)
 
   data <- list(a = a, y = y_data)
@@ -247,6 +260,24 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
   return(posterior_fit)
 }
 
+limit_data <- function(data, limits) {
+  # check that the limit is usable
+  if(length(limits) != 2 && limits[1] > limits[2]) {
+    stop("If the limits is to be used, it has to be of size 2.
+         Index 1 is the lower bound and 2 is the upper bound. Specify NA, if a bound is unused.")
+  }
+
+  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
+  if(!is.na(limits[1]))
+    data[data < limits[1]] <- limits[1]
+  if(!is.na(limits[2]))
+    data[data > limits[2]] <- limits[2]
+
+  # now return the data
+  return(data)
+
+}
+
 #' Check, that data of the posterior is close enough to the reference data.
 #'
 #' @param posterior_data Data fitted and drawn
@@ -265,9 +296,9 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
 #'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
 #'   cores = 4, silent = 2, refresh = 0)
-#' expect_brms_quantile(fit1, "b_a", ba_in, 0.025)
+#' test_brms_quantile(fit1, "b_a", ba_in, 0.025)
 #' TODO: how to test this function (and is this to be tested)?
-expect_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
+test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
   if(isTRUE(length(thresh) == 1))
     bounds = c(thresh, 1-thresh)
   else if(isTRUE(length(thresh) == 2))
@@ -282,10 +313,11 @@ expect_brms_quantile <- function(posterior_data, name, reference, thresh, debug 
     print(paste("The supplied reference value was: ", reference))
   }
 
-  if(quantiles[1] < reference && reference < quantiles[2])
-    succeed()
-  else
-    fail("The reference value was not within the quantiles of the given posterior data!")
+  # if(quantiles[1] < reference && reference < quantiles[2])
+  #   succeed()
+  # else
+  #   fail("The reference value was not within the quantiles of the given posterior data!")
+  return(quantiles[1] < reference && reference < quantiles[2])
 }
 
 
