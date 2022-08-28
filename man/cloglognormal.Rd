@@ -18,11 +18,17 @@ Cloglog BRMS model-object
 Custom BRMS family CLogLog-Normal in median parametrization.
 }
 \examples{
+# Running the example might take a while and may make RStudio unresponsive.
+# Just relax and grab a cup of coffe or tea in the meantime.
+library(bayesim)
+library(BBmisc)
 library(brms)
-a <- rnorm(10000)
-data <- list(a = a, y = rcloglognormal(10000, inv_logit_scaled(0.2 + 0.5 * a), 4))
-hist(data$y)
-fit1 <- brm(y ~ 1 + a, data = data, family = cloglognormal(),
-            stanvars = cloglognormal()$stanvars, backend = "cmdstan")
+cloglog_data = bayesim::rcloglognormal(1000, 0.5, 2)
+# cloglognormal does not like values to close to the boundary
+cloglog_data <- bayesim:::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
+# BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+# For an example without surpress, checkout the Bayesim Betaprime Example script
+BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1, data = list(y = cloglog_data), family = bayesim::cloglognormal(),
+  stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4)  })
 plot(fit1)
 }

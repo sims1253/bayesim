@@ -1,4 +1,4 @@
-#' Custom Beta distribibution density.
+#' Custom implementation of the Beta distribution density.
 #'
 #' @param x x-value, x e (0, 1)
 #' @param mu Mean parameter, mu e (0, 1)

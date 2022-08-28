@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{dbeta_custom}
 \alias{dbeta_custom}
-\title{Custom Beta distribibution density.}
+\title{Custom implementation of the Beta distribution density.}
 \usage{
 dbeta_custom(x, mu, phi, log = FALSE)
 }
@@ -19,7 +19,7 @@ dbeta_custom(x, mu, phi, log = FALSE)
 PDF of Custom Beta distribution, with mean parameterasation
 }
 \description{
-Custom Beta distribibution density.
+Custom implementation of the Beta distribution density.
 }
 \details{
 The beta distribution has density

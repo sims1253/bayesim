@@ -53,7 +53,7 @@ data = list(a = a, y = bayesim::rbetaprime(n, exp(0.5 * a + 1), 2))
 layout(1)
 hist(data$y)
 
-fit1 <- brm(
+fit1 <- brms::brm(
   y ~ 1 + a,
   data = data,
   family = bayesim::betaprime(),

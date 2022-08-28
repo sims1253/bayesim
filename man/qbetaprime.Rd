@@ -21,4 +21,5 @@ Quantile function of the Beta-Prime distributions using mean parametrization
 }
 \examples{
 x <- seq(from = 0, to = 1, length.out = 100)
+plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type="l")
 }

@@ -6,7 +6,7 @@
 #'
 #' @details The PDF is defined with shape parameter alpha as
 #' \deqn{f(y) = \sqrt{\frac{\alpha}{2 \pi y^3}} exp(\frac{-\alpha(y-\mu)^2}{2 \mu^2 y}) }
-#' https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution
+#' \url{https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution}
 #'
 #' @return f(x | mu, shape)
 #' @export
@@ -101,11 +101,17 @@ posterior_epred_inversegaussian_custom <- function(prep) {
 #' @return BRMS inversegaussian distribution family
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = bayesim::rinversegaussian_custom(10000, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::rinversegaussian_custom(),
-#'   stanvars = bayesim::rinversegaussian_custom()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rinversegaussian_custom(1000, exp(0.5 * a + 1), 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::inversegaussian_custom(),
+#'   stanvars = bayesim::inversegaussian_custom()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 inversegaussian_custom <- function(link = "log", link_shape = "log") {
   family <- brms::custom_family(

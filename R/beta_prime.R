@@ -1,7 +1,7 @@
 #' Probability density function for the Beta-Prime distribution (aka. inverse Beta)
 #'
 #' @source Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
-#' A new regression model for positive data (https://arxiv.org/abs/1804.07734)
+#' A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
 #'
 #' @details The beta-prime distribution has density
 #' \deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
@@ -56,7 +56,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#  plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type="l")
+#' plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type="l")
 qbetaprime <- function(p, mu, phi) {
   # check the arguments
   if (isTRUE(any(p < 0 | p > 1))) {
@@ -143,11 +143,17 @@ posterior_epred_betaprime <- function(prep) {
 #' @return BRMS beta-prime distribution family
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = bayesim::rbetaprime(10000, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
-#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rbetaprime(1000, exp(0.5 * a + 1), 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
+#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 betaprime <- function(link = "log", link_phi = "log") {
   family <- brms::custom_family(

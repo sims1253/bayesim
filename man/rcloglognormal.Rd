@@ -20,5 +20,5 @@ n Cloglog-normally ditributed samples
 Cloglognormal RNG-function in median parametrization.
 }
 \examples{
-hist(rcauchitnormal(100, 0.5, 2))
+hist(rcloglognormal(100, 0.5, 2))
 }

@@ -73,7 +73,6 @@ test_that("custom-cloglognormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rcloglognormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  warning("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to [1e-9, 1 - 1e-9].")
   n_brms <- 1000
   intercept <- 0.5
   sigma <- 1
@@ -82,8 +81,10 @@ test_that("custom-cloglognormal", {
   set.seed(9001)
   cloglog_data <- bayesim::rcloglognormal(n_brms, intercept, sigma)
   set.seed(old_seed)
-  eps_brms <- 1e-9
-  cloglog_data <- bayesim:::limit_data(cloglog_data, c(eps_brms, 1-eps_brms))
+  eps_brms <- 1e-12
+  allowed_interval <- c(eps_brms, 1-eps_brms)
+  cloglog_data <- bayesim:::limit_data(cloglog_data, allowed_interval)
+  warning(paste("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to", paste(allowed_interval)))
 
   BBmisc::suppressAll({
     fit <- brms::brm(y~1, family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,

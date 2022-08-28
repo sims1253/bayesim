@@ -5,7 +5,7 @@
 \title{Probability density function for the Beta-Prime distribution (aka. inverse Beta)}
 \source{
 Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
-A new regression model for positive data (https://arxiv.org/abs/1804.07734)
+A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
 }
 \usage{
 dbetaprime(x, mu, phi, log = FALSE)
