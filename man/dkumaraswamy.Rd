@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{dkumaraswamy}
 \alias{dkumaraswamy}
-\title{Kuramaswamy density function in median parametrisation.}
+\title{Kumaraswamy density function in median parametrisation.}
 \usage{
 dkumaraswamy(x, mu, p, log = FALSE)
 }
@@ -19,12 +19,12 @@ dkumaraswamy(x, mu, p, log = FALSE)
 f(x | mu, p)
 }
 \description{
-Kuramaswamy density function in median parametrisation.
+Kumaraswamy density function in median parametrisation.
 }
 \details{
 TODO: How to write down DAT formula and have it still look ok?! :P
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)
-plot(x, dkuramaswamy(x, mu = 0.5, p = 1), type = "l")
+plot(x, bayesim::dkumaraswamy(x, mu = 0.5, p = 2), type = "l")
 }

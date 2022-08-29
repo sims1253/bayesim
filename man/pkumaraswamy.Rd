@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{pkumaraswamy}
 \alias{pkumaraswamy}
-\title{Kuramaswamy CDF in median parametrisation}
+\title{Kumaraswamy CDF in median parametrisation}
 \usage{
 pkumaraswamy(x, mu = 0.5, p = 1)
 }
@@ -17,9 +17,9 @@ pkumaraswamy(x, mu = 0.5, p = 1)
 p(x | mu, p)
 }
 \description{
-Kuramaswamy CDF in median parametrisation
+Kumaraswamy CDF in median parametrisation
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)
-plot(x, pkuramaswamy(x, mu = 0.5, p = 1), type = "l")
+plot(x, pkumaraswamy(x, mu = 0.5, p = 1), type = "l")
 }

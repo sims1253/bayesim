@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{posterior_predict_kumaraswamy}
 \alias{posterior_predict_kumaraswamy}
-\title{Posterior prediction vignette for the Kuramaswamy distribution, in Median parametrization.}
+\title{Posterior prediction vignette for the Kumaraswamy distribution, in Median parametrization.}
 \usage{
 posterior_predict_kumaraswamy(i, prep, ...)
 }
@@ -14,8 +14,8 @@ posterior_predict_kumaraswamy(i, prep, ...)
 \item{...}{}
 }
 \value{
-Posterior prediction of Kuramaswamy, given data in prep
+Posterior prediction of Kumaraswamy, given data in prep
 }
 \description{
-Posterior prediction vignette for the Kuramaswamy distribution, in Median parametrization.
+Posterior prediction vignette for the Kumaraswamy distribution, in Median parametrization.
 }

@@ -44,8 +44,8 @@ dgompertz <- function(x, mu, beta, log = FALSE) {
 #' @return Inverse of CDF, calculates a value, given a probability p
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qgompertz(x, mu = 10, beta = 1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=10, beta=1)")
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 100)
+#' plot(x, bayesim::qgompertz(x, mu = 10, beta = 1), type = "l")
 qgompertz <- function(p, mu, beta) {
   # check the arguments
   if (isTRUE(any(p <= 0 | p >= 1))) {
@@ -71,8 +71,7 @@ qgompertz <- function(p, mu, beta) {
 #' @return A Gompertz distributed RNG vector of size n
 #' @export
 #'
-#' @examples y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
-#' hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
+#' @examples hist(bayesim::rgompertz(n = 100, mu = 2, beta = 0.1))
 rgompertz <- function(n, mu, beta) {
   if (isTRUE(mu <= 0)) {
     stop("rgompertz is only defined for mu > 0")
@@ -131,10 +130,17 @@ posterior_epred_gompertz <- function(prep) {
 #' @return BRMS gompertz distribution family
 #' @export
 #'
-#' @examples a <- rnorm(10000)
-#' data <- list(a = a, y = bayesim::rgompertz(10000, exp(0.5 * a + 1), 0.2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::gompertz(),
-#'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rgompertz(1000, mu = exp(0.5 * a + 1), beta = 0.1))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::gompertz(),
+#'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 gompertz <- function(link = "log", link_b = "log") {
   family <- brms::custom_family(

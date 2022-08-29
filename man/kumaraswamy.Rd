@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{kumaraswamy}
 \alias{kumaraswamy}
-\title{Kuramaswamy BRMS-implementation in median parametrization.}
+\title{Kumaraswamy BRMS-implementation in median parametrization.}
 \usage{
 kumaraswamy(link = "logit", link_p = "log")
 }
@@ -15,13 +15,19 @@ kumaraswamy(link = "logit", link_p = "log")
 BRMS Beta-Custom distribution family
 }
 \description{
-Kuramaswamy BRMS-implementation in median parametrization.
+Kumaraswamy BRMS-implementation in median parametrization.
 }
 \examples{
+# Running the example might take a while and may make RStudio unresponsive.
+# Just relax and grab a cup of coffe or tea in the meantime.
+library(bayesim)
+library(BBmisc)
 library(brms)
-a <- rnorm(10000)
-data <- list(a = a, y = rkuramaswamy(10000, bayesim::inv_logit(0.5 * a + 1), 2))
-fit1 <- brm(y ~ 1 + a, data = data, family = kuramaswamy(),
-  stanvars = kuramaswamy()$stanvars, backend = "cmdstan")
+a <- rnorm(1000)
+data <- list(a = a, y = bayesim::rkumaraswamy(1000, brms::inv_logit_scaled(0.5 * a + 1), 2))
+# BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+# For an example without surpress, checkout the Bayesim Betaprime Example script
+BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::kumaraswamy(),
+  stanvars = bayesim::kumaraswamy()$stanvars, backend = "cmdstanr", cores = 4)  })
 plot(fit1)
 }

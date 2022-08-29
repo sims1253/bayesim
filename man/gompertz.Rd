@@ -18,9 +18,16 @@ BRMS gompertz distribution family
 Custom Gompertz BRMS-implementation in median parametrization.
 }
 \examples{
-a <- rnorm(10000)
-data <- list(a = a, y = bayesim::rgompertz(10000, exp(0.5 * a + 1), 0.2))
-fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::gompertz(),
-  stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan")
+# Running the example might take a while and may make RStudio unresponsive.
+# Just relax and grab a cup of coffe or tea in the meantime.
+library(bayesim)
+library(BBmisc)
+library(brms)
+a <- rnorm(1000)
+data <- list(a = a, y = bayesim::rgompertz(1000, mu = exp(0.5 * a + 1), beta = 0.1))
+# BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+# For an example without surpress, checkout the Bayesim Betaprime Example script
+BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::gompertz(),
+  stanvars = bayesim::gompertz()$stanvars, backend = "cmdstanr", cores = 4)  })
 plot(fit1)
 }

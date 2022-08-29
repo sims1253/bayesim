@@ -2,7 +2,7 @@
 % Please edit documentation in R/kumaraswamy.R
 \name{qkumaraswamy}
 \alias{qkumaraswamy}
-\title{Quantile function of the Kuramaswamy distribution in Median parametrisation.}
+\title{Quantile function of the Kumaraswamy distribution in Median parametrisation.}
 \usage{
 qkumaraswamy(u, mu = 0.5, p = 1)
 }
@@ -17,9 +17,9 @@ qkumaraswamy(u, mu = 0.5, p = 1)
 q(u | mu, p)
 }
 \description{
-Quantile function of the Kuramaswamy distribution in Median parametrisation.
+Quantile function of the Kumaraswamy distribution in Median parametrisation.
 }
 \examples{
 u <- seq(from = 0.01, to = 0.09, length.out = 1000)
-plot(u, qkuramaswamy(u, mu = 0.5, p = 1), type = "l")
+plot(u, qkumaraswamy(u, mu = 0.5, p = 2), type = "l")
 }

@@ -20,6 +20,5 @@ A Gompertz distributed RNG vector of size n
 RNG function for the Gompertz distribution, with Median parametrization.
 }
 \examples{
-y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
-hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
+hist(bayesim::rgompertz(n = 100, mu = 2, beta = 0.1))
 }
