@@ -18,10 +18,16 @@ Softplus BRMS model-object
 Custom BRMS family Softplus in median parametrization.
 }
 \examples{
+# Running the example might take a while and may make RStudio unresponsive.
+# Just relax and grab a cup of coffe or tea in the meantime.
+library(bayesim)
+library(BBmisc)
 library(brms)
-a <- rnorm(10000)
-data <- list(a = a, y = rsoftplus(10000, exp(0.5 * a + 1), 2))
-fit1 <- brm(y ~ 1 + a, data = data, family = softplus(),
-  stanvars = softplus()$stanvars, backend = "cmdstan")
+a <- rnorm(1000)
+data <- list(a = a, y = bayesim::rsoftplusnormal(1000, 0.5 * a + 1, 2))
+# BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+# For an example without surpress, checkout the Bayesim Betaprime Example script
+BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::softplusnormal(),
+  stanvars = bayesim::softplusnormal()$stanvars, backend = "cmdstanr", cores = 4)  })
 plot(fit1)
 }

@@ -20,5 +20,5 @@ A Lomax distributed RNG vector of size n
 RNG function for the Lomax distribution, with Mean parametrization.
 }
 \examples{
-hist(log(rlomax(n, mu = 2, eta = 2)))
+hist(log(rlomax(n, mu = 1, alpha = 2)))
 }

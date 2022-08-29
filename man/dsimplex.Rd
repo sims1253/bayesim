@@ -16,7 +16,7 @@ dsimplex(x, mu, sigma, log = FALSE)
 \item{log}{if true, returns log(pdf). Normally FALSE.}
 }
 \value{
-f(x | mu, signma)
+f(x | mu, sigma)
 }
 \description{
 Simplex density function in mean parametrisation.
@@ -26,5 +26,5 @@ TODO: How to write down DAT formula and have it still look ok?! :P
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)
-plot(x, dsimplex(x, mu = 0.5, p = 1), type = "l")
+plot(x, dsimplex(x, mu = 0.7, sigma = 2), type = "l")
 }

@@ -7,11 +7,11 @@
 #'
 #' @details TODO: How to write down DAT formula and have it still look ok?! :P
 #'
-#' @return f(x | mu, signma)
+#' @return f(x | mu, sigma)
 #' @export
 #'
 #' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
-#' plot(x, dsimplex(x, mu = 0.5, p = 1), type = "l")
+#' plot(x, dsimplex(x, mu = 0.7, sigma = 2), type = "l")
 dsimplex <- function(x, mu, sigma, log = FALSE) {
   if (isTRUE(any(x <= 0 | x >= 1))) {
     stop("x must be in (0,1).")
@@ -89,21 +89,21 @@ rMIG <-
   }
 
 
-#' Kuramaswamy RNG function in Median parametrisations.
+#' Simplex RNG function in Median parametrisations.
 #'
 #' @param n Number of samples to draw, as a natural number scalar.
 #' @param mu Mean parameter, mu e (0, 1)
 #' @param sigma shape parameter, Sigma unbound
 #'
-#' @return n samples in Kuramaswamy distribution.
+#' @return n samples in Simplex distribution.
 #' @export
 #'
-#' @examples hist(rsimplex(10000, mu=0.5, p=4))
+#' @examples hist(rsimplex(10000, mu=0.7, sigma=2))
 rsimplex <-
   function(n, mu, sigma) {
     ## generating random number from simplex dist'n
     ## by transformation from inverse-gaussian mixture dist'n
-    if (any(mu < 0 | mu > 1)) {
+    if (any(mu <= 0 | mu >= 1)) {
       stop("The mean must be in (0,1).")
     }
     mu[which(mu > 0.999999)] <- 0.999999
@@ -167,7 +167,7 @@ posterior_epred_simplex <- function(prep) {
 }
 
 
-#' Kuramaswamy BRMS-implementation in median parametrization.
+#' Simplex BRMS-implementation in median parametrization.
 #'
 #' @param link Link function for function
 #' @param link_sigma Link function for sigma argument
@@ -175,11 +175,17 @@ posterior_epred_simplex <- function(prep) {
 #' @return BRMS Beta-Custom distribution family
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = rsimplex(10000, bayesim::inv_logit(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = simplex(),
-#'   stanvars = simplex()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rsimplex(1000, brms::inv_logit_scaled(0.5 * a + 1), 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::simplex(),
+#'   stanvars = bayesim::simplex()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 simplex <- function(link = "logit", link_sigma = "identity") {
   family <- brms::custom_family(

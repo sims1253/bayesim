@@ -19,3 +19,6 @@ n Lognormally ditributed samples
 \description{
 Lognormal RNG-function in median parametrization.
 }
+\examples{
+hist(rlognormal_custom(100, 1, 0.5))
+}

@@ -1,5 +1,4 @@
 #' Softplus density distribution in median parametrization.
-#' Median? TODO: Check, if that is correct!
 #'
 #' @param x Value space of the distribution, x > 0
 #' @param mu Median parameter, mu is already log-transformed, mu unbound
@@ -10,7 +9,7 @@
 #' @export
 #'
 #' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
-#' plot(x, dsoftplusnormal(x, mu = 2, sigma = 2), type = "l")
+#' plot(x, dsoftplusnormal(x, mu = 1, sigma = 2), type = "l")
 dsoftplusnormal <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -40,7 +39,7 @@ dsoftplusnormal <- function(x, mu, sigma, log = FALSE) {
 #'
 #' @export
 #'
-#' @examples hist(log(rsoftplusnormal(100, 0.5, 2)))
+#' @examples hist(rsoftplusnormal(100, 1, 2))
 rsoftplusnormal <- function(n, mu, sigma) {
   # check the arguments
   if (isTRUE(mu <= 0)) {
@@ -99,11 +98,17 @@ posterior_epred_softplusnormal <- function(prep) {
 #' @return Softplus BRMS model-object
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = rsoftplus(10000, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = softplus(),
-#'   stanvars = softplus()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rsoftplusnormal(1000, 0.5 * a + 1, 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::softplusnormal(),
+#'   stanvars = bayesim::softplusnormal()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 softplusnormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")

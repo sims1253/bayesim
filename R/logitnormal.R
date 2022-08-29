@@ -93,13 +93,17 @@ posterior_epred_logitnormal <- function(prep) {
 #' @return Logitnormal BRMS model-object
 #' @export
 #'
-#' @examples library(brms)
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
 #' library(bayesim)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = rlogitnormal(10000, inv_logit_scaled(0.2 + 0.5 * a), 4))
-#' hist(data$y)
-#' fit1 <- brm(y ~ 1 + a, data = data, family = logitnormal(),
-#'             stanvars = logitnormal()$stanvars, backend = "cmdstan")
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rlogitnormal(1000, 0.5 * a + 1, 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::logitnormal(),
+#'   stanvars = bayesim::logitnormal()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 logitnormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")

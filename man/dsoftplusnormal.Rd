@@ -25,5 +25,5 @@ Median? TODO: Check, if that is correct!
 }
 \examples{
 x <- seq(from = 0.01, to = 10, length.out = 1000)
-plot(x, dsoftplusnormal(x, mu = 2, sigma = 2), type = "l")
+plot(x, dsoftplusnormal(x, mu = 1, sigma = 2), type = "l")
 }

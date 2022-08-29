@@ -20,5 +20,5 @@ n Softplussy ditributed samples
 Softplus RNG-function in median parametrization.
 }
 \examples{
-hist(log(rsoftplusnormal(100, 0.5, 2)))
+hist(rsoftplusnormal(100, 1, 2))
 }

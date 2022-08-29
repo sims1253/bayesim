@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 10, length.out = n)
-#' plot(x, dlomax(x, mu = 2, alpha = 2), type = "l")
+#' plot(x, dlomax(x, mu = 1, alpha = 2), type = "l")
 dlomax <- function(x, mu, alpha, log = FALSE) {
   # check arguments
   if (isTRUE(any(x < 0))) {
@@ -43,7 +43,7 @@ dlomax <- function(x, mu, alpha, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, qgompertz(x, mu = 2, eta = 0.1), type = "l")
+#' plot(x, qlomax(x, mu = 1, alpha = 2), type = "l")
 qlomax <- function(p, mu, alpha) {
   # check arguments
   if (isTRUE(any(p < 0))) {
@@ -69,7 +69,7 @@ qlomax <- function(p, mu, alpha) {
 #' @return A Lomax distributed RNG vector of size n
 #' @export
 #'
-#' @examples hist(log(rlomax(n, mu = 2, eta = 2)))
+#' @examples hist(log(rlomax(n, mu = 1, alpha = 2)))
 rlomax <- function(n, mu, alpha) {
   # check arguments
   if (isTRUE(mu <= 0)) {
@@ -125,11 +125,17 @@ posterior_epred_lomax <- function(prep) {
 #' @return BRMS Lomax distribution family
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = bayesim::rlomax(10000, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
-#'   stanvars = bayesim::lomax()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rlomax(1000, exp(0.5 * a + 1), 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
+#'   stanvars = bayesim::lomax()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 lomax <- function(link = "log", link_alpha = "log1p") {
   family <- brms::custom_family(

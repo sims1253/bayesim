@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 10, length.out = 100)
-#' plot(x, dlognormal_custom(x, mu = 2, sigma = 2), type = "l")
+#' plot(x, dlognormal_custom(x, mu = 1, sigma = 0.5), type = "l")
 dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -39,7 +39,7 @@ dlognormal_custom <- function(x, mu, sigma, log = FALSE) {
 #'
 #' @export
 #'
-#' @examples
+#' @examples hist(rlognormal_custom(100, 1, 0.5))
 rlognormal_custom <- function(n, mu, sigma) {
   # check the arguments
   if (isTRUE(sigma <= 0)) {
@@ -98,11 +98,17 @@ posterior_epred_lognormal_custom <- function(prep) {
 #' @return Lognormal BRMS model-object
 #' @export
 #'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = rlognormal_custom(10000, exp(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = lognormal_custom(),
-#'   stanvars = lognormal_custom()$stanvars, backend = "cmdstan")
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' library(bayesim)
+#' library(BBmisc)
+#' library(brms)
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rlognormal_custom(1000, 0.5 * a + 1, 2))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::lognormal_custom(),
+#'   stanvars = bayesim::lognormal_custom()$stanvars, backend = "cmdstanr", cores = 4)  })
 #' plot(fit1)
 lognormal_custom <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")

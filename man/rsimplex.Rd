@@ -2,7 +2,7 @@
 % Please edit documentation in R/simplex.R
 \name{rsimplex}
 \alias{rsimplex}
-\title{Kuramaswamy RNG function in Median parametrisations.}
+\title{Simplex RNG function in Median parametrisations.}
 \usage{
 rsimplex(n, mu, sigma)
 }
@@ -14,11 +14,11 @@ rsimplex(n, mu, sigma)
 \item{sigma}{shape parameter, Sigma unbound}
 }
 \value{
-n samples in Kuramaswamy distribution.
+n samples in Simplex distribution.
 }
 \description{
-Kuramaswamy RNG function in Median parametrisations.
+Simplex RNG function in Median parametrisations.
 }
 \examples{
-hist(rsimplex(10000, mu=0.5, p=4))
+hist(rsimplex(10000, mu=0.7, sigma=2))
 }
