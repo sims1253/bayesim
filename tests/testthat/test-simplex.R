@@ -35,6 +35,12 @@ test_that("custom-simplex", {
            mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures)
   # check the RNG is not too far of the input value
 
+  # check many shape parameters on pdf
+  for (s in sigmas) {
+    for (m in mus) {
+      expect_eps(bayesim::dsimplex(x, mu = m, sigma = s), rmutil::dsimplex(x, m, s^2), eps)
+    }
+  }
 
   # now check density function for some errors
   expect_error(bayesim::dsimplex(1, 0.8)) # to few arguments
@@ -60,12 +66,5 @@ test_that("custom-simplex", {
 
   expect_brms_family(link=brms::inv_logit_scaled, family=bayesim::simplex, rng=bayesim::rsimplex, shape_name="sigma")
 
-  skip("dsimplex reference still not working...")
-  # check many shape parameters on pdf and qdf
-  for (s in sigmas) {
-    for (m in mus) {
-      expect_eps(bayesim::dsimplex(x, mu = m, sigma = s), rmutil::dsimplex(x, m, s), eps)
-    }
-  }
 })
 

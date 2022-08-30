@@ -2,8 +2,7 @@
 % Please edit documentation in R/softplusnormal.R
 \name{dsoftplusnormal}
 \alias{dsoftplusnormal}
-\title{Softplus density distribution in median parametrization.
-Median? TODO: Check, if that is correct!}
+\title{Softplus density distribution in median parametrization.}
 \usage{
 dsoftplusnormal(x, mu, sigma, log = FALSE)
 }
@@ -21,7 +20,6 @@ Normal distribution density with logit link function
 }
 \description{
 Softplus density distribution in median parametrization.
-Median? TODO: Check, if that is correct!
 }
 \examples{
 x <- seq(from = 0.01, to = 10, length.out = 1000)
