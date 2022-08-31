@@ -5,6 +5,8 @@
 #' @param alpha Alpha parameter of pdf, alpha > 1
 #' @param log Optional log argument, if true, return log(pdf)
 #'
+#' @details \deqn{f(y | \mu, \alpha) = \frac{\alpha}{\mu(\alpha-1)} (1 + \frac{y}{\mu(\alpha-1)})^{-\alpha-1}}
+#'
 #' @return PDF of Lomax Distribution
 #' @export
 #'

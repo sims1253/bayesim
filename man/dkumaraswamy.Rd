@@ -22,7 +22,9 @@ f(x | mu, p)
 Kumaraswamy density function in median parametrisation.
 }
 \details{
-TODO: How to write down DAT formula and have it still look ok?! :P
+\deqn{q(\mu, p) = -\frac{log(2)}{log(1-\mu^p)}}
+
+\deqn{f(y | \mu, p) = pqx^{p-1}(1-x^p)^{q-1}}
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)

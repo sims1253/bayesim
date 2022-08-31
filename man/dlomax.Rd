@@ -21,6 +21,9 @@ PDF of Lomax Distribution
 \description{
 Probability density function for the Lomax distribution, with Mean parametrization.
 }
+\details{
+\deqn{f(y | \mu, \alpha) = \frac{\alpha}{\mu(\alpha-1)} (1 + \frac{y}{\mu(\alpha-1)})^{-\alpha-1}}
+}
 \examples{
 x <- seq(from = 0, to = 10, length.out = n)
 plot(x, dlomax(x, mu = 1, alpha = 2), type = "l")

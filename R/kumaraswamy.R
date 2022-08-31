@@ -5,7 +5,8 @@
 #' @param p shape parameter, p > 0
 #' @param log if true, returns log(pdf). Normally FALSE.
 #'
-#' @details TODO: How to write down DAT formula and have it still look ok?! :P
+#' @details \deqn{q(\mu, p) = -\frac{log(2)}{log(1-\mu^p)}}
+#' @details \deqn{f(y | \mu, p) = pqx^{p-1}(1-x^p)^{q-1}}
 #'
 #' @return f(x | mu, p)
 #' @export

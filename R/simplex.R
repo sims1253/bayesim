@@ -5,7 +5,7 @@
 #' @param sigma shape parameter, sigma unbound
 #' @param log if true, returns log(pdf). Normally FALSE.
 #'
-#' @details TODO: How to write down DAT formula and have it still look ok?! :P
+#' @details \deqn{f(y) = (2 \pi \sigma^2(y(1-y))^3)^{-\frac{1}{2}} exp(-(\frac{y-\mu}{\mu(1-\mu)})^2 \frac{1}{2y(1-y)\sigma^2} )}
 #'
 #' @return f(x | mu, sigma)
 #' @export

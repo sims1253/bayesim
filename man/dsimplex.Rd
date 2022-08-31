@@ -22,7 +22,7 @@ f(x | mu, sigma)
 Simplex density function in mean parametrisation.
 }
 \details{
-TODO: How to write down DAT formula and have it still look ok?! :P
+\deqn{f(y) = (2 \pi \sigma^2(y(1-y))^3)^{-\frac{1}{2}} exp(-(\frac{y-\mu}{\mu(1-\mu)})^2 \frac{1}{2y(1-y)\sigma^2} )}
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)
