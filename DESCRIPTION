@@ -32,4 +32,8 @@ Suggests:
     foreach,
     parallel,
     doParallel,
+    VGAM,
+    rmutil,
+    extraDistr,
+    BBmisc,
 RoxygenNote: 7.2.1

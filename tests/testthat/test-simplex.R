@@ -1,7 +1,3 @@
-library(bayesim)
-library(brms)
-library(rmutil)
-library(testthat)
 
 n <- 100000 # number of testvalues
 eps <- 1e-3

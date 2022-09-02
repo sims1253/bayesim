@@ -1,7 +1,3 @@
-library(bayesim)
-library(brms)
-library(testthat)
-
 
 get_a <- function(mu, phi) {
   return(mu * phi)

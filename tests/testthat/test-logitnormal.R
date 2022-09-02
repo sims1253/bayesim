@@ -1,7 +1,3 @@
-library(bayesim)
-library(brms)
-library(testthat)
-
 
 test_that("custom-logitnormal", {
 

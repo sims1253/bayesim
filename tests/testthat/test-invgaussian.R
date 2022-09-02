@@ -1,7 +1,3 @@
-library(bayesim)
-library(rmutil)
-library(brms)
-library(testthat)
 
 # Unit tests for custom inversegaussian_custom
 

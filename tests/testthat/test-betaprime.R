@@ -1,7 +1,3 @@
-library(bayesim)
-library(extraDistr)
-library(brms)
-library(testthat)
 
 # Unit tests for custom beta-prime
 

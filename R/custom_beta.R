@@ -56,78 +56,78 @@ rbeta_custom <- function(n, mu, phi) {
   return(rbeta(n, mu * phi, (1 - mu) * phi))
 }
 
-#' Log-Likelihood vignette for the Custom-Beta distribution, in Mean parametrization.
+#' #' Log-Likelihood vignette for the Custom-Beta distribution, in Mean parametrization.
+#' #'
+#' #' @param i BRMS indices
+#' #' @param prep BRMS data
+#' #'
+#' #' @return Log-Likelihood of Beta-Custom given data in prep
+#' log_lik_beta <- function(i, prep) {
+#'   mu <- get_dpar(prep, "mu", i = i)
+#'   phi <- get_dpar(prep, "phi", i = i)
+#'   y <- prep$data$Y[i]
+#'   return(dbeta_custom(y, mu, phi, log = TRUE))
+#' }
 #'
-#' @param i BRMS indices
-#' @param prep BRMS data
+#' #' Posterior prediction vignette for the Custom-Beta distribution, in Mean parametrization.
+#' #'
+#' #' @param i BRMS indices
+#' #' @param prep BRMS data
+#' #' @param ...
+#' #'
+#' #' @return Posterior prediction of Beta-Custom, given data in prep
+#' posterior_predict_beta <- function(i, prep, ...) {
+#'   mu <- get_dpar(prep, "mu", i = i)
+#'   phi <- get_dpar(prep, "phi", i = i)
+#'   return(rbeta_custom(prep$ndraws, mu, phi))
+#' }
 #'
-#' @return Log-Likelihood of Beta-Custom given data in prep
-log_lik_beta <- function(i, prep) {
-  mu <- get_dpar(prep, "mu", i = i)
-  phi <- get_dpar(prep, "phi", i = i)
-  y <- prep$data$Y[i]
-  return(dbeta_custom(y, mu, phi, log = TRUE))
-}
-
-#' Posterior prediction vignette for the Custom-Beta distribution, in Mean parametrization.
+#' #' Posterior expected value prediction of the custom-beta implementation.
+#' #'
+#' #' @param prep BRMS data
+#' #'
+#' #' @return Recover the given mean of data prep
+#' posterior_epred_beta <- function(prep) {
+#'   mu <- get_dpar(prep, "mu")
+#'   return(mu)
+#' }
 #'
-#' @param i BRMS indices
-#' @param prep BRMS data
-#' @param ...
+#' #' Custom-Beta BRMS-implementation in mean parametrization.
+#' #'
+#' #' @param link Link function for function
+#' #' @param link_phi Link function for phi argument
+#' #'
+#' #' @return BRMS Beta-Custom distribution family
+#' #'
+#' #' @examples library(brms)
+#' #' a <- rnorm(10000)
+#' #' data <- list(a = a, y = bayesim::rbeta_custom(10000, bayesim::inv_logit(0.5 * a + 1), 2))
+#' #' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::beta_custom(),
+#' #'   stanvars = bayesim::beta_custom()$stanvars, backend = "cmdstan")
+#' #' plot(fit1)
+#' beta_custom <- function(link = "logit", link_phi = "log") {
+#'   family <- brms::custom_family(
+#'     "beta_custom",
+#'     dpars = c("mu", "phi"),
+#'     links = c(link, link_phi),
+#'     lb = c(0, 0),
+#'     ub = c(1, NA),
+#'     type = "real",
+#'     log_lik = log_lik_beta,
+#'     posterior_predict = posterior_predict_beta,
+#'     posterior_epred = posterior_epred_beta
+#'   )
+#'   # TODO: optimize Stan code as well (or not! May be unused, given beta is implemented in BRMS)
+#'   family$stanvars <- brms::stanvar(
+#'     scode = "
+#'       real beta_custom_lpdf(real y, real mu, real phi) {
+#'         return(beta_lpdf(y | mu*phi, (1-mu)*phi));
+#'       }
 #'
-#' @return Posterior prediction of Beta-Custom, given data in prep
-posterior_predict_beta <- function(i, prep, ...) {
-  mu <- get_dpar(prep, "mu", i = i)
-  phi <- get_dpar(prep, "phi", i = i)
-  return(rbeta_custom(prep$ndraws, mu, phi))
-}
-
-#' Posterior expected value prediction of the custom-beta implementation.
-#'
-#' @param prep BRMS data
-#'
-#' @return Recover the given mean of data prep
-posterior_epred_beta <- function(prep) {
-  mu <- get_dpar(prep, "mu")
-  return(mu)
-}
-
-#' Custom-Beta BRMS-implementation in mean parametrization.
-#'
-#' @param link Link function for function
-#' @param link_phi Link function for phi argument
-#'
-#' @return BRMS Beta-Custom distribution family
-#'
-#' @examples library(brms)
-#' a <- rnorm(10000)
-#' data <- list(a = a, y = bayesim::rbeta_custom(10000, bayesim::inv_logit(0.5 * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a, data = data, family = bayesim::beta_custom(),
-#'   stanvars = bayesim::beta_custom()$stanvars, backend = "cmdstan")
-#' plot(fit1)
-beta_custom <- function(link = "logit", link_phi = "log") {
-  family <- brms::custom_family(
-    "beta_custom",
-    dpars = c("mu", "phi"),
-    links = c(link, link_phi),
-    lb = c(0, 0),
-    ub = c(1, NA),
-    type = "real",
-    log_lik = log_lik_beta,
-    posterior_predict = posterior_predict_beta,
-    posterior_epred = posterior_epred_beta
-  )
-  # TODO: optimize Stan code as well (or not! May be unused, given beta is implemented in BRMS)
-  family$stanvars <- brms::stanvar(
-    scode = "
-      real beta_custom_lpdf(real y, real mu, real phi) {
-        return(beta_lpdf(y | mu*phi, (1-mu)*phi));
-      }
-
-      real beta_custom_rng(real mu, real phi) {
-        return(beta_rng(mu*phi, (1-mu)*phi));
-      }",
-    block = "functions"
-  )
-  return(family)
-}
+#'       real beta_custom_rng(real mu, real phi) {
+#'         return(beta_rng(mu*phi, (1-mu)*phi));
+#'       }",
+#'     block = "functions"
+#'   )
+#'   return(family)
+#' }

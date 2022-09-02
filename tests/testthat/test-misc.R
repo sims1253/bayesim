@@ -1,4 +1,3 @@
-library(brms)
 
 eps <- 1e-6
 n_testset <- 100

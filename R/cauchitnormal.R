@@ -95,9 +95,6 @@ posterior_epred_cauchitnormal <- function(prep) {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' library(bayesim)
-#' library(BBmisc)
-#' library(brms)
 #' a <- rnorm(1000)
 #' data <- list(a = a, y = bayesim::rcauchitnormal(1000, 0.5 * a + 1, 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...

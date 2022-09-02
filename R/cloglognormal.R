@@ -94,9 +94,6 @@ posterior_epred_cloglognormal <- function(prep) {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' library(bayesim)
-#' library(BBmisc)
-#' library(brms)
 #' cloglog_data = bayesim::rcloglognormal(1000, 0.5, 2)
 #' # cloglognormal does not like values to close to the boundary
 #' cloglog_data <- bayesim:::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))

@@ -1,16 +1,3 @@
-library(bayesim)
-library(brms)
-library(testthat)
-library(BBmisc)
-
-# expect_clolog_brms(fit, intercept, shape, tresh) {
-#   int_succ  <- test_brms_quantile(fit, "b_Intercept", intercept, thresh)
-#   shap_succ <- test_brms_quantile(fit, "sigma", shape, thresh)
-#   if(int_succ && shap_succ)
-#     succeed()
-#   else
-#     fail("One or both values have not been recovered")
-# }
 
 test_that("custom-cloglognormal", {
 
@@ -84,7 +71,8 @@ test_that("custom-cloglognormal", {
   eps_brms <- 1e-12
   allowed_interval <- c(eps_brms, 1-eps_brms)
   cloglog_data <- bayesim:::limit_data(cloglog_data, allowed_interval)
-  warning(paste("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to", paste(allowed_interval)))
+  interval_str <- paste0("[", eps_brms, ", 1 - (", eps_brms, ")]")
+  warning(paste0("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
 
   BBmisc::suppressAll({
     fit <- brms::brm(y~1, family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,

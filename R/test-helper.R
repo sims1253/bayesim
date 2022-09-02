@@ -1,6 +1,3 @@
-library(BBmisc)       # to surpress unnecassary BRMS/Stan output
-library(posterior)    # used to extract BRMS data
-library(brms)         # to test custom BRMS families
 
 # used only for an internal function
 
