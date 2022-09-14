@@ -3,6 +3,7 @@
 
 #' Check that |a - b| < eps. Works with scalars and vectors on any input.
 #' For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
+#' Given it is a "workhorse" used in almost all test-files, this function is also very well tested.
 #'
 #' @param a numeric scalar or vector a to be compared
 #' @param b numeric scalar or vector b to be compared
@@ -41,7 +42,7 @@ expect_eps <- function(a, b, eps, r = 0.0) {
   # first check, that the type is always a scalar or vector
   all_numeric <- is.numeric(a) && is.numeric(b) && is.numeric(eps) && is.numeric(r)
   if (isFALSE(all_numeric)) {
-    stop("At least one of the vectors was not a scalar/vector.")
+    stop("At least one of the arguments was neither a scalar/vector.")
   }
 
   # then check, that r is only a scalar
@@ -62,8 +63,6 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 
   # then check, if vectors are of same length
   vector_length <- max(length(a), length(b), length(eps))
-  tolerated_deviances <- floor(vector_length * r)
-
   a_wrong <- length(a) > 1 && length(a) != vector_length
   b_wrong <- length(b) > 1 && length(b) != vector_length
   eps_wrong <- length(eps) > 1 && length(eps) != vector_length
@@ -71,12 +70,22 @@ expect_eps <- function(a, b, eps, r = 0.0) {
     stop("Used different length of vectors in test.")
   }
 
+  # For the test, calculate the absolute value, of how many entries in |a - b|
+  # may be > eps. This is especially important for RNG tests, which will not always be precise
+  # (obviously). Opposed to this in PDF comparisons, this figure is usually 0, as they
+  # should always produce comparable results within a few eps machine precision.
+  tolerated_deviances <- floor(vector_length * r)
+
   # last check, the actual value difference
-  eps_comparison_wrong <- abs(a - b) > eps
+  eps_comparison_wrong <- (abs(a - b) > eps)
+  # convert the logical vector in a sum of how many entries were wrong
   number_deviances <- sum(eps_comparison_wrong, na.rm = TRUE)
+
+  # at the end, check only the allowed number of entries were wrong
   if (isTRUE(number_deviances <= tolerated_deviances)) {
     succeed()
   } else {
+    # in case of a failure, print how many entries have been incorrect and how many were allowed.
     if (isTRUE(tolerated_deviances > 0)) {
       message <- paste("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. Only ", toString(tolerated_deviances), " allowed!", sep = "")
     } else {
@@ -108,26 +117,39 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #' test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=10000, mus=mus,
 #'          shapes=phis, mu_eps=0.2, p_acceptable_failures=0.05)
 test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures, mu_link=identity) {
+
+  # check, that all function arguments are actually functions
+  # TODO: (Is it possible, to check, if they also take the correct arguments?)
   if(isFALSE(is.function(rng_fun) && is.function(metric_mu) && is.function(mu_link))) {
     stop("RNG-, Metric- or mu_link-function argument was not a function!")
   }
+
+  # check the number of samples to be generated and cecked
   if(isFALSE(is.numeric(n) && length(n) == 1 && n >= 1)) {
     stop("n must be a numeric, positive scalar!")
   }
+
+  # check, that compare eps is a scalar
+  # all used moments should only deviate by eps in most tests)
   if(isFALSE(length(mu_eps) == 1)) {
     stop("mu_eps has to be a scalar in this test-function!")
   }
 
+  # prepare the data, use a vector for ease of use
+  # allows re-using the expect_eps.
+  # As opposed to using a matrix, which would just complicate implementation and comparison.
   lenx <- length(shapes)
   leny <- length(mus)
   expected_mus <- rep(mus, times=leny)
   rng_mus <- vector(length=lenx * leny)
 
+  # calculate rng data
   for (x in 1:lenx) {
     for (y in 1:leny) {
       rng_mus[(x-1) * leny + y] <- mu_link(metric_mu(rng_fun(n, mu = mus[y], shapes[x])))
     }
   }
+  # now the data was written, compare it
   expect_eps(rng_mus, expected_mus, mu_eps, p_acceptable_failures)
 }
 
@@ -179,6 +201,26 @@ expect_bigger <- function(a, b) {
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
+#' Title
+#'
+#' @param n_data_sampels
+#' @param ba
+#' @param intercept
+#' @param shape
+#' @param link
+#' @param family
+#' @param rng
+#' @param shape_name
+#' @param thresh
+#' @param num_parallel
+#' @param debug
+#' @param data_threshold
+#' @param seed
+#'
+#' @return
+#' @export
+#'
+#' @examples
 expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE, data_threshold=NULL, seed=1337) {
   if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
     stop("The shape name argument has to be a single string")
@@ -203,6 +245,24 @@ expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2
 }
 
 # TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
+#' Title
+#'
+#' @param n_data_sampels
+#' @param ba
+#' @param intercept
+#' @param shape
+#' @param link
+#' @param family
+#' @param rng
+#' @param num_parallel
+#' @param seed
+#' @param suppress_output
+#' @param data_threshold
+#'
+#' @return
+#' @export
+#'
+#' @examples
 construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE, data_threshold=NULL) {
   if(isFALSE(is.function(family) && is.function(rng))) {
     stop("family or rng argument were not a function!")
@@ -327,19 +387,19 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' @return combination c(c(a[1], b[1]), c(a[1], b[2]), ...)
 #'
 #' @examples print(bayesim:::vector_combinator(seq(0, 1, length.out=3), seq(0, 2, length.out=3)))
-vector_combinator <- function(a, b) {
-  # TODO: not only is this unused by now. Also I do think, this might be possible in vanilla R.
-  length_a <- length(a)
-  length_b <- length(b)
-  total_length <- length_a * length_b
-  output <- list(length = total_length)
-  for (x in 1:length_a) {
-    for (y in 1:length_b) {
-      output[[(x-1) * length_a + y]] <- c(a[x], b[y])
-    }
-  }
-  return(output)
-}
+# vector_combinator <- function(a, b) {
+#   # TODO: not only is this unused by now. Also I do think, this might be possible in vanilla R.
+#   length_a <- length(a)
+#   length_b <- length(b)
+#   total_length <- length_a * length_b
+#   output <- list(length = total_length)
+#   for (x in 1:length_a) {
+#     for (y in 1:length_b) {
+#       output[[(x-1) * length_a + y]] <- c(a[x], b[y])
+#     }
+#   }
+#   return(output)
+# }
 
 #' Yannick's super dooper density lookup data generator!
 #' This is meant for development only. Use at your own risk (and sanity). You have been warned!
@@ -351,8 +411,15 @@ vector_combinator <- function(a, b) {
 #' @param shape_int Interval of the densities shape variable.
 #' @param density_fun The PDF to be saved.
 #' @param density_name The name of the whole pre-calculated thingy. Probably the one of the density.
+#' @param save_folder The folder where to save the results. Default is set to
+#' "tests/testthat/precalc_values/" for internal use.
 #' @param x_int_prelink Interval of x-values, before the x_link function is used on them.
 #' @param x_link Link function to be used on x_int_prelink. Default is identity.
+#'
+#' @details This function will generate (n_param^2)*n_x number of reference samples.
+#' So be aware not to increase both too much. Otherwise you'll require alot of memory.
+#' As an example, for tests in this repo using n_x=1000 and leaving n_param=10 as default,
+#' this function already generates about 800KiB of files per PDF to be tested.
 #'
 #' @return Nothing, but saves input and reference files for later use!
 #' @export
@@ -361,7 +428,9 @@ vector_combinator <- function(a, b) {
 #' eps <- 1e-6
 #' density_lookup_generator  (mu_int=c(eps, 1-eps), shape_int=c(2,10), x_int_prelink=c(eps, 1-eps),
 #'                           density_fun=bayesim::dcauchitnormal, density_name="cauchitnormal_demodata")
-density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, shape_int, x_int_prelink, x_link=identity, density_fun, density_name) {
+density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, shape_int, x_int_prelink,
+                                     x_link=identity, density_fun, density_name, save_folder="tests/testthat/precalc_values/") {
+
   # assert parameters (why all the assertions, if only I ever get to use it?)
   # dunno, just felt like it :P
   if(isFALSE(is.function(density_fun))) {
@@ -369,6 +438,9 @@ density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, sha
   }
   if(isFALSE(isSingleString(density_name))) {
     stop("The given density_name has to be a single string.")
+  }
+  if(isFALSE(isSingleString(save_folder))) {
+    stop("The given save_folder has to be a single string.")
   }
   if(isFALSE(is.function(x_link))) {
     stop("The given x_link was no function. Expect link-function as input.")
@@ -408,28 +480,91 @@ density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, sha
     }
   }
 
+  # pack data into frames
   inp_scalars <- data.frame(n=n_x, n_small=n_param, eps=eps)
   inp_vectors <- data.frame(mus=mus, shapes=shapes)
   x_data <- data.frame(x=x_ref)
   y_data <- data.frame(y=y_ref)
-
   return_data <- c(inp_scalars, inp_vectors, x_data)
-  saveRDS(return_data, paste("tests/testthat/precalc_values/", density_name, "_refdata", sep=""))
-  saveRDS(y_data, paste("tests/testthat/precalc_values/", density_name, "_refpdf", sep=""))
+  # then save them to RDS objects
+  saveRDS(return_data, paste0(save_folder, density_name, "_refdata"))
+  saveRDS(y_data, paste0(save_folder, density_name, "_refpdf"))
   # after reading the help, the issue with saveRDS (and save for that matter) is,
   # that it might be used incorrectly, which will not occur, if any bayesim dev implements them
 
-  print(paste("Generated lookup data \"", density_name, "\" and saved to file in precalc_values folder for tests", sep=""))
+  # If no errors occured, give feedback, of what density reference was saved where
+  print(paste0("Generated lookup data \"", density_name, "\" and saved to file in \"",
+               save_folder, "\" folder for tests"), quote = FALSE)
 }
 
+# TODO: Should those mainly internal functions be put into misc.R, given they
+# may also be used for non-test functions?
+# TODO: Also should they be Unit-Tested? For now they are sooo simple and only internal,
+# that I personally think examples should be sufficient. - YD 10.09.
+
+#' Numeric vector check
+#'
+#' @param num Numeric vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether num was numeric and of correct size
+#' @export
+#'
+#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
+#' isNum_len(0.2) # should be TRUE
+#' isNum_len(0.2, 2) # should be FALSE, wrong length
+#' isNum_len("r") # should be FALSE, not numeric
+#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
+#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
+#'
 isNum_len <- function(num, len=1) {
   return(is.numeric(num) && length(num) == len)
 }
 
+#' Integer vector check
+#'
+#' @param int Integer vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether int was Integer and of correct size
+#' @export
+#'
+#' @examples isInt_len(c(1, 2), 2) # should be TRUE
+#' isInt_len(1) # should be TRUE
+#' isInt_len(1, 2) # should be FALSE, wrong length
+#' isInt_len("r") # should be FALSE, not integer
+#' isInt_len(0.2) # should be FALSE, not integer
+#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
+#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
 isInt_len <- function(int, len=1) {
-  return((int %% 1 == 0) && length(int) == len)
+  if(isTRUE(is.numeric(int))) {
+    # only check for integer, if the type is numeric!
+    return(all(int %% 1 == 0) && length(int) == len)
+  }
+  else {
+    return(FALSE)
+  }
+  # One might also do this all in a single AND beginning with is.numeric.
+  # In a single test, this worked fine, given if !is.numeric, the other boolean,
+  # checks were not done (because FALSE & x <=> FALSE)
+  # this did prevent errors (from "r" %% 1 == 0) at the least
+
+  # But I would prefer if, given logical AND is not necassarily always following this behaviour!
 }
 
+#' Check, if the input is a single string
+#'
+#' @param input String argument
+#'
+#' @return Is a string and only one string
+#' @export
+#'
+#' @examples isSingleString("abc")  # should be TRUE
+#' isSingleString(c("abc")) # should be TRUE
+#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
+#' isSingleString(1) # should be FALSE, not a string
+#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
+#' # also wrong length
 isSingleString <- function(input) {
   return (is.character(input) && length(input) == 1)
 }

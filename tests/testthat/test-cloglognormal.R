@@ -5,6 +5,7 @@ test_that("custom-cloglognormal", {
   data <- readRDS("precalc_values/cloglognormal_refdata")
   pdf_data <- readRDS("precalc_values/cloglognormal_refpdf")
 
+  # read data into variables. Makes it more readible and prevents rewriting code
   n <- data$n
   n_small <- data$n_small
   eps <- data$eps
@@ -25,6 +26,7 @@ test_that("custom-cloglognormal", {
   cloglognormal_samples <- bayesim::rcloglognormal(n, 2, 3)
   expect_equal(n, length(cloglognormal_samples))
 
+  # check PDF data against precalculated reference data
   for(outer in 1:n_small) {
     for(inner in 1:n_small) {
       mu <- mus[outer]
@@ -64,21 +66,27 @@ test_that("custom-cloglognormal", {
   intercept <- 0.5
   sigma <- 1
   thresh <- 0.05
+
+  # save old seed, to reset it later
   old_seed <- .Random.seed
+  # Set predefined seed. Generating correct and "random" RNG data is not part of the BRMS recovery test.
   set.seed(9001)
   cloglog_data <- bayesim::rcloglognormal(n_brms, intercept, sigma)
   set.seed(old_seed)
+  # Now that the data was generated, reset the old seed (as if nothing ever happened)
+
+  # limit the interval. Cloglognormal BRMS is very sensitive for data at the boundary.
   eps_brms <- 1e-12
   allowed_interval <- c(eps_brms, 1-eps_brms)
   cloglog_data <- bayesim:::limit_data(cloglog_data, allowed_interval)
   interval_str <- paste0("[", eps_brms, ", 1 - (", eps_brms, ")]")
   warning(paste0("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
 
+  # special BRMS test implementation (as it uses a simplified y ~ 1 model)
   BBmisc::suppressAll({
     fit <- brms::brm(y~1, family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
                      backend = "cmdstanr", cores = 2, data = list(y=cloglog_data))
   })
-
   expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, thresh) &&
                 bayesim::test_brms_quantile(fit, "sigma", sigma, thresh))
 })

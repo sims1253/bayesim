@@ -3,7 +3,8 @@
 \name{expect_eps}
 \alias{expect_eps}
 \title{Check that |a - b| < eps. Works with scalars and vectors on any input.
-For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.}
+For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
+Given it is a "workhorse" used in almost all test-files, this function is also very well tested.}
 \usage{
 expect_eps(a, b, eps, r = 0)
 }
@@ -23,6 +24,7 @@ success or failure with message
 \description{
 Check that |a - b| < eps. Works with scalars and vectors on any input.
 For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
+Given it is a "workhorse" used in almost all test-files, this function is also very well tested.
 }
 \details{
 For vector/scalar combinations, allowed are (r has to always be a scalar!):
