@@ -51,17 +51,16 @@ test_that("test custom expect_eps function", {
   expect_error(expect_eps(1, 1.1, 0.2, "r"))
 })
 
-
-# Test-RNG constants
-eps <- 1e-6
-n_small <- 10
-n <- 10000
-accepted_means_eps <- 0.3
-p_acceptable_failures <- 0.05
-mus <- seq(from = 1 + eps, to = 10, length.out = n_small)
-alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
-
 test_that("test the test_rng-wrapper", {
+  # Test-RNG constants
+  eps <- 1e-6
+  n_small <- 10
+  n <- 10000
+  accepted_means_eps <- 0.3
+  p_acceptable_failures <- 0.05
+  mus <- seq(from = 1 + eps, to = 10, length.out = n_small)
+  alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
+
   # the one test, if it works (not much point, in checking any other expected state)
   expect_success(test_rng(rng_fun=bayesim::rlomax, metric_mu=mean, n=n, mus=mus, shapes=alphas_r,
            mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures))
@@ -126,4 +125,8 @@ test_that("test custom expect_bigger", {
   expect_error(expect_bigger(c(1, 2, 3), c(-1, 0)))
   expect_error(expect_bigger("R", 1))
   expect_error(expect_bigger(c(), 1))
+})
+
+test_that("test and document the rest of test-helper.R", {
+  skip("test and document the rest of test-helper.R")
 })

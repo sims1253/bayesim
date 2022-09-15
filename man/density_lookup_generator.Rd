@@ -2,8 +2,8 @@
 % Please edit documentation in R/test-helper.R
 \name{density_lookup_generator}
 \alias{density_lookup_generator}
-\title{Vector combinator. Used in a few link-normal tests (to simplify indexing, hehe).
-Not meant to be used by users. (Hence no at-export)}
+\title{Yannick's super dooper density lookup data generator!
+This is meant for development only. Use at your own risk (and sanity). You have been warned!}
 \usage{
 density_lookup_generator(
   n_param = 10,
@@ -39,24 +39,18 @@ density_lookup_generator(
 
 \item{save_folder}{The folder where to save the results. Default is set to
 "tests/testthat/precalc_values/" for internal use.}
-
-\item{a}{Vector a}
-
-\item{b}{Vector b}
 }
 \value{
-combination c(c(a[1], b[1]), c(a[1], b[2]), ...)
-
 Nothing, but saves input and reference files for later use!
 }
 \description{
-Vector combinator. Used in a few link-normal tests (to simplify indexing, hehe).
-Not meant to be used by users. (Hence no at-export)
+Yannick's super dooper density lookup data generator!
+This is meant for development only. Use at your own risk (and sanity). You have been warned!
 }
 \details{
 This function will generate (n_param^2)*n_x number of reference samples.
 So be aware not to increase both too much. Otherwise you'll require alot of memory.
-As an example, for tests in this repo using n_x=1000 and leaving n_param=10 as default,
+As an example, for tests in this repo using modest n_x=1000 and leaving n_param=10 as default,
 this function already generates about 800KiB of files per PDF to be tested.
 }
 \examples{

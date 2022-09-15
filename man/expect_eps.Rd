@@ -52,4 +52,5 @@ expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) # should produce an error (different 
 expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)
 expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
 expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
+expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
 }

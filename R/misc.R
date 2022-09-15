@@ -133,3 +133,118 @@ softplus <- function(x) {
 inv_softplus <- function(x) {
   return(log(exp(x) + 1))
 }
+
+
+#' Numeric vector check
+#'
+#' @param num Numeric vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether num was numeric and of correct size
+#' @export
+#'
+#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
+#' isNum_len(0.2) # should be TRUE
+#' isNum_len(0.2, 2) # should be FALSE, wrong length
+#' isNum_len("r") # should be FALSE, not numeric
+#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
+#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
+#'
+isNum_len <- function(num, len=1) {
+  value <- (!any(is.na(num))) && is.numeric(num) && length(num) == len
+  return(isTRUE(value))
+}
+
+#' Integer vector check
+#'
+#' @param int Integer vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether int was Integer and of correct size
+#' @export
+#'
+#' @examples isInt_len(c(1, 2), 2) # should be TRUE
+#' isInt_len(1) # should be TRUE
+#' isInt_len(1, 2) # should be FALSE, wrong length
+#' isInt_len("r") # should be FALSE, not integer
+#' isInt_len(0.2) # should be FALSE, not integer
+#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
+#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
+isInt_len <- function(int, len=1) {
+  if(isTRUE((!any(is.na(int))) && is.numeric(int))) {
+    # only check for integer, if the type is numeric!
+    value <- all(int %% 1 == 0) && length(int) == len
+    return(isTRUE(value))
+  }
+  else {
+    return(FALSE)
+  }
+  # One might also do this all in a single AND beginning with is.numeric.
+  # In a single test, this worked fine, given if !is.numeric, the other boolean,
+  # checks were not done (because FALSE & x <=> FALSE)
+  # this did prevent errors (from "r" %% 1 == 0) at the least
+
+  # But I would prefer only checking numerics,
+  # given logical AND may not necassarily follow this behaviour!
+}
+
+#' Check, if the input is a single string
+#'
+#' @param input String argument
+#'
+#' @return Is a string and only one string
+#' @export
+#'
+#' @examples isSingleString("abc")  # should be TRUE
+#' isSingleString(c("abc")) # should be TRUE
+#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
+#' isSingleString(1) # should be FALSE, not a string
+#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
+#' # also wrong length
+isSingleString <- function(input) {
+  value <- (!any(is.na(input))) && is.character(input) && length(input) == 1
+  return (isTRUE(value))
+}
+
+#' Data limit function
+#'
+#' @param data Data to be limited
+#' @param limits Limits to be used. Vector with 2 real entries, limits[1] <= limits[2]
+#' If the lower bound does not have to be restricted, set it to NA and vice versa.
+#' Sets data outside those bounds to those bounds.
+#'
+#' @return data limited by the limits
+#' @export
+#'
+#' @examples input <- c(1, 2, 3, 4)
+#' print(input)
+#' print(limit_data(input, c(2, 3)))
+#' print(limit_data(input, c(2, NA)))
+limit_data <- function(data, limits) {
+  # check that the limit is usable
+  if(length(limits) != 2) {
+    stop("If the limits is to be used, it has to be of size 2.")
+  }
+  if(!isNum_len(data, len=length(data))) {
+    stop("Some data was not numeric, or was NA")
+  }
+
+  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
+  if(isNum_len(limits, 2)) {
+    if(limits[1] > limits[2]) {
+      stop("In limit_data, the first limit is the lower limit, so it has to be
+           smaller than the second limit.")
+    }
+  }
+
+  # isNum_len will certailny return false, if NA
+  if(isNum_len(limits[1])) {
+    data[data < limits[1]] <- limits[1]
+  }
+  if(isNum_len(limits[2])) {
+    data[data > limits[2]] <- limits[2]
+  }
+
+  # now return the data
+  return(data)
+}

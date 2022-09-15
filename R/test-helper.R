@@ -38,21 +38,12 @@
 #' expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
+#' expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
 expect_eps <- function(a, b, eps, r = 0.0) {
-  # first check, that the type is always a scalar or vector
-  all_numeric <- is.numeric(a) && is.numeric(b) && is.numeric(eps) && is.numeric(r)
-  if (isFALSE(all_numeric)) {
-    stop("At least one of the arguments was neither a scalar/vector.")
-  }
 
-  # then check, that r is only a scalar
-  if (isTRUE(length(r) > 1)) {
-    stop("The relative number of tolerated deviances r has to be a scalar.")
-  }
-
-  # also check, that r is in range [0, 1]
-  if (isTRUE(r < 0 || r > 1)) {
-    stop("The relative number of tolerated deviances r has to be in [0, 1].")
+  # then check, that r is only a scalar. Also check, that r is in range [0, 1)
+  if (isFALSE(isNum_len(r) && r >= 0 && r < 1)) {
+    stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
   }
 
   # then check, that all eps are >= 0
@@ -63,11 +54,12 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 
   # then check, if vectors are of same length
   vector_length <- max(length(a), length(b), length(eps))
-  a_wrong <- length(a) > 1 && length(a) != vector_length
-  b_wrong <- length(b) > 1 && length(b) != vector_length
-  eps_wrong <- length(eps) > 1 && length(eps) != vector_length
-  if (a_wrong || b_wrong || eps_wrong) {
-    stop("Used different length of vectors in test.")
+  a_correct <- isNum_len(a) || isNum_len(a, vector_length)
+  b_correct <- isNum_len(b) || isNum_len(b, vector_length)
+  eps_correct <- isNum_len(eps) || isNum_len(eps, vector_length)
+  # Now this construction should check is.numeric and should be immune to NA, I hope.
+  if (!(a_correct && b_correct && eps_correct)) {
+    stop("Used different length of numeric vectors in test. (Or vectors containing NAs)")
   }
 
   # For the test, calculate the absolute value, of how many entries in |a - b|
@@ -87,9 +79,9 @@ expect_eps <- function(a, b, eps, r = 0.0) {
   } else {
     # in case of a failure, print how many entries have been incorrect and how many were allowed.
     if (isTRUE(tolerated_deviances > 0)) {
-      message <- paste("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. Only ", toString(tolerated_deviances), " allowed!", sep = "")
+      message <- paste0("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. Only ", toString(tolerated_deviances), " allowed!")
     } else {
-      message <- paste("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. None were allowed!", sep = "")
+      message <- paste0("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. None were allowed!")
     }
     fail(message)
   }
@@ -125,8 +117,8 @@ test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_fa
   }
 
   # check the number of samples to be generated and cecked
-  if(isFALSE(is.numeric(n) && length(n) == 1 && n >= 1)) {
-    stop("n must be a numeric, positive scalar!")
+  if(!(isInt_len(n) && n >= 1)) {
+    stop("n must be an integer, positive scalar!")
   }
 
   # check, that compare eps is a scalar
@@ -178,17 +170,12 @@ test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_fa
 #' expect_bigger(c(1, 2, 3), c(0, 1)) # should produce an error
 expect_bigger <- function(a, b) {
 
-  # check, that both are numerical data
-  if (!is.numeric(a) || !is.numeric(b)) {
-    stop("All inputs have to be numeric data.")
-  }
-
   # check, if vectors both are vectors, both are of equal length
   vector_length <- max(length(a), length(b))
-  a_wrong <- length(a) > 1 && length(a) != vector_length
-  b_wrong <- length(b) > 1 && length(b) != vector_length
-  if (a_wrong || b_wrong) {
-    stop("Used different lengths of vectors in test")
+  a_correct <- isNum_len(a) || isNum_len(a, vector_length)
+  b_correct <- isNum_len(b) || isNum_len(b, vector_length)
+  if (!(a_correct && b_correct)) {
+    stop("Used different lengths of vectors in test, or non-numeric data")
   }
 
   # now compare all a and b values
@@ -222,7 +209,7 @@ expect_bigger <- function(a, b) {
 #'
 #' @examples
 expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2, link, family, rng, shape_name, thresh=0.05, num_parallel=2, debug=FALSE, data_threshold=NULL, seed=1337) {
-  if(isFALSE(is.character(shape_name) && length(shape_name) == 1)) {
+  if(!isSingleString(shape_name)) {
     stop("The shape name argument has to be a single string")
   }
   posterior_fit <- construct_brms(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=seed, suppress_output=!debug, data_threshold=data_threshold)
@@ -235,7 +222,10 @@ expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2
 
   if(debug && !success) {
     print("Data were not recovered correctly! Print plot.")
-    plot(posterior_fit)
+    fam_name <- posterior_fit$family$name
+    debug <- paste0(fam_name, " expect_brms_family failed with inputs b_a=", ba,
+                    ", intercept=", intercept, " and shape=", shape)
+    plot(posterior_fit, main=debug)
   }
 
   if(success)
@@ -263,17 +253,38 @@ expect_brms_family <- function(n_data_sampels=1000, ba=0.5, intercept=1, shape=2
 #' @export
 #'
 #' @examples
-construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed=NULL, suppress_output=TRUE, data_threshold=NULL) {
-  if(isFALSE(is.function(family) && is.function(rng))) {
-    stop("family or rng argument were not a function!")
+construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng,
+                           num_parallel, seed=NULL, suppress_output=TRUE, data_threshold=NULL) {
+  if(!(is.function(family) && is.function(rng) && is.function(link))) {
+    stop("family, rng or link argument were not a function!")
+  }
+  if(!(isInt_len(n_data_sampels) && n_data_sampels > 0)) {
+    stop("n_data_sampels has to be a positive integer scalar")
+  }
+  if(!isNum_len(ba)) {
+    stop("ba argument has to be a real scalar")
+  }
+  if(!isNum_len(intercept)) {
+    stop("intercept argument has to be a real scalar")
+  }
+  if(!isNum_len(shape)) {
+    stop("shape argument has to be a real scalar")
+  }
+  if(!(isNum_len(num_parallel) && num_parallel > 0)) {
+    stop("num_prallel argument has to be a positive scalar integer")
+  }
+  if(!(isNum_len(seed) || is.na(seed))) {
+    stop("seed argument if used has to be a real scalar. Else it is let default as NULL,
+         which will not change the current RNG seed")
   }
 
   old_seed <- .Random.seed
   set.seed(seed)
   a <- rnorm(n_data_sampels)
   y_data <- rng(n_data_sampels, link(ba * a + intercept), shape)
-  if(!is.null(data_threshold))
+  if(!is.null(data_threshold)) {
     y_data <- limit_data(y_data, data_threshold)
+  }
   set.seed(old_seed)
 
   data <- list(a = a, y = y_data)
@@ -313,26 +324,7 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
     )
   }
 
-
   return(posterior_fit)
-}
-
-limit_data <- function(data, limits) {
-  # check that the limit is usable
-  if(length(limits) != 2 && limits[1] > limits[2]) {
-    stop("If the limits is to be used, it has to be of size 2.
-         Index 1 is the lower bound and 2 is the upper bound. Specify NA, if a bound is unused.")
-  }
-
-  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
-  if(!is.na(limits[1]))
-    data[data < limits[1]] <- limits[1]
-  if(!is.na(limits[2]))
-    data[data > limits[2]] <- limits[2]
-
-  # now return the data
-  return(data)
-
 }
 
 #' Check, that data of the posterior is close enough to the reference data.
@@ -374,32 +366,9 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
   #   succeed()
   # else
   #   fail("The reference value was not within the quantiles of the given posterior data!")
-  return(quantiles[1] < reference && reference < quantiles[2])
+  value <- quantiles[1] < reference && reference < quantiles[2]
+  return(isTRUE(value))
 }
-
-
-#' Vector combinator. Used in a few link-normal tests (to simplify indexing, hehe).
-#' Not meant to be used by users. (Hence no at-export)
-#'
-#' @param a Vector a
-#' @param b Vector b
-#'
-#' @return combination c(c(a[1], b[1]), c(a[1], b[2]), ...)
-#'
-#' @examples print(bayesim:::vector_combinator(seq(0, 1, length.out=3), seq(0, 2, length.out=3)))
-# vector_combinator <- function(a, b) {
-#   # TODO: not only is this unused by now. Also I do think, this might be possible in vanilla R.
-#   length_a <- length(a)
-#   length_b <- length(b)
-#   total_length <- length_a * length_b
-#   output <- list(length = total_length)
-#   for (x in 1:length_a) {
-#     for (y in 1:length_b) {
-#       output[[(x-1) * length_a + y]] <- c(a[x], b[y])
-#     }
-#   }
-#   return(output)
-# }
 
 #' Yannick's super dooper density lookup data generator!
 #' This is meant for development only. Use at your own risk (and sanity). You have been warned!
@@ -418,7 +387,7 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #'
 #' @details This function will generate (n_param^2)*n_x number of reference samples.
 #' So be aware not to increase both too much. Otherwise you'll require alot of memory.
-#' As an example, for tests in this repo using n_x=1000 and leaving n_param=10 as default,
+#' As an example, for tests in this repo using modest n_x=1000 and leaving n_param=10 as default,
 #' this function already generates about 800KiB of files per PDF to be tested.
 #'
 #' @return Nothing, but saves input and reference files for later use!
@@ -436,22 +405,22 @@ density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, sha
   if(isFALSE(is.function(density_fun))) {
     stop("The given density_fun was no function. Expect density-function as input.")
   }
-  if(isFALSE(isSingleString(density_name))) {
+  if(!isSingleString(density_name)) {
     stop("The given density_name has to be a single string.")
   }
-  if(isFALSE(isSingleString(save_folder))) {
+  if(!isSingleString(save_folder)) {
     stop("The given save_folder has to be a single string.")
   }
-  if(isFALSE(is.function(x_link))) {
+  if(!is.function(x_link)) {
     stop("The given x_link was no function. Expect link-function as input.")
   }
-  if(isFALSE(isNum_len(mu_int, 2))) {
+  if(!isNum_len(mu_int, 2)) {
     stop("The mu_int interval has to be a two long vector")
   }
-  if(isFALSE(isNum_len(shape_int, 2))) {
+  if(!isNum_len(shape_int, 2)) {
     stop("The shape_int interval has to be a two long vector")
   }
-  if(isFALSE(isNum_len(x_int_prelink, 2))) {
+  if(!isNum_len(x_int_prelink, 2)) {
     stop("The x_int_prelink interval has to be a two long vector")
   }
   if(isFALSE(isInt_len(n_param) && n_param > 0)) {
@@ -495,76 +464,4 @@ density_lookup_generator <- function(n_param=10, n_x=100, eps=10^-6, mu_int, sha
   # If no errors occured, give feedback, of what density reference was saved where
   print(paste0("Generated lookup data \"", density_name, "\" and saved to file in \"",
                save_folder, "\" folder for tests"), quote = FALSE)
-}
-
-# TODO: Should those mainly internal functions be put into misc.R, given they
-# may also be used for non-test functions?
-# TODO: Also should they be Unit-Tested? For now they are sooo simple and only internal,
-# that I personally think examples should be sufficient. - YD 10.09.
-
-#' Numeric vector check
-#'
-#' @param num Numeric vector to be checked
-#' @param len Length of vector, default argument is 1
-#'
-#' @return Boolean, whether num was numeric and of correct size
-#' @export
-#'
-#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
-#' isNum_len(0.2) # should be TRUE
-#' isNum_len(0.2, 2) # should be FALSE, wrong length
-#' isNum_len("r") # should be FALSE, not numeric
-#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
-#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
-#'
-isNum_len <- function(num, len=1) {
-  return(is.numeric(num) && length(num) == len)
-}
-
-#' Integer vector check
-#'
-#' @param int Integer vector to be checked
-#' @param len Length of vector, default argument is 1
-#'
-#' @return Boolean, whether int was Integer and of correct size
-#' @export
-#'
-#' @examples isInt_len(c(1, 2), 2) # should be TRUE
-#' isInt_len(1) # should be TRUE
-#' isInt_len(1, 2) # should be FALSE, wrong length
-#' isInt_len("r") # should be FALSE, not integer
-#' isInt_len(0.2) # should be FALSE, not integer
-#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
-#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
-isInt_len <- function(int, len=1) {
-  if(isTRUE(is.numeric(int))) {
-    # only check for integer, if the type is numeric!
-    return(all(int %% 1 == 0) && length(int) == len)
-  }
-  else {
-    return(FALSE)
-  }
-  # One might also do this all in a single AND beginning with is.numeric.
-  # In a single test, this worked fine, given if !is.numeric, the other boolean,
-  # checks were not done (because FALSE & x <=> FALSE)
-  # this did prevent errors (from "r" %% 1 == 0) at the least
-
-  # But I would prefer if, given logical AND is not necassarily always following this behaviour!
-}
-
-#' Check, if the input is a single string
-#'
-#' @param input String argument
-#'
-#' @return Is a string and only one string
-#' @export
-#'
-#' @examples isSingleString("abc")  # should be TRUE
-#' isSingleString(c("abc")) # should be TRUE
-#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
-#' isSingleString(1) # should be FALSE, not a string
-#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
-#' # also wrong length
-isSingleString <- function(input) {
-  return (is.character(input) && length(input) == 1)
 }
