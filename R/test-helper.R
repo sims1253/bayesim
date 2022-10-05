@@ -189,28 +189,36 @@ expect_bigger <- function(a, b) {
   }
 }
 
-# TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-#' Title
+#' BRMS family expect recovery. Tries linear baysian model y ~ 1 + a.
+#' Checking of the arguments done in construct_brms.
 #'
-#' @param n_data_sampels
-#' @param ba
-#' @param intercept
-#' @param shape
-#' @param link
-#' @param family
-#' @param rng
-#' @param shape_name
-#' @param thresh
-#' @param num_parallel
-#' @param debug
-#' @param data_threshold
-#' @param seed
+#' @param n_data_sampels How many samples per chain. Positive integer scalar. Default = 1000.
+#' @param ba Linear data argument, real scalar. Default = 0.5.
+#' @param intercept Intercept data argument, real scalar. Default = 1.
+#' @param shape Shape argument of each distribution. Default = 2.
+#' @param link Link function pointer used data. For positive bounded uses exp as example. No default.
+#' @param family BRMS family under test.
+#' @param rng Bespoke RNG function pointer for the family to be tested.
+#' @param shape_name BRMS string of shape argument name. Single string.
+#' @param num_parallel Chains calculated in parallel. Positive scalar integer. Default = 2.
+#' @param seed Seed argument, so that input data is always the same in each test.
+#' BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
+#' Seed is stored before test and restored after it finished. If wants not to use a seed set NULL, will make it R invisible.
+#' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+#' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+#' Default = Null, will be in R terms "invisible" and will not cap any input data.
+#' @param thresh Acceptable threshold for quantiles of recovered arguments.
+#' Scalar or 2-entry real vector within (0, 1).
+#' Vector is used as is, scalar will be interpreted as c(tresh, 1-thresh).
+#' Default = 0.05
+#' @param debug Scalar Boolean argument, whether debug info is printed or not. Default = False.
+#' Note: Will supress everything, besides errors (so tests stay clean).
 #'
-#' @return
+#' @return None
 #' @export
 #'
-#' @examples
-expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, shape = 2, link, family, rng, shape_name, thresh = 0.05, num_parallel = 2, debug = FALSE, data_threshold = NULL, seed = 1337) {
+#' @examples expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, shape = 2, link, family, rng, shape_name, num_parallel = 2, seed = 1337, data_threshold = NULL, thresh = 0.05, debug = FALSE) {
   if (!isSingleString(shape_name)) {
     stop("The shape name argument has to be a single string")
   }
@@ -239,27 +247,34 @@ expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, s
   }
 }
 
-# TODO: does this need doc+test??? (Don't think so, given it is just a wrapper)
-#' Title
+#' Construct BRMS family for simple linear y ~ 1 + a model.
 #'
-#' @param n_data_sampels
-#' @param ba
-#' @param intercept
-#' @param shape
-#' @param link
-#' @param family
-#' @param rng
-#' @param num_parallel
-#' @param seed
-#' @param suppress_output
-#' @param data_threshold
+#' @param n_data_sampels How many samples per chain. Positive integer scalar.
+#' @param ba Linear data argument, real scalar.
+#' @param intercept Intercept data argument, real scalar.
+#' @param shape Shape argument of each distribution.
+#' @param link Link function pointer used data. For positive bounded uses exp as example.
+#' @param family BRMS family under test.
+#' @param rng Bespoke RNG function pointer for the family to be tested.
+#' @param shape_name BRMS string of shape argument name. Single string.
+#' @param num_parallel Chains calculated in parallel. Positive scalar integer.
+#' @param seed Seed argument, so that input data is always the same in each test.
+#' BRMS test does not test RNG and is not guarateed to fit on all data.
+#' Positive Integer scalar, Default = NULL, meaning R invisible. Seed is stored before and restored after.
+#' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+#' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+#' Default = Null, will be in R terms "invisible" and will not cap any input data.
+#' @param suppress_output Scalar Boolean argument. Default = TRUE supresses all prints.
+#' Only exceptions will be printed. For testing reasons, to not spam the test-window.
 #'
-#' @return
+#' @return BRMS model for the specified family.
 #' @export
 #'
-#' @examples
+#' @examples posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, exp, 2, seed = 1337, suppress_output = FALSE)
+#' plot(posterior_fit)
+#' # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng,
-                           num_parallel, seed = NULL, suppress_output = TRUE, data_threshold = NULL) {
+                           num_parallel, seed = NULL, data_threshold = NULL, suppress_output = TRUE) {
   if (!(is.function(family) && is.function(rng) && is.function(link))) {
     stop("family, rng or link argument were not a function!")
   }
@@ -346,7 +361,7 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' a <- rnorm(n)
 #' ba_in <- 0.5
 #' data <- list(a = a, y = bayesim::rbetaprime(n, exp(ba_in * a + 1), 2))
-#' fit1 <- brm(y ~ 1 + a,
+#' fit1 <- brms::brm(y ~ 1 + a,
 #'   data = data, family = bayesim::betaprime(),
 #'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
 #'   cores = 4, silent = 2, refresh = 0
@@ -400,8 +415,7 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' @return Nothing, but saves input and reference files for later use!
 #' @export
 #'
-#' @examples library(bayesim)
-#' eps <- 1e-6
+#' @examples eps <- 1e-6
 #' density_lookup_generator(
 #'   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
 #'   density_fun = bayesim::dcauchitnormal, density_name = "cauchitnormal_demodata"

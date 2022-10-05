@@ -54,7 +54,6 @@ As an example, for tests in this repo using modest n_x=1000 and leaving n_param=
 this function already generates about 800KiB of files per PDF to be tested.
 }
 \examples{
-library(bayesim)
 eps <- 1e-6
 density_lookup_generator(
   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),

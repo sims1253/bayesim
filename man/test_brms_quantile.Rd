@@ -27,7 +27,7 @@ n <- 1000
 a <- rnorm(n)
 ba_in <- 0.5
 data <- list(a = a, y = bayesim::rbetaprime(n, exp(ba_in * a + 1), 2))
-fit1 <- brm(y ~ 1 + a,
+fit1 <- brms::brm(y ~ 1 + a,
   data = data, family = bayesim::betaprime(),
   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
   cores = 4, silent = 2, refresh = 0

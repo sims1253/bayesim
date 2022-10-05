@@ -2,7 +2,8 @@
 % Please edit documentation in R/test-helper.R
 \name{expect_brms_family}
 \alias{expect_brms_family}
-\title{Title}
+\title{BRMS family expect recovery. Tries linear baysian model y ~ 1 + a.
+Checking of the arguments done in construct_brms.}
 \usage{
 expect_brms_family(
   n_data_sampels = 1000,
@@ -13,16 +14,55 @@ expect_brms_family(
   family,
   rng,
   shape_name,
-  thresh = 0.05,
   num_parallel = 2,
-  debug = FALSE,
+  seed = 1337,
   data_threshold = NULL,
-  seed = 1337
+  thresh = 0.05,
+  debug = FALSE
 )
 }
 \arguments{
-\item{seed}{}
+\item{n_data_sampels}{How many samples per chain. Positive integer scalar. Default = 1000.}
+
+\item{ba}{Linear data argument, real scalar. Default = 0.5.}
+
+\item{intercept}{Intercept data argument, real scalar. Default = 1.}
+
+\item{shape}{Shape argument of each distribution. Default = 2.}
+
+\item{link}{Link function pointer used data. For positive bounded uses exp as example. No default.}
+
+\item{family}{BRMS family under test.}
+
+\item{rng}{Bespoke RNG function pointer for the family to be tested.}
+
+\item{shape_name}{BRMS string of shape argument name. Single string.}
+
+\item{num_parallel}{Chains calculated in parallel. Positive scalar integer. Default = 2.}
+
+\item{seed}{Seed argument, so that input data is always the same in each test.
+BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
+Seed is stored before test and restored after it finished. If wants not to use a seed set NULL, will make it R invisible.}
+
+\item{data_threshold}{Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+Default = Null, will be in R terms "invisible" and will not cap any input data.}
+
+\item{thresh}{Acceptable threshold for quantiles of recovered arguments.
+Scalar or 2-entry real vector within (0, 1).
+Vector is used as is, scalar will be interpreted as c(tresh, 1-thresh).
+Default = 0.05}
+
+\item{debug}{Scalar Boolean argument, whether debug info is printed or not. Default = False.
+Note: Will supress everything, besides errors (so tests stay clean).}
+}
+\value{
+None
 }
 \description{
-Title
+BRMS family expect recovery. Tries linear baysian model y ~ 1 + a.
+Checking of the arguments done in construct_brms.
+}
+\examples{
+expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
 }

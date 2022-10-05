@@ -2,7 +2,7 @@
 % Please edit documentation in R/test-helper.R
 \name{construct_brms}
 \alias{construct_brms}
-\title{Title}
+\title{Construct BRMS family for simple linear y ~ 1 + a model.}
 \usage{
 construct_brms(
   n_data_sampels,
@@ -14,13 +14,48 @@ construct_brms(
   rng,
   num_parallel,
   seed = NULL,
-  suppress_output = TRUE,
-  data_threshold = NULL
+  data_threshold = NULL,
+  suppress_output = TRUE
 )
 }
 \arguments{
-\item{data_threshold}{}
+\item{n_data_sampels}{How many samples per chain. Positive integer scalar.}
+
+\item{ba}{Linear data argument, real scalar.}
+
+\item{intercept}{Intercept data argument, real scalar.}
+
+\item{shape}{Shape argument of each distribution.}
+
+\item{link}{Link function pointer used data. For positive bounded uses exp as example.}
+
+\item{family}{BRMS family under test.}
+
+\item{rng}{Bespoke RNG function pointer for the family to be tested.}
+
+\item{num_parallel}{Chains calculated in parallel. Positive scalar integer.}
+
+\item{seed}{Seed argument, so that input data is always the same in each test.
+BRMS test does not test RNG and is not guarateed to fit on all data.
+Positive Integer scalar, Default = NULL, meaning R invisible. Seed is stored before and restored after.}
+
+\item{data_threshold}{Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+Default = Null, will be in R terms "invisible" and will not cap any input data.}
+
+\item{suppress_output}{Scalar Boolean argument. Default = TRUE supresses all prints.
+Only exceptions will be printed. For testing reasons, to not spam the test-window.}
+
+\item{shape_name}{BRMS string of shape argument name. Single string.}
+}
+\value{
+BRMS model for the specified family.
 }
 \description{
-Title
+Construct BRMS family for simple linear y ~ 1 + a model.
+}
+\examples{
+posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, exp, 2, seed = 1337, suppress_output = FALSE)
+plot(posterior_fit)
+# Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 }
