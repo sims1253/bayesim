@@ -17,5 +17,5 @@ Logit link function
 }
 \examples{
 x <- seq(from = 0.1, to = 0.9, length.out = 100)
-plot(x, logit(x), type="l")
+plot(x, logit(x), type = "l")
 }

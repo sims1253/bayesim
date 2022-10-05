@@ -48,8 +48,10 @@ test_that("custom-betaprime", {
   expect_equal(n, length(betaprime_samples))
 
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=n, mus=mus, shapes=phis_r,
-           mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(
+    rng_fun = bayesim::rbetaprime, metric_mu = mean, n = n, mus = mus, shapes = phis_r,
+    mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
+  )
 
 
 
@@ -79,6 +81,5 @@ test_that("custom-betaprime", {
   expect_error(bayesim::rbetaprime(100, mu = 0, phi = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rbetaprime(100, mu = 1, phi = 0)) # phi is not allowed to be 0 or smaller
 
-  expect_brms_family(link=exp, family=bayesim::betaprime, rng=bayesim::rbetaprime, shape_name="phi")
-
+  expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
 })

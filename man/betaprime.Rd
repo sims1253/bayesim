@@ -24,7 +24,11 @@ a <- rnorm(1000)
 data <- list(a = a, y = bayesim::rbetaprime(1000, exp(0.5 * a + 1), 2))
 # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 # For an example without surpress, checkout the Bayesim Betaprime Example script
-BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
-  stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4)  })
+BBmisc::suppressAll({
+  fit1 <- brms::brm(y ~ 1 + a,
+    data = data, family = bayesim::betaprime(),
+    stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4
+  )
+})
 plot(fit1)
 }

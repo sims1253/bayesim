@@ -17,5 +17,5 @@ Inverse Softplus link function
 }
 \examples{
 x <- seq(from = 0.1, to = 5, length.out = 100)
-plot(x, softplus(x), type="l")
+plot(x, softplus(x), type = "l")
 }

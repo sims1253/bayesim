@@ -56,7 +56,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type="l")
+#' plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type = "l")
 qbetaprime <- function(p, mu, phi) {
   # check the arguments
   if (isTRUE(any(p < 0 | p > 1))) {
@@ -149,8 +149,12 @@ posterior_epred_betaprime <- function(prep) {
 #' data <- list(a = a, y = bayesim::rbetaprime(1000, exp(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::betaprime(),
-#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::betaprime(),
+#'     stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 betaprime <- function(link = "log", link_phi = "log") {
   family <- brms::custom_family(

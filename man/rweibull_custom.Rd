@@ -20,5 +20,5 @@ n Weibull distributed samples.
 Custom Weibull RNG function in mean parametrisation.
 }
 \examples{
-hist(log(rweibull_custom(10000, mu=2, k=1)))
+hist(log(rweibull_custom(10000, mu = 2, k = 1)))
 }

@@ -22,5 +22,5 @@ n samples beta distributed.
 Custom Beta distribution RNG
 }
 \examples{
-hist(rbeta_custom(1000, mu=0.5, phi=1))
+hist(rbeta_custom(1000, mu = 0.5, phi = 1))
 }

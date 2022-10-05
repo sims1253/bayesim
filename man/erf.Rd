@@ -17,5 +17,5 @@ Gaussion Error function
 }
 \examples{
 x <- seq(from = -2, to = 2, length.out = 100)
-plot(x, erf(x), type="l")
+plot(x, erf(x), type = "l")
 }

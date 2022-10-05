@@ -41,8 +41,10 @@ test_that("custom-kumaraswamy", {
   expect_equal(n, length(kumaraswamy_samples))
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
-  test_rng(rng_fun=bayesim::rkumaraswamy, metric_mu=median, n=n, mus=mus, shapes=ps_r,
-           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(
+    rng_fun = bayesim::rkumaraswamy, metric_mu = median, n = n, mus = mus, shapes = ps_r,
+    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
+  )
   # check the RNG is not too far of the input value
 
   # now check density function for some errors
@@ -76,7 +78,5 @@ test_that("custom-kumaraswamy", {
   expect_error(bayesim::rkuramaswamy(100, mu = 0.8, p = 1)) # kumaraswamy has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  expect_brms_family(link=inv_logit, family=bayesim::kumaraswamy, rng=bayesim::rkumaraswamy, shape_name="p")
-
+  expect_brms_family(link = inv_logit, family = bayesim::kumaraswamy, rng = bayesim::rkumaraswamy, shape_name = "p")
 })
-

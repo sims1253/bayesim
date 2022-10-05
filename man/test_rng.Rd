@@ -42,6 +42,8 @@ library(testthat)
 library(bayesim)
 mus <- seq(from = 1 + eps, to = 20, length.out = 10)
 phis <- seq(from = 2 + eps, to = 20, length.out = 10)
-test_rng(rng_fun=bayesim::rbetaprime, metric_mu=mean, n=10000, mus=mus,
-         shapes=phis, mu_eps=0.2, p_acceptable_failures=0.05)
+test_rng(
+  rng_fun = bayesim::rbetaprime, metric_mu = mean, n = 10000, mus = mus,
+  shapes = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+)
 }

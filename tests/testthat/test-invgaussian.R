@@ -34,13 +34,15 @@ test_that("custom-inversegaussian_custom", {
   for (shape in shapes) {
     for (m in mus) {
       # check against BRMS implementation
-      expect_eps(bayesim::dinversegaussian_custom(x, mu = m, shape = shape), rmutil::dinvgauss(x, m, 1/shape), eps)
+      expect_eps(bayesim::dinversegaussian_custom(x, mu = m, shape = shape), rmutil::dinvgauss(x, m, 1 / shape), eps)
     }
   }
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with shape_r
-  test_rng(rng_fun=bayesim::rinversegaussian_custom, metric_mu=mean, n=n, mus=mus, shapes=shapes_r,
-           mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(
+    rng_fun = bayesim::rinversegaussian_custom, metric_mu = mean, n = n, mus = mus, shapes = shapes_r,
+    mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
+  )
   # check the RNG is not too far of the input value
 
   # now check density function for some errors
@@ -68,6 +70,5 @@ test_that("custom-inversegaussian_custom", {
   expect_error(bayesim::rinversegaussian_custom(100, mu = 0, shape = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rinversegaussian_custom(100, mu = 1, shape = 0)) # shape is not allowed to be 0 or smaller
 
-  expect_brms_family(link=exp,family=bayesim::inversegaussian_custom, rng=bayesim::rinversegaussian_custom, shape_name="shape")
-
+  expect_brms_family(link = exp, family = bayesim::inversegaussian_custom, rng = bayesim::rinversegaussian_custom, shape_name = "shape")
 })

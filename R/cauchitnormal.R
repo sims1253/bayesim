@@ -99,8 +99,12 @@ posterior_epred_cauchitnormal <- function(prep) {
 #' data <- list(a = a, y = bayesim::rcauchitnormal(1000, 0.5 * a + 1, 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::cauchitnormal(),
-#'   stanvars = bayesim::cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::cauchitnormal(),
+#'     stanvars = bayesim::cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 cauchitnormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")

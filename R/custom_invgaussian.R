@@ -11,8 +11,8 @@
 #' @return f(x | mu, shape)
 #' @export
 #'
-#' @examples x <- seq(from=0.01, to=10, length.out=1000)
-#' plot(x, dinversegaussian_custom(x, mu=2, shape=2), type="l")
+#' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
+#' plot(x, dinversegaussian_custom(x, mu = 2, shape = 2), type = "l")
 dinversegaussian_custom <- function(x, mu, shape, log = FALSE) {
   if (isTRUE(any(x <= 0))) {
     stop("Inverse Gaussian density is only defined for x > 0")
@@ -41,7 +41,7 @@ dinversegaussian_custom <- function(x, mu, shape, log = FALSE) {
 #' @return n Inverse-Gaussian distributed samples.
 #' @export
 #'
-#' @examples hist(log(rinversegaussian_custom(10000, mu=2, shape=1)))
+#' @examples hist(log(rinversegaussian_custom(10000, mu = 2, shape = 1)))
 rinversegaussian_custom <- function(n, mu, shape) {
   if (isTRUE(mu <= 0)) {
     stop("Inverse Gaussian density is only defined for mu > 0")
@@ -107,8 +107,12 @@ posterior_epred_inversegaussian_custom <- function(prep) {
 #' data <- list(a = a, y = bayesim::rinversegaussian_custom(1000, exp(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::inversegaussian_custom(),
-#'   stanvars = bayesim::inversegaussian_custom()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::inversegaussian_custom(),
+#'     stanvars = bayesim::inversegaussian_custom()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 inversegaussian_custom <- function(link = "log", link_shape = "log") {
   family <- brms::custom_family(

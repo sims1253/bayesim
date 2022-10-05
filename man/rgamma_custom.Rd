@@ -20,5 +20,5 @@ n Gamma distributed samples.
 Custom Gamma RNG function in mean parametrisation.
 }
 \examples{
-hist(log(rgamma_custom(10000, mu=2, a=1)))
+hist(log(rgamma_custom(10000, mu = 2, a = 1)))
 }

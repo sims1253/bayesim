@@ -12,8 +12,8 @@
 #' @return f(x | mu, k)
 #' @export
 #'
-#' @examples x <- seq(from=0.01, to=10, length.out=1000)
-#' plot(x, dgamma_custom(x, mu=2, a=2), type="l")
+#' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
+#' plot(x, dgamma_custom(x, mu = 2, a = 2), type = "l")
 dgamma_custom <- function(x, mu, a, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -38,7 +38,7 @@ dgamma_custom <- function(x, mu, a, log = FALSE) {
 #' @return n Gamma distributed samples.
 #' @export
 #'
-#' @examples hist(log(rgamma_custom(10000, mu=2, a=1)))
+#' @examples hist(log(rgamma_custom(10000, mu = 2, a = 1)))
 rgamma_custom <- function(n, mu, a) {
   # check the arguments
   if (isTRUE(a <= 0)) {

@@ -17,5 +17,5 @@ Inverse-Logit link function, equal to Logistic link
 }
 \examples{
 x <- seq(from = -5, to = 5, length.out = 100)
-plot(x, inv_logit(x), type="l")
+plot(x, inv_logit(x), type = "l")
 }

@@ -47,7 +47,7 @@ dkumaraswamy <- function(x, mu, p, log = FALSE) {
 #' @return n samples in Kumaraswamy distribution.
 #' @export
 #'
-#' @examples hist(rkumaraswamy(10000, mu=0.5, p=4))
+#' @examples hist(rkumaraswamy(10000, mu = 0.5, p = 4))
 rkumaraswamy <- function(n, mu, p) {
   if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The mean must be in (0,1).")
@@ -61,9 +61,9 @@ rkumaraswamy <- function(n, mu, p) {
   return(
     (1 - (1 - runif(n, min = 0, max = 1))^(1 / q))^(1 / p)
   )
-  #TODO: Kumaraswamy BRMS does not like RNG values at the boundary.
-  #maybe one might also clip them in the RNG return already?
-  #(Instead of clipping them before feeding the BRMS)
+  # TODO: Kumaraswamy BRMS does not like RNG values at the boundary.
+  # maybe one might also clip them in the RNG return already?
+  # (Instead of clipping them before feeding the BRMS)
 }
 
 #' Quantile function of the Kumaraswamy distribution in Median parametrisation.
@@ -172,8 +172,12 @@ posterior_epred_kumaraswamy <- function(prep) {
 #' data <- list(a = a, y = bayesim::rkumaraswamy(1000, brms::inv_logit_scaled(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::kumaraswamy(),
-#'   stanvars = bayesim::kumaraswamy()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::kumaraswamy(),
+#'     stanvars = bayesim::kumaraswamy()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 kumaraswamy <- function(link = "logit", link_p = "log") {
   family <- brms::custom_family(

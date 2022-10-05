@@ -17,7 +17,7 @@ n_small <- 10
 mus <- seq(from = eps, to = 10, length.out = n_small)
 betas <- seq(from = eps, to = 10, length.out = n_small)
 
-#mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
+# mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
 betas_r <- seq(from = 0.5 + eps, to = 10, length.out = n_small)
 # parameter for RNG test (going to close to 0 makes it a bit unstable)
 accepted_median_eps <- 0.05
@@ -44,8 +44,10 @@ test_that("custom-gompertz", {
   gompertz_samples <- bayesim::rgompertz(n, 1, 3)
   expect_equal(n, length(gompertz_samples))
 
-  test_rng(rng_fun=bayesim::rgompertz, metric_mu=median, n=n, mus=mus, shapes=betas_r,
-           mu_eps=accepted_median_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(
+    rng_fun = bayesim::rgompertz, metric_mu = median, n = n, mus = mus, shapes = betas_r,
+    mu_eps = accepted_median_eps, p_acceptable_failures = p_acceptable_failures
+  )
   # check the RNG is not too far of the input value
 
   # now check density function for some errors
@@ -75,5 +77,5 @@ test_that("custom-gompertz", {
   expect_error(bayesim::rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
 
-  expect_brms_family(link=exp, family=bayesim::gompertz, rng=bayesim::rgompertz, shape_name="beta")
+  expect_brms_family(link = exp, family = bayesim::gompertz, rng = bayesim::rgompertz, shape_name = "beta")
 })

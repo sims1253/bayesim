@@ -94,13 +94,17 @@ posterior_epred_cloglognormal <- function(prep) {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' cloglog_data = bayesim::rcloglognormal(1000, 0.5, 2)
+#' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
 #' # cloglognormal does not like values to close to the boundary
 #' cloglog_data <- bayesim:::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1, data = list(y = cloglog_data), family = bayesim::cloglognormal(),
-#'   stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1,
+#'     data = list(y = cloglog_data), family = bayesim::cloglognormal(),
+#'     stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 cloglognormal <- function(link = "identity", link_sigma = "log") {
   stopifnot(link == "identity")

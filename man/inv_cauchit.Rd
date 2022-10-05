@@ -17,5 +17,5 @@ Inverse Cauchit link function equivalent to pcauchy
 }
 \examples{
 x <- seq(from = -10, to = 10, length.out = 100)
-plot(x, inv_cauchit(x), type="l")
+plot(x, inv_cauchit(x), type = "l")
 }

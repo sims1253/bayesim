@@ -19,14 +19,14 @@ test_that("custom-logitnormal", {
   # check length
   expect_equal(n, length(dlogitnormal_results))
   # check against one precalculated value
-  expect_eps(0.7041307, bayesim::dlogitnormal(x=0.5, mu=1, sigma=2), eps)
+  expect_eps(0.7041307, bayesim::dlogitnormal(x = 0.5, mu = 1, sigma = 2), eps)
 
   # check the RNG will return the correct number of samples
   logitnormal_samples <- bayesim::rlogitnormal(n, 2, 3)
   expect_equal(n, length(logitnormal_samples))
 
-  for(outer in 1:n_small) {
-    for(inner in 1:n_small) {
+  for (outer in 1:n_small) {
+    for (inner in 1:n_small) {
       mu <- mus[outer]
       sigma <- sigmas[inner]
       expect_eps(bayesim::dlogitnormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
@@ -37,8 +37,10 @@ test_that("custom-logitnormal", {
   accepted_medians_eps <- 0.15
   p_acceptable_failures <- 0.05
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rlogitnormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
-           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=logit)
+  test_rng(
+    rng_fun = bayesim::rlogitnormal, metric_mu = median, n = n_rng, mus = mus, shapes = sigmas,
+    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = logit
+  )
 
 
 
@@ -59,6 +61,8 @@ test_that("custom-logitnormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(bayesim::rlogitnormal(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::logitnormal,
-                     rng=bayesim::rlogitnormal, shape_name="sigma")
+  expect_brms_family(
+    ba = 0.2, intercept = 0.4, shape = 2, link = identity, family = bayesim::logitnormal,
+    rng = bayesim::rlogitnormal, shape_name = "sigma"
+  )
 })

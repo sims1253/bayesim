@@ -26,13 +26,14 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
     stop("P must be above 0.")
   }
   # May be improved, by custom implementation.
-  #lpdf <- dbeta(x, mu * phi, (1 - mu) * phi, log=TRUE)
-  lpdf <- (log(gamma(phi)) - log(gamma(mu*phi)) - log(gamma((1 - mu)*phi))) +
-   log(x) * (mu * phi - 1) + log1p(-x) * ((1 - mu) * phi - 1)
-  if(log)
+  # lpdf <- dbeta(x, mu * phi, (1 - mu) * phi, log=TRUE)
+  lpdf <- (log(gamma(phi)) - log(gamma(mu * phi)) - log(gamma((1 - mu) * phi))) +
+    log(x) * (mu * phi - 1) + log1p(-x) * ((1 - mu) * phi - 1)
+  if (log) {
     return(lpdf)
-  else
+  } else {
     return(exp(lpdf))
+  }
   # TODO: needs indepth stability testing!!!
 }
 
@@ -45,7 +46,7 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
 #'
 #' @return n samples beta distributed.
 #' @export
-#' @examples hist(rbeta_custom(1000, mu=0.5, phi=1))
+#' @examples hist(rbeta_custom(1000, mu = 0.5, phi = 1))
 rbeta_custom <- function(n, mu, phi) {
   if (isTRUE(any(mu <= 0 | mu >= 1))) {
     stop("The mean must be in (0,1).")

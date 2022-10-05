@@ -46,7 +46,7 @@ expect_eps(1, 1.1, 0.2) # should pass
 expect_eps(-1, -1.1, 0.2) # should pass
 expect_eps(-1.00001, -1.00001, 1e-4) # should pass
 expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) # should pass (only 1/3 were wrong, but 40\% was allowed)
-expect_eps(c(0, 1, 3), c(1, 1, 2), 1e-4, 1/3) # should fail (2/3 were wrong, but only 1/3 was allowed)
+expect_eps(c(0, 1, 3), c(1, 1, 2), 1e-4, 1 / 3) # should fail (2/3 were wrong, but only 1/3 was allowed)
 expect_eps(1, 1.3, 0.2) # should fail (|a - b| = 0.3 > 0.2)
 expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) # should produce an error (different vector-lengths)
 expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)

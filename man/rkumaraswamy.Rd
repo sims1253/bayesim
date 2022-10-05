@@ -20,5 +20,5 @@ n samples in Kumaraswamy distribution.
 Kumaraswamy RNG function in Median parametrisations.
 }
 \examples{
-hist(rkumaraswamy(10000, mu=0.5, p=4))
+hist(rkumaraswamy(10000, mu = 0.5, p = 4))
 }

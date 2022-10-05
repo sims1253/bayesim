@@ -20,12 +20,12 @@ test_that("custom-softplusnormal", {
   # check length
   expect_equal(n, length(dsoftplusnormal_results))
   # check against one precalculated value
-  expect_eps(0.3922206, bayesim::dsoftplusnormal(x=0.5, mu=1, sigma=2), eps)
+  expect_eps(0.3922206, bayesim::dsoftplusnormal(x = 0.5, mu = 1, sigma = 2), eps)
   # ??? The constant in this test was wrong? Probably corrected implementation, or something
   # Now it is not 1.27.. anymore, but 0.392.. Maybe that is more correct?
 
-  for(outer in 1:n_small) {
-    for(inner in 1:n_small) {
+  for (outer in 1:n_small) {
+    for (inner in 1:n_small) {
       mu <- mus[outer]
       sigma <- sigmas[inner]
       expect_eps(bayesim::dsoftplusnormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
@@ -57,10 +57,14 @@ test_that("custom-softplusnormal", {
   p_acceptable_failures <- 0.05
 
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rsoftplusnormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
-           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=softplus)
+  test_rng(
+    rng_fun = bayesim::rsoftplusnormal, metric_mu = median, n = n_rng, mus = mus, shapes = sigmas,
+    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = softplus
+  )
 
   # check custom BRMS family implementation
-  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::softplusnormal,
-                     rng=bayesim::rsoftplusnormal, shape_name="sigma")
+  expect_brms_family(
+    ba = 0.2, intercept = 0.4, shape = 2, link = identity, family = bayesim::softplusnormal,
+    rng = bayesim::rsoftplusnormal, shape_name = "sigma"
+  )
 })

@@ -20,15 +20,15 @@ test_that("custom-cloglognormal", {
   # check length
   expect_equal(n, length(dcloglognormal_results))
   # check against one precalculated value
-  expect_eps(0.4557343, bayesim::dcloglognormal(x=0.5, mu=1, sigma=2), eps)
+  expect_eps(0.4557343, bayesim::dcloglognormal(x = 0.5, mu = 1, sigma = 2), eps)
 
   # check the RNG will return the correct number of samples
   cloglognormal_samples <- bayesim::rcloglognormal(n, 2, 3)
   expect_equal(n, length(cloglognormal_samples))
 
   # check PDF data against precalculated reference data
-  for(outer in 1:n_small) {
-    for(inner in 1:n_small) {
+  for (outer in 1:n_small) {
+    for (inner in 1:n_small) {
       mu <- mus[outer]
       sigma <- sigmas[inner]
       expect_eps(bayesim::dcloglognormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
@@ -40,8 +40,10 @@ test_that("custom-cloglognormal", {
   p_acceptable_failures <- 0.05
 
   # check the RNG is not too far of the input value
-  test_rng(rng_fun=bayesim::rcloglognormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
-           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=cloglog)
+  test_rng(
+    rng_fun = bayesim::rcloglognormal, metric_mu = median, n = n_rng, mus = mus, shapes = sigmas,
+    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = cloglog
+  )
 
 
 
@@ -77,16 +79,18 @@ test_that("custom-cloglognormal", {
 
   # limit the interval. Cloglognormal BRMS is very sensitive for data at the boundary.
   eps_brms <- 1e-12
-  allowed_interval <- c(eps_brms, 1-eps_brms)
+  allowed_interval <- c(eps_brms, 1 - eps_brms)
   cloglog_data <- bayesim:::limit_data(cloglog_data, allowed_interval)
   interval_str <- paste0("[", eps_brms, ", 1 - (", eps_brms, ")]")
   warning(paste0("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
 
   # special BRMS test implementation (as it uses a simplified y ~ 1 model)
   BBmisc::suppressAll({
-    fit <- brms::brm(y~1, family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
-                     backend = "cmdstanr", cores = 2, data = list(y=cloglog_data))
+    fit <- brms::brm(y ~ 1,
+      family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
+      backend = "cmdstanr", cores = 2, data = list(y = cloglog_data)
+    )
   })
   expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, thresh) &&
-                bayesim::test_brms_quantile(fit, "sigma", sigma, thresh))
+    bayesim::test_brms_quantile(fit, "sigma", sigma, thresh))
 })

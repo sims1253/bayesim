@@ -13,8 +13,8 @@
 #' @return f(x | mu, k)
 #' @export
 #'
-#' @examples x <- seq(from=0.01, to=10, length.out=1000)
-#' plot(x, dweibull_custom(x, mu=2, k=1), type="l")
+#' @examples x <- seq(from = 0.01, to = 10, length.out = 1000)
+#' plot(x, dweibull_custom(x, mu = 2, k = 1), type = "l")
 dweibull_custom <- function(x, mu, k, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -39,7 +39,7 @@ dweibull_custom <- function(x, mu, k, log = FALSE) {
 #' @return n Weibull distributed samples.
 #' @export
 #'
-#' @examples hist(log(rweibull_custom(10000, mu=2, k=1)))
+#' @examples hist(log(rweibull_custom(10000, mu = 2, k = 1)))
 rweibull_custom <- function(n, mu, k) {
   # check the arguments
   if (isTRUE(k <= 0)) {

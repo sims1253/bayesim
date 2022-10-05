@@ -25,6 +25,6 @@ The PDF is defined with shape parameter alpha as
 \url{https://en.wikipedia.org/wiki/Inverse_Gaussian_distribution}
 }
 \examples{
-x <- seq(from=0.01, to=10, length.out=1000)
-plot(x, dinversegaussian_custom(x, mu=2, shape=2), type="l")
+x <- seq(from = 0.01, to = 10, length.out = 1000)
+plot(x, dinversegaussian_custom(x, mu = 2, shape = 2), type = "l")
 }

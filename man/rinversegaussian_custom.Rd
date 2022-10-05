@@ -20,5 +20,5 @@ n Inverse-Gaussian distributed samples.
 Custom Inverse-Gaussian RNG function in mean parametrisation.
 }
 \examples{
-hist(log(rinversegaussian_custom(10000, mu=2, shape=1)))
+hist(log(rinversegaussian_custom(10000, mu = 2, shape = 1)))
 }

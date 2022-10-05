@@ -6,7 +6,7 @@
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' plot(x, logit(x), type="l")
+#' plot(x, logit(x), type = "l")
 logit <- function(x) {
   return(qlogis(x))
 }
@@ -19,7 +19,7 @@ logit <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -5, to = 5, length.out = 100)
-#' plot(x, inv_logit(x), type="l")
+#' plot(x, inv_logit(x), type = "l")
 inv_logit <- function(x) {
   return(plogis(x))
 }
@@ -32,7 +32,7 @@ inv_logit <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -100, to = 100, length.out = 100)
-#' plot(x, logistic(x), type="l")
+#' plot(x, logistic(x), type = "l")
 logistic <- function(x) {
   return(inv_logit(x))
 }
@@ -46,7 +46,7 @@ logistic <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' plot(x, cloglog(x), type="l")
+#' plot(x, cloglog(x), type = "l")
 cloglog <- function(x) {
   log(-log1p(-x))
 }
@@ -60,7 +60,7 @@ cloglog <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -3, to = 1, length.out = 100)
-#' plot(x, inv_cloglog(x), type="l")
+#' plot(x, inv_cloglog(x), type = "l")
 inv_cloglog <- function(x) {
   return(1 - exp(-exp(x)))
 }
@@ -74,7 +74,7 @@ inv_cloglog <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
-#' plot(x, cauchit(x), type="l")
+#' plot(x, cauchit(x), type = "l")
 cauchit <- function(x) {
   return(qcauchy(x))
 }
@@ -88,7 +88,7 @@ cauchit <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -10, to = 10, length.out = 100)
-#' plot(x, inv_cauchit(x), type="l")
+#' plot(x, inv_cauchit(x), type = "l")
 inv_cauchit <- function(x) {
   return(pcauchy(x))
 }
@@ -101,7 +101,7 @@ inv_cauchit <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -2, to = 2, length.out = 100)
-#' plot(x, erf(x), type="l")
+#' plot(x, erf(x), type = "l")
 erf <- function(x) {
   return(2 * pnorm(x * sqrt(2)) - 1)
 }
@@ -115,7 +115,7 @@ erf <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = -5, to = 5, length.out = 100)
-#' plot(x, softplus(x), type="l")
+#' plot(x, softplus(x), type = "l")
 softplus <- function(x) {
   return(log(exp(x) - 1))
 }
@@ -129,7 +129,7 @@ softplus <- function(x) {
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 5, length.out = 100)
-#' plot(x, softplus(x), type="l")
+#' plot(x, softplus(x), type = "l")
 inv_softplus <- function(x) {
   return(log(exp(x) + 1))
 }
@@ -150,7 +150,7 @@ inv_softplus <- function(x) {
 #' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
 #' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
 #'
-isNum_len <- function(num, len=1) {
+isNum_len <- function(num, len = 1) {
   value <- (!any(is.na(num))) && is.numeric(num) && length(num) == len
   return(isTRUE(value))
 }
@@ -170,13 +170,12 @@ isNum_len <- function(num, len=1) {
 #' isInt_len(0.2) # should be FALSE, not integer
 #' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
 #' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
-isInt_len <- function(int, len=1) {
-  if(isTRUE((!any(is.na(int))) && is.numeric(int))) {
+isInt_len <- function(int, len = 1) {
+  if (isTRUE((!any(is.na(int))) && is.numeric(int))) {
     # only check for integer, if the type is numeric!
     value <- all(int %% 1 == 0) && length(int) == len
     return(isTRUE(value))
-  }
-  else {
+  } else {
     return(FALSE)
   }
   # One might also do this all in a single AND beginning with is.numeric.
@@ -195,7 +194,7 @@ isInt_len <- function(int, len=1) {
 #' @return Is a string and only one string
 #' @export
 #'
-#' @examples isSingleString("abc")  # should be TRUE
+#' @examples isSingleString("abc") # should be TRUE
 #' isSingleString(c("abc")) # should be TRUE
 #' isSingleString(c("abc", "def")) # should be FALSE, not a single string
 #' isSingleString(1) # should be FALSE, not a string
@@ -203,7 +202,7 @@ isInt_len <- function(int, len=1) {
 #' # also wrong length
 isSingleString <- function(input) {
   value <- (!any(is.na(input))) && is.character(input) && length(input) == 1
-  return (isTRUE(value))
+  return(isTRUE(value))
 }
 
 #' Data limit function
@@ -222,26 +221,26 @@ isSingleString <- function(input) {
 #' print(limit_data(input, c(2, NA)))
 limit_data <- function(data, limits) {
   # check that the limit is usable
-  if(length(limits) != 2) {
+  if (length(limits) != 2) {
     stop("If the limits is to be used, it has to be of size 2.")
   }
-  if(!isNum_len(data, len=length(data))) {
+  if (!isNum_len(data, len = length(data))) {
     stop("Some data was not numeric, or was NA")
   }
 
   # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
-  if(isNum_len(limits, 2)) {
-    if(limits[1] > limits[2]) {
+  if (isNum_len(limits, 2)) {
+    if (limits[1] > limits[2]) {
       stop("In limit_data, the first limit is the lower limit, so it has to be
            smaller than the second limit.")
     }
   }
 
   # isNum_len will certailny return false, if NA
-  if(isNum_len(limits[1])) {
+  if (isNum_len(limits[1])) {
     data[data < limits[1]] <- limits[1]
   }
-  if(isNum_len(limits[2])) {
+  if (isNum_len(limits[2])) {
     data[data > limits[2]] <- limits[2]
   }
 

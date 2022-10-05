@@ -98,7 +98,7 @@ rMIG <-
 #' @return n samples in Simplex distribution.
 #' @export
 #'
-#' @examples hist(rsimplex(10000, mu=0.7, sigma=2))
+#' @examples hist(rsimplex(10000, mu = 0.7, sigma = 2))
 rsimplex <-
   function(n, mu, sigma) {
     ## generating random number from simplex dist'n
@@ -181,8 +181,12 @@ posterior_epred_simplex <- function(prep) {
 #' data <- list(a = a, y = bayesim::rsimplex(1000, brms::inv_logit_scaled(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::simplex(),
-#'   stanvars = bayesim::simplex()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::simplex(),
+#'     stanvars = bayesim::simplex()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 simplex <- function(link = "logit", link_sigma = "identity") {
   family <- brms::custom_family(

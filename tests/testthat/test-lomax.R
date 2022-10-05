@@ -44,8 +44,10 @@ test_that("custom-lomax", {
   expect_equal(n, length(lomax_samples))
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with alpha_r
-  test_rng(rng_fun=bayesim::rlomax, metric_mu=mean, n=n, mus=mus, shapes=alphas_r,
-           mu_eps=accepted_means_eps, p_acceptable_failures=p_acceptable_failures)
+  test_rng(
+    rng_fun = bayesim::rlomax, metric_mu = mean, n = n, mus = mus, shapes = alphas_r,
+    mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
+  )
   # check the RNG is not too far of the input value
 
   # now check density function for some errors
@@ -73,5 +75,5 @@ test_that("custom-lomax", {
   expect_error(bayesim::rlomax(100, mu = 0, alpha = 2)) # mu is not allowed to be 0 or smaller
   expect_error(bayesim::rlomax(100, mu = 1, alpha = 0)) # alpha is not allowed to be 0 or smaller
 
-  expect_brms_family(link=exp, family=bayesim::lomax, rng=bayesim::rlomax, shape_name="alpha")
+  expect_brms_family(link = exp, family = bayesim::lomax, rng = bayesim::rlomax, shape_name = "alpha")
 })

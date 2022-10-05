@@ -27,6 +27,6 @@ The Frechet distribution density is defined as
 \deqn{f(y) = \frac{y^{\alpha - 1} exp(-\frac{y}{\rho})} {\rho^\alpha \Gamma(\alpha)} }
 }
 \examples{
-x <- seq(from=0.01, to=10, length.out=1000)
-plot(x, dgamma_custom(x, mu=2, a=2), type="l")
+x <- seq(from = 0.01, to = 10, length.out = 1000)
+plot(x, dgamma_custom(x, mu = 2, a = 2), type = "l")
 }

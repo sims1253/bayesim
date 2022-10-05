@@ -19,14 +19,14 @@ test_that("custom-cauchitnormal", {
   # check length
   expect_equal(n, length(dcauchitnormal_results))
   # check against one precalculated value
-  expect_eps(0.5530229, bayesim::dcauchitnormal(x=0.5, mu=1, sigma=2), eps)
+  expect_eps(0.5530229, bayesim::dcauchitnormal(x = 0.5, mu = 1, sigma = 2), eps)
 
   # check the RNG will return the correct number of samples
   cauchitnormal_samples <- bayesim::rcauchitnormal(n, 2, 3)
   expect_equal(n, length(cauchitnormal_samples))
 
-  for(outer in 1:n_small) {
-    for(inner in 1:n_small) {
+  for (outer in 1:n_small) {
+    for (inner in 1:n_small) {
       mu <- mus[outer]
       sigma <- sigmas[inner]
       expect_eps(bayesim::dcauchitnormal(x, mu, sigma), pdf_ref[[outer, inner]], eps)
@@ -38,8 +38,10 @@ test_that("custom-cauchitnormal", {
   n_rng <- 100000
 
   # check the RNG is not too far of the input value p_acceptable_failures
-  test_rng(rng_fun=bayesim::rcauchitnormal, metric_mu=median, n=n_rng, mus=mus, shapes=sigmas,
-           mu_eps=accepted_medians_eps, p_acceptable_failures=p_acceptable_failures, mu_link=cauchit)
+  test_rng(
+    rng_fun = bayesim::rcauchitnormal, metric_mu = median, n = n_rng, mus = mus, shapes = sigmas,
+    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = cauchit
+  )
 
 
 
@@ -59,6 +61,8 @@ test_that("custom-cauchitnormal", {
   expect_warning(expect_error(bayesim::rcauchitnormal("r", mu = 2, sigma = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
 
-  expect_brms_family(ba=0.2, intercept=0.4, shape=2, link=identity, family=bayesim::cauchitnormal,
-                     rng=bayesim::rcauchitnormal, shape_name="sigma")
+  expect_brms_family(
+    ba = 0.2, intercept = 0.4, shape = 2, link = identity, family = bayesim::cauchitnormal,
+    rng = bayesim::rcauchitnormal, shape_name = "sigma"
+  )
 })

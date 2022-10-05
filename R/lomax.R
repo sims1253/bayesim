@@ -133,8 +133,12 @@ posterior_epred_lomax <- function(prep) {
 #' data <- list(a = a, y = bayesim::rlomax(1000, exp(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
-#' BBmisc::suppressAll({  fit1 <- brms::brm(y ~ 1 + a, data = data, family = bayesim::lomax(),
-#'   stanvars = bayesim::lomax()$stanvars, backend = "cmdstanr", cores = 4)  })
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::lomax(),
+#'     stanvars = bayesim::lomax()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 lomax <- function(link = "log", link_alpha = "log1p") {
   family <- brms::custom_family(

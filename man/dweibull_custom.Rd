@@ -29,6 +29,6 @@ The Weibull distribution density is defined as
 \deqn{f(y) = \frac{k}{\sigma} * (\frac{x}{\sigma})^{\alpha - 1} * exp(-(\frac{x}{\sigma})^\alpha)}
 }
 \examples{
-x <- seq(from=0.01, to=10, length.out=1000)
-plot(x, dweibull_custom(x, mu=2, k=1), type="l")
+x <- seq(from = 0.01, to = 10, length.out = 1000)
+plot(x, dweibull_custom(x, mu = 2, k = 1), type = "l")
 }

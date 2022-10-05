@@ -20,5 +20,5 @@ n samples in Simplex distribution.
 Simplex RNG function in Median parametrisations.
 }
 \examples{
-hist(rsimplex(10000, mu=0.7, sigma=2))
+hist(rsimplex(10000, mu = 0.7, sigma = 2))
 }

@@ -17,5 +17,5 @@ Inverse CLogLog link function
 }
 \examples{
 x <- seq(from = -3, to = 1, length.out = 100)
-plot(x, inv_cloglog(x), type="l")
+plot(x, inv_cloglog(x), type = "l")
 }

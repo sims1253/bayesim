@@ -16,7 +16,7 @@ Is a string and only one string
 Check, if the input is a single string
 }
 \examples{
-isSingleString("abc")  # should be TRUE
+isSingleString("abc") # should be TRUE
 isSingleString(c("abc")) # should be TRUE
 isSingleString(c("abc", "def")) # should be FALSE, not a single string
 isSingleString(1) # should be FALSE, not a string
