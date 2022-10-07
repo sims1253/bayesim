@@ -22,14 +22,14 @@ Same as Cloglognormal-BRMS, but will limit data to [1e-12, 1 - 1e-12], to improv
 \examples{
 # Running the example might take a while and may make RStudio unresponsive.
 # Just relax and grab a cup of coffe or tea in the meantime.
-cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
+cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 1)
 # cloglognormal_limited will work with values close to the boundaries.
 # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 # For an example without surpress, checkout the Bayesim Betaprime Example script
 BBmisc::suppressAll({
   fit1 <- brms::brm(y ~ 1,
-    data = list(y = cloglog_data), family = bayesim::cloglognormal(),
-    stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
+    data = list(y = cloglog_data), family = bayesim::cloglognormal_limited(),
+    stanvars = bayesim::cloglognormal_limited()$stanvars, backend = "cmdstanr", cores = 4
   )
 })
 plot(fit1)

@@ -146,14 +146,14 @@ cloglognormal <- function(link = "identity", link_sigma = "log") {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
+#' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 1)
 #' # cloglognormal_limited will work with values close to the boundaries.
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1,
-#'     data = list(y = cloglog_data), family = bayesim::cloglognormal(),
-#'     stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
+#'     data = list(y = cloglog_data), family = bayesim::cloglognormal_limited(),
+#'     stanvars = bayesim::cloglognormal_limited()$stanvars, backend = "cmdstanr", cores = 4
 #'   )
 #' })
 #' plot(fit1)
@@ -173,13 +173,13 @@ cloglognormal_limited <- function(link = "identity", link_sigma = "log") {
   family$stanvars <- stanvars <- brms::stanvar(
     scode = "
       real cloglognormal_limited_lpdf(real y, real mu, real sigma) {
+        real eps = 1e-12;
         real y_copy = y;
-        if(y_copy < 1e-12) {
-          y_copy = 1e-12;
-        }
-        if(y_copy > 1 - 1e-12) {
-         y_copy = 1 - 1e-12;
-        }
+        if(y_copy < eps)
+          y_copy = eps;
+        if(y_copy > 1 - eps)
+          y_copy = 1 - eps;
+
         return  -(log(sigma) + 0.5 * (log(2 * pi()))) +
                 -(log((y_copy - 1) * log1m(y_copy))) +
                 -(log(-log(1 - y_copy)) - mu)^2 / (2 * sigma^2);
