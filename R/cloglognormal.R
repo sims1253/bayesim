@@ -96,7 +96,7 @@ posterior_epred_cloglognormal <- function(prep) {
 #' # Just relax and grab a cup of coffe or tea in the meantime.
 #' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
 #' # cloglognormal does not like values to close to the boundary
-#' cloglog_data <- bayesim:::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
+#' cloglog_data <- bayesim::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
 #' BBmisc::suppressAll({
@@ -128,6 +128,64 @@ cloglognormal <- function(link = "identity", link_sigma = "log") {
       }
 
       real cloglognormal_rng(real mu, real sigma) {
+        return inv_cloglog(normal_rng(mu, sigma));
+      }",
+    block = "functions"
+  )
+  return(family)
+}
+
+#' Custom BRMS family CLogLog-Normal in median parametrization.
+#' Same as Cloglognormal-BRMS, but will limit data to [1e-12, 1 - 1e-12], to improve stability
+#'
+#' @param linkLink function argument (as string) for Median argument. Left as identity!
+#' @param link_sigma Link function argument (as string) for Shape argument
+#'
+#' @return  Cloglog BRMS model-object
+#' @export
+#'
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
+#' # cloglognormal_limited will work with values close to the boundaries.
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1,
+#'     data = list(y = cloglog_data), family = bayesim::cloglognormal(),
+#'     stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
+#' plot(fit1)
+cloglognormal_limited <- function(link = "identity", link_sigma = "log") {
+  stopifnot(link == "identity")
+  family <- brms::custom_family(
+    "cloglognormal_limited",
+    dpars = c("mu", "sigma"),
+    links = c(link, link_sigma),
+    lb = c(0, 0),
+    ub = c(1, NA),
+    type = "real",
+    log_lik = log_lik_cloglognormal,
+    posterior_predict = posterior_predict_cloglognormal,
+    posterior_epred = posterior_epred_cloglognormal
+  )
+  family$stanvars <- stanvars <- brms::stanvar(
+    scode = "
+      real cloglognormal_limited_lpdf(real y, real mu, real sigma) {
+        real y_copy = y;
+        if(y_copy < 1e-12) {
+          y_copy = 1e-12;
+        }
+        if(y_copy > 1 - 1e-12) {
+         y_copy = 1 - 1e-12;
+        }
+        return  -(log(sigma) + 0.5 * (log(2 * pi()))) +
+                -(log((y_copy - 1) * log1m(y_copy))) +
+                -(log(-log(1 - y_copy)) - mu)^2 / (2 * sigma^2);
+      }
+
+      real cloglognormal_limited_rng(real mu, real sigma) {
         return inv_cloglog(normal_rng(mu, sigma));
       }",
     block = "functions"

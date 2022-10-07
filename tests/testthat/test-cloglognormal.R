@@ -74,23 +74,48 @@ test_that("custom-cloglognormal", {
   # Set predefined seed. Generating correct and "random" RNG data is not part of the BRMS recovery test.
   set.seed(9001)
   cloglog_data <- bayesim::rcloglognormal(n_brms, intercept, sigma)
+  cloglog_data_unchanged <- cloglog_data
   set.seed(old_seed)
   # Now that the data was generated, reset the old seed (as if nothing ever happened)
 
   # limit the interval. Cloglognormal BRMS is very sensitive for data at the boundary.
   eps_brms <- 1e-12
   allowed_interval <- c(eps_brms, 1 - eps_brms)
-  cloglog_data <- bayesim::limit_data(cloglog_data, allowed_interval)
+  cloglog_data_limited <- bayesim::limit_data(cloglog_data, allowed_interval)
   interval_str <- paste0("[", eps_brms, ", 1 - (", eps_brms, ")]")
-  warning(paste0("Cloglog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
+  warning(paste0("Cloglog BRMS test with only simple model y ~ 1."))
 
-  # special BRMS test implementation (as it uses a simplified y ~ 1 model)
+  # BRMS clolognormal with limited data
   BBmisc::suppressAll({
-    fit <- brms::brm(y ~ 1,
+    fit1 <- brms::brm(y ~ 1,
       family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
-      backend = "cmdstanr", cores = 2, data = list(y = cloglog_data)
+      backend = "cmdstanr", cores = 2, data = list(y = cloglog_data_limited)
     )
   })
-  expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, thresh) &&
-    bayesim::test_brms_quantile(fit, "sigma", sigma, thresh))
+  expect_true(bayesim::test_brms_quantile(fit1, "b_Intercept", intercept, thresh) &&
+    bayesim::test_brms_quantile(fit1, "sigma", sigma, thresh))
+
+  # BRMS clolognormal_limited (which will limit data itself) with not limited data
+  BBmisc::suppressAll({
+    fit2 <- brms::brm(y ~ 1,
+                     family = bayesim::cloglognormal_limited(), stanvars = bayesim::cloglognormal_limited()$stanvars,
+                     backend = "cmdstanr", cores = 2, data = list(y = cloglog_data_unchanged)
+    )
+  })
+  expect_true(bayesim::test_brms_quantile(fit2, "b_Intercept", intercept, thresh) &&
+                bayesim::test_brms_quantile(fit2, "sigma", sigma, thresh))
+
+  # BRMS cloglognormal not with limited data, should fail (due to data too close to the boundaries)
+  expect_error(
+    BBmisc::suppressAll({
+      fit3 <- brms::brm(y ~ 1,
+                       family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
+                       backend = "cmdstanr", cores = 2, data = list(y = cloglog_data_unchanged)
+      )
+    })
+  )
+
+  warning("Cloglognormal requires data to be limited (to around [1e-12, 1 - 1e-12]).
+          Cloglognormal_limited should adress this issue (by limiting it in Stan code.
+          Maximilian should check it sometime! :)")
 })
