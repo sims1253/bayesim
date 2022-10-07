@@ -155,6 +155,6 @@ test_that("test custom expect_bigger", {
   expect_error(expect_bigger(c(), 1))
 })
 
-test_that("test and document the rest of test-helper.R", {
-  skip("test and document the rest of test-helper.R")
+test_that("test the rest of test-helper.R", {
+  skip("test the rest of test-helper.R (as well as it possible)")
 })

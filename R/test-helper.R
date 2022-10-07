@@ -203,7 +203,7 @@ expect_bigger <- function(a, b) {
 #' @param num_parallel Chains calculated in parallel. Positive scalar integer. Default = 2.
 #' @param seed Seed argument, so that input data is always the same in each test.
 #' BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
-#' Seed is stored before test and restored after it finished. If wants not to use a seed set NULL, will make it R invisible.
+#' Seed is stored before test and restored after it finished. If wants not to use a seed set to NA.
 #' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
 #' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
 #' Default = Null, will be in R terms "invisible" and will not cap any input data.
@@ -217,7 +217,9 @@ expect_bigger <- function(a, b) {
 #' @return None
 #' @export
 #'
-#' @examples expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+#' @examples library(testthat)
+#' result <- expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+#' print(result)
 expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, shape = 2, link, family, rng, shape_name, num_parallel = 2, seed = 1337, data_threshold = NULL, thresh = 0.05, debug = FALSE) {
   if (!isSingleString(shape_name)) {
     stop("The shape name argument has to be a single string")
@@ -260,7 +262,7 @@ expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, s
 #' @param num_parallel Chains calculated in parallel. Positive scalar integer.
 #' @param seed Seed argument, so that input data is always the same in each test.
 #' BRMS test does not test RNG and is not guarateed to fit on all data.
-#' Positive Integer scalar, Default = NULL, meaning R invisible. Seed is stored before and restored after.
+#' Positive Integer scalar, Default = NA will do nothing. Seed is stored before and restored after.
 #' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
 #' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
 #' Default = Null, will be in R terms "invisible" and will not cap any input data.
@@ -270,11 +272,11 @@ expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, s
 #' @return BRMS model for the specified family.
 #' @export
 #'
-#' @examples posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, exp, 2, seed = 1337, suppress_output = FALSE)
+#' @examples posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2)
 #' plot(posterior_fit)
 #' # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, rng,
-                           num_parallel, seed = NULL, data_threshold = NULL, suppress_output = TRUE) {
+                           num_parallel, seed = NA, data_threshold = NULL, suppress_output = TRUE) {
   if (!(is.function(family) && is.function(rng) && is.function(link))) {
     stop("family, rng or link argument were not a function!")
   }
@@ -298,14 +300,22 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
          which will not change the current RNG seed")
   }
 
-  old_seed <- .Random.seed
-  set.seed(seed)
+
+  if(!is.na(seed))
+  {
+    old_seed <- .Random.seed
+    set.seed(seed)
+  }
+
   a <- rnorm(n_data_sampels)
   y_data <- rng(n_data_sampels, link(ba * a + intercept), shape)
   if (!is.null(data_threshold)) {
     y_data <- limit_data(y_data, data_threshold)
   }
-  set.seed(old_seed)
+
+  if(!is.na(seed))
+    set.seed(old_seed)
+
 
   data <- list(a = a, y = y_data)
 
@@ -357,21 +367,20 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' @return succeess, fail or error
 #' @export
 #'
-#' @examples n <- 1000
-#' a <- rnorm(n)
-#' ba_in <- 0.5
-#' data <- list(a = a, y = bayesim::rbetaprime(n, exp(ba_in * a + 1), 2))
-#' fit1 <- brms::brm(y ~ 1 + a,
-#'   data = data, family = bayesim::betaprime(),
-#'   stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
-#'   cores = 4, silent = 2, refresh = 0
-#' )
-#' test_brms_quantile(fit1, "b_a", ba_in, 0.025)
-#' # TODO: how to test this function (and is this to be tested)?
+#' @examples ba_in <- 0.5
+#' # with seed=1337 returns true in my case, but it may fail on other machines
+#' # especially if the RNG generator does not work the same. In any case, you may check visually against the plot!
+#' fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed=1337)
+#' result <- test_brms_quantile(fit1, "b_a", ba_in, 0.025)
+#' print(result)
+#' plot(fit1)
 test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
   if (isTRUE(length(thresh) == 1)) {
     bounds <- c(thresh, 1 - thresh)
   } else if (isTRUE(length(thresh) == 2)) {
+    if(isFALSE(tresh[1] <= tresh[2])) {
+      stop("If a 2 entry vector is used for the bounds, the first entry is the lower bound")
+    }
     bounds <- thresh
   } else {
     stop("The quantile-thresholds can only be a scalar, or a 2 length vector")
@@ -413,13 +422,13 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' this function already generates about 800KiB of files per PDF to be tested.
 #'
 #' @return Nothing, but saves input and reference files for later use!
-#' @export
 #'
 #' @examples eps <- 1e-6
-#' density_lookup_generator(
-#'   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
-#'   density_fun = bayesim::dcauchitnormal, density_name = "cauchitnormal_demodata"
-#' )
+#' bayesim:::density_lookup_generator(mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
+#'   density_fun = bayesim::dcauchitnormal, density_name = "cauchitnormal_demodata",
+#'   save_folder = "")
+#' # saves cauchit_normal_demodata_refdata and *_refpdf with density input and lookup-data respectively
+#' readRDS("cauchitnormal_demodata_refdata")
 density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_int, shape_int, x_int_prelink,
                                      x_link = identity, density_fun, density_name, save_folder = "tests/testthat/precalc_values/") {
 
@@ -484,9 +493,10 @@ density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_in
   # after reading the help, the issue with saveRDS (and save for that matter) is,
   # that it might be used incorrectly, which will not occur, if any bayesim dev implements them
 
+
   # If no errors occured, give feedback, of what density reference was saved where
   print(paste0(
     "Generated lookup data \"", density_name, "\" and saved to file in \"",
-    save_folder, "\" folder for tests"
+    "package-root/", save_folder, "\" folder for tests"
   ), quote = FALSE)
 }

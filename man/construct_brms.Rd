@@ -13,7 +13,7 @@ construct_brms(
   family,
   rng,
   num_parallel,
-  seed = NULL,
+  seed = NA,
   data_threshold = NULL,
   suppress_output = TRUE
 )
@@ -37,7 +37,7 @@ construct_brms(
 
 \item{seed}{Seed argument, so that input data is always the same in each test.
 BRMS test does not test RNG and is not guarateed to fit on all data.
-Positive Integer scalar, Default = NULL, meaning R invisible. Seed is stored before and restored after.}
+Positive Integer scalar, Default = NA will do nothing. Seed is stored before and restored after.}
 
 \item{data_threshold}{Usually unused. But in rare cases, data too close at the boundary may cause trouble.
 If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
@@ -55,7 +55,7 @@ BRMS model for the specified family.
 Construct BRMS family for simple linear y ~ 1 + a model.
 }
 \examples{
-posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, exp, 2, seed = 1337, suppress_output = FALSE)
+posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2)
 plot(posterior_fit)
 # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 }

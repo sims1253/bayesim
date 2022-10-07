@@ -23,15 +23,11 @@ succeess, fail or error
 Check, that data of the posterior is close enough to the reference data.
 }
 \examples{
-n <- 1000
-a <- rnorm(n)
 ba_in <- 0.5
-data <- list(a = a, y = bayesim::rbetaprime(n, exp(ba_in * a + 1), 2))
-fit1 <- brms::brm(y ~ 1 + a,
-  data = data, family = bayesim::betaprime(),
-  stanvars = bayesim::betaprime()$stanvars, backend = "cmdstan",
-  cores = 4, silent = 2, refresh = 0
-)
-test_brms_quantile(fit1, "b_a", ba_in, 0.025)
-# TODO: how to test this function (and is this to be tested)?
+# with seed=1337 returns true in my case, but it may fail on other machines
+# especially if the RNG generator does not work the same. In any case, you may check visually against the plot!
+fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed=1337)
+result <- test_brms_quantile(fit1, "b_a", ba_in, 0.025)
+print(result)
+plot(fit1)
 }

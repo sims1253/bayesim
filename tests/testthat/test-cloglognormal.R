@@ -80,9 +80,9 @@ test_that("custom-cloglognormal", {
   # limit the interval. Cloglognormal BRMS is very sensitive for data at the boundary.
   eps_brms <- 1e-12
   allowed_interval <- c(eps_brms, 1 - eps_brms)
-  cloglog_data <- bayesim:::limit_data(cloglog_data, allowed_interval)
+  cloglog_data <- bayesim::limit_data(cloglog_data, allowed_interval)
   interval_str <- paste0("[", eps_brms, ", 1 - (", eps_brms, ")]")
-  warning(paste0("Clolog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
+  warning(paste0("Cloglog BRMS test with only simple model y ~ 1. And also manually limited data to: ", interval_str, "."))
 
   # special BRMS test implementation (as it uses a simplified y ~ 1 model)
   BBmisc::suppressAll({

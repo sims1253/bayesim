@@ -42,7 +42,7 @@ expect_brms_family(
 
 \item{seed}{Seed argument, so that input data is always the same in each test.
 BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
-Seed is stored before test and restored after it finished. If wants not to use a seed set NULL, will make it R invisible.}
+Seed is stored before test and restored after it finished. If wants not to use a seed set to NA.}
 
 \item{data_threshold}{Usually unused. But in rare cases, data too close at the boundary may cause trouble.
 If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
@@ -64,5 +64,7 @@ BRMS family expect recovery. Tries linear baysian model y ~ 1 + a.
 Checking of the arguments done in construct_brms.
 }
 \examples{
-expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+library(testthat)
+result <- expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+print(result)
 }
