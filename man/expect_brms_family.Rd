@@ -34,7 +34,7 @@ expect_brms_family(
 
 \item{family}{BRMS family under test.}
 
-\item{rng}{Bespoke RNG function pointer for the family to be tested.}
+\item{rng}{function pointer of bespoke RNG for the family to be tested.}
 
 \item{shape_name}{BRMS string of shape argument name. Single string.}
 

@@ -7,17 +7,18 @@
 test_brms_quantile(posterior_data, name, reference, thresh, debug = FALSE)
 }
 \arguments{
-\item{posterior_data}{Data fitted and drawn}
+\item{posterior_data}{Data fitted and drawn, a BRMS object, which is a list in R terms}
 
-\item{name}{Name of the variable to check}
+\item{name}{Name of the variable to check, as single string}
 
-\item{reference}{Reference value to check against}
+\item{reference}{Reference value to check against, single real scalar}
 
-\item{thresh}{Scalar or 2-length vector of quantile bounds.
-For scalar constructs bound as [tresh, 1-thresh]}
+\item{thresh}{real scalar or 2-length vector of quantile bounds.
+For scalar constructs bound as [tresh, 1-thresh]
+thresh has to be inside the Unit-Interval.}
 }
 \value{
-succeess, fail or error
+Single boolean succeess, fail or error
 }
 \description{
 Check, that data of the posterior is close enough to the reference data.

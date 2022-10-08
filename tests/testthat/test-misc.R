@@ -245,6 +245,25 @@ test_that("Integer of length n isInt_len", {
   expect_false(isInt_len(c("r", 2), 3))
 })
 
+test_that("Boolean of length n isLogic_len", {
+  # correct lengths and all boolean
+  expect_true(isLogic_len(TRUE))
+  expect_true(isLogic_len(TRUE, 1))
+  expect_true(isLogic_len(c(TRUE, FALSE), 2))
+  # incorrect lengths and all boolean
+  expect_false(isLogic_len(TRUE, 2))
+  expect_false(isLogic_len(c(TRUE, FALSE)))
+  expect_false(isLogic_len(c(TRUE, FALSE), 1))
+  # correct lengths, but not boolean
+  expect_false(isLogic_len("r"))
+  expect_warning(expect_false(isLogic_len(isLogic_len)))
+  expect_false(isLogic_len(c(TRUE, 0), 2))
+  # other languages may recognise integers as boolean, which R does not do (I think)
+  expect_false(isLogic_len(c("r", TRUE), 2))
+  # incorrect length and non boolean
+  expect_false(isLogic_len(c("r", TRUE), 3))
+})
+
 test_that("Single string isSingleString", {
   # correct strings
   expect_true(isSingleString("r"))

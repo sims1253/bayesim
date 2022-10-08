@@ -31,7 +31,7 @@ construct_brms(
 
 \item{family}{BRMS family under test.}
 
-\item{rng}{Bespoke RNG function pointer for the family to be tested.}
+\item{rng}{function pointer of bespoke RNG for the family to be tested.}
 
 \item{num_parallel}{Chains calculated in parallel. Positive scalar integer.}
 

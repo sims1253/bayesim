@@ -151,7 +151,7 @@ inv_softplus <- function(x) {
 #' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
 #'
 isNum_len <- function(num, len = 1) {
-  value <- (!any(is.na(num))) && is.numeric(num) && length(num) == len
+  value <- all(!is.na(num)) && all(is.numeric(num)) && length(num) == len
   return(isTRUE(value))
 }
 
@@ -171,7 +171,8 @@ isNum_len <- function(num, len = 1) {
 #' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
 #' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
 isInt_len <- function(int, len = 1) {
-  if (isTRUE((!any(is.na(int))) && is.numeric(int))) {
+  all_numeric <- all(!is.na(int)) && all(is.numeric(int))
+  if (isTRUE(all_numeric)) {
     # only check for integer, if the type is numeric!
     value <- all(int %% 1 == 0) && length(int) == len
     return(isTRUE(value))
@@ -185,6 +186,32 @@ isInt_len <- function(int, len = 1) {
 
   # But I would prefer only checking numerics,
   # given logical AND may not necassarily follow this behaviour!
+}
+
+#' Boolean vector check
+#'
+#' @param logic Logic vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether logic was Boolean and of correct size
+#' @export
+#'
+#' @examples isLogic_len(c(TRUE, FALSE), 2) # should be TRUE
+#' isLogic_len(TRUE) # should be TRUE
+#' isLogic_len(TRUE, FALSE) # should be FALSE, wrong length
+#' isLogic_len("r") # should be FALSE, not boolean
+#' isLogic_len(0) # should be FALSE, not boolean
+#' isLogic_len(c("r", TRUE), 2) # should be FALSE, partially not boolean
+#' isLogic_len(c("r", TRUE), 3) # should be FALSE, both not boolean and wrong length
+isLogic_len <- function(logic, len = 1) {
+  if (any(is.function(logic))) {
+    # other comparable functions threw warnings for function-ptr.
+    # This did not, so I added it in manually.
+    warning("Function type given instead of boolean in isLogic_len")
+    return(FALSE)
+  }
+  value <- all(is.logical(logic)) && length(logic) == len
+  return(isTRUE(value))
 }
 
 #' Check, if the input is a single string
@@ -201,7 +228,7 @@ isInt_len <- function(int, len = 1) {
 #' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
 #' # also wrong length
 isSingleString <- function(input) {
-  value <- (!any(is.na(input))) && is.character(input) && length(input) == 1
+  value <- all(!is.na(input)) && is.character(input) && length(input) == 1
   return(isTRUE(value))
 }
 

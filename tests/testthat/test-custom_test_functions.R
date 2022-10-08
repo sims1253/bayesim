@@ -56,7 +56,7 @@ test_that("test the test_rng-wrapper", {
   eps <- 1e-6
   n_small <- 10
   n <- 10000
-  accepted_means_eps <- 0.3
+  accepted_means_eps <- 0.35
   p_acceptable_failures <- 0.05
   mus <- seq(from = 1 + eps, to = 10, length.out = n_small)
   alphas_r <- seq(from = 2 + eps, to = 10, length.out = n_small)
@@ -155,6 +155,75 @@ test_that("test custom expect_bigger", {
   expect_error(expect_bigger(c(), 1))
 })
 
-test_that("test the rest of test-helper.R", {
-  skip("test the rest of test-helper.R (as well as it possible)")
+test_that("test_brms_quantile", {
+  # To test this, first construct a BRMS model with Cloglognormal
+  n_brms <- 1000
+  intercept <- 0.3
+  sigma <- 0.6
+  tresh <- 0.05
+
+  # save old seed, to reset it later
+  old_seed <- .Random.seed
+  # Set predefined seed. Generating correct and "random" RNG data is not part of the BRMS recovery test.
+  set.seed(9001)
+  cloglog_data <- bayesim::rcloglognormal(n_brms, intercept, sigma)
+  set.seed(old_seed)
+  # Now that the data was generated, reset the old seed (as if nothing ever happened)
+
+  # limit the interval. Cloglognormal BRMS is very sensitive for data at the boundary.
+  eps_brms <- 1e-12
+  allowed_interval <- c(eps_brms, 1 - eps_brms)
+  cloglog_data <- bayesim::limit_data(cloglog_data, allowed_interval)
+
+  # special BRMS test implementation (as it uses a simplified y ~ 1 model)
+  BBmisc::suppressAll({
+    fit <- brms::brm(y ~ 1,
+                     family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
+                     backend = "cmdstanr", cores = 2, data = list(y = cloglog_data)
+    )
+  })
+
+  # OK, after all that preamble, now it is getting interesting!
+  expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, tresh) &&
+                bayesim::test_brms_quantile(fit, "sigma", sigma, tresh))
+  # This test should be correct (is the almost the same as in the Cloglog Testthat)
+  expect_warning(expect_false(bayesim::test_brms_quantile(fit, "alpha", sigma, tresh)))
+  # No alpha in Cloglognormal, which return false and throws a warning
+  sigma_data <- posterior::extract_variable_matrix(fit, variable = "sigma")
+  median_sigma <- median(sigma_data)
+  expect_false(bayesim::test_brms_quantile(fit, "sigma", 2*tresh + 2*median_sigma, tresh))
+  # definitively data not within quantiles
+  expect_error(bayesim::test_brms_quantile())
+  # wrong amount of arguments
+  expect_error(bayesim::test_brms_quantile(c(1 ,2, 3), "sigma", sigma, tresh))
+  # vector is not type BRMS (which is a R list)
+  expect_error(bayesim::test_brms_quantile(fit, sigma, sigma, tresh))
+  # sigma is not a string
+  expect_error(bayesim::test_brms_quantile(fit, c("sigma", "b_Intercept"), sigma, tresh))
+  # only one value at a time
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", "sigma", tresh))
+  # reference value should be real scalar, not string
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", NA, tresh))
+  # reference value may not be NA
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", c(sigma, b_Intercept), tresh))
+  # reference value should not be a vector
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, "tresh"))
+  # threshold has to be of type real
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, -1))
+  # threshold has to be in the unit-interval
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, c(0.1, 0.5, 0.9)))
+  # threshold has to have 2 entries at most
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, c()))
+  # no entries for threshold is forbidden as well
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, NA))
+  # threshold cannot be NA
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, 0.6))
+  # for 0.6, the threshold would create bounds, with lowerbound > upperbound
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, thresh, debug = "TRUE"))
+  # debug has to be of type boolean
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, thresh, debug = c(TRUE, FALSE)))
+  # debug has to be a single boolean
+  expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, thresh, debug = 0))
+  # debug has to be type boolean
+
 })

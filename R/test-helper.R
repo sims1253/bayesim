@@ -198,7 +198,7 @@ expect_bigger <- function(a, b) {
 #' @param shape Shape argument of each distribution. Default = 2.
 #' @param link Link function pointer used data. For positive bounded uses exp as example. No default.
 #' @param family BRMS family under test.
-#' @param rng Bespoke RNG function pointer for the family to be tested.
+#' @param rng function pointer of bespoke RNG for the family to be tested.
 #' @param shape_name BRMS string of shape argument name. Single string.
 #' @param num_parallel Chains calculated in parallel. Positive scalar integer. Default = 2.
 #' @param seed Seed argument, so that input data is always the same in each test.
@@ -257,7 +257,7 @@ expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, s
 #' @param shape Shape argument of each distribution.
 #' @param link Link function pointer used data. For positive bounded uses exp as example.
 #' @param family BRMS family under test.
-#' @param rng Bespoke RNG function pointer for the family to be tested.
+#' @param rng function pointer of bespoke RNG for the family to be tested.
 #' @param shape_name BRMS string of shape argument name. Single string.
 #' @param num_parallel Chains calculated in parallel. Positive scalar integer.
 #' @param seed Seed argument, so that input data is always the same in each test.
@@ -298,6 +298,9 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
   if (!(isNum_len(seed) || is.na(seed))) {
     stop("seed argument if used has to be a real scalar. Else it is let default as NULL,
          which will not change the current RNG seed")
+  }
+  if (!isLogic_len(suppress_output)) {
+    stop("The argument suppress_output has to be a single boolean")
   }
 
 
@@ -358,13 +361,14 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 
 #' Check, that data of the posterior is close enough to the reference data.
 #'
-#' @param posterior_data Data fitted and drawn
-#' @param name Name of the variable to check
-#' @param reference Reference value to check against
-#' @param thresh Scalar or 2-length vector of quantile bounds.
+#' @param posterior_data Data fitted and drawn, a BRMS object, which is a list in R terms
+#' @param name Name of the variable to check, as single string
+#' @param reference Reference value to check against, single real scalar
+#' @param thresh real scalar or 2-length vector of quantile bounds.
 #' For scalar constructs bound as [tresh, 1-thresh]
+#' thresh has to be inside the Unit-Interval.
 #'
-#' @return succeess, fail or error
+#' @return Single boolean succeess, fail or error
 #' @export
 #'
 #' @examples ba_in <- 0.5
@@ -375,10 +379,28 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' print(result)
 #' plot(fit1)
 test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
-  if (isTRUE(length(thresh) == 1)) {
+  if (!is.list(posterior_data)) {
+    stop("The posterior_data frame has to be BRMS data, which itself is in R of type list")
+  }
+  if (!isSingleString(name)) {
+    stop("The variable name argument has to be a single string")
+  }
+  if (!isNum_len(reference)) {
+    stop("The reference data has to be a single real scalar")
+  }
+  if (isTRUE(any(thresh <= 0 | thresh >= 1))) {
+    stop("The threshold has to be in the Unit-Interval")
+  }
+  if (!isLogic_len(debug)) {
+    stop("The argument debug has to be a single boolean")
+  }
+  if (isNum_len(thresh, 1)) {
+    if (thresh > 0.5) {
+      stop("Any threshold scalar bigger 0.5 would create a bigger lower bound than upper bound!")
+    }
     bounds <- c(thresh, 1 - thresh)
-  } else if (isTRUE(length(thresh) == 2)) {
-    if(isFALSE(tresh[1] <= tresh[2])) {
+  } else if (isNum_len(thresh, 2)) {
+    if(isFALSE(thresh[1] <= tresh[2])) {
       stop("If a 2 entry vector is used for the bounds, the first entry is the lower bound")
     }
     bounds <- thresh
@@ -386,7 +408,18 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
     stop("The quantile-thresholds can only be a scalar, or a 2 length vector")
   }
 
-  calculated <- posterior::extract_variable_matrix(posterior_data, variable = name)
+  calculated <- tryCatch({
+     posterior::extract_variable_matrix(posterior_data, variable = name)
+  }, error = function(e) {
+    # if the extract fails, most probably cause is a wrong variable name string
+    # instead of giving an unreadable error, throw clear warning and return false
+    warning(paste0("In test_brms_quantile, the variable extraction of ", name, " failed.
+                   Most probable cause, the variable-string was written wrong or did not exist somehow.
+                   Return FALSE in this case."))
+    warning(paste0("Original error was: ", e))
+    return(FALSE)
+  })
+
   quantiles <- unname(quantile(calculated, probs = bounds))
   if (debug) {
     print(paste("At: ", bounds, " the quantile is: ", quantiles))
