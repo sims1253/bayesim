@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{log_lik_betaprime}
 \alias{log_lik_betaprime}
-\title{Log-Likelihood vignette for the Beta-Prime distribution, in mean parametrization.}
+\title{Log-Likelihood of the beta prime distribution}
 \usage{
 log_lik_betaprime(i, prep)
 }
@@ -15,5 +15,5 @@ log_lik_betaprime(i, prep)
 Log-Likelihood of betaprime given data in prep
 }
 \description{
-Log-Likelihood vignette for the Beta-Prime distribution, in mean parametrization.
+Log-Likelihood of the beta prime distribution
 }

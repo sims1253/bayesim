@@ -304,8 +304,7 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
   }
 
 
-  if(!is.na(seed))
-  {
+  if (!is.na(seed)) {
     old_seed <- .Random.seed
     set.seed(seed)
   }
@@ -316,8 +315,9 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
     y_data <- limit_data(y_data, data_threshold)
   }
 
-  if(!is.na(seed))
+  if (!is.na(seed)) {
     set.seed(old_seed)
+  }
 
 
   data <- list(a = a, y = y_data)
@@ -374,7 +374,7 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' @examples ba_in <- 0.5
 #' # with seed=1337 returns true in my case, but it may fail on other machines
 #' # especially if the RNG generator does not work the same. In any case, you may check visually against the plot!
-#' fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed=1337)
+#' fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed = 1337)
 #' result <- test_brms_quantile(fit1, "b_a", ba_in, 0.025)
 #' print(result)
 #' plot(fit1)
@@ -400,7 +400,7 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
     }
     bounds <- c(thresh, 1 - thresh)
   } else if (isNum_len(thresh, 2)) {
-    if(isFALSE(thresh[1] <= tresh[2])) {
+    if (isFALSE(thresh[1] <= tresh[2])) {
       stop("If a 2 entry vector is used for the bounds, the first entry is the lower bound")
     }
     bounds <- thresh
@@ -408,17 +408,20 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
     stop("The quantile-thresholds can only be a scalar, or a 2 length vector")
   }
 
-  calculated <- tryCatch({
-     posterior::extract_variable_matrix(posterior_data, variable = name)
-  }, error = function(e) {
-    # if the extract fails, most probably cause is a wrong variable name string
-    # instead of giving an unreadable error, throw clear warning and return false
-    warning(paste0("In test_brms_quantile, the variable extraction of ", name, " failed.
+  calculated <- tryCatch(
+    {
+      posterior::extract_variable_matrix(posterior_data, variable = name)
+    },
+    error = function(e) {
+      # if the extract fails, most probably cause is a wrong variable name string
+      # instead of giving an unreadable error, throw clear warning and return false
+      warning(paste0("In test_brms_quantile, the variable extraction of ", name, " failed.
                    Most probable cause, the variable-string was written wrong or did not exist somehow.
                    Return FALSE in this case."))
-    warning(paste0("Original error was: ", e))
-    return(FALSE)
-  })
+      warning(paste0("Original error was: ", e))
+      return(FALSE)
+    }
+  )
 
   quantiles <- unname(quantile(calculated, probs = bounds))
   if (debug) {
@@ -457,9 +460,11 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' @return Nothing, but saves input and reference files for later use!
 #'
 #' @examples eps <- 1e-6
-#' bayesim:::density_lookup_generator(mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
+#' bayesim:::density_lookup_generator(
+#'   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
 #'   density_fun = bayesim::dcauchitnormal, density_name = "cauchitnormal_demodata",
-#'   save_folder = "")
+#'   save_folder = ""
+#' )
 #' # saves cauchit_normal_demodata_refdata and *_refpdf with density input and lookup-data respectively
 #' readRDS("cauchitnormal_demodata_refdata")
 density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_int, shape_int, x_int_prelink,
@@ -532,4 +537,145 @@ density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_in
     "Generated lookup data \"", density_name, "\" and saved to file in \"",
     "package-root/", save_folder, "\" folder for tests"
   ), quote = FALSE)
+}
+
+
+#' Numeric vector check
+#'
+#' @param num Numeric vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether num was numeric and of correct size
+#' @export
+#'
+#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
+#' isNum_len(0.2) # should be TRUE
+#' isNum_len(0.2, 2) # should be FALSE, wrong length
+#' isNum_len("r") # should be FALSE, not numeric
+#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
+#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
+#'
+isNum_len <- function(num, len = 1) {
+  value <- all(!is.na(num)) && all(is.numeric(num)) && length(num) == len
+  return(isTRUE(value))
+}
+
+#' Integer vector check
+#'
+#' @param int Integer vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether int was Integer and of correct size
+#' @export
+#'
+#' @examples isInt_len(c(1, 2), 2) # should be TRUE
+#' isInt_len(1) # should be TRUE
+#' isInt_len(1, 2) # should be FALSE, wrong length
+#' isInt_len("r") # should be FALSE, not integer
+#' isInt_len(0.2) # should be FALSE, not integer
+#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
+#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
+isInt_len <- function(int, len = 1) {
+  all_numeric <- all(!is.na(int)) && all(is.numeric(int))
+  if (isTRUE(all_numeric)) {
+    # only check for integer, if the type is numeric!
+    value <- all(int %% 1 == 0) && length(int) == len
+    return(isTRUE(value))
+  } else {
+    return(FALSE)
+  }
+  # One might also do this all in a single AND beginning with is.numeric.
+  # In a single test, this worked fine, given if !is.numeric, the other boolean,
+  # checks were not done (because FALSE & x <=> FALSE)
+  # this did prevent errors (from "r" %% 1 == 0) at the least
+
+  # But I would prefer only checking numerics,
+  # given logical AND may not necassarily follow this behaviour!
+}
+
+#' Boolean vector check
+#'
+#' @param logic Logic vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether logic was Boolean and of correct size
+#' @export
+#'
+#' @examples isLogic_len(c(TRUE, FALSE), 2) # should be TRUE
+#' isLogic_len(TRUE) # should be TRUE
+#' isLogic_len(TRUE, FALSE) # should be FALSE, wrong length
+#' isLogic_len("r") # should be FALSE, not boolean
+#' isLogic_len(0) # should be FALSE, not boolean
+#' isLogic_len(c("r", TRUE), 2) # should be FALSE, partially not boolean
+#' isLogic_len(c("r", TRUE), 3) # should be FALSE, both not boolean and wrong length
+isLogic_len <- function(logic, len = 1) {
+  if (any(is.function(logic))) {
+    # other comparable functions threw warnings for function-ptr.
+    # This did not, so I added it in manually.
+    warning("Function type given instead of boolean in isLogic_len")
+    return(FALSE)
+  }
+  value <- all(is.logical(logic)) && length(logic) == len
+  return(isTRUE(value))
+}
+
+#' Check, if the input is a single string
+#'
+#' @param input String argument
+#'
+#' @return Is a string and only one string
+#' @export
+#'
+#' @examples isSingleString("abc") # should be TRUE
+#' isSingleString(c("abc")) # should be TRUE
+#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
+#' isSingleString(1) # should be FALSE, not a string
+#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
+#' # also wrong length
+isSingleString <- function(input) {
+  value <- all(!is.na(input)) && is.character(input) && length(input) == 1
+  return(isTRUE(value))
+}
+
+#' Data limit function
+#'
+#' @param data Data to be limited
+#' @param limits Limits to be used. Vector with 2 real entries, limits[1] <= limits[2]
+#' If the lower bound does not have to be restricted, set it to NA and vice versa.
+#' Sets data outside those bounds to those bounds.
+#'
+#' @return data limited by the limits
+#' @export
+#'
+#' @examples input <- c(1, 2, 3, 4)
+#' print(input)
+#' print(limit_data(input, c(2, 3)))
+#' print(limit_data(input, c(2, NA)))
+limit_data <- function(data, limits) {
+  # check that the limit is usable
+  if (length(limits) != 2) {
+    stop("If the limits is to be used, it has to be of size 2.")
+  }
+  if (!isNum_len(data, len = length(data))) {
+    stop("Some data was not numeric, or was NA")
+  }
+
+  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
+  if (isNum_len(limits, 2)) {
+    if (limits[1] > limits[2]) {
+      stop("In limit_data, the first limit is the lower limit, so it has to be
+           smaller than the second limit.")
+    }
+  }
+
+  # isNum_len will certailny return false, if NA
+  if (isNum_len(limits[1])) {
+    data[data < limits[1]] <- limits[1]
+  }
+  if (isNum_len(limits[2])) {
+    data[data > limits[2]] <- limits[2]
+  }
+
+  # now return the data
+  return(data)
 }

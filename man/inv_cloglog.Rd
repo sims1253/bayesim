@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{inv_cloglog}
 \alias{inv_cloglog}
-\title{Inverse CLogLog link function}
+\title{Complementary-Log-Log response function}
 \usage{
 inv_cloglog(x)
 }
@@ -13,7 +13,7 @@ inv_cloglog(x)
 inverse-cloglog value of x, result is e (0, 1)
 }
 \description{
-Inverse CLogLog link function
+Complementary-Log-Log response function
 }
 \examples{
 x <- seq(from = -3, to = 1, length.out = 100)

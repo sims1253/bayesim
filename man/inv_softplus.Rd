@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{inv_softplus}
 \alias{inv_softplus}
-\title{Inverse Softplus link function}
+\title{Softplus response function}
 \usage{
 inv_softplus(x)
 }
@@ -13,7 +13,7 @@ inv_softplus(x)
 inv_softplus of x, result is positive unbound
 }
 \description{
-Inverse Softplus link function
+Softplus response function
 }
 \examples{
 x <- seq(from = 0.1, to = 5, length.out = 100)

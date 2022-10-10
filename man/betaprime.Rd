@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{betaprime}
 \alias{betaprime}
-\title{Custom Beta-Prime BRMS-implementation in mean parametrization.}
+\title{Beta prime brms custom family}
 \usage{
 betaprime(link = "log", link_phi = "log")
 }
@@ -12,22 +12,22 @@ betaprime(link = "log", link_phi = "log")
 \item{link_beta}{Link function for beta argument}
 }
 \value{
-BRMS beta-prime distribution family
+brms beta prime distribution family
 }
 \description{
-Custom Beta-Prime BRMS-implementation in mean parametrization.
+Beta prime brms custom family
 }
 \examples{
 # Running the example might take a while and may make RStudio unresponsive.
 # Just relax and grab a cup of coffe or tea in the meantime.
 a <- rnorm(1000)
-data <- list(a = a, y = bayesim::rbetaprime(1000, exp(0.5 * a + 1), 2))
+data <- list(a = a, y = rbetaprime(1000, exp(0.5 * a + 1), 2))
 # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 # For an example without surpress, checkout the Bayesim Betaprime Example script
 BBmisc::suppressAll({
   fit1 <- brms::brm(y ~ 1 + a,
-    data = data, family = bayesim::betaprime(),
-    stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4
+    data = data, family = betaprime(),
+    stanvars = betaprime()$stanvars, backend = "cmdstanr", cores = 4
   )
 })
 plot(fit1)

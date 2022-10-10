@@ -178,24 +178,24 @@ test_that("test_brms_quantile", {
   # special BRMS test implementation (as it uses a simplified y ~ 1 model)
   BBmisc::suppressAll({
     fit <- brms::brm(y ~ 1,
-                     family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
-                     backend = "cmdstanr", cores = 2, data = list(y = cloglog_data)
+      family = bayesim::cloglognormal(), stanvars = bayesim::cloglognormal()$stanvars,
+      backend = "cmdstanr", cores = 2, data = list(y = cloglog_data)
     )
   })
 
   # OK, after all that preamble, now it is getting interesting!
   expect_true(bayesim::test_brms_quantile(fit, "b_Intercept", intercept, tresh) &&
-                bayesim::test_brms_quantile(fit, "sigma", sigma, tresh))
+    bayesim::test_brms_quantile(fit, "sigma", sigma, tresh))
   # This test should be correct (is the almost the same as in the Cloglog Testthat)
   expect_warning(expect_false(bayesim::test_brms_quantile(fit, "alpha", sigma, tresh)))
   # No alpha in Cloglognormal, which return false and throws a warning
   sigma_data <- posterior::extract_variable_matrix(fit, variable = "sigma")
   median_sigma <- median(sigma_data)
-  expect_false(bayesim::test_brms_quantile(fit, "sigma", 2*tresh + 2*median_sigma, tresh))
+  expect_false(bayesim::test_brms_quantile(fit, "sigma", 2 * tresh + 2 * median_sigma, tresh))
   # definitively data not within quantiles
   expect_error(bayesim::test_brms_quantile())
   # wrong amount of arguments
-  expect_error(bayesim::test_brms_quantile(c(1 ,2, 3), "sigma", sigma, tresh))
+  expect_error(bayesim::test_brms_quantile(c(1, 2, 3), "sigma", sigma, tresh))
   # vector is not type BRMS (which is a R list)
   expect_error(bayesim::test_brms_quantile(fit, sigma, sigma, tresh))
   # sigma is not a string
@@ -225,5 +225,4 @@ test_that("test_brms_quantile", {
   # debug has to be a single boolean
   expect_error(bayesim::test_brms_quantile(fit, "sigma", sigma, thresh, debug = 0))
   # debug has to be type boolean
-
 })

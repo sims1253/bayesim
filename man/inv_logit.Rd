@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{inv_logit}
 \alias{inv_logit}
-\title{Inverse-Logit link function, equal to Logistic link}
+\title{Logit response function}
 \usage{
 inv_logit(x)
 }
@@ -13,7 +13,7 @@ inv_logit(x)
 inverse logit value of x, result is e (0, 1)
 }
 \description{
-Inverse-Logit link function, equal to Logistic link
+Logit response function
 }
 \examples{
 x <- seq(from = -5, to = 5, length.out = 100)

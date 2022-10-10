@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{qbetaprime}
 \alias{qbetaprime}
-\title{Quantile function of the Beta-Prime distributions using mean parametrization}
+\title{Quantile function of the beta prime distribution}
 \usage{
 qbetaprime(p, mu, phi)
 }
@@ -17,9 +17,9 @@ qbetaprime(p, mu, phi)
 Quantiles of the beta-prime distribution, given p, mu and phi
 }
 \description{
-Quantile function of the Beta-Prime distributions using mean parametrization
+Quantile function of the beta prime distribution
 }
 \examples{
 x <- seq(from = 0, to = 1, length.out = 100)
-plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type = "l")
+plot(x, qbetaprime(x, mu = 1, phi = 2), type = "l")
 }

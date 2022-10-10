@@ -2,7 +2,7 @@
 % Please edit documentation in R/beta_prime.R
 \name{dbetaprime}
 \alias{dbetaprime}
-\title{Probability density function for the Beta-Prime distribution (aka. inverse Beta)}
+\title{Probability density function for the beta prime distribution (aka. inverse Beta)}
 \source{
 Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
 A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
@@ -20,10 +20,10 @@ dbetaprime(x, mu, phi, log = FALSE)
 \item{log}{Optional argument. If true, returns the log density.}
 }
 \value{
-density of the pdf given x, mu and phi.
+Density of the pdf given x, mu and phi.
 }
 \description{
-Probability density function for the Beta-Prime distribution (aka. inverse Beta)
+Probability density function for the beta prime distribution (aka. inverse Beta)
 }
 \details{
 The beta-prime distribution has density

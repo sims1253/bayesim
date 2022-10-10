@@ -11,7 +11,7 @@ logit <- function(x) {
   return(qlogis(x))
 }
 
-#' Inverse-Logit link function, equal to Logistic link
+#' Logit response function
 #'
 #' @param x value of x to be transformed, x unbound
 #'
@@ -23,20 +23,6 @@ logit <- function(x) {
 inv_logit <- function(x) {
   return(plogis(x))
 }
-
-#' Logistic link function, equivalent to Inverse-Logit link
-#'
-#' @param x value of x to be transformed, unbound
-#'
-#' @return logistic value of x, result ise (0, 1)
-#' @export
-#'
-#' @examples x <- seq(from = -100, to = 100, length.out = 100)
-#' plot(x, logistic(x), type = "l")
-logistic <- function(x) {
-  return(inv_logit(x))
-}
-
 
 #' Complementary-Log-Log link function
 #'
@@ -52,7 +38,7 @@ cloglog <- function(x) {
 }
 
 
-#' Inverse CLogLog link function
+#' Complementary-Log-Log response function
 #'
 #' @param x value of x to be transformed, x unbound
 #'
@@ -80,7 +66,7 @@ cauchit <- function(x) {
 }
 
 
-#' Inverse Cauchit link function equivalent to pcauchy
+#' Cauchit response function
 #'
 #' @param x value of x to be transformed, any real scalar or vector allowed
 #'
@@ -121,7 +107,7 @@ softplus <- function(x) {
 }
 
 
-#' Inverse Softplus link function
+#' Softplus response function
 #'
 #' @param x value to be transformed, x is unbound
 #'
@@ -132,145 +118,4 @@ softplus <- function(x) {
 #' plot(x, softplus(x), type = "l")
 inv_softplus <- function(x) {
   return(log(exp(x) + 1))
-}
-
-
-#' Numeric vector check
-#'
-#' @param num Numeric vector to be checked
-#' @param len Length of vector, default argument is 1
-#'
-#' @return Boolean, whether num was numeric and of correct size
-#' @export
-#'
-#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
-#' isNum_len(0.2) # should be TRUE
-#' isNum_len(0.2, 2) # should be FALSE, wrong length
-#' isNum_len("r") # should be FALSE, not numeric
-#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
-#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
-#'
-isNum_len <- function(num, len = 1) {
-  value <- all(!is.na(num)) && all(is.numeric(num)) && length(num) == len
-  return(isTRUE(value))
-}
-
-#' Integer vector check
-#'
-#' @param int Integer vector to be checked
-#' @param len Length of vector, default argument is 1
-#'
-#' @return Boolean, whether int was Integer and of correct size
-#' @export
-#'
-#' @examples isInt_len(c(1, 2), 2) # should be TRUE
-#' isInt_len(1) # should be TRUE
-#' isInt_len(1, 2) # should be FALSE, wrong length
-#' isInt_len("r") # should be FALSE, not integer
-#' isInt_len(0.2) # should be FALSE, not integer
-#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
-#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
-isInt_len <- function(int, len = 1) {
-  all_numeric <- all(!is.na(int)) && all(is.numeric(int))
-  if (isTRUE(all_numeric)) {
-    # only check for integer, if the type is numeric!
-    value <- all(int %% 1 == 0) && length(int) == len
-    return(isTRUE(value))
-  } else {
-    return(FALSE)
-  }
-  # One might also do this all in a single AND beginning with is.numeric.
-  # In a single test, this worked fine, given if !is.numeric, the other boolean,
-  # checks were not done (because FALSE & x <=> FALSE)
-  # this did prevent errors (from "r" %% 1 == 0) at the least
-
-  # But I would prefer only checking numerics,
-  # given logical AND may not necassarily follow this behaviour!
-}
-
-#' Boolean vector check
-#'
-#' @param logic Logic vector to be checked
-#' @param len Length of vector, default argument is 1
-#'
-#' @return Boolean, whether logic was Boolean and of correct size
-#' @export
-#'
-#' @examples isLogic_len(c(TRUE, FALSE), 2) # should be TRUE
-#' isLogic_len(TRUE) # should be TRUE
-#' isLogic_len(TRUE, FALSE) # should be FALSE, wrong length
-#' isLogic_len("r") # should be FALSE, not boolean
-#' isLogic_len(0) # should be FALSE, not boolean
-#' isLogic_len(c("r", TRUE), 2) # should be FALSE, partially not boolean
-#' isLogic_len(c("r", TRUE), 3) # should be FALSE, both not boolean and wrong length
-isLogic_len <- function(logic, len = 1) {
-  if (any(is.function(logic))) {
-    # other comparable functions threw warnings for function-ptr.
-    # This did not, so I added it in manually.
-    warning("Function type given instead of boolean in isLogic_len")
-    return(FALSE)
-  }
-  value <- all(is.logical(logic)) && length(logic) == len
-  return(isTRUE(value))
-}
-
-#' Check, if the input is a single string
-#'
-#' @param input String argument
-#'
-#' @return Is a string and only one string
-#' @export
-#'
-#' @examples isSingleString("abc") # should be TRUE
-#' isSingleString(c("abc")) # should be TRUE
-#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
-#' isSingleString(1) # should be FALSE, not a string
-#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
-#' # also wrong length
-isSingleString <- function(input) {
-  value <- all(!is.na(input)) && is.character(input) && length(input) == 1
-  return(isTRUE(value))
-}
-
-#' Data limit function
-#'
-#' @param data Data to be limited
-#' @param limits Limits to be used. Vector with 2 real entries, limits[1] <= limits[2]
-#' If the lower bound does not have to be restricted, set it to NA and vice versa.
-#' Sets data outside those bounds to those bounds.
-#'
-#' @return data limited by the limits
-#' @export
-#'
-#' @examples input <- c(1, 2, 3, 4)
-#' print(input)
-#' print(limit_data(input, c(2, 3)))
-#' print(limit_data(input, c(2, NA)))
-limit_data <- function(data, limits) {
-  # check that the limit is usable
-  if (length(limits) != 2) {
-    stop("If the limits is to be used, it has to be of size 2.")
-  }
-  if (!isNum_len(data, len = length(data))) {
-    stop("Some data was not numeric, or was NA")
-  }
-
-  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
-  if (isNum_len(limits, 2)) {
-    if (limits[1] > limits[2]) {
-      stop("In limit_data, the first limit is the lower limit, so it has to be
-           smaller than the second limit.")
-    }
-  }
-
-  # isNum_len will certailny return false, if NA
-  if (isNum_len(limits[1])) {
-    data[data < limits[1]] <- limits[1]
-  }
-  if (isNum_len(limits[2])) {
-    data[data > limits[2]] <- limits[2]
-  }
-
-  # now return the data
-  return(data)
 }

@@ -1,4 +1,4 @@
-#' Probability density function for the Beta-Prime distribution (aka. inverse Beta)
+#' Probability density function for the beta prime distribution (aka. inverse Beta)
 #'
 #' @source Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
 #' A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
@@ -13,7 +13,7 @@
 #' @param phi Precision, phi > 0.
 #' @param log Optional argument. If true, returns the log density.
 #'
-#' @return density of the pdf given x, mu and phi.
+#' @return Density of the pdf given x, mu and phi.
 #' @export
 #'
 #' @examples x <- seq(from = 0.1, to = 20, length.out = 1000)
@@ -46,7 +46,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
   }
 }
 
-#' Quantile function of the Beta-Prime distributions using mean parametrization
+#' Quantile function of the beta prime distribution
 #'
 #' @param p Probabilities, for which to calculate the quantiles
 #' @param mu Mean, mu > 0.
@@ -56,7 +56,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qbetaprime(x, mu = 1, phi = 2), type = "l")
+#' plot(x, qbetaprime(x, mu = 1, phi = 2), type = "l")
 qbetaprime <- function(p, mu, phi) {
   # check the arguments
   if (isTRUE(any(p < 0 | p > 1))) {
@@ -77,16 +77,16 @@ qbetaprime <- function(p, mu, phi) {
   return(exp(lqbp))
 }
 
-#' RNG function of the Beta-Prime distributions using mean parametrization
+#' RNG for the beta prime distribution
 #'
-#' @param n Number of beta-prime samples.
+#' @param n Number of samples.
 #' @param mu Mean, mu > 0.
 #' @param phi Precision, phi > 0.
 #'
-#' @return Random numbers from the beta-prime distribution.
+#' @return Random numbers from the beta prime distribution.
 #' @export
 #'
-#' @examples hist(bayesim::rbetaprime(100, mu = 1, phi = 2))
+#' @examples hist(rbetaprime(100, mu = 1, phi = 2))
 rbetaprime <- function(n, mu, phi) {
   # check the arguments
   if (isTRUE(phi <= 0)) {
@@ -98,7 +98,7 @@ rbetaprime <- function(n, mu, phi) {
   return(qbetaprime(runif(n, min = 0, max = 1), mu, phi))
 }
 
-#' Log-Likelihood vignette for the Beta-Prime distribution, in mean parametrization.
+#' Log-Likelihood of the beta prime distribution
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
@@ -112,47 +112,47 @@ log_lik_betaprime <- function(i, prep) {
 }
 
 
-#' Posterior-Predict vignette for the Beta-Prime distribution, in mean parametrization.
+#' posterior_predict for the beta prime distribution
 #'
 #' @param i BRMS indices
 #' @param prep BRMS data
 #' @param ...
 #'
-#' @return Posterior prediction of beta-prime, given data in prep
+#' @return Draws from the Posterior Predictive Distribution
 posterior_predict_betaprime <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   phi <- brms::get_dpar(prep, "phi", i = i)
   return(rbetaprime(prep$ndraws, mu, phi))
 }
 
-#' Posterior-Expectation-Predict vignette for the Beta-Prime distribution, in mean parametrization.
+#' posterior_epred for the beta prime distribution
 #'
 #' @param prep BRMS data
 #'
-#' @return Recover the given mean of data prep
+#' @return Expected Values of the Posterior Predictive Distribution
 posterior_epred_betaprime <- function(prep) {
   return(brms::get_dpar(prep, "mu"))
 }
 
 
-#' Custom Beta-Prime BRMS-implementation in mean parametrization.
+#' Beta prime brms custom family
 #'
 #' @param link Link function for function
 #' @param link_beta Link function for beta argument
 #'
-#' @return BRMS beta-prime distribution family
+#' @return brms beta prime distribution family
 #' @export
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
 #' a <- rnorm(1000)
-#' data <- list(a = a, y = bayesim::rbetaprime(1000, exp(0.5 * a + 1), 2))
+#' data <- list(a = a, y = rbetaprime(1000, exp(0.5 * a + 1), 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1 + a,
-#'     data = data, family = bayesim::betaprime(),
-#'     stanvars = bayesim::betaprime()$stanvars, backend = "cmdstanr", cores = 4
+#'     data = data, family = betaprime(),
+#'     stanvars = betaprime()$stanvars, backend = "cmdstanr", cores = 4
 #'   )
 #' })
 #' plot(fit1)

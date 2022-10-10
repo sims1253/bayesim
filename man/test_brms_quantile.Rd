@@ -27,7 +27,7 @@ Check, that data of the posterior is close enough to the reference data.
 ba_in <- 0.5
 # with seed=1337 returns true in my case, but it may fail on other machines
 # especially if the RNG generator does not work the same. In any case, you may check visually against the plot!
-fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed=1337)
+fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2, seed = 1337)
 result <- test_brms_quantile(fit1, "b_a", ba_in, 0.025)
 print(result)
 plot(fit1)

@@ -19,14 +19,12 @@ brms_family_lookup <- function(family, link = NULL) {
     "gamma" = brms::brmsfamily("gamma", link = link),
     "weibull" = brms::brmsfamily("weibull", link = link),
     "lognormal" = brms::brmsfamily("lognormal", link = link),
-    "lognormal_custom" = lognormal_custom(link = link),
     "softplusnormal" = softplusnormal(link = link),
     "lomax" = lomax(link = link),
     "frechet" = brms::brmsfamily("frechet", link = link),
     "inverse.gaussian" = brms::brmsfamily("inverse.gaussian", link = link),
     "betaprime" = betaprime(link = link),
-    "gompertz" = gompertz(link = link),
-    "inversegaussian_custom" = inversegaussian_custom(link = link)
+    "gompertz" = gompertz(link = link)
   )
 }
 
@@ -51,14 +49,12 @@ rng_lookup <- function(family) {
     "gamma" = rgamma_custom,
     "weibull" = rweibull_custom,
     "lognormal" = rlognormal_custom,
-    "lognormal_custom" = rlognormal_custom,
     "softplusnormal" = rsoftplusnormal,
     "lomax" = rlomax,
     "frechet" = rfrechet_custom,
     "inverse.gaussian" = brms::rinv_gaussian,
     "betaprime" = rbetaprime,
-    "gompertz" = rgompertz,
-    "inversegaussian_custom" = rinversegaussian_custom
+    "gompertz" = rgompertz
   )
 }
 
