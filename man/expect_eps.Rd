@@ -6,7 +6,7 @@
 For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
 Given it is a "workhorse" used in almost all test-files, this function is also very well tested.}
 \usage{
-expect_eps(a, b, eps, r = 0)
+expect_eps(a, b, eps, r = 0, relative = FALSE, note = NULL)
 }
 \arguments{
 \item{a}{numeric scalar or vector a to be compared}
@@ -15,7 +15,9 @@ expect_eps(a, b, eps, r = 0)
 
 \item{eps}{numeric scalar or vector, setting the max differences, eps > 0}
 
-\item{r}{optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
+\item{r}{optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.}
+
+\item{note}{optional parameter used for debugging.
 Used internally, tlo calculate acceptable amount of deviances. Calculated absolute value will be floored.}
 }
 \value{

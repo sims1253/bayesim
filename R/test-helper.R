@@ -9,6 +9,7 @@
 #' @param b numeric scalar or vector b to be compared
 #' @param eps numeric scalar or vector, setting the max differences, eps > 0
 #' @param r optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
+#' @param note optional parameter used for debugging.
 #' Used internally, tlo calculate acceptable amount of deviances. Calculated absolute value will be floored.
 #'
 #' @md
@@ -24,8 +25,6 @@
 #'
 #' @return success or failure with message
 #'
-#' @export
-#'
 #' @examples library(testthat)
 #' library(bayesim)
 #' expect_eps(1, 1.1, 0.2) # should pass
@@ -39,10 +38,10 @@
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
 #' expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
-expect_eps <- function(a, b, eps, r = 0.0) {
+expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
 
   # then check, that r is only a scalar. Also check, that r is in range [0, 1)
-  if (isFALSE(isNum_len(r) && r >= 0 && r < 1)) {
+  if (isFALSE(isNum_len(r) & r >= 0 & r < 1)) {
     stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
   }
 
@@ -52,7 +51,7 @@ expect_eps <- function(a, b, eps, r = 0.0) {
     stop("Tried checking against negative differences.")
   }
 
-  # then check, if vectors are of same length
+  # then check, if vectors are of same length or length 1
   vector_length <- max(length(a), length(b), length(eps))
   a_correct <- isNum_len(a) || isNum_len(a, vector_length)
   b_correct <- isNum_len(b) || isNum_len(b, vector_length)
@@ -68,8 +67,25 @@ expect_eps <- function(a, b, eps, r = 0.0) {
   # should always produce comparable results within a few eps machine precision.
   tolerated_deviances <- floor(vector_length * r)
 
-  # last check, the actual value difference
-  eps_comparison_wrong <- (abs(a - b) > eps)
+  # last check, the actual value difference, either as an absolute or relative error
+  if (relative) {
+    relative_eps <- dplyr::case_when(
+      length(a) == 1 & length(b) == 1 ~ eps * min(a, b),
+      length(a) == length(b) ~ eps * sapply(
+        seq(1, length(a)), function(x) min(c(a[x], b[x]))
+      ),
+      length(a) == 1 ~ eps * sapply(
+        seq(1, length(b)), function(x) min(c(a, b[x]))
+      ),
+      length(b) == 1 ~ eps * sapply(
+        seq(1, length(a)), function(x) min(c(a[x], b))
+      ),
+    )
+    eps_comparison_wrong <- (abs(a - b) > relative_eps)
+  } else {
+    eps_comparison_wrong <- (abs(a - b) > eps)
+  }
+
   # convert the logical vector in a sum of how many entries were wrong
   number_deviances <- sum(eps_comparison_wrong, na.rm = TRUE)
 
@@ -88,29 +104,37 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 }
 
 
-#' Distribution RNG test vingette
+#' Tests if an RNG can achieve a good enough location often enough
 #'
 #' @param rng_fun RNG function under test
 #' @param metric_mu Metric to be used on RNG data (usually mean or median)
-#' @param mus Metric data used as RNG argument and to be compared to (usually mean or median)
-#' @param shapes Shape arguemnts
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_par Auxiliary parameter
 #' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
 #' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
 #' @param mu_link Default=identity, optional link-function argument, for example
 #' useful in link-normal-distributions
+#' @param relative True if the error should be relative to the mu_list
 #'
 #' @return Nothing actually, just wraps the test
-#' @export
 #'
 #' @examples library(testthat)
 #' library(bayesim)
-#' mus <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
 #' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
 #' test_rng(
-#'   rng_fun = bayesim::rbetaprime, metric_mu = mean, n = 10000, mus = mus,
-#'   shapes = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+#'   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
+#'   aux_par = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
 #' )
-test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_failures, mu_link = identity) {
+test_rng <- function(rng_fun,
+                     metric_mu,
+                     n,
+                     mu_list,
+                     aux_par,
+                     mu_eps,
+                     p_acceptable_failures,
+                     mu_link = identity,
+                     relative = FALSE) {
 
   # check, that all function arguments are actually functions
   # TODO: (Is it possible, to check, if they also take the correct arguments?)
@@ -132,20 +156,155 @@ test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_fa
   # prepare the data, use a vector for ease of use
   # allows re-using the expect_eps.
   # As opposed to using a matrix, which would just complicate implementation and comparison.
-  lenx <- length(shapes)
-  leny <- length(mus)
-  expected_mus <- rep(mus, times = leny)
+  lenx <- length(aux_par)
+  leny <- length(mu_list)
+  expected_mus <- rep(mu_list, times = leny)
   rng_mus <- vector(length = lenx * leny)
 
   # calculate rng data
   for (x in 1:lenx) {
     for (y in 1:leny) {
-      rng_mus[(x - 1) * leny + y] <- mu_link(metric_mu(rng_fun(n, mu = mus[y], shapes[x])))
+      rng_mus[(x - 1) * leny + y] <- mu_link(
+        metric_mu(
+          rng_fun(
+            n,
+            mu = mu_list[y], aux_par[x]
+          )
+        )
+      )
     }
   }
   # now the data was written, compare it
-  expect_eps(rng_mus, expected_mus, mu_eps, p_acceptable_failures)
+  expect_eps(
+    a = rng_mus,
+    b = expected_mus,
+    eps = mu_eps,
+    r = p_acceptable_failures,
+    relative = TRUE
+  )
 }
+
+#' Test if an RNG asymptotically approaches the true location
+#'
+#' Is currently not in a reliable state useful for testing. Needs more thought.
+#'
+#' @param rng_fun RNG function under test
+#' @param metric_mu Metric to be used on RNG data (usually mean or median)
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_par Auxiliary parameter
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#'
+#'
+#' @return Success or failure with message
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng_asym(
+#'   rng_fun = rbetaprime,
+#'   metric_mu = mean,
+#'   n = 10000,
+#'   mu_list = mu_list,
+#'   aux_par = phis,
+#'   relative = TRUE
+#' )
+test_rng_asym <- function(rng_fun,
+                          metric_mu,
+                          n,
+                          mu_list,
+                          aux_par,
+                          mu_link = identity) {
+  exponents <- seq(1, floor(log10(n)), by = 2)
+
+  # Generate a list of mus per mu, aux combination for growing sample sizes
+  for (mu in mu_list) {
+    for (aux in aux_par) {
+      loop_mu_list <- vector(mode = "numeric", length = length(exponents))
+      for (i in seq_along(exponents)) {
+        loop_n <- 10^exponents[i]
+        loop_mu_list[i] <- mu_link(
+          metric_mu(
+            rng_fun(
+              loop_n,
+              mu = mu, aux
+            )
+          )
+        )
+      }
+      # Tests if the resulting distances to the true mu reduce with growing sample size
+      if (!identical(
+        abs(loop_mu_list - mu),
+        sort(abs(loop_mu_list - mu), decreasing = TRUE)
+      )) {
+        fail(paste(
+          "The RNG did not approach the true location parameter asymptotically \n",
+          abs(loop_mu_list - mu),
+          "\n vs \n",
+          sort(abs(loop_mu_list - mu), decreasing = TRUE),
+          "\n",
+          mu, aux, exponents
+        ))
+      }
+    }
+  }
+  succeed()
+}
+
+#' Tests if an RNG can recover the true quantiles within a margin of error
+#'
+#' @param rng_fun RNG function under test
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_par Auxiliary parameter
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#' useful in link-normal-distributions
+#' @param relative True if the error should be relative to the mu_list
+#'
+#' @return Nothing actually, just wraps the test
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng(
+#'   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
+#'   aux_par = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+#' )
+test_rng_quantiles <- function(rng_fun,
+                               quantile_fun,
+                               n,
+                               mu_list,
+                               aux_par,
+                               eps,
+                               quantiles,
+                               p_acceptable_failures,
+                               mu_link = identity,
+                               relative = FALSE) {
+  for (mu in mu_list) {
+    for (aux in aux_par) {
+      sample <- mu_link(
+        rng_fun(
+          n,
+          mu = mu,
+          aux
+        )
+      )
+      true_quantiles <- do.call(quantile_fun, list(quantiles, mu, aux))
+      expect_eps(
+        a = true_quantiles,
+        b = quantile(sample, quantiles),
+        eps = eps,
+        r = p_acceptable_failures,
+        relative = relative
+      )
+    }
+  }
+}
+
 
 #' Check, if a is bigger than b. expect_smaller(a, b) can be done,
 #' by expect_bigger(b, a) with swapped arguments.
@@ -162,7 +321,6 @@ test_rng <- function(rng_fun, metric_mu, n, mus, shapes, mu_eps, p_acceptable_fa
 #'
 #' @return expect(a > threshold)
 #'
-#' @export
 #'
 #' @examples expect_bigger(1, 0) # should pass
 #' expect_bigger(0, 1) # should fail
@@ -215,7 +373,6 @@ expect_bigger <- function(a, b) {
 #' Note: Will supress everything, besides errors (so tests stay clean).
 #'
 #' @return None
-#' @export
 #'
 #' @examples library(testthat)
 #' result <- expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
@@ -270,7 +427,6 @@ expect_brms_family <- function(n_data_sampels = 1000, ba = 0.5, intercept = 1, s
 #' Only exceptions will be printed. For testing reasons, to not spam the test-window.
 #'
 #' @return BRMS model for the specified family.
-#' @export
 #'
 #' @examples posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2)
 #' plot(posterior_fit)
@@ -369,7 +525,6 @@ construct_brms <- function(n_data_sampels, ba, intercept, shape, link, family, r
 #' thresh has to be inside the Unit-Interval.
 #'
 #' @return Single boolean succeess, fail or error
-#' @export
 #'
 #' @examples ba_in <- 0.5
 #' # with seed=1337 returns true in my case, but it may fail on other machines
@@ -540,13 +695,12 @@ density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_in
 }
 
 
-#' Numeric vector check
+#' Check if a vector is numeric, has no na entries and has length len
 #'
-#' @param num Numeric vector to be checked
+#' @param x Numeric vector to be checked
 #' @param len Length of vector, default argument is 1
 #'
-#' @return Boolean, whether num was numeric and of correct size
-#' @export
+#' @return Boolean, whether x was numeric and of correct size
 #'
 #' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
 #' isNum_len(0.2) # should be TRUE
@@ -555,8 +709,8 @@ density_lookup_generator <- function(n_param = 10, n_x = 100, eps = 10^-6, mu_in
 #' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
 #' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
 #'
-isNum_len <- function(num, len = 1) {
-  value <- all(!is.na(num)) && all(is.numeric(num)) && length(num) == len
+isNum_len <- function(x, len = 1) {
+  value <- all(!is.na(x)) && all(is.numeric(x)) && length(x) == len
   return(isTRUE(value))
 }
 

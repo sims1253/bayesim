@@ -28,7 +28,7 @@ test_that("custom-simplex", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
   test_rng(
-    rng_fun = bayesim::rsimplex, metric_mu = median, n = n, mus = mus_r, shapes = sigmas_r,
+    rng_fun = bayesim::rsimplex, metric_mu = median, n = n, mu_list = mus_r, aux_par = sigmas_r,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value

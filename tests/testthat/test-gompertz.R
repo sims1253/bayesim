@@ -45,7 +45,7 @@ test_that("custom-gompertz", {
   expect_equal(n, length(gompertz_samples))
 
   test_rng(
-    rng_fun = bayesim::rgompertz, metric_mu = median, n = n, mus = mus, shapes = betas_r,
+    rng_fun = bayesim::rgompertz, metric_mu = median, n = n, mu_list = mus, aux_par = betas_r,
     mu_eps = accepted_median_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value

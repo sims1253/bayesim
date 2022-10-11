@@ -2,20 +2,20 @@
 % Please edit documentation in R/test-helper.R
 \name{isNum_len}
 \alias{isNum_len}
-\title{Numeric vector check}
+\title{Check if a vector is numeric, has no na entries and has length len}
 \usage{
-isNum_len(num, len = 1)
+isNum_len(x, len = 1)
 }
 \arguments{
-\item{num}{Numeric vector to be checked}
+\item{x}{Numeric vector to be checked}
 
 \item{len}{Length of vector, default argument is 1}
 }
 \value{
-Boolean, whether num was numeric and of correct size
+Boolean, whether x was numeric and of correct size
 }
 \description{
-Numeric vector check
+Check if a vector is numeric, has no na entries and has length len
 }
 \examples{
 isNum_len(c(1.1, 2.2), 2) # should be TRUE

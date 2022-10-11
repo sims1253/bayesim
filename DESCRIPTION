@@ -37,3 +37,5 @@ Suggests:
     extraDistr,
     BBmisc,
 RoxygenNote: 7.2.1
+Config/testthat/parallel: true
+Config/testthat/edition: 3

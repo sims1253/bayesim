@@ -41,7 +41,7 @@ test_that("custom-cloglognormal", {
 
   # check the RNG is not too far of the input value
   test_rng(
-    rng_fun = bayesim::rcloglognormal, metric_mu = median, n = n_rng, mus = mus, shapes = sigmas,
+    rng_fun = bayesim::rcloglognormal, metric_mu = median, n = n_rng, mu_list = mus, aux_par = sigmas,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = cloglog
   )
 
