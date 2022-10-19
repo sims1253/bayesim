@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_gamma.R
 \name{dgamma_custom}
 \alias{dgamma_custom}
-\title{Custom Gamma density function in mean parametrisation.}
+\title{Custom Gamma Density function}
 \usage{
 dgamma_custom(x, mu, a, log = FALSE)
 }
@@ -17,7 +17,7 @@ dgamma_custom(x, mu, a, log = FALSE)
 f(x | mu, k)
 }
 \description{
-Custom Gamma density function in mean parametrisation.
+Custom Gamma Density function
 }
 \details{
 Define rate constante rho as:

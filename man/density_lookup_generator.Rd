@@ -55,9 +55,9 @@ this function already generates about 800KiB of files per PDF to be tested.
 }
 \examples{
 eps <- 1e-6
-bayesim:::density_lookup_generator(
+:density_lookup_generator(
   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
-  density_fun = bayesim::dcauchitnormal, density_name = "cauchitnormal_demodata",
+  density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
   save_folder = ""
 )
 # saves cauchit_normal_demodata_refdata and *_refpdf with density input and lookup-data respectively

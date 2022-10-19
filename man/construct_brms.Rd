@@ -55,7 +55,7 @@ BRMS model for the specified family.
 Construct BRMS family for simple linear y ~ 1 + a model.
 }
 \examples{
-posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, bayesim::betaprime, bayesim::rbetaprime, 2)
+posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, betaprime, rbetaprime, 2)
 plot(posterior_fit)
 # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 }

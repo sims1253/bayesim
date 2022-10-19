@@ -1,7 +1,7 @@
 
-# Unit tests for custom beta-prime
+# Unit tests for custom betaprime
 
-# Just a small function, to get the alpha shape-argument, for reference beta_prime functions
+# Just a small function, to get the alpha shape-argument, for reference betaprime functions
 get_alpha <- function(mu, phi) {
   alpha <- mu * (phi + 1)
   return(alpha)
@@ -20,12 +20,12 @@ n_small <- 20
 mu_list <- seq(from = eps, to = 1000, length.out = n_small)
 phi_list <- seq(from = eps, to = 50, length.out = n_small)
 accepted_relative_error <- 1e-12
-accepted_mean_error <- 0.05
+accepted_relative_mean_error <- 0.1
 p_acceptable_failures <- 0.05
 # parameter for RNG test (going to close to 0 makes it a bit unstable)
 
 test_that("custom-betaprime", {
-  # calculate beta-prime
+  # calculate betaprime
   dbetaprime_results <- dbetaprime(x, mu = 1, phi = 2)
   qbetaprime_results <- qbetaprime(unit, mu = 1, phi = 2)
   # check length
@@ -35,12 +35,12 @@ test_that("custom-betaprime", {
   # Compare density and quantile functions to extraDistr
   for (m in mu_list) {
     for (phi in phi_list) {
-      bayesim:::expect_eps(dbetaprime(x, mu = m, phi = phi),
+      expect_eps(dbetaprime(x, mu = m, phi = phi),
         extraDistr::dbetapr(x, get_alpha(m, phi), get_beta(phi)),
         eps = accepted_relative_error,
         relative = TRUE
       )
-      bayesim:::expect_eps(qbetaprime(unit, mu = m, phi = phi),
+      expect_eps(qbetaprime(unit, mu = m, phi = phi),
         extraDistr::qbetapr(unit, get_alpha(m, phi), get_beta(phi)),
         eps = accepted_relative_error,
         relative = TRUE
@@ -49,29 +49,30 @@ test_that("custom-betaprime", {
   }
 
   # check the RNG will return the correct number of samples
-  betaprime_samples <- bayesim::rbetaprime(n, 2, 3)
+  betaprime_samples <- rbetaprime(n, 2, 3)
   expect_equal(n, length(betaprime_samples))
 
   # check if the RNG is close enough to the true mean in most cases
-  bayesim:::test_rng(
+  test_rng(
     rng_fun = rbetaprime,
     metric_mu = mean,
-    n = 10 * n,
+    # 10 times means time increase from 60s to 200s! 4 is a compromise at 100s
+    n = 4*n,
     mu_list = mu_list,
     aux_par = phi_list,
-    mu_eps = accepted_mean_error,
+    mu_eps = accepted_relative_mean_error,
     p_acceptable_failures = p_acceptable_failures,
     relative = TRUE
   )
 
   # check if the RNG can recover the quantiles
-  bayesim:::test_rng_quantiles(
+  test_rng_quantiles(
     rng_fun = rbetaprime,
     quantile_fun = qbetaprime,
-    n = 10 * n,
+    n = 4*n,
     mu_list = mu_list,
     aux_par = phi_list,
-    eps = accepted_mean_error,
+    eps = accepted_relative_mean_error,
     quantiles = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99),
     p_acceptable_failures = 0.1,
     relative = TRUE

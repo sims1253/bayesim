@@ -2,24 +2,24 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{dcauchitnormal}
 \alias{dcauchitnormal}
-\title{Cauchitnormal density distribution in median parametrization.}
+\title{Cauchitnormal Density distribution.}
 \usage{
 dcauchitnormal(x, mu, sigma, log = FALSE)
 }
 \arguments{
 \item{x}{Value space of the distribution, x e (0, 1)}
 
-\item{mu}{Median parameter, mu is already cauchit-transformed, mu unbound}
+\item{mu}{Median parameter, mu is already Cauchit-transformed, mu unbound}
 
 \item{sigma}{Sigma shape parameter, sigma >= 0}
 
 \item{log}{Bool argument, if true, returns the logarithmic density}
 }
 \value{
-Normal distribution density with cauchit link function
+Normal Distribution Density with Cauchit link function
 }
 \description{
-Cauchitnormal density distribution in median parametrization.
+Cauchitnormal Density distribution.
 }
 \examples{
 x <- seq(from = 0.01, to = 0.99, length.out = 1000)

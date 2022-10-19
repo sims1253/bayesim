@@ -2,7 +2,7 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{cauchitnormal}
 \alias{cauchitnormal}
-\title{Custom BRMS family Cauchit-Normal in median parametrization.}
+\title{Custom BRMS family Cauchitnormal}
 \usage{
 cauchitnormal(link = "identity", link_sigma = "log")
 }
@@ -15,19 +15,19 @@ cauchitnormal(link = "identity", link_sigma = "log")
 Cauchitnormal BRMS model-object
 }
 \description{
-Custom BRMS family Cauchit-Normal in median parametrization.
+Custom BRMS family Cauchitnormal
 }
 \examples{
 # Running the example might take a while and may make RStudio unresponsive.
 # Just relax and grab a cup of coffe or tea in the meantime.
 a <- rnorm(1000)
-data <- list(a = a, y = bayesim::rcauchitnormal(1000, 0.5 * a + 1, 2))
+data <- list(a = a, y = rcauchitnormal(1000, 0.5 * a + 1, 2))
 # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 # For an example without surpress, checkout the Bayesim Betaprime Example script
 BBmisc::suppressAll({
   fit1 <- brms::brm(y ~ 1 + a,
-    data = data, family = bayesim::cauchitnormal(),
-    stanvars = bayesim::cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4
+    data = data, family = cauchitnormal(),
+    stanvars = cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4
   )
 })
 plot(fit1)

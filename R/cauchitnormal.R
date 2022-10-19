@@ -1,11 +1,11 @@
-#' Cauchitnormal density distribution in median parametrization.
+#' Cauchitnormal Density distribution.
 #'
 #' @param x Value space of the distribution, x e (0, 1)
-#' @param mu Median parameter, mu is already cauchit-transformed, mu unbound
+#' @param mu Median parameter, mu is already Cauchit-transformed, mu unbound
 #' @param sigma Sigma shape parameter, sigma >= 0
 #' @param log Bool argument, if true, returns the logarithmic density
 #'
-#' @return Normal distribution density with cauchit link function
+#' @return Normal Distribution Density with Cauchit link function
 #' @export
 #'
 #' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
@@ -28,13 +28,13 @@ dcauchitnormal <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
-#' Cauchitnormal RNG-function in median parametrization.
+#' Cauchitnormal RNG-function
 #'
 #' @param n Number of draws
 #' @param mu Median paramameter, mu unbound, mu already cauchit transformed
 #' @param sigma Sigma shape parameter, sigma > 0
 #'
-#' @returns n Chauchitnormally ditributed samples
+#' @returns n chauchitnormally ditributed samples
 #'
 #' @export
 #'
@@ -48,12 +48,12 @@ rcauchitnormal <- function(n, mu, sigma) {
   )
 }
 
-#' Log-Likelihood vignette for the Chauchitnormal distribution, in Median parametrization.
+#' Log-Likelihood vignette for the Chauchitnormal Distribution
 #'
 #' @param i Indices
 #' @param prep BRMS data
 #'
-#' @return log_likelihood of the Cauchitnormal distribution, given some BRMS data.
+#' @return log_likelihood of the Cauchitnormal Distribution, given some BRMS data.
 log_lik_cauchitnormal <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
@@ -61,20 +61,20 @@ log_lik_cauchitnormal <- function(i, prep) {
   return(dcauchitnormal(y, mu, sigma, log = TRUE))
 }
 
-#' Posterior-predict vignette for the Chauchitnormal distribution, with Median parametrization.
+#' Posterior-predict vignette for the Chauchitnormal Distribution
 #'
 #' @param i Indices
 #' @param prep BRMS data
 #' @param ...
 #'
-#' @return The posterior prediction of the Cauchitnormal distribution, given some BRMS data.
+#' @return The posterior prediction of the Cauchitnormal Distribution, given some BRMS data.
 posterior_predict_cauchitnormal <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   sigma <- brms::get_dpar(prep, "sigma", i = i)
   return(rcauchitnormal(prep$ndraws, mu, sigma))
 }
 
-#' Posterior expected value prediction. Mean undefined for Cauchit-Normal.
+#' Posterior expected value prediction. Mean undefined for Cauchitnormal.
 #'
 #' @param prep BRMS data
 #'
@@ -85,7 +85,7 @@ posterior_epred_cauchitnormal <- function(prep) {
         distribution, posterior_epred is currently not supported.")
 }
 
-#' Custom BRMS family Cauchit-Normal in median parametrization.
+#' Custom BRMS family Cauchitnormal
 #'
 #' @param link Link function argument (as string) for Median argument. Left as identity!
 #' @param link_sigma Link function argument (as string) for Shape argument
@@ -96,13 +96,13 @@ posterior_epred_cauchitnormal <- function(prep) {
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
 #' a <- rnorm(1000)
-#' data <- list(a = a, y = bayesim::rcauchitnormal(1000, 0.5 * a + 1, 2))
+#' data <- list(a = a, y = rcauchitnormal(1000, 0.5 * a + 1, 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1 + a,
-#'     data = data, family = bayesim::cauchitnormal(),
-#'     stanvars = bayesim::cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4
+#'     data = data, family = cauchitnormal(),
+#'     stanvars = cauchitnormal()$stanvars, backend = "cmdstanr", cores = 4
 #'   )
 #' })
 #' plot(fit1)

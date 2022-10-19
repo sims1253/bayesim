@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_beta.R
 \name{dbeta_custom}
 \alias{dbeta_custom}
-\title{Custom implementation of the Beta distribution density.}
+\title{Custom implementation of the Beta Distribution Density.}
 \usage{
 dbeta_custom(x, mu, phi, log = FALSE)
 }
@@ -16,13 +16,13 @@ dbeta_custom(x, mu, phi, log = FALSE)
 \item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
 }
 \value{
-PDF of Custom Beta distribution, with mean parameterasation
+PDF of custom Beta Distribution
 }
 \description{
-Custom implementation of the Beta distribution density.
+Custom implementation of the Beta Distribution Density.
 }
 \details{
-The beta distribution has density
+The Beta Distribution has Density
 \deqn{f(y | \mu, \phi) = \frac{\Gamma(\phi) x^{\mu\phi - 1} (1 - x)^{(1-\mu)\phi}}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} }
 
 With parameterisation of the usual Beta-Distribution's shape parameters a and b as:

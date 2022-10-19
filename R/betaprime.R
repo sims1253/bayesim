@@ -3,9 +3,9 @@
 #' @source Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
 #' A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
 #'
-#' @details The beta-prime distribution has density
+#' @details The betaprime distribution has density
 #' \deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
-#' @details With the usual Betaprime parameters
+#' @details With the usual betaprime parameters
 #' \deqn{\beta = \Phi + 2, \alpha = \mu(\Phi + 1)}
 #'
 #' @param x Value, x > 0.
@@ -23,14 +23,14 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
   if (isTRUE(any(x <= 0))) {
     stop("betaprime is only defined for x > 0")
   }
-  if (isTRUE(phi <= 0)) {
+  if (isTRUE(any(phi <= 0))) {
     stop("betaprime is only defined for phi > 0")
   }
-  if (isTRUE(mu <= 0)) {
+  if (isTRUE(any(mu <= 0))) {
     stop("betaprime is only defined for mu > 0")
   }
 
-  # calculate the second argument for beta-prime, given mu
+  # calculate the second argument for betaprime, given mu
   beta <- phi + 2
   alpha <- mu * (phi + 1)
 
@@ -52,7 +52,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @param mu Mean, mu > 0.
 #' @param phi Precision, phi > 0.
 #'
-#' @return Quantiles of the beta-prime distribution, given p, mu and phi
+#' @return Quantiles of the betaprime distribution, given p, mu and phi
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
@@ -89,6 +89,7 @@ qbetaprime <- function(p, mu, phi) {
 #' @examples hist(rbetaprime(100, mu = 1, phi = 2))
 rbetaprime <- function(n, mu, phi) {
   # check the arguments
+  #if ()
   if (isTRUE(phi <= 0)) {
     stop("betaprime is only defined for phi > 0")
   }
@@ -145,10 +146,10 @@ posterior_epred_betaprime <- function(prep) {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' a <- rnorm(1000)
-#' data <- list(a = a, y = rbetaprime(1000, exp(0.5 * a + 1), 2))
+#' a <- rnorm(n = 1000)
+#' data <- list(a = a, y = rbetaprime(n = 1000, mu = exp(0.5 * a + 1), phi = 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
-#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' # For an example without surpress, checkout the Bayesim betaprime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1 + a,
 #'     data = data, family = betaprime(),

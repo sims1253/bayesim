@@ -16,7 +16,7 @@ rbeta_custom(n, mu, phi)
 \item{log}{TRUE if log pdf is wanted}
 }
 \value{
-n samples beta distributed.
+n samples Beta distributed.
 }
 \description{
 Custom Beta distribution RNG

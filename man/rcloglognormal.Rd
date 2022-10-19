@@ -2,22 +2,22 @@
 % Please edit documentation in R/cloglognormal.R
 \name{rcloglognormal}
 \alias{rcloglognormal}
-\title{Cloglognormal RNG-function in median parametrization.}
+\title{Cloglognormal RNG-function}
 \usage{
 rcloglognormal(n, mu, sigma)
 }
 \arguments{
 \item{n}{Number of draws}
 
-\item{mu}{Median paramameter, mu unbound, mu already cloglog transformed}
+\item{mu}{Median parameter, mu unbound, mu already cloglog transformed}
 
 \item{sigma}{Shape parameter}
 }
 \value{
-n Cloglog-normally ditributed samples
+n cloglog-normally distributed samples
 }
 \description{
-Cloglognormal RNG-function in median parametrization.
+Cloglognormal RNG-function
 }
 \examples{
 hist(rcloglognormal(100, 0.5, 2))

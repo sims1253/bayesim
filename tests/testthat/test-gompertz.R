@@ -25,57 +25,57 @@ p_acceptable_failures <- 0.05
 
 test_that("custom-gompertz", {
   # calculate gompertz
-  dgompertz_results <- bayesim::dgompertz(x, mu = 10, b = 1)
-  qgompertz_results <- bayesim::qgompertz(unit, mu = 10, b = 1)
+  dgompertz_results <- dgompertz(x, mu = 10, b = 1)
+  qgompertz_results <- qgompertz(unit, mu = 10, b = 1)
   # check length
   expect_equal(n, length(dgompertz_results))
   expect_equal(n, length(qgompertz_results))
 
   # check many shape parameters
-  accepted_median_eps <- 0.01
   for (m in mus) {
     for (b in betas) {
-      expect_eps(bayesim::dgompertz(x, mu = m, b = b), extraDistr::dgompertz(x, get_a(m, b), b), eps)
-      expect_eps(bayesim::qgompertz(unit, mu = m, b = b), extraDistr::qgompertz(unit, get_a(m, b), b), eps)
+      expect_eps(dgompertz(x, mu = m, b = b), extraDistr::dgompertz(x, get_a(m, b), b), eps)
+      expect_eps(qgompertz(unit, mu = m, b = b), extraDistr::qgompertz(unit, get_a(m, b), b), eps)
     }
   }
 
   # check the RNG will return the correct number of samples
-  gompertz_samples <- bayesim::rgompertz(n, 1, 3)
+  gompertz_samples <- rgompertz(n, 1, 3)
   expect_equal(n, length(gompertz_samples))
 
+  accepted_median_eps <- 0.01
   test_rng(
-    rng_fun = bayesim::rgompertz, metric_mu = median, n = n, mu_list = mus, aux_par = betas_r,
+    rng_fun = rgompertz, metric_mu = median, n = n, mu_list = mus, aux_par = betas_r,
     mu_eps = accepted_median_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
 
   # now check density function for some errors
-  expect_error(bayesim::dgompertz(1, 2)) # to few arguments
-  expect_error(bayesim::dgompertz(1, 2, 3, 4, 5)) # to many arguments
-  expect_error(bayesim::dgompertz(-1, mu = 2, beta = 2)) # x is not allowed to be smaller 0
-  expect_error(bayesim::dgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::dgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
-  expect_error(bayesim::dgompertz("r", mu = 2, beta = 2)) # non-numeric argumen
+  expect_error(dgompertz(1, 2)) # to few arguments
+  expect_error(dgompertz(1, 2, 3, 4, 5)) # to many arguments
+  expect_error(dgompertz(-1, mu = 2, beta = 2)) # x is not allowed to be smaller 0
+  expect_error(dgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(dgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
+  expect_error(dgompertz("r", mu = 2, beta = 2)) # non-numeric argumen
   # check values against comparable implementationts are disallowed
 
   # do same for quantile function
-  expect_error(bayesim::qgompertz(1, 2)) # to few arguments
-  expect_error(bayesim::qgompertz(1, 2, 3, 4, 5)) # to many arguments
-  expect_error(bayesim::qgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
-  expect_error(bayesim::qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
-  expect_error(bayesim::qgompertz("r", mu = 2, beta = 2)) # non-numeric arguments are disallowed
+  expect_error(qgompertz(1, 2)) # to few arguments
+  expect_error(qgompertz(1, 2, 3, 4, 5)) # to many arguments
+  expect_error(qgompertz(1, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(qgompertz(1, mu = 1, beta = 0)) # beta is not allowed to be 0 or smaller
+  expect_error(qgompertz(c(-1, 2), mu = 2, beta = 2)) # q is not allowed to be outside [0, 1]
+  expect_error(qgompertz("r", mu = 2, beta = 2)) # non-numeric arguments are disallowed
 
 
   # do same for RNG function
-  expect_error(bayesim::rgompertz(100, 2)) # to few arguments
-  expect_error(bayesim::rgompertz(10, 2, 3, 4, 5)) # to many arguments
-  expect_error(bayesim::rgompertz(-1, mu = 2, b = 2)) # number of drawn samples cannot be smaller 0
-  expect_warning(expect_error(bayesim::rgompertz("r", mu = 2, b = 2))) # non-numeric arguments are disallowed
+  expect_error(rgompertz(100, 2)) # to few arguments
+  expect_error(rgompertz(10, 2, 3, 4, 5)) # to many arguments
+  expect_error(rgompertz(-1, mu = 2, b = 2)) # number of drawn samples cannot be smaller 0
+  expect_warning(expect_error(rgompertz("r", mu = 2, b = 2))) # non-numeric arguments are disallowed
   # also non-numeric arguments for n will throw warning
-  expect_error(bayesim::rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
-  expect_error(bayesim::rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
+  expect_error(rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
+  expect_error(rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
 
-  expect_brms_family(link = exp, family = bayesim::gompertz, rng = bayesim::rgompertz, shape_name = "beta")
+  expect_brms_family(link = exp, family = gompertz, rng = rgompertz, shape_name = "beta")
 })

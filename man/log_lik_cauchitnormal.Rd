@@ -2,7 +2,7 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{log_lik_cauchitnormal}
 \alias{log_lik_cauchitnormal}
-\title{Log-Likelihood vignette for the Chauchitnormal distribution, in Median parametrization.}
+\title{Log-Likelihood vignette for the Chauchitnormal Distribution}
 \usage{
 log_lik_cauchitnormal(i, prep)
 }
@@ -12,8 +12,8 @@ log_lik_cauchitnormal(i, prep)
 \item{prep}{BRMS data}
 }
 \value{
-log_likelihood of the Cauchitnormal distribution, given some BRMS data.
+log_likelihood of the Cauchitnormal Distribution, given some BRMS data.
 }
 \description{
-Log-Likelihood vignette for the Chauchitnormal distribution, in Median parametrization.
+Log-Likelihood vignette for the Chauchitnormal Distribution
 }

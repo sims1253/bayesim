@@ -1,16 +1,16 @@
-#' Custom implementation of the Beta distribution density.
+#' Custom implementation of the Beta Distribution Density.
 #'
 #' @param x x-value, x e (0, 1)
 #' @param mu Mean parameter, mu e (0, 1)
 #' @param phi Precision parameter, phi > 0
 #' @param log Optional argument. If TRUE, returns log(pdf). Normally False.
 #'
-#' @details The beta distribution has density
+#' @details The Beta Distribution has Density
 #' \deqn{f(y | \mu, \phi) = \frac{\Gamma(\phi) x^{\mu\phi - 1} (1 - x)^{(1-\mu)\phi}}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} }
 #' @details With parameterisation of the usual Beta-Distribution's shape parameters a and b as:
 #' \deqn{a := \mu\phi, b := (1 - \mu)\phi}
 #'
-#' @return PDF of Custom Beta distribution, with mean parameterasation
+#' @return PDF of custom Beta Distribution
 #' @export
 #'
 #' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
@@ -25,8 +25,6 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
   if (isTRUE(any(phi <= 0))) {
     stop("P must be above 0.")
   }
-  # May be improved, by custom implementation.
-  # lpdf <- dbeta(x, mu * phi, (1 - mu) * phi, log=TRUE)
   lpdf <- (log(gamma(phi)) - log(gamma(mu * phi)) - log(gamma((1 - mu) * phi))) +
     log(x) * (mu * phi - 1) + log1p(-x) * ((1 - mu) * phi - 1)
   if (log) {
@@ -44,7 +42,7 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
 #' @param phi Precision
 #' @param log TRUE if log pdf is wanted
 #'
-#' @return n samples beta distributed.
+#' @return n samples Beta distributed.
 #' @export
 #' @examples hist(rbeta_custom(1000, mu = 0.5, phi = 1))
 rbeta_custom <- function(n, mu, phi) {

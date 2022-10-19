@@ -1,4 +1,4 @@
-#' Custom Gamma density function in mean parametrisation.
+#' Custom Gamma Density function
 #'
 #' @param x Value space, x > 0.
 #' @param mu Mean parameter of the density, mu > 0.

@@ -1,11 +1,11 @@
-#' Probability density functin of the Cloglognormal-distribution in Median parametrization.
+#' Probability Density function of the Cloglognormal-Distribution
 #'
 #' @param x Value space of the function, x e (0, 1)
-#' @param mu Median parameter, mu is already cloglog-transformed, mu unbound
+#' @param mu Median parameter, mu is already Cloglog-transformed, mu unbound
 #' @param sigma Shape parameter, sigma >= 0
-#' @param log optional argument. If true, returns Lograthmic probability. Default = FALSE
+#' @param log optional argument. If true, returns logarathmic probability. Default = FALSE
 #'
-#' @return Normal distribution density with cloglog link function
+#' @return Normal Distribution density with Cloglog link function
 #' @export
 #'
 #' @examples x <- seq(from = 0.01, to = 0.99, length.out = 1000)
@@ -28,13 +28,13 @@ dcloglognormal <- function(x, mu, sigma, log = FALSE) {
   }
 }
 
-#' Cloglognormal RNG-function in median parametrization.
+#' Cloglognormal RNG-function
 #'
 #' @param n Number of draws
-#' @param mu Median paramameter, mu unbound, mu already cloglog transformed
+#' @param mu Median parameter, mu unbound, mu already cloglog transformed
 #' @param sigma Shape parameter
 #'
-#' @return n Cloglog-normally ditributed samples
+#' @return n cloglog-normally distributed samples
 #' @export
 #'
 #' @examples hist(rcloglognormal(100, 0.5, 2))
@@ -94,15 +94,15 @@ posterior_epred_cloglognormal <- function(prep) {
 #'
 #' @examples # Running the example might take a while and may make RStudio unresponsive.
 #' # Just relax and grab a cup of coffe or tea in the meantime.
-#' cloglog_data <- bayesim::rcloglognormal(1000, 0.5, 2)
+#' cloglog_data <- rcloglognormal(1000, 0.5, 2)
 #' # cloglognormal does not like values to close to the boundary
-#' cloglog_data <- bayesim:::limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
+#' cloglog_data <- limit_data(cloglog_data, c(1e-12, 1 - 1e-12))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
 #' # For an example without surpress, checkout the Bayesim Betaprime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1,
-#'     data = list(y = cloglog_data), family = bayesim::cloglognormal(),
-#'     stanvars = bayesim::cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
+#'     data = list(y = cloglog_data), family = cloglognormal(),
+#'     stanvars = cloglognormal()$stanvars, backend = "cmdstanr", cores = 4
 #'   )
 #' })
 #' plot(fit1)

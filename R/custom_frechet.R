@@ -1,4 +1,4 @@
-#' Frechet density function in mean parametrisation.
+#' Frechet Density function
 #'
 #' @param x x value space, x > 0
 #' @param mu Mean
@@ -29,13 +29,13 @@ dfrechet_custom <- function(x, mu, nu) {
 }
 
 
-#' Frechet RNG function in Mean parametrisation
+#' Frechet RNG function
 #'
-#' @param n
+#' @param n Number samples to draw
 #' @param mu Mean
 #' @param nu Shape
 #'
-#' @return n samples as Frechet-distribution
+#' @return n samples in Frechet-Distribution
 #' @export
 #'
 #' @examples hist(bayesim::rbetaprime(100, mu = 1, nu = 2))

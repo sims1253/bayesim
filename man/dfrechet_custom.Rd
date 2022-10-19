@@ -2,7 +2,7 @@
 % Please edit documentation in R/custom_frechet.R
 \name{dfrechet_custom}
 \alias{dfrechet_custom}
-\title{Frechet density function in mean parametrisation.}
+\title{Frechet Density function}
 \usage{
 dfrechet_custom(x, mu, nu)
 }
@@ -17,7 +17,7 @@ dfrechet_custom(x, mu, nu)
 dfrechet(x | mu, nu)
 }
 \description{
-Frechet density function in mean parametrisation.
+Frechet Density function
 }
 \details{
 Define scale parameter sigma as

@@ -2,7 +2,7 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{rcauchitnormal}
 \alias{rcauchitnormal}
-\title{Cauchitnormal RNG-function in median parametrization.}
+\title{Cauchitnormal RNG-function}
 \usage{
 rcauchitnormal(n, mu, sigma)
 }
@@ -14,10 +14,10 @@ rcauchitnormal(n, mu, sigma)
 \item{sigma}{Sigma shape parameter, sigma > 0}
 }
 \value{
-n Chauchitnormally ditributed samples
+n chauchitnormally ditributed samples
 }
 \description{
-Cauchitnormal RNG-function in median parametrization.
+Cauchitnormal RNG-function
 }
 \examples{
 hist(rcauchitnormal(100, 0.5, 2))

@@ -2,7 +2,7 @@
 % Please edit documentation in R/cauchitnormal.R
 \name{posterior_predict_cauchitnormal}
 \alias{posterior_predict_cauchitnormal}
-\title{Posterior-predict vignette for the Chauchitnormal distribution, with Median parametrization.}
+\title{Posterior-predict vignette for the Chauchitnormal Distribution}
 \usage{
 posterior_predict_cauchitnormal(i, prep, ...)
 }
@@ -14,8 +14,8 @@ posterior_predict_cauchitnormal(i, prep, ...)
 \item{...}{}
 }
 \value{
-The posterior prediction of the Cauchitnormal distribution, given some BRMS data.
+The posterior prediction of the Cauchitnormal Distribution, given some BRMS data.
 }
 \description{
-Posterior-predict vignette for the Chauchitnormal distribution, with Median parametrization.
+Posterior-predict vignette for the Chauchitnormal Distribution
 }

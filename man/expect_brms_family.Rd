@@ -65,6 +65,7 @@ Checking of the arguments done in construct_brms.
 }
 \examples{
 library(testthat)
-result <- expect_brms_family(link = exp, family = bayesim::betaprime, rng = bayesim::rbetaprime, shape_name = "phi")
+result <- expect_brms_family(link = exp, family = betaprime,
+                             rng = rbetaprime, shape_name = "phi")
 print(result)
 }
