@@ -2,7 +2,7 @@
 % Please edit documentation in R/test-helper.R
 \name{lenEqual}
 \alias{lenEqual}
-\title{Title}
+\title{Length and data check function}
 \usage{
 lenEqual(
   list_of_vectors,
@@ -24,11 +24,12 @@ be of this type, if defined. Default = NULL}
 boolean, given the arguments above
 }
 \description{
-Title
+Length and data check function
 }
 \examples{
 va <- c(1, 2, 3)
 vb <- c(NA, 5, 6)
 vc <- c(7, 8)
 lenEqual(list(va, vb))
+lenEqual(list(va, vc))
 }

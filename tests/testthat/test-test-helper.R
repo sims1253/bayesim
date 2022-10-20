@@ -347,6 +347,12 @@ test_that("Integer of length n isInt_len", {
   expect_false(isInt_len(c("r", 1), 2))
   # incorrect lengths and non integers
   expect_false(isInt_len(c("r", 2), 3))
+
+  # because it is almost similar, just check the edge cases of isNat here
+  expect_false(isNat_len(-1))
+  expect_true(isInt_len(-1))
+  expect_true(isNat_len(0))
+  expect_false(isNat_len(c(-1, 0)))
 })
 
 test_that("Boolean of length n isLogic_len", {
@@ -381,6 +387,57 @@ test_that("Single string isSingleString", {
   expect_false(isSingleString(c(NA, "abc")))
   # multiple inputs containing non strings
   expect_false(isSingleString(c("abc", 1, isSingleString)))
+})
+
+test_that("lenEqual length and type_check assertion", {
+  # some test-vectors
+  va <- c(1, 2, 3)
+  vb <- c(NA, 5, 6)
+  vc <- c(7, 8)
+  vd <- c("r", 9, 10)
+  ve <- c(12, 13, 14)
+  # and test scalars
+  sa <- 11
+  sb <- "r"
+
+  # now test it all
+  # simple test, only checks lengths with all defaults
+  expect_true(lenEqual(list(va, vd)))
+  # with NAs included, fails with warning
+  expect_warning(expect_false(lenEqual(list(va, vb, vd))))
+  # now allow for NAs
+  expect_true(lenEqual(list(va, vb, vd), na_allowed = TRUE))
+  # now check numeric
+  expect_true(lenEqual(list(va, ve), type_check = is.numeric))
+  expect_warning(expect_false(lenEqual(list(va, vb, vd), type_check = is.numeric)))
+  # now include scalars into the mix
+  expect_true(lenEqual(list(va, ve, sa, sb), scalars_allowed = TRUE))
+  expect_true(lenEqual(list(va, ve, sa), scalars_allowed = TRUE, type_check = is.numeric))
+  # non numerics
+  expect_warning(expect_false(lenEqual(list(va, ve, vd, sa), scalars_allowed = TRUE, type_check = is.numeric)))
+  expect_warning(expect_false(lenEqual(list(va, ve, sa, sb), scalars_allowed = TRUE, type_check = is.numeric)))
+  expect_true(lenEqual(list(va, ve, sa, sb), scalars_allowed = TRUE))
+  # NAs in vector still makes it a numeric
+  expect_true(lenEqual(list(va, vb, sa), scalars_allowed = TRUE,
+                                       type_check = is.numeric, na_allowed = TRUE))
+  # NA in scalar however will fail the is.numeric. Small peculiar quirk of R
+  expect_warning(expect_false(lenEqual(list(va, NA, sa), scalars_allowed = TRUE,
+                       type_check = is.numeric, na_allowed = TRUE)))
+
+  # so far for all the use cases, with correct lengths.
+  expect_false(lenEqual(list(va, vc)))
+  # usually scalars are dissalowed, hence they will have the wrong length
+  expect_false(lenEqual(list(va, sa)))
+  # even with scalars allowed, the actual non scalars have to be of same length
+  expect_false(lenEqual(list(va, vc, sa), scalars_allowed = TRUE))
+  # those two might look trivial, but depending on implementation, one might actually
+  # break with incorrect length, before checking the wrong type (hence why no warning)
+  expect_warning(expect_false(lenEqual(list(va, vc, vd), type_check = is.numeric)))
+  expect_warning(expect_false(lenEqual(list(va, vd, vc), type_check = is.numeric)))
+  # but this implementation does check in both cases.
+
+  # I suppose, one might still find about 1000 different relevant permutations.
+  # But I think, those should cover about 90% of all really important use-cases.
 })
 
 test_that("data limiting function limit_data", {

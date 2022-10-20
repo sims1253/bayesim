@@ -880,7 +880,7 @@ isSingleString <- function(input) {
   return(isTRUE(value))
 }
 
-#' Length and data check function, TODO: Unit-test is mandatory
+#' Length and data check function
 #'
 #' @param list_of_vectors List of vectors of any type you want
 #' @param scalars_allowed In many applications, mixing scalars with vectors may be fine,
@@ -889,15 +889,22 @@ isSingleString <- function(input) {
 #' be of this type, if defined. Default = NULL
 #'
 #' @return boolean, given the arguments above
-#' @export
 #'
 #' @examples va <- c(1, 2, 3)
 #' vb <- c(NA, 5, 6)
 #' vc <- c(7, 8)
 #' lenEqual(list(va, vb))
+#' lenEqual(list(va, vc))
 lenEqual <- function(list_of_vectors, scalars_allowed = FALSE, type_check = NULL, na_allowed = FALSE) {
   if(!isLogic_len(scalars_allowed)) {
     stop("scalars_allowed has to be a single boolean value")
+  }
+  if(!isLogic_len(na_allowed)) {
+    stop("na_allowed has to be a single boolean value")
+  }
+  if(!is.null(type_check) && !is.function(type_check)) {
+    stop("If type_check is to be used, it has to be a function pointer, to a type checking function
+         (for example is.numeric)")
   }
 
   maxLen <- 0
