@@ -8,8 +8,9 @@ This is meant for development only. Use at your own risk (and sanity). You have 
 density_lookup_generator(
   n_param = 10,
   n_x = 100,
-  eps = 10^-6,
+  eps = 10^-12,
   mu_int,
+  mu_link = identity,
   shape_int,
   x_int_prelink,
   x_link = identity,

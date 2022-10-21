@@ -211,6 +211,7 @@ test_rng <- function(rng_fun,
       )
     }
   }
+  # print(normale_difference(rng_mus, expected_mus))
   # now the data was written, compare it
   expect_eps(
     a = rng_mus,
@@ -683,8 +684,9 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' readRDS("cauchitnormal_demodata_refdata")
 density_lookup_generator <- function(n_param = 10,
                                      n_x = 100,
-                                     eps = 10^-6,
+                                     eps = 10^-12,
                                      mu_int,
+                                     mu_link = identity,
                                      shape_int,
                                      x_int_prelink,
                                      x_link = identity,
@@ -709,6 +711,9 @@ density_lookup_generator <- function(n_param = 10,
   if (!isNum_len(mu_int, 2)) {
     stop("The mu_int interval has to be a two long vector")
   }
+  if (isFALSE(is.function(mu_link))) {
+    stop("The mu_link function must be a function pointer")
+  }
   if (!isNum_len(shape_int, 2)) {
     stop("The shape_int interval has to be a two long vector")
   }
@@ -726,7 +731,7 @@ density_lookup_generator <- function(n_param = 10,
   }
 
   # generate input data
-  mus <- seq(from = mu_int[1], to = mu_int[2], length.out = n_param)
+  mus <- mu_link(seq(from = mu_int[1], to = mu_int[2], length.out = n_param))
   shapes <- seq(from = shape_int[1], to = shape_int[2], length.out = n_param)
 
   x_ref <- x_link(seq(from = x_int_prelink[1], to = x_int_prelink[2], length.out = n_x))

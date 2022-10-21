@@ -2,16 +2,20 @@
 test_that("custom-lognormal", {
 
   # load in values
-  data <- readRDS("precalc_values/lognormal_refdata")
   pdf_data <- readRDS("precalc_values/lognormal_refpdf")
 
-  n <- data$n
-  n_small <- data$n_small
-  eps <- data$eps
-  mus <- data$mus
-  sigmas <- data$shapes
+  eps <- 1e-12 # 2 digits more, than sim
+  unit_int <- c(eps, 1 - eps)
+  mu_unit_int <- c(0.1, 0.9)
+  pos_int <- c(eps, 200)
+  shape_int <- c(0.1, 20)
+  n <- 1000
+  n_small <- 20
 
-  x <- data$x
+  mus <- seq(from=pos_int[1], to=pos_int[2], length.out=n_small)
+  sigmas <- seq(from=shape_int[1], to=shape_int[2], length.out=n_small)
+  x <- exp(seq(from=pos_int[1], to=pos_int[2], length.out=n))
+
   pdf_ref <- as.matrix(pdf_data)
 
   # calculate beta-prime
@@ -19,7 +23,7 @@ test_that("custom-lognormal", {
   # check length
   expect_equal(n, length(dlognormal_custom_results))
   # check against one precalculated value
-  expect_eps(0.278794, bayesim::dlognormal_custom(x = 0.5, mu = 1, sigma = 2), eps)
+  expect_eps(0.278794, bayesim::dlognormal_custom(x = 0.5, mu = 1, sigma = 2), eps = 1e-6)
 
   # check the RNG will return the correct number of samples
   lognormal_custom_samples <- bayesim::rlognormal_custom(n, 2, 3)
@@ -29,12 +33,12 @@ test_that("custom-lognormal", {
     for (inner in 1:n_small) {
       mu <- mus[outer]
       sigma <- sigmas[inner]
-      expect_eps(bayesim::dlognormal_custom(x, mu, sigma), pdf_ref[[outer, inner]], eps)
+      expect_eps(bayesim::dlognormal_custom(x, mu, sigma), pdf_ref[[outer, inner]], eps, relative = TRUE)
     }
   }
 
   n_rng <- 100000
-  accepted_medians_eps <- 0.15
+  accepted_medians_eps <- 0.01
   p_acceptable_failures <- 0.05
   # check the RNG is not too far of the input value
   test_rng(
