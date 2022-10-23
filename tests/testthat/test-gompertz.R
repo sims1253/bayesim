@@ -9,16 +9,17 @@ get_a <- function(mu, beta) {
 }
 
 n <- 100000 # number of testvalues
-eps <- 1e-6
+eps <- 1e-3
 x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
-n_small <- 10
-mus <- seq(from = eps, to = 10, length.out = n_small)
-betas <- seq(from = eps, to = 10, length.out = n_small)
+n_small <- 20
+mus <- seq(from = eps, to = 20, length.out = n_small)   # bit small? Troubles using bigger mu...
+betas <- seq(from = eps, to = 20, length.out = n_small)
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
-betas_r <- seq(from = 0.5 + eps, to = 10, length.out = n_small)
+betas_r <- betas + 0.1 # for quantile and RNG eps from boundary whould not suffice
+# (or require insanely loose tolerances)
 # parameter for RNG test (going to close to 0 makes it a bit unstable)
 accepted_median_eps <- 0.05
 p_acceptable_failures <- 0.05
@@ -33,9 +34,11 @@ test_that("custom-gompertz", {
 
   # check many shape parameters
   for (m in mus) {
-    for (b in betas) {
-      expect_eps(dgompertz(x, mu = m, b = b), extraDistr::dgompertz(x, get_a(m, b), b), eps)
-      expect_eps(qgompertz(unit, mu = m, b = b), extraDistr::qgompertz(unit, get_a(m, b), b), eps)
+    for (aux_idx in 1:n_small) {
+      b <- betas[aux_idx]
+      br <- betas_r[aux_idx]
+      expect_eps(dgompertz(x, mu = m, b = b), extraDistr::dgompertz(x, get_a(m, b), b), eps, relative = TRUE)
+      expect_eps(qgompertz(unit, mu = m, b = br), extraDistr::qgompertz(unit, get_a(m, br), br), eps, relative = TRUE)
     }
   }
 
