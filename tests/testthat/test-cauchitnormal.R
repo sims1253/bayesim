@@ -6,9 +6,13 @@ test_that("custom-cauchitnormal", {
   n_small <- 20
   mu_list <- seq(from = eps, to = 1 - eps, length.out = n_small)
   sigma_list <- seq(from = 0.01, to = 10, length.out = n_small)
+
+  mu_rng_list <- seq(from = 0.1, to = 0.9, length.out = n_small)
+  sigma_rng_list <- seq(from = 0.1, to = 10, length.out = n_small)
   accepted_relative_error <- 1e-6
-  accepted_rng_error <- 0.21
-  accepred_rng_failures <- 0.1
+  accepted_rng_error <- 0.2
+  warning("current accepted rng_error is very high at 0.2")
+  accepred_rng_failures <- 0.05
 
   # Check lengths
   expect_equal(n, length(dcauchitnormal(x, mu = cauchit(0.5), sigma = 0.4)))
@@ -22,11 +26,10 @@ test_that("custom-cauchitnormal", {
     rng_fun = rcauchitnormal,
     metric_mu = median,
     n = 10 * n,
-    mu_list = mu_list,
-    aux_list = sigma_list,
+    mu_list = mu_rng_list,
+    aux_list = sigma_rng_list,
     mu_eps = accepted_rng_error,
     p_acceptable_failures = accepred_rng_failures,
-    relative = TRUE,
     mu_link = cloglog
   )
 

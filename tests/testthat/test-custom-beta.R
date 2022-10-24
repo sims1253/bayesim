@@ -22,7 +22,11 @@ test_that("test-custom-beta", {
 
   for (phi in phis) {
     for (mu in mus) {
-      expect_eps(bayesim::dbeta_custom(x, mu = mu, phi = phi), dbeta(x, get_a(mu, phi), get_b(mu, phi)), eps)
+      expect_eps(
+        bayesim::dbeta_custom(x, mu = mu, phi = phi),
+        dbeta(x, get_a(mu, phi), get_b(mu, phi)),
+        eps
+        )
     }
   }
 

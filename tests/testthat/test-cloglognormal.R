@@ -7,8 +7,8 @@ test_that("custom-cloglognormal", {
   mu_list <- seq(from = eps, to = 1 - eps, length.out = n_small)
   sigma_list <- seq(from = 0.01, to = 10, length.out = n_small)
   accepted_relative_error <- 1e-6
-  accepted_rng_error <- 0.21
-  accepred_rng_failures <- 0.1
+  accepted_rng_error <- 0.05
+  accepred_rng_failures <- 0.05
 
   # Check lengths
   expect_equal(n, length(dcloglognormal(x, mu = cloglog(0.5), sigma = 0.4)))
@@ -27,6 +27,7 @@ test_that("custom-cloglognormal", {
     mu_eps = accepted_rng_error,
     p_acceptable_failures = accepred_rng_failures,
     relative = TRUE,
+    debug = TRUE,
     mu_link = cloglog
   )
 

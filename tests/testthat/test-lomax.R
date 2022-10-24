@@ -18,8 +18,8 @@ mus <- seq(from = eps, to = 1000, length.out = n_small)
 alpha_list <- seq(from = 1 + eps, to = 50, length.out = n_small)
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
-alpha_r_list <- alpha_list + 0.1
-accepted_means_eps <- 0.2
+alpha_r_list <- alpha_list + 0.2
+accepted_means_eps <- 0.05
 p_acceptable_failures <- 0.05
 
 test_that("custom-lomax", {
@@ -32,11 +32,23 @@ test_that("custom-lomax", {
 
   # check many shape parameters on pdf and qdf
   for (m in mus) {
-    for (aux_idx in 1:n_small) {
+    for (aux_idx in seq_along(alpha_list)) {
       alpha <- alpha_list[aux_idx]
       alpha_r <- alpha_r_list[aux_idx]
-      expect_eps(dlomax(x, mu = m, alpha = alpha), extraDistr::dlomax(x, get_lambda(m, alpha), alpha), eps, relative = TRUE)
-      expect_eps(qlomax(unit, mu = m, alpha = alpha_r), extraDistr::qlomax(unit, get_lambda(m, alpha_r), alpha_r), eps, relative = TRUE)
+
+      expect_eps(
+        dlomax(x, mu = m, alpha = alpha),
+        extraDistr::dlomax(x, get_lambda(m, alpha), alpha),
+        eps,
+        relative = TRUE
+        )
+
+      expect_eps(
+        qlomax(unit, mu = m, alpha = alpha_r),
+        extraDistr::qlomax(unit, get_lambda(m, alpha_r), alpha_r),
+        eps,
+        relative = TRUE
+        )
     }
   }
 
@@ -47,8 +59,15 @@ test_that("custom-lomax", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with alpha_r
   test_rng(
-    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_list = alpha_r_list,
-    mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
+    rng_fun = rlomax,
+    metric_mu = mean,
+    n = n,
+    mu_list = mus,
+    aux_list = alpha_r_list,
+    mu_eps = accepted_means_eps,
+    p_acceptable_failures = p_acceptable_failures,
+    debug = TRUE,
+    relative = TRUE
   )
   # check the RNG is not too far of the input value
 
@@ -77,5 +96,13 @@ test_that("custom-lomax", {
   expect_error(rlomax(100, mu = 0, alpha = 2)) # mu is not allowed to be 0 or smaller
   expect_error(rlomax(100, mu = 1, alpha = 0)) # alpha is not allowed to be 0 or smaller
 
-  expect_brms_family(link = exp, family = lomax, rng = rlomax, shape_name = "alpha")
+  expect_brms_family(
+    intercept = 5,
+    ref_intercept = 5,
+    aux_par = 2,
+    link = exp,
+    family = lomax,
+    rng = rlomax,
+    aux_name = "alpha"
+    )
 })

@@ -1,17 +1,18 @@
 
 n <- 100000 # number of testvalues
-eps <- 1e-6
-x <- seq(from = eps, to = 1 - eps, length.out = n)
+eps <- 1e-12
+eps_boundary <- 1e-6
+x <- seq(from = eps_boundary, to = 1 - eps_boundary, length.out = n)
 
 n_small <- 20
-mus <- seq(from = eps, to = 1 - eps, length.out = n_small)
-sigmas <- seq(from = eps, to = 20, length.out = n_small)
+mus <- seq(from = eps_boundary, to = 1 - eps_boundary, length.out = n_small)
+sigmas <- seq(from = eps_boundary, to = 20, length.out = n_small)
 
 # Smaller n, given rsimplex is quite slow!
 n_r_small <- 3
-mus_r <- seq(from = eps, to = 1 - eps, length.out = n_r_small)
+mus_r <- seq(from = eps_boundary, to = 1 - eps_boundary, length.out = n_r_small)
 sigmas_r <- seq(from = 0.1 + min(sigmas), to = max(sigmas), length.out = n_r_small)
-accepted_medians_eps <- 0.02
+accepted_medians_eps <- 0.05
 p_acceptable_failures <- 0.05
 
 test_that("custom-simplex", {
@@ -28,15 +29,25 @@ test_that("custom-simplex", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
   test_rng(
-    rng_fun = rsimplex, metric_mu = median, n = n, mu_list = mus_r, aux_list = sigmas_r,
-    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
+    rng_fun = rsimplex,
+    metric_mu = median,
+    n = n,
+    mu_list = mus_r,
+    aux_list = sigmas_r,
+    mu_eps = accepted_medians_eps,
+    p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
 
   # check many shape parameters on pdf
   for (s in sigmas) {
     for (m in mus) {
-      expect_eps(dsimplex(x, mu = m, sigma = s), rmutil::dsimplex(x, m, s^2), eps, relative = TRUE)
+      expect_eps(
+        dsimplex(x, mu = m, sigma = s),
+        rmutil::dsimplex(x, m, s^2),
+        eps,
+        relative = TRUE
+        )
     }
   }
 
@@ -62,5 +73,13 @@ test_that("custom-simplex", {
   expect_error(rkuramaswamy(100, mu = 0.8, sigma = 1)) # simplex has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  expect_brms_family(link = brms::inv_logit_scaled, family = simplex, rng = rsimplex, aux_name = "sigma")
+  expect_brms_family(
+    intercept = 0.2,
+    ref_intercept = 0.2,
+    aux_par = 1,
+    link = brms::inv_logit_scaled,
+    family = simplex,
+    rng = rsimplex,
+    aux_name = "sigma"
+    )
 })

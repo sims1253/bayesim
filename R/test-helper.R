@@ -10,6 +10,8 @@
 #' @param eps numeric scalar or vector, setting the max differences, eps > 0
 #' @param r optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
 #' @param note optional parameter used for debugging.
+#' @param relative bool argument, if set will take the normale difference with euler metric. Default = FALSE
+#' @param debug bool argument, if set will printout the difference, in case of failure. Default = FALSE
 #' Used internally, tlo calculate acceptable amount of deviances. Calculated absolute value will be floored.
 #'
 #' @md
@@ -38,33 +40,27 @@
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
 #' expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
-expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
+expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL, debug = FALSE) {
 
   # then check, that r is only a scalar. Also check, that r is in range [0, 1)
   if (isFALSE(isNum_len(r) && r >= 0 && r < 1)) {
     stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
   }
-
   if (!isLogic_len(relative)) {
     stop("The relative argument has to be a single boolean value")
   }
-
   # then check, that all eps are >= 0
   # (changed to >= given the r might also prove interesting for i.e. integer comparisons)
   if (isTRUE(any(eps < 0))) {
     stop("Tried checking against negative differences.")
   }
-
   if (relative && isTRUE(any(eps >= 1.0))) {
     stop("In relative mode, the eps should be in [0, 1)")
   }
-
-
   # then check, if vectors are of same length or length 1
   if (!lenEqual(list(a, b, eps), scalars_allowed = TRUE, type_check = is.numeric)) {
     stop("Used different length of numeric vectors in test. (Or vectors containing NAs)")
   }
-
   if (!is.null(note) && !isSingleString(note)) {
     stop("If note is to be used, it has to be a single string argument")
   }
@@ -91,10 +87,11 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
     #   ),
     # )
     # eps_comparison_wrong <- (abs(a - b) > relative_eps)
-    eps_comparison_wrong <- (normale_difference(a, b) > eps)
+    difference <- normale_difference(a, b)
   } else {
-    eps_comparison_wrong <- (abs(a - b) > eps)
+    difference <- abs(a - b)
   }
+  eps_comparison_wrong <- (difference > eps)
 
   # convert the logical vector in a sum of how many entries were wrong
   number_deviances <- sum(eps_comparison_wrong, na.rm = TRUE)
@@ -116,7 +113,12 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
         toString(vector_length), " were bigger, then eps. None were allowed!"
       )
     }
-    fail(message)
+    if(debug) {
+      print(paste0("relative: ", relative))
+      print(paste0("a: ", a, " b: ", b, " dif: ", difference, " eps: ", eps))
+    }
+    #fail(message)
+    fail(paste(message, "\nWith relative:", relative, "the max difference was:", max(difference)))
   }
 }
 
@@ -139,7 +141,7 @@ normale_difference <- function(va, vb) {
 
   result <- difference / denominator
   result[denominator == 0.0] <- 0.0 # those would be NAs, but are clearly valid 0!
-  # think, this should be the only point, where this formula would fail
+  # I think, this should be the only point, where this formula would fail
 
   return(result)
 }
@@ -155,7 +157,8 @@ normale_difference <- function(va, vb) {
 #' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
 #' @param mu_link Default=identity, optional link-function argument, for example
 #' useful in link-normal-distributions
-#' @param relative True if the error should be relative to the mu_list
+#' @param relative True if the error should be relative to the mu_list, Default = FALSE
+#' @param debug bool argument, if set will printout the difference, in case of failure. Default = FALSE
 #'
 #' @return Nothing actually, just wraps the test
 #'
@@ -175,24 +178,24 @@ test_rng <- function(rng_fun,
                      mu_eps,
                      p_acceptable_failures,
                      mu_link = identity,
-                     relative = FALSE) {
+                     relative = FALSE,
+                     debug = TRUE) {
 
   # check, that all function arguments are actually functions
   # TODO: (Is it possible, to check, if they also take the correct arguments?)
   if (isFALSE(is.function(rng_fun) && is.function(metric_mu) && is.function(mu_link))) {
     stop("RNG-, Metric- or mu_link-function argument was not a function!")
   }
-
   # check the number of samples to be generated and cecked
   if (!(isInt_len(n) && n >= 1)) {
     stop("n must be an integer, positive scalar!")
   }
-
   # check, that compare eps is a scalar
   # all used moments should only deviate by eps in most tests)
   if (isFALSE(length(mu_eps) == 1)) {
     stop("mu_eps has to be a scalar in this test-function!")
   }
+  # all other arguments are passed and then checked in the called functions!
 
   # prepare the data, use a vector for ease of use
   # allows re-using the expect_eps.
@@ -221,7 +224,8 @@ test_rng <- function(rng_fun,
     b = expected_mus,
     eps = mu_eps,
     r = p_acceptable_failures,
-    relative = relative
+    relative = relative,
+    debug = debug
   )
 }
 
@@ -501,7 +505,7 @@ construct_brms <- function(n_data_sampels,
                            link,
                            family,
                            rng,
-                           seed = NA,
+                           seed = NULL,
                            data_threshold = NULL,
                            suppress_output = TRUE) {
   if (!(is.function(family) && is.function(rng) && is.function(link))) {
@@ -516,7 +520,7 @@ construct_brms <- function(n_data_sampels,
   if (!isNum_len(aux_par)) {
     stop("aux_par argument has to be a real scalar")
   }
-  if (!(isNum_len(seed) || is.na(seed))) {
+  if (!(isNum_len(seed) || is.null(seed))) {
     stop("seed argument if used has to be a real scalar. Else it is let default as NULL,
          which will not change the current RNG seed")
   }
@@ -525,7 +529,7 @@ construct_brms <- function(n_data_sampels,
   }
 
 
-  if (!is.na(seed)) {
+  if (!is.null(seed)) {
     old_seed <- .Random.seed
     set.seed(seed)
   }
@@ -535,7 +539,7 @@ construct_brms <- function(n_data_sampels,
     y_data <- limit_data(y_data, data_threshold)
   }
 
-  if (!is.na(seed)) {
+  if (!is.null(seed)) {
     set.seed(old_seed)
   }
 
@@ -681,7 +685,7 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #'   density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
 #'   save_folder = ""
 #' )
-#' # saves cauchit_normal_demodata_refdata and *_refpdf with density input and lookup-data respectively
+#' # saves cauchit_normal_demodata_refpdf lookup-data
 #' readRDS("cauchitnormal_demodata_refdata")
 density_lookup_generator <- function(n_param = 10,
                                      n_x = 100,
@@ -748,9 +752,9 @@ density_lookup_generator <- function(n_param = 10,
   }
 
   # pack data into frames
-  inp_scalars <- data.frame(n = n_x, n_small = n_param, eps = eps)
-  inp_vectors <- data.frame(mus = mus, aux_pars = aux_pars)
-  x_data <- data.frame(x = x_ref)
+  # inp_scalars <- data.frame(n = n_x, n_small = n_param, eps = eps)
+  # inp_vectors <- data.frame(mus = mus, aux_pars = aux_pars)
+  # x_data <- data.frame(x = x_ref)
   y_data <- data.frame(y = y_ref)
   # In future, the refdata is in the test itself. If it runs on master once, should run anywhere.
   # return_data <- c(inp_scalars, inp_vectors, x_data)

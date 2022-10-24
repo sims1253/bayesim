@@ -31,15 +31,24 @@ test_that("custom-kumaraswamy", {
 
   warning("In expect_eps quantile function, the parameters had to be quite restricted.")
   # check many shape parameters on pdf and qdf
-  for (mu_idx in 1:n_small) {
-    for (aux_idx in 1:n_small) {
+  for (mu_idx in seq_along(mus)) {
+    for (aux_idx in seq_along(ps)) {
       m <- mus[mu_idx]
       muq <- mus_q[mu_idx]
       p <- ps[aux_idx]
       pr <- ps_r[aux_idx]
 
-      expect_eps(dkumaraswamy(x, mu = m, p = p), VGAM::dkumar(x, p, get_q(m, p)), eps, relative = TRUE)
-      expect_eps(qkumaraswamy(x, mu = muq, p = pr), VGAM::qkumar(x, pr, get_q(muq, pr)), eps, relative = TRUE)
+      expect_eps(
+        dkumaraswamy(x, mu = m, p = p),
+        VGAM::dkumar(x, p, get_q(m, p)),
+        eps,
+        relative = TRUE)
+
+      expect_eps(
+        qkumaraswamy(x, mu = muq, p = pr),
+        VGAM::qkumar(x, pr, get_q(muq, pr)),
+        eps,
+        relative = TRUE)
     }
   }
 
@@ -49,8 +58,13 @@ test_that("custom-kumaraswamy", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
   test_rng(
-    rng_fun = rkumaraswamy, metric_mu = median, n = n, mu_list = mus, aux_list = ps_r,
-    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
+    rng_fun = rkumaraswamy,
+    metric_mu = median,
+    n = n,
+    mu_list = mus,
+    aux_list = ps_r,
+    mu_eps = accepted_medians_eps,
+    p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
 
@@ -85,5 +99,13 @@ test_that("custom-kumaraswamy", {
   expect_error(rkuramaswamy(100, mu = 0.8, p = 1)) # kumaraswamy has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  expect_brms_family(link = inv_logit, family = kumaraswamy, rng = rkumaraswamy, aux_name = "p")
+  expect_brms_family(
+    intercept = 0.2,
+    ref_intercept = 0.2,
+    aux_par = 1,
+    link = inv_logit,
+    family = kumaraswamy,
+    rng = rkumaraswamy,
+    aux_name = "p"
+    )
 })

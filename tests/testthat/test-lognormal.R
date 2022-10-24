@@ -1,9 +1,6 @@
 
 test_that("custom-lognormal", {
 
-  # load in values
-  pdf_data <- readRDS("precalc_values/lognormal_refpdf")
-
   eps <- 1e-12 # 2 digits more, than sim
   unit_int <- c(eps, 1 - eps)
   mu_unit_int <- c(0.1, 0.9)
@@ -16,8 +13,6 @@ test_that("custom-lognormal", {
   sigmas <- seq(from = shape_int[1], to = shape_int[2], length.out = n_small)
   x <- exp(seq(from = pos_int[1], to = pos_int[2], length.out = n))
 
-  pdf_ref <- as.matrix(pdf_data)
-
   # calculate beta-prime
   dlognormal_custom_results <- dlognormal_custom(x, mu = 1, sigma = 2)
   # check length
@@ -25,25 +20,28 @@ test_that("custom-lognormal", {
   # check against one precalculated value
   expect_eps(0.278794, dlognormal_custom(x = 0.5, mu = 1, sigma = 2), eps = 1e-6)
 
+  # Compare density to reference implementation
+  warning("No reference density available to test against!")
+
   # check the RNG will return the correct number of samples
   lognormal_custom_samples <- rlognormal_custom(n, 2, 3)
   expect_equal(n, length(lognormal_custom_samples))
 
-  for (outer in 1:n_small) {
-    for (inner in 1:n_small) {
-      mu <- mus[outer]
-      sigma <- sigmas[inner]
-      expect_eps(dlognormal_custom(x, mu, sigma), pdf_ref[[outer, inner]], eps, relative = TRUE)
-    }
-  }
-
   n_rng <- 100000
-  accepted_medians_eps <- 0.01
+  accepted_medians_eps <- 0.1
+  warning("accepted_median_eps of 0.1 is on the high side for relative mode")
   p_acceptable_failures <- 0.05
   # check the RNG is not too far of the input value
   test_rng(
-    rng_fun = rlognormal_custom, metric_mu = median, n = n_rng, mu_list = mus, aux_list = sigmas,
-    mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = log
+    rng_fun = rlognormal_custom,
+    metric_mu = median,
+    n = n_rng,
+    mu_list = mus,
+    aux_list = sigmas,
+    mu_eps = accepted_medians_eps,
+    p_acceptable_failures = p_acceptable_failures,
+    mu_link = log,
+    relative = TRUE
   )
 
 
@@ -64,5 +62,13 @@ test_that("custom-lognormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(rlognormal_custom(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  expect_brms_family(link = identity, family = lognormal_custom, rng = rlognormal_custom, aux_name = "sigma")
+  expect_brms_family(
+    intercept = 5,
+    ref_intercept = 5,
+    aux_par = 2,
+    link = identity,
+    family = lognormal_custom,
+    rng = rlognormal_custom,
+    aux_name = "sigma"
+    )
 })

@@ -14,7 +14,7 @@ x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes cl
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 20
-mus <- seq(from = eps, to = 20, length.out = n_small) # bit small? Troubles using bigger mu...
+mus <- seq(from = eps, to = 30, length.out = n_small) # bit small? Troubles using bigger mu...
 betas <- seq(from = eps, to = 20, length.out = n_small)
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
@@ -32,13 +32,27 @@ test_that("custom-gompertz", {
   expect_equal(n, length(dgompertz_results))
   expect_equal(n, length(qgompertz_results))
 
+  warning("For density comparison, mu >= 40 produced NAs, so constricted to 30,
+          which is quite low (still unknown, if it is our, or the reference implementation).")
   # check many shape parameters
   for (m in mus) {
-    for (aux_idx in 1:n_small) {
+    for (aux_idx in seq_along(betas)) {
       b <- betas[aux_idx]
       br <- betas_r[aux_idx]
-      expect_eps(dgompertz(x, mu = m, b = b), extraDistr::dgompertz(x, get_a(m, b), b), eps, relative = TRUE)
-      expect_eps(qgompertz(unit, mu = m, b = br), extraDistr::qgompertz(unit, get_a(m, br), br), eps, relative = TRUE)
+
+      expect_eps(
+        dgompertz(x, mu = m, b = b),
+        extraDistr::dgompertz(x, get_a(m, b), b),
+        eps,
+        relative = TRUE
+        )
+
+      expect_eps(
+        qgompertz(unit, mu = m, b = br),
+        extraDistr::qgompertz(unit, get_a(m, br), br),
+        eps,
+        relative = TRUE
+        )
     }
   }
 
@@ -46,10 +60,15 @@ test_that("custom-gompertz", {
   gompertz_samples <- rgompertz(n, 1, 3)
   expect_equal(n, length(gompertz_samples))
 
-  accepted_median_eps <- 0.01
   test_rng(
-    rng_fun = rgompertz, metric_mu = median, n = n, mu_list = mus, aux_list = betas_r,
-    mu_eps = accepted_median_eps, p_acceptable_failures = p_acceptable_failures
+    rng_fun = rgompertz,
+    metric_mu = median,
+    n = n,
+    mu_list = mus,
+    aux_list = betas_r,
+    mu_eps = accepted_median_eps,
+    p_acceptable_failures = p_acceptable_failures,
+    relative = TRUE
   )
   # check the RNG is not too far of the input value
 
@@ -80,5 +99,13 @@ test_that("custom-gompertz", {
   expect_error(rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
 
-  expect_brms_family(link = exp, family = gompertz, rng = rgompertz, aux_name = "beta")
+  expect_brms_family(
+    intercept = 5,
+    ref_intercept = 5,
+    aux_par = 2,
+    link = exp,
+    family = gompertz,
+    rng = rgompertz,
+    aux_name = "beta"
+    )
 })
