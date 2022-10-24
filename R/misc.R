@@ -8,6 +8,9 @@
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
 #' plot(x, logit(x), type = "l")
 logit <- function(x) {
+  if (any(x < 0 | x > 1)) {
+    stop("The logit link is only defined between 0 and 1!")
+  }
   return(qlogis(x))
 }
 
@@ -34,6 +37,9 @@ inv_logit <- function(x) {
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
 #' plot(x, cloglog(x), type = "l")
 cloglog <- function(x) {
+  if (any(x < 0 | x > 1)) {
+    stop("The logit link is only defined between 0 and 1!")
+  }
   log(-log1p(-x))
 }
 
@@ -62,6 +68,9 @@ inv_cloglog <- function(x) {
 #' @examples x <- seq(from = 0.1, to = 0.9, length.out = 100)
 #' plot(x, cauchit(x), type = "l")
 cauchit <- function(x) {
+  if (any(x < 0 | x > 1)) {
+    stop("The logit link is only defined between 0 and 1!")
+  }
   return(qcauchy(x))
 }
 

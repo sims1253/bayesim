@@ -96,18 +96,18 @@ test_that("test normal_difference metric-function", {
   # both scalars
   res1 <- normale_difference(1, 1.5)
   expect_equal(length(res1), 1)
-  expect_eps(res1, 0.2773501, eps=1e-6)
+  expect_eps(res1, 0.2773501, eps = 1e-6)
   # first vector, second scalar
   res2 <- normale_difference(c(1, 1.5, 2), 1.5)
   expect_equal(length(res2), 3)
-  expect_eps(res2, c(0.2773501, 0, 0.2), eps=1e-6)
+  expect_eps(res2, c(0.2773501, 0, 0.2), eps = 1e-6)
   # now other way round
   res3 <- normale_difference(1.5, c(1, 1.5, 2))
   expect_equal(res2, res3)
   # just exchanging the arguments should not change anything in the results
   res4 <- normale_difference(c(0.5, 1, 1.5), c(1, 1.5, 2))
   expect_equal(length(res4), 3)
-  expect_eps(res4, c(0.4472136, 0.2773501, 0.2), eps=1e-6)
+  expect_eps(res4, c(0.4472136, 0.2773501, 0.2), eps = 1e-6)
 
   # so much for the expected use-cases, now check edge cases and errors
   expect_equal(normale_difference(0, 0), 0)
@@ -135,12 +135,12 @@ test_that("test the test_rng-wrapper", {
 
   # the one test, if it works (not much point, in checking any other expected state)
   expect_success(test_rng(
-    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_par = alphas_r,
+    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_list = alphas_r,
     mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
   ))
   # if the margins are too low, the function has a high likelyhood to fail (for eps=0, will always fail)
   expect_failure(test_rng(
-    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_par = alphas_r,
+    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_list = alphas_r,
     mu_eps = 0, p_acceptable_failures = 0
   ))
 
@@ -418,11 +418,15 @@ test_that("lenEqual length and type_check assertion", {
   expect_warning(expect_false(lenEqual(list(va, ve, sa, sb), scalars_allowed = TRUE, type_check = is.numeric)))
   expect_true(lenEqual(list(va, ve, sa, sb), scalars_allowed = TRUE))
   # NAs in vector still makes it a numeric
-  expect_true(lenEqual(list(va, vb, sa), scalars_allowed = TRUE,
-                                       type_check = is.numeric, na_allowed = TRUE))
+  expect_true(lenEqual(list(va, vb, sa),
+    scalars_allowed = TRUE,
+    type_check = is.numeric, na_allowed = TRUE
+  ))
   # NA in scalar however will fail the is.numeric. Small peculiar quirk of R
-  expect_warning(expect_false(lenEqual(list(va, NA, sa), scalars_allowed = TRUE,
-                       type_check = is.numeric, na_allowed = TRUE)))
+  expect_warning(expect_false(lenEqual(list(va, NA, sa),
+    scalars_allowed = TRUE,
+    type_check = is.numeric, na_allowed = TRUE
+  )))
 
   # so far for all the use cases, with correct lengths.
   expect_false(lenEqual(list(va, vc)))

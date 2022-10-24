@@ -20,9 +20,9 @@ test_that("logit-link", {
   expect_error(logit("R"))
   # check, that wrong number of arguments produce an error
   expect_error(logit(0.1, 0.5))
-  # check for NaN and warning
-  expect_warning(expect_true(is.na(logit(-1))))
-  expect_warning(expect_true(is.na(logit(2))))
+  # check ranges
+  expect_error(logit(-1))
+  expect_error(logit(2))
 })
 
 test_that("inverse-logit-link", {
@@ -62,9 +62,9 @@ test_that("cloglog-link", {
   expect_error(cloglog("R"))
   # check, that wrong number of arguments produce an error
   expect_error(cloglog(0.1, 0.5))
-  # check values outside the defined scope are NaN and throw warning
-  expect_warning(expect_true(is.na(cloglog(-1))))
-  expect_warning(expect_true(is.na(cloglog(2))))
+  # check ranges
+  expect_error(cloglog(-1))
+  expect_error(cloglog(2))
 })
 
 test_that("inverse-cloglog-link", {
@@ -101,9 +101,9 @@ test_that("cauchit-link", {
   # check values on the boundary, should logically be Inf, but just approach Inf
   expect_equal(cauchit(0), -Inf)
   expect_equal(cauchit(1), Inf)
-  # check values outside the defined scope are NaN and throw warning
-  expect_warning(expect_true(is.na(cauchit(-1))))
-  expect_warning(expect_true(is.na(cauchit(2))))
+  # check ranges
+  expect_error(cauchit(-1))
+  expect_error(cauchit(2))
   # check, that non-numeric arguments result in an error
   expect_error(cauchit("R"))
   # check, that wrong number of arguments produce an error

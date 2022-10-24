@@ -14,7 +14,7 @@ x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes cl
 unit <- seq(from = eps, to = 1 - eps, length.out = n)
 
 n_small <- 20
-mus <- seq(from = eps, to = 20, length.out = n_small)   # bit small? Troubles using bigger mu...
+mus <- seq(from = eps, to = 20, length.out = n_small) # bit small? Troubles using bigger mu...
 betas <- seq(from = eps, to = 20, length.out = n_small)
 
 # mus_r <- seq(from = 1 + eps, to = 10, length.out = n_small)
@@ -48,7 +48,7 @@ test_that("custom-gompertz", {
 
   accepted_median_eps <- 0.01
   test_rng(
-    rng_fun = rgompertz, metric_mu = median, n = n, mu_list = mus, aux_par = betas_r,
+    rng_fun = rgompertz, metric_mu = median, n = n, mu_list = mus, aux_list = betas_r,
     mu_eps = accepted_median_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
@@ -80,5 +80,5 @@ test_that("custom-gompertz", {
   expect_error(rgompertz(100, mu = 0, beta = 2)) # mu is not allowed to be 0 or smaller
   expect_error(rgompertz(100, mu = 1, beta = -1)) # beta is not allowed to be 0 or smaller
 
-  expect_brms_family(link = exp, family = gompertz, rng = rgompertz, shape_name = "beta")
+  expect_brms_family(link = exp, family = gompertz, rng = rgompertz, aux_name = "beta")
 })

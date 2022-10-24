@@ -89,7 +89,7 @@ qbetaprime <- function(p, mu, phi) {
 #' @examples hist(rbetaprime(100, mu = 1, phi = 2))
 rbetaprime <- function(n, mu, phi) {
   # check the arguments
-  #if ()
+  # if ()
   if (isTRUE(phi <= 0)) {
     stop("betaprime is only defined for phi > 0")
   }

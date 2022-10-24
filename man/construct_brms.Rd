@@ -6,13 +6,11 @@
 \usage{
 construct_brms(
   n_data_sampels,
-  ba,
   intercept,
-  shape,
+  aux_par,
   link,
   family,
   rng,
-  num_parallel,
   seed = NA,
   data_threshold = NULL,
   suppress_output = TRUE
@@ -21,19 +19,15 @@ construct_brms(
 \arguments{
 \item{n_data_sampels}{How many samples per chain. Positive integer scalar.}
 
-\item{ba}{Linear data argument, real scalar.}
-
 \item{intercept}{Intercept data argument, real scalar.}
 
-\item{shape}{Shape argument of each distribution.}
+\item{aux_par}{aux_par argument of each distribution.}
 
 \item{link}{Link function pointer used data. For positive bounded uses exp as example.}
 
 \item{family}{BRMS family under test.}
 
 \item{rng}{function pointer of bespoke RNG for the family to be tested.}
-
-\item{num_parallel}{Chains calculated in parallel. Positive scalar integer.}
 
 \item{seed}{Seed argument, so that input data is always the same in each test.
 BRMS test does not test RNG and is not guarateed to fit on all data.
@@ -46,7 +40,7 @@ Default = Null, will be in R terms "invisible" and will not cap any input data.}
 \item{suppress_output}{Scalar Boolean argument. Default = TRUE supresses all prints.
 Only exceptions will be printed. For testing reasons, to not spam the test-window.}
 
-\item{shape_name}{BRMS string of shape argument name. Single string.}
+\item{aux_name}{BRMS string of aux_par argument name. Single string.}
 }
 \value{
 BRMS model for the specified family.

@@ -12,9 +12,9 @@ test_that("custom-lognormal", {
   n <- 1000
   n_small <- 20
 
-  mus <- seq(from=pos_int[1], to=pos_int[2], length.out=n_small)
-  sigmas <- seq(from=shape_int[1], to=shape_int[2], length.out=n_small)
-  x <- exp(seq(from=pos_int[1], to=pos_int[2], length.out=n))
+  mus <- seq(from = pos_int[1], to = pos_int[2], length.out = n_small)
+  sigmas <- seq(from = shape_int[1], to = shape_int[2], length.out = n_small)
+  x <- exp(seq(from = pos_int[1], to = pos_int[2], length.out = n))
 
   pdf_ref <- as.matrix(pdf_data)
 
@@ -42,7 +42,7 @@ test_that("custom-lognormal", {
   p_acceptable_failures <- 0.05
   # check the RNG is not too far of the input value
   test_rng(
-    rng_fun = rlognormal_custom, metric_mu = median, n = n_rng, mu_list = mus, aux_par = sigmas,
+    rng_fun = rlognormal_custom, metric_mu = median, n = n_rng, mu_list = mus, aux_list = sigmas,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = log
   )
 
@@ -64,5 +64,5 @@ test_that("custom-lognormal", {
   # also non-numeric arguments for n will throw warning
   expect_error(rlognormal_custom(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
-  expect_brms_family(link = identity, family = lognormal_custom, rng = rlognormal_custom, shape_name = "sigma")
+  expect_brms_family(link = identity, family = lognormal_custom, rng = rlognormal_custom, aux_name = "sigma")
 })

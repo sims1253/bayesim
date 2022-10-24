@@ -45,7 +45,7 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
     stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
   }
 
-  if(!isLogic_len(relative)) {
+  if (!isLogic_len(relative)) {
     stop("The relative argument has to be a single boolean value")
   }
 
@@ -55,7 +55,7 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
     stop("Tried checking against negative differences.")
   }
 
-  if(relative && isTRUE(any(eps >= 1.0))) {
+  if (relative && isTRUE(any(eps >= 1.0))) {
     stop("In relative mode, the eps should be in [0, 1)")
   }
 
@@ -65,7 +65,7 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
     stop("Used different length of numeric vectors in test. (Or vectors containing NAs)")
   }
 
-  if(!is.null(note) && !isSingleString(note)) {
+  if (!is.null(note) && !isSingleString(note)) {
     stop("If note is to be used, it has to be a single string argument")
   }
 
@@ -105,12 +105,16 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
   } else {
     # in case of a failure, print how many entries have been incorrect and how many were allowed.
     if (isTRUE(tolerated_deviances > 0)) {
-      message <- paste0("In expect_eps: ", toString(number_deviances), " of ",
-                        toString(vector_length), " were bigger, then eps. Only ",
-                        toString(tolerated_deviances), " allowed!")
+      message <- paste0(
+        "In expect_eps: ", toString(number_deviances), " of ",
+        toString(vector_length), " were bigger, then eps. Only ",
+        toString(tolerated_deviances), " allowed!"
+      )
     } else {
-      message <- paste0("In expect_eps: ", toString(number_deviances), " of ",
-                        toString(vector_length), " were bigger, then eps. None were allowed!")
+      message <- paste0(
+        "In expect_eps: ", toString(number_deviances), " of ",
+        toString(vector_length), " were bigger, then eps. None were allowed!"
+      )
     }
     fail(message)
   }
@@ -127,7 +131,7 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL) {
 #'
 #' @examples
 normale_difference <- function(va, vb) {
-  if(!lenEqual(list(va, vb), scalars_allowed = TRUE, type_check = is.numeric)) {
+  if (!lenEqual(list(va, vb), scalars_allowed = TRUE, type_check = is.numeric)) {
     stop("In normale_difference function, both vector va and vb have to be numeric and of same len (or scalar)")
   }
   difference <- abs(va - vb)
@@ -146,7 +150,7 @@ normale_difference <- function(va, vb) {
 #' @param rng_fun RNG function under test
 #' @param metric_mu Metric to be used on RNG data (usually mean or median)
 #' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
-#' @param aux_par Auxiliary parameter
+#' @param aux_list Auxiliary parameter
 #' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
 #' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
 #' @param mu_link Default=identity, optional link-function argument, for example
@@ -161,13 +165,13 @@ normale_difference <- function(va, vb) {
 #' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
 #' test_rng(
 #'   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
-#'   aux_par = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+#'   aux_list = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
 #' )
 test_rng <- function(rng_fun,
                      metric_mu,
                      n,
                      mu_list,
-                     aux_par,
+                     aux_list,
                      mu_eps,
                      p_acceptable_failures,
                      mu_link = identity,
@@ -193,32 +197,31 @@ test_rng <- function(rng_fun,
   # prepare the data, use a vector for ease of use
   # allows re-using the expect_eps.
   # As opposed to using a matrix, which would just complicate implementation and comparison.
-  len_aux <- length(aux_par)
   len_mu <- length(mu_list)
-  expected_mus <- rep(mu_list, times = len_mu)
-  rng_mus <- vector(length = len_aux * len_mu)
+  len_aux <- length(aux_list)
+  expected_mus <- rep(mu_list, times = len_aux)
+  rng_mu_list <- vector(mode = "numeric", length = len_aux * len_mu)
 
   # calculate rng data
-  for (idx_aux in 1:len_aux) {
-    for (idx_mu in 1:len_mu) {
-      rng_mus[(idx_aux - 1) * len_mu + idx_mu] <- mu_link(
+  for (i in seq_along(aux_list)) {
+    for (j in seq_along(mu_list)) {
+      rng_mu_list[(i - 1) * len_mu + j] <-
         metric_mu(
           rng_fun(
             n,
-            mu = mu_list[idx_mu], aux_par[idx_aux]
+            mu = mu_link(mu_list[j]), aux_list[i]
           )
         )
-      )
     }
   }
   # print(normale_difference(rng_mus, expected_mus))
   # now the data was written, compare it
   expect_eps(
-    a = rng_mus,
+    a = rng_mu_list,
     b = expected_mus,
     eps = mu_eps,
     r = p_acceptable_failures,
-    relative = TRUE
+    relative = relative
   )
 }
 
@@ -253,13 +256,13 @@ test_rng_asym <- function(rng_fun,
                           metric_mu,
                           n,
                           mu_list,
-                          aux_par,
+                          aux_list,
                           mu_link = identity) {
   exponents <- seq(1, floor(log10(n)), by = 2)
 
   # Generate a list of mus per mu, aux combination for growing sample sizes
   for (mu in mu_list) {
-    for (aux in aux_par) {
+    for (aux in aux_list) {
       loop_mu_list <- vector(mode = "numeric", length = length(exponents))
       for (i in seq_along(exponents)) {
         loop_n <- 10^exponents[i]
@@ -316,14 +319,14 @@ test_rng_quantiles <- function(rng_fun,
                                quantile_fun,
                                n,
                                mu_list,
-                               aux_par,
+                               aux_list,
                                eps,
                                quantiles,
                                p_acceptable_failures,
                                mu_link = identity,
                                relative = FALSE) {
   for (mu in mu_list) {
-    for (aux in aux_par) {
+    for (aux in aux_list) {
       sample <- mu_link(
         rng_fun(
           n,
@@ -367,7 +370,6 @@ test_rng_quantiles <- function(rng_fun,
 #' expect_bigger(c(1, 2), c(0, 3)) # should fail
 #' expect_bigger(c(1, 2, 3), c(0, 1)) # should produce an error
 expect_bigger <- function(a, b) {
-
   if (!lenEqual(list(a, b), scalars_allowed = TRUE, type_check = is.numeric)) {
     stop("Used different lengths of vectors in test, or non-numeric data")
   }
@@ -385,14 +387,13 @@ expect_bigger <- function(a, b) {
 #' Checking of the arguments done in construct_brms.
 #'
 #' @param n_data_sampels How many samples per chain. Positive integer scalar. Default = 1000.
-#' @param ba Linear data argument, real scalar. Default = 0.5.
-#' @param intercept Intercept data argument, real scalar. Default = 1.
-#' @param shape Shape argument of each distribution. Default = 2.
+#' @param intercept Intercept for data generating RNG.
+#' @param ref_intercept Reference intercept to compare model against. If NULL (default) uses the given intercept.
+#' @param aux_par Auxiliary parameter of each distribution.
 #' @param link Link function pointer used data. For positive bounded uses exp as example. No default.
 #' @param family BRMS family under test.
 #' @param rng function pointer of bespoke RNG for the family to be tested.
-#' @param shape_name BRMS string of shape argument name. Single string.
-#' @param num_parallel Chains calculated in parallel. Positive scalar integer. Default = 2.
+#' @param aux_name BRMS string of aux_par argument name. Single string.
 #' @param seed Seed argument, so that input data is always the same in each test.
 #' BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
 #' Seed is stored before test and restored after it finished. If wants not to use a seed set to NA.
@@ -409,42 +410,57 @@ expect_bigger <- function(a, b) {
 #' @return None
 #'
 #' @examples library(testthat)
-#' result <- expect_brms_family(link = exp, family = betaprime,
-#'                              rng = rbetaprime, shape_name = "phi")
+#' result <- expect_brms_family(
+#'   link = exp, family = betaprime,
+#'   rng = rbetaprime, aux_name = "phi"
+#' )
 #' print(result)
 expect_brms_family <- function(n_data_sampels = 1000,
-                               ba = 0.5,
-                               intercept = 1,
-                               shape = 2,
+                               intercept,
+                               ref_intercept = NULL,
+                               aux_par,
                                link,
                                family,
                                rng,
-                               shape_name,
-                               num_parallel = 2,
-                               seed = 1337,
+                               aux_name,
+                               seed = 1235813,
                                data_threshold = NULL,
                                thresh = 0.05,
                                debug = FALSE) {
-
-  if (!isSingleString(shape_name)) {
-    stop("The shape name argument has to be a single string")
+  if (!isSingleString(aux_name)) {
+    stop("The aux_par name argument has to be a single string")
   }
-  posterior_fit <- construct_brms(
-    n_data_sampels, ba, intercept, shape, link, family, rng, num_parallel, seed = seed,
-    suppress_output = !debug, data_threshold = data_threshold)
-  # plot(posterior_fit)
+  if (is.null(ref_intercept)) {
+    ref_intercept <- intercept
+  }
+  posterior_fit <- construct_brms(n_data_sampels,
+    intercept,
+    aux_par,
+    link,
+    family,
+    rng,
+    seed = seed,
+    suppress_output = !debug,
+    data_threshold = data_threshold
+  )
 
-  ba_succ <- test_brms_quantile(posterior_fit, "b_a", ba, thresh, debug)
-  int_succ <- test_brms_quantile(posterior_fit, "b_Intercept", intercept, thresh, debug)
-  sha_succ <- test_brms_quantile(posterior_fit, shape_name, shape, thresh, debug)
-  success <- ba_succ && int_succ && sha_succ
+  intercept_recovered <- test_brms_quantile(
+    posterior_fit, "b_Intercept", ref_intercept, thresh, debug
+  )
+  aux_par_recovered <- test_brms_quantile(
+    posterior_fit, aux_name, aux_par, thresh, debug
+  )
+  success <- intercept_recovered & aux_par_recovered
 
-  if (debug && !success) {
+  if (debug & !success) {
     print("Data were not recovered correctly! Print plot.")
     fam_name <- posterior_fit$family$name
     debug <- paste0(
-      fam_name, " expect_brms_family failed with inputs b_a=", ba,
-      ", intercept=", intercept, " and shape=", shape
+      fam_name,
+      " expect_brms_family failed with inputs intercept = ",
+      intercept,
+      " and aux_par = ",
+      aux_par
     )
     plot(posterior_fit, main = debug)
   }
@@ -459,14 +475,12 @@ expect_brms_family <- function(n_data_sampels = 1000,
 #' Construct BRMS family for simple linear y ~ 1 + a model.
 #'
 #' @param n_data_sampels How many samples per chain. Positive integer scalar.
-#' @param ba Linear data argument, real scalar.
 #' @param intercept Intercept data argument, real scalar.
-#' @param shape Shape argument of each distribution.
+#' @param aux_par aux_par argument of each distribution.
 #' @param link Link function pointer used data. For positive bounded uses exp as example.
 #' @param family BRMS family under test.
 #' @param rng function pointer of bespoke RNG for the family to be tested.
-#' @param shape_name BRMS string of shape argument name. Single string.
-#' @param num_parallel Chains calculated in parallel. Positive scalar integer.
+#' @param aux_name BRMS string of aux_par argument name. Single string.
 #' @param seed Seed argument, so that input data is always the same in each test.
 #' BRMS test does not test RNG and is not guarateed to fit on all data.
 #' Positive Integer scalar, Default = NA will do nothing. Seed is stored before and restored after.
@@ -482,34 +496,25 @@ expect_brms_family <- function(n_data_sampels = 1000,
 #' plot(posterior_fit)
 #' # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
 construct_brms <- function(n_data_sampels,
-                           ba,
                            intercept,
-                           shape,
+                           aux_par,
                            link,
                            family,
                            rng,
-                           num_parallel,
                            seed = NA,
                            data_threshold = NULL,
                            suppress_output = TRUE) {
-
   if (!(is.function(family) && is.function(rng) && is.function(link))) {
     stop("family, rng or link argument were not a function!")
   }
   if (!(isNat_len(n_data_sampels))) {
     stop("n_data_sampels has to be a positive integer scalar")
   }
-  if (!isNum_len(ba)) {
-    stop("ba argument has to be a real scalar")
-  }
   if (!isNum_len(intercept)) {
     stop("intercept argument has to be a real scalar")
   }
-  if (!isNum_len(shape)) {
-    stop("shape argument has to be a real scalar")
-  }
-  if (!(isInt_len(num_parallel) && num_parallel > 0)) {
-    stop("num_prallel argument has to be a positive scalar integer")
+  if (!isNum_len(aux_par)) {
+    stop("aux_par argument has to be a real scalar")
   }
   if (!(isNum_len(seed) || is.na(seed))) {
     stop("seed argument if used has to be a real scalar. Else it is let default as NULL,
@@ -525,8 +530,7 @@ construct_brms <- function(n_data_sampels,
     set.seed(seed)
   }
 
-  a <- rnorm(n_data_sampels)
-  y_data <- rng(n_data_sampels, link(ba * a + intercept), shape)
+  y_data <- rng(n_data_sampels, link(intercept), aux_par)
   if (!is.null(data_threshold)) {
     y_data <- limit_data(y_data, data_threshold)
   }
@@ -536,20 +540,19 @@ construct_brms <- function(n_data_sampels,
   }
 
 
-  data <- list(a = a, y = y_data)
+  data <- list(y = y_data)
 
   if (isTRUE(suppress_output)) {
     # if printout suppression is wished, use suppressAll as wrapper
     BBmisc::suppressAll({
       posterior_fit <- brms::brm(
-        y ~ 1 + a,
+        y ~ 1,
         data = data,
         family = family(),
         stanvars = family()$stanvars,
         backend = "cmdstanr",
-        chains = num_parallel,
-        cores = num_parallel,
-        # seed = seed, #no seed for BRMS. BRMS RNG code is to be tested to, so would be not sensible
+        chains = 2,
+        cores = 1,
         silent = 2,
         refresh = 0,
         init = 0.1
@@ -558,14 +561,13 @@ construct_brms <- function(n_data_sampels,
   } else {
     # and if not, do nothing special
     posterior_fit <- brms::brm(
-      y ~ 1 + a,
+      y ~ 1,
       data = data,
       family = family(),
       stanvars = family()$stanvars,
       backend = "cmdstanr",
-      chains = num_parallel,
-      cores = num_parallel,
-      # seed = seed, #no seed for BRMS. BRMS RNG code is to be tested to, so would be not sensible
+      chains = 2,
+      cores = 1,
       silent = 2,
       refresh = 0,
       init = 0.1
@@ -633,7 +635,7 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
       warning(paste0("In test_brms_quantile, the variable extraction of ", name, " failed.
                    Most probable cause, the variable-string was written wrong or did not exist somehow.
                    Return FALSE in this case."))
-      #warning(paste0("Original error was: ", e))
+      # warning(paste0("Original error was: ", e))
       return(FALSE)
     }
   )
@@ -652,14 +654,13 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
   return(isTRUE(value))
 }
 
-#' Yannick's super dooper density lookup data generator!
 #' This is meant for development only. Use at your own risk (and sanity). You have been warned!
 #'
-#' @param n_param Number of paramerter for each mu and shape. Will yield n_param^2 permutations of both.
+#' @param n_param Number of paramerter for each mu and aux_par. Will yield n_param^2 permutations of both.
 #' @param n_x Number of the x values.
 #' @param eps Allowed precision tolerance.
 #' @param mu_int Interval of the densities mu variable.
-#' @param shape_int Interval of the densities shape variable.
+#' @param aux_par_int Interval of the densities aux_par variable.
 #' @param density_fun The PDF to be saved.
 #' @param density_name The name of the whole pre-calculated thingy. Probably the one of the density.
 #' @param save_folder The folder where to save the results. Default is set to
@@ -675,8 +676,8 @@ test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = 
 #' @return Nothing, but saves input and reference files for later use!
 #'
 #' @examples eps <- 1e-6
-#' :density_lookup_generator(
-#'   mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
+#' density_lookup_generator(
+#'   mu_int = c(eps, 1 - eps), aux_par_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
 #'   density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
 #'   save_folder = ""
 #' )
@@ -687,7 +688,7 @@ density_lookup_generator <- function(n_param = 10,
                                      eps = 10^-12,
                                      mu_int,
                                      mu_link = identity,
-                                     shape_int,
+                                     aux_par_int,
                                      x_int_prelink,
                                      x_link = identity,
                                      density_fun,
@@ -714,8 +715,8 @@ density_lookup_generator <- function(n_param = 10,
   if (isFALSE(is.function(mu_link))) {
     stop("The mu_link function must be a function pointer")
   }
-  if (!isNum_len(shape_int, 2)) {
-    stop("The shape_int interval has to be a two long vector")
+  if (!isNum_len(aux_par_int, 2)) {
+    stop("The aux_par_int interval has to be a two long vector")
   }
   if (!isNum_len(x_int_prelink, 2)) {
     stop("The x_int_prelink interval has to be a two long vector")
@@ -732,7 +733,7 @@ density_lookup_generator <- function(n_param = 10,
 
   # generate input data
   mus <- mu_link(seq(from = mu_int[1], to = mu_int[2], length.out = n_param))
-  shapes <- seq(from = shape_int[1], to = shape_int[2], length.out = n_param)
+  aux_pars <- seq(from = aux_par_int[1], to = aux_par_int[2], length.out = n_param)
 
   x_ref <- x_link(seq(from = x_int_prelink[1], to = x_int_prelink[2], length.out = n_x))
   y_ref <- matrix(data = list(), nrow = n_param, ncol = n_param)
@@ -741,20 +742,20 @@ density_lookup_generator <- function(n_param = 10,
   for (outer in 1:n_param) {
     for (inner in 1:n_param) {
       mu <- mus[outer]
-      shape <- shapes[inner]
-      y_ref[[outer, inner]] <- density_fun(x_ref, mu, shape)
+      aux_par <- aux_pars[inner]
+      y_ref[[outer, inner]] <- density_fun(x_ref, mu, aux_par)
     }
   }
 
   # pack data into frames
   inp_scalars <- data.frame(n = n_x, n_small = n_param, eps = eps)
-  inp_vectors <- data.frame(mus = mus, shapes = shapes)
+  inp_vectors <- data.frame(mus = mus, aux_pars = aux_pars)
   x_data <- data.frame(x = x_ref)
   y_data <- data.frame(y = y_ref)
   # In future, the refdata is in the test itself. If it runs on master once, should run anywhere.
-  #return_data <- c(inp_scalars, inp_vectors, x_data)
+  # return_data <- c(inp_scalars, inp_vectors, x_data)
   # then save them to RDS objects
-  #saveRDS(return_data, paste0(save_folder, density_name, "_refdata"))
+  # saveRDS(return_data, paste0(save_folder, density_name, "_refdata"))
   saveRDS(y_data, paste0(save_folder, density_name, "_refpdf"))
   # after reading the help, the issue with saveRDS (and save for that matter) is,
   # that it might be used incorrectly, which will not occur, if any bayesim dev implements them
@@ -901,39 +902,40 @@ isSingleString <- function(input) {
 #' lenEqual(list(va, vb))
 #' lenEqual(list(va, vc))
 lenEqual <- function(list_of_vectors, scalars_allowed = FALSE, type_check = NULL, na_allowed = FALSE) {
-  if(!isLogic_len(scalars_allowed)) {
+  if (!isLogic_len(scalars_allowed)) {
     stop("scalars_allowed has to be a single boolean value")
   }
-  if(!isLogic_len(na_allowed)) {
+  if (!isLogic_len(na_allowed)) {
     stop("na_allowed has to be a single boolean value")
   }
-  if(!is.null(type_check) && !is.function(type_check)) {
+  if (!is.null(type_check) && !is.function(type_check)) {
     stop("If type_check is to be used, it has to be a function pointer, to a type checking function
          (for example is.numeric)")
   }
 
   maxLen <- 0
-  for(vector in list_of_vectors) {
+  for (vector in list_of_vectors) {
     currentLen <- length(vector)
-    if(currentLen > maxLen)
+    if (currentLen > maxLen) {
       maxLen <- length(vector)
+    }
     # gets the vector of the greatest length
 
-    if(is.function(type_check) && !type_check(vector)) {
+    if (is.function(type_check) && !type_check(vector)) {
       warning("At least one vector was not of the specified type! Return FALSE immediatly.")
       return(FALSE)
     }
-    if(!na_allowed && any(is.na(vector))) {
+    if (!na_allowed && any(is.na(vector))) {
       # if NAs are dissallowed and the input contains any NAs, the function returns FALSE immediatly.
       warning("NAs dissallowed, but at least one entry in the vectors was a NA! Return FALSE immediatly.")
       return(FALSE)
     }
   }
 
-  for(vector in list_of_vectors) {
+  for (vector in list_of_vectors) {
     currentLen <- length(vector)
     scalar_correct <- scalars_allowed && currentLen == 1
-    if(!scalar_correct && currentLen != maxLen) {
+    if (!scalar_correct && currentLen != maxLen) {
       # if not scalar, nor the correct max len, then return false immediatly.
       return(FALSE)
     }

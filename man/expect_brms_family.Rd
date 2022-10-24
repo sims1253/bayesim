@@ -7,15 +7,14 @@ Checking of the arguments done in construct_brms.}
 \usage{
 expect_brms_family(
   n_data_sampels = 1000,
-  ba = 0.5,
-  intercept = 1,
-  shape = 2,
+  intercept,
+  ref_intercept = NULL,
+  aux_par,
   link,
   family,
   rng,
-  shape_name,
-  num_parallel = 2,
-  seed = 1337,
+  aux_name,
+  seed = 1235813,
   data_threshold = NULL,
   thresh = 0.05,
   debug = FALSE
@@ -24,11 +23,11 @@ expect_brms_family(
 \arguments{
 \item{n_data_sampels}{How many samples per chain. Positive integer scalar. Default = 1000.}
 
-\item{ba}{Linear data argument, real scalar. Default = 0.5.}
+\item{intercept}{Intercept for data generating RNG.}
 
-\item{intercept}{Intercept data argument, real scalar. Default = 1.}
+\item{ref_intercept}{Reference intercept to compare model against. If NULL (default) uses the given intercept.}
 
-\item{shape}{Shape argument of each distribution. Default = 2.}
+\item{aux_par}{Auxiliary parameter of each distribution.}
 
 \item{link}{Link function pointer used data. For positive bounded uses exp as example. No default.}
 
@@ -36,9 +35,7 @@ expect_brms_family(
 
 \item{rng}{function pointer of bespoke RNG for the family to be tested.}
 
-\item{shape_name}{BRMS string of shape argument name. Single string.}
-
-\item{num_parallel}{Chains calculated in parallel. Positive scalar integer. Default = 2.}
+\item{aux_name}{BRMS string of aux_par argument name. Single string.}
 
 \item{seed}{Seed argument, so that input data is always the same in each test.
 BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
@@ -65,7 +62,9 @@ Checking of the arguments done in construct_brms.
 }
 \examples{
 library(testthat)
-result <- expect_brms_family(link = exp, family = betaprime,
-                             rng = rbetaprime, shape_name = "phi")
+result <- expect_brms_family(
+  link = exp, family = betaprime,
+  rng = rbetaprime, aux_name = "phi"
+)
 print(result)
 }

@@ -12,9 +12,9 @@ test_that("custom-softplusnormal", {
   n <- 1000
   n_small <- 20
 
-  mus <- seq(from=pos_int[1], to=pos_int[2], length.out=n_small)
-  sigmas <- seq(from=shape_int[1], to=shape_int[2], length.out=n_small)
-  x <- exp(seq(from=pos_int[1], to=pos_int[2], length.out=n))
+  mus <- seq(from = pos_int[1], to = pos_int[2], length.out = n_small)
+  sigmas <- seq(from = shape_int[1], to = shape_int[2], length.out = n_small)
+  x <- exp(seq(from = pos_int[1], to = pos_int[2], length.out = n))
 
   pdf_ref <- as.matrix(pdf_data)
 
@@ -62,7 +62,7 @@ test_that("custom-softplusnormal", {
 
   # check the RNG is not too far of the input value
   test_rng(
-    rng_fun = rsoftplusnormal, metric_mu = median, n = n_rng, mu_list = mus, aux_par = sigmas,
+    rng_fun = rsoftplusnormal, metric_mu = median, n = n_rng, mu_list = mus, aux_list = sigmas,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures, mu_link = softplus
   )
 

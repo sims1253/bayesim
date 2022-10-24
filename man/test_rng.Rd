@@ -9,7 +9,7 @@ test_rng(
   metric_mu,
   n,
   mu_list,
-  aux_par,
+  aux_list,
   mu_eps,
   p_acceptable_failures,
   mu_link = identity,
@@ -23,7 +23,7 @@ test_rng(
 
 \item{mu_list}{Metric data used as RNG argument and to be compared to (usually mean or median)}
 
-\item{aux_par}{Auxiliary parameter}
+\item{aux_list}{Auxiliary parameter}
 
 \item{mu_eps}{Acceptable difference of |mu - metric_mu(rng_fun)}
 
@@ -47,6 +47,6 @@ mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
 phis <- seq(from = 2 + eps, to = 20, length.out = 10)
 test_rng(
   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
-  aux_par = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+  aux_list = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
 )
 }

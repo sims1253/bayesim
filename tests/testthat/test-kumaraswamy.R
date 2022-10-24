@@ -49,7 +49,7 @@ test_that("custom-kumaraswamy", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
   test_rng(
-    rng_fun = rkumaraswamy, metric_mu = median, n = n, mu_list = mus, aux_par = ps_r,
+    rng_fun = rkumaraswamy, metric_mu = median, n = n, mu_list = mus, aux_list = ps_r,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
@@ -85,5 +85,5 @@ test_that("custom-kumaraswamy", {
   expect_error(rkuramaswamy(100, mu = 0.8, p = 1)) # kumaraswamy has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  expect_brms_family(link = inv_logit, family = kumaraswamy, rng = rkumaraswamy, shape_name = "p")
+  expect_brms_family(link = inv_logit, family = kumaraswamy, rng = rkumaraswamy, aux_name = "p")
 })

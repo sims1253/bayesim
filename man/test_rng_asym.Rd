@@ -4,7 +4,7 @@
 \alias{test_rng_asym}
 \title{Test if an RNG asymptotically approaches the true location}
 \usage{
-test_rng_asym(rng_fun, metric_mu, n, mu_list, aux_par, mu_link = identity)
+test_rng_asym(rng_fun, metric_mu, n, mu_list, aux_list, mu_link = identity)
 }
 \arguments{
 \item{rng_fun}{RNG function under test}
@@ -13,9 +13,9 @@ test_rng_asym(rng_fun, metric_mu, n, mu_list, aux_par, mu_link = identity)
 
 \item{mu_list}{Metric data used as RNG argument and to be compared to (usually mean or median)}
 
-\item{aux_par}{Auxiliary parameter}
-
 \item{mu_link}{Default=identity, optional link-function argument, for example}
+
+\item{aux_par}{Auxiliary parameter}
 
 \item{mu_eps}{Acceptable difference of |mu - metric_mu(rng_fun)}
 

@@ -9,7 +9,7 @@ test_rng_quantiles(
   quantile_fun,
   n,
   mu_list,
-  aux_par,
+  aux_list,
   eps,
   quantiles,
   p_acceptable_failures,
@@ -22,14 +22,14 @@ test_rng_quantiles(
 
 \item{mu_list}{Metric data used as RNG argument and to be compared to (usually mean or median)}
 
-\item{aux_par}{Auxiliary parameter}
-
 \item{p_acceptable_failures}{Acceptable rate of failure, relative value of difference bigger mu_eps}
 
 \item{mu_link}{Default=identity, optional link-function argument, for example
 useful in link-normal-distributions}
 
 \item{relative}{True if the error should be relative to the mu_list}
+
+\item{aux_par}{Auxiliary parameter}
 
 \item{mu_eps}{Acceptable difference of |mu - metric_mu(rng_fun)}
 }

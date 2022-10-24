@@ -28,7 +28,7 @@ test_that("custom-simplex", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with p_r
   test_rng(
-    rng_fun = rsimplex, metric_mu = median, n = n, mu_list = mus_r, aux_par = sigmas_r,
+    rng_fun = rsimplex, metric_mu = median, n = n, mu_list = mus_r, aux_list = sigmas_r,
     mu_eps = accepted_medians_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value
@@ -62,5 +62,5 @@ test_that("custom-simplex", {
   expect_error(rkuramaswamy(100, mu = 0.8, sigma = 1)) # simplex has to be spelled correctly!!!
   # small inside joke, given, there is a 50% chance, I misspelled it again. :P
 
-  expect_brms_family(link = brms::inv_logit_scaled, family = simplex, rng = rsimplex, shape_name = "sigma")
+  expect_brms_family(link = brms::inv_logit_scaled, family = simplex, rng = rsimplex, aux_name = "sigma")
 })

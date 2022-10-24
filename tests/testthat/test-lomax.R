@@ -47,7 +47,7 @@ test_that("custom-lomax", {
 
   # shape variable -> bound gets instable RNG, arbitrary bound instead with alpha_r
   test_rng(
-    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_par = alpha_r_list,
+    rng_fun = rlomax, metric_mu = mean, n = n, mu_list = mus, aux_list = alpha_r_list,
     mu_eps = accepted_means_eps, p_acceptable_failures = p_acceptable_failures
   )
   # check the RNG is not too far of the input value

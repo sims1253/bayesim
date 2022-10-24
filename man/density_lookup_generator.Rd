@@ -2,8 +2,7 @@
 % Please edit documentation in R/test-helper.R
 \name{density_lookup_generator}
 \alias{density_lookup_generator}
-\title{Yannick's super dooper density lookup data generator!
-This is meant for development only. Use at your own risk (and sanity). You have been warned!}
+\title{This is meant for development only. Use at your own risk (and sanity). You have been warned!}
 \usage{
 density_lookup_generator(
   n_param = 10,
@@ -11,7 +10,7 @@ density_lookup_generator(
   eps = 10^-12,
   mu_int,
   mu_link = identity,
-  shape_int,
+  aux_par_int,
   x_int_prelink,
   x_link = identity,
   density_fun,
@@ -20,7 +19,7 @@ density_lookup_generator(
 )
 }
 \arguments{
-\item{n_param}{Number of paramerter for each mu and shape. Will yield n_param^2 permutations of both.}
+\item{n_param}{Number of paramerter for each mu and aux_par. Will yield n_param^2 permutations of both.}
 
 \item{n_x}{Number of the x values.}
 
@@ -28,7 +27,7 @@ density_lookup_generator(
 
 \item{mu_int}{Interval of the densities mu variable.}
 
-\item{shape_int}{Interval of the densities shape variable.}
+\item{aux_par_int}{Interval of the densities aux_par variable.}
 
 \item{x_int_prelink}{Interval of x-values, before the x_link function is used on them.}
 
@@ -45,7 +44,6 @@ density_lookup_generator(
 Nothing, but saves input and reference files for later use!
 }
 \description{
-Yannick's super dooper density lookup data generator!
 This is meant for development only. Use at your own risk (and sanity). You have been warned!
 }
 \details{
@@ -56,8 +54,8 @@ this function already generates about 800KiB of files per PDF to be tested.
 }
 \examples{
 eps <- 1e-6
-:density_lookup_generator(
-  mu_int = c(eps, 1 - eps), shape_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
+density_lookup_generator(
+  mu_int = c(eps, 1 - eps), aux_par_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
   density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
   save_folder = ""
 )
