@@ -12,7 +12,7 @@ log_lik_betaprime(i, prep)
 \item{prep}{BRMS data}
 }
 \value{
-Log-Likelihood of betaprime given data in prep
+Log-Likelihood of beta prime given data in prep
 }
 \description{
 Log-Likelihood of the beta prime distribution

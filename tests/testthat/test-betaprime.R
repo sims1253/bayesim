@@ -19,12 +19,14 @@ test_that("custom-betaprime", {
   # Compare density and quantile functions to extraDistr
   for (mu in mu_list) {
     for (phi in phi_list) {
-      expect_eps(dbetaprime(x, mu = mu, phi = phi),
+      expect_eps(
+        dbetaprime(x, mu = mu, phi = phi),
         extraDistr::dbetapr(x, mu * (phi + 1), phi + 2),
         eps = accepted_relative_error,
         relative = TRUE
       )
-      expect_eps(qbetaprime(unit, mu = mu, phi = phi),
+      expect_eps(
+        qbetaprime(unit, mu = mu, phi = phi),
         extraDistr::qbetapr(unit, mu * (phi + 1), phi + 2),
         eps = accepted_relative_error,
         relative = TRUE
@@ -73,7 +75,6 @@ test_that("custom-betaprime", {
   expect_error(qbetaprime(c(-1, 2), mu = 2, phi = 2)) # q is not allowed to be outside [0, 1]
   expect_error(qbetaprime("r", mu = 2, phi = 2)) # non-numeric arguments are disallowed
 
-
   # Check rng for errors
   expect_error(rbetaprime(100, 2)) # to few arguments
   expect_error(rbetaprime(10, 2, 3, 4, 5)) # to many arguments
@@ -87,7 +88,8 @@ test_that("custom-betaprime", {
     intercept = 5,
     aux_par = 2,
     ref_intercept = 5,
-    link = exp,
+    rng_link = identity,
+    parameter_link = log,
     family = betaprime,
     rng = rbetaprime,
     aux_name = "phi"

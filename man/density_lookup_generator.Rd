@@ -59,6 +59,6 @@ density_lookup_generator(
   density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
   save_folder = ""
 )
-# saves cauchit_normal_demodata_refdata and *_refpdf with density input and lookup-data respectively
+# saves cauchit_normal_demodata_refpdf lookup-data
 readRDS("cauchitnormal_demodata_refdata")
 }

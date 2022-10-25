@@ -13,7 +13,8 @@ test_rng(
   mu_eps,
   p_acceptable_failures,
   mu_link = identity,
-  relative = FALSE
+  relative = FALSE,
+  debug = TRUE
 )
 }
 \arguments{
@@ -32,7 +33,9 @@ test_rng(
 \item{mu_link}{Default=identity, optional link-function argument, for example
 useful in link-normal-distributions}
 
-\item{relative}{True if the error should be relative to the mu_list}
+\item{relative}{True if the error should be relative to the mu_list, Default = FALSE}
+
+\item{debug}{bool argument, if set will printout the difference, in case of failure. Default = FALSE}
 }
 \value{
 Nothing actually, just wraps the test

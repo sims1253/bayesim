@@ -32,7 +32,6 @@ Suggests:
     foreach,
     parallel,
     doParallel,
-    VGAM,
     rmutil,
     extraDistr,
     BBmisc,

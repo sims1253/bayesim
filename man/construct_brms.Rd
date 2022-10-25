@@ -8,10 +8,10 @@ construct_brms(
   n_data_sampels,
   intercept,
   aux_par,
-  link,
+  rng_link,
   family,
   rng,
-  seed = NA,
+  seed = NULL,
   data_threshold = NULL,
   suppress_output = TRUE
 )
@@ -23,7 +23,7 @@ construct_brms(
 
 \item{aux_par}{aux_par argument of each distribution.}
 
-\item{link}{Link function pointer used data. For positive bounded uses exp as example.}
+\item{rng_link}{Link function pointer used data. For positive bounded uses exp as example.}
 
 \item{family}{BRMS family under test.}
 

@@ -1,74 +1,80 @@
-
 test_that("custom-lognormal", {
+  # Setup of testing space
+  n <- 10000
+  eps <- 1e-6
+  x <- exp(seq(from = eps, to = 200, length.out = n)) # testset, exp(200) comes close to Max-Double
+  n_small <- 10
+  mu_list <- seq(from = eps, to = 1 - eps, length.out = n_small)
+  sigma_list <- seq(from = 0.01, to = 10, length.out = n_small)
+  accepted_relative_error <- 1e-6
+  accepted_rng_error <- 0.1
+  accepred_rng_failures <- 0.1
 
-  eps <- 1e-12 # 2 digits more, than sim
-  unit_int <- c(eps, 1 - eps)
-  mu_unit_int <- c(0.1, 0.9)
-  pos_int <- c(eps, 200)
-  shape_int <- c(0.1, 20)
-  n <- 1000
-  n_small <- 20
+  # Check lengths
+  expect_equal(n, length(dlognormal_custom(x, mu = log(1), sigma = 2)))
+  expect_equal(n, length(rlognormal_custom(n, mu = log(1), sigma = 2)))
 
-  mus <- seq(from = pos_int[1], to = pos_int[2], length.out = n_small)
-  sigmas <- seq(from = shape_int[1], to = shape_int[2], length.out = n_small)
-  x <- exp(seq(from = pos_int[1], to = pos_int[2], length.out = n))
+  # Compare density and to built-in
+  for (mu in mu_list) {
+    for (sigma in sigma_list) {
+      expect_eps(dlognormal_custom(x, mu = log(mu), sigma = sigma),
+        dlnorm(x, log(mu), sigma),
+        eps = accepted_relative_error,
+        relative = TRUE
+      )
+    }
+  }
 
-  # calculate beta-prime
-  dlognormal_custom_results <- dlognormal_custom(x, mu = 1, sigma = 2)
-  # check length
-  expect_equal(n, length(dlognormal_custom_results))
-  # check against one precalculated value
-  expect_eps(0.278794, dlognormal_custom(x = 0.5, mu = 1, sigma = 2), eps = 1e-6)
-
-  # Compare density to reference implementation
-  warning("No reference density available to test against!")
-
-  # check the RNG will return the correct number of samples
-  lognormal_custom_samples <- rlognormal_custom(n, 2, 3)
-  expect_equal(n, length(lognormal_custom_samples))
-
-  n_rng <- 100000
-  accepted_medians_eps <- 0.1
-  warning("accepted_median_eps of 0.1 is on the high side for relative mode")
-  p_acceptable_failures <- 0.05
-  # check the RNG is not too far of the input value
+  # check if the RNG is close enough to the true mean in most cases
   test_rng(
     rng_fun = rlognormal_custom,
     metric_mu = median,
-    n = n_rng,
-    mu_list = mus,
-    aux_list = sigmas,
-    mu_eps = accepted_medians_eps,
-    p_acceptable_failures = p_acceptable_failures,
-    mu_link = log,
-    relative = TRUE
+    n = 10 * n,
+    mu_list = mu_list,
+    aux_list = sigma_list,
+    mu_eps = accepted_rng_error,
+    p_acceptable_failures = accepred_rng_failures,
+    relative = TRUE,
+    mu_link = log
   )
 
+  # Check if the RNG can recover the quantiles
+  test_rng_quantiles(
+    rng_fun = rlognormal_custom,
+    quantile_fun = qlnorm,
+    n = 20 * n,
+    mu_list = mu_list,
+    aux_list = sigma_list,
+    eps = accepted_rng_error,
+    quantiles = c(0.01, 0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99),
+    p_acceptable_failures = accepred_rng_failures,
+    relative = TRUE,
+    mu_link = log
+  )
 
-
-  # now check density function for some errors
+  # Check density function for errors
   expect_error(dlognormal_custom(0.5, 2)) # to few arguments
   expect_error(dlognormal_custom(0.5, 2, 3, 4, 5)) # to many arguments
   expect_error(dlognormal_custom(-1, mu = 2, sigma = 2)) # x is not allowed to be smaller 0
   expect_error(dlognormal_custom(0.5, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
   expect_error(dlognormal_custom("r", mu = 2, sigma = 2)) # non-numeric arguments are disallowed
 
-
-  # do same for RNG function
+  # Check rng for errors
   expect_error(rlognormal_custom(100, 2)) # to few arguments
   expect_error(rlognormal_custom(10, 2, 3, 4, 5)) # to many arguments
   expect_error(rlognormal_custom(-1, mu = 2, sigma = 2)) # number of drawn samples cannot be smaller 0
   expect_warning(expect_error(rlognormal_custom("r", mu = 2, sigma = 2))) # non-numeric arguments are disallowed
-  # also non-numeric arguments for n will throw warning
   expect_error(rlognormal_custom(100, mu = 1, sigma = -1)) # sigma is not allowed to be 0 or smaller
 
+  # Check of brms can fit the custom family and recover the intercept and shape
   expect_brms_family(
-    intercept = 5,
-    ref_intercept = 5,
+    intercept = log(5),
     aux_par = 2,
-    link = identity,
+    ref_intercept = 5,
+    parameter_link = log,
+    rng_link = identity,
     family = lognormal_custom,
     rng = rlognormal_custom,
     aux_name = "sigma"
-    )
+  )
 })

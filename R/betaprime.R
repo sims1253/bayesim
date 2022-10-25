@@ -3,9 +3,9 @@
 #' @source Bases on Bourguignon, M., Santos-Neto, M., & de Castro, M. (2018).
 #' A new regression model for positive data (\url{https://arxiv.org/abs/1804.07734})
 #'
-#' @details The betaprime distribution has density
+#' @details The beta prime distribution has density
 #' \deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
-#' @details With the usual betaprime parameters
+#' @details With the usual beta prime parameters
 #' \deqn{\beta = \Phi + 2, \alpha = \mu(\Phi + 1)}
 #'
 #' @param x Value, x > 0.
@@ -21,16 +21,16 @@
 dbetaprime <- function(x, mu, phi, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
-    stop("betaprime is only defined for x > 0")
+    stop("beta prime is only defined for x > 0")
   }
   if (isTRUE(any(phi <= 0))) {
-    stop("betaprime is only defined for phi > 0")
+    stop("beta prime is only defined for phi > 0")
   }
   if (isTRUE(any(mu <= 0))) {
-    stop("betaprime is only defined for mu > 0")
+    stop("beta prime is only defined for mu > 0")
   }
 
-  # calculate the second argument for betaprime, given mu
+  # calculate the second argument for beta prime, given mu
   beta <- phi + 2
   alpha <- mu * (phi + 1)
 
@@ -52,7 +52,7 @@ dbetaprime <- function(x, mu, phi, log = FALSE) {
 #' @param mu Mean, mu > 0.
 #' @param phi Precision, phi > 0.
 #'
-#' @return Quantiles of the betaprime distribution, given p, mu and phi
+#' @return Quantiles of the beta prime distribution
 #' @export
 #'
 #' @examples x <- seq(from = 0, to = 1, length.out = 100)
@@ -63,13 +63,13 @@ qbetaprime <- function(p, mu, phi) {
     stop("p has to be in an interval of [0, 1]")
   }
   if (isTRUE(phi <= 0)) {
-    stop("betaprime is only defined for phi > 0")
+    stop("beta prime is only defined for phi > 0")
   }
   if (isTRUE(mu <= 0)) {
-    stop("betaprime is only defined for mu > 0")
+    stop("beta prime is only defined for mu > 0")
   }
 
-  # calculate argument alpha of phi/betaprime
+  # calculate argument alpha of phi/beta prime
   qb <- qbeta(p, mu * (phi + 1), phi + 2)
 
   # now calculate the qbetaprime using log rules log(qbeta) - log(1 - qbeta)
@@ -91,10 +91,10 @@ rbetaprime <- function(n, mu, phi) {
   # check the arguments
   # if ()
   if (isTRUE(phi <= 0)) {
-    stop("betaprime is only defined for phi > 0")
+    stop("beta prime is only defined for phi > 0")
   }
   if (isTRUE(mu <= 0)) {
-    stop("betaprime is only defined for mu > 0")
+    stop("beta prime is only defined for mu > 0")
   }
   return(qbetaprime(runif(n, min = 0, max = 1), mu, phi))
 }
@@ -104,7 +104,7 @@ rbetaprime <- function(n, mu, phi) {
 #' @param i BRMS indices
 #' @param prep BRMS data
 #'
-#' @return Log-Likelihood of betaprime given data in prep
+#' @return Log-Likelihood of beta prime given data in prep
 log_lik_betaprime <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   phi <- brms::get_dpar(prep, "phi", i = i)
@@ -149,7 +149,7 @@ posterior_epred_betaprime <- function(prep) {
 #' a <- rnorm(n = 1000)
 #' data <- list(a = a, y = rbetaprime(n = 1000, mu = exp(0.5 * a + 1), phi = 2))
 #' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
-#' # For an example without surpress, checkout the Bayesim betaprime Example script
+#' # For an example without surpress, checkout the Bayesim beta prime Example script
 #' BBmisc::suppressAll({
 #'   fit1 <- brms::brm(y ~ 1 + a,
 #'     data = data, family = betaprime(),

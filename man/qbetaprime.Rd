@@ -14,7 +14,7 @@ qbetaprime(p, mu, phi)
 \item{phi}{Precision, phi > 0.}
 }
 \value{
-Quantiles of the betaprime distribution, given p, mu and phi
+Quantiles of the beta prime distribution
 }
 \description{
 Quantile function of the beta prime distribution

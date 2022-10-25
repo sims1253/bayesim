@@ -41,7 +41,6 @@
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
 #' expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
 expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL, debug = FALSE) {
-
   # then check, that r is only a scalar. Also check, that r is in range [0, 1)
   if (isFALSE(isNum_len(r) && r >= 0 && r < 1)) {
     stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
@@ -113,11 +112,11 @@ expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL, debug = 
         toString(vector_length), " were bigger, then eps. None were allowed!"
       )
     }
-    if(debug) {
+    if (debug) {
       print(paste0("relative: ", relative))
       print(paste0("a: ", a, " b: ", b, " dif: ", difference, " eps: ", eps))
     }
-    #fail(message)
+    # fail(message)
     fail(paste(message, "\nWith relative:", relative, "the max difference was:", max(difference)))
   }
 }
@@ -180,7 +179,6 @@ test_rng <- function(rng_fun,
                      mu_link = identity,
                      relative = FALSE,
                      debug = TRUE) {
-
   # check, that all function arguments are actually functions
   # TODO: (Is it possible, to check, if they also take the correct arguments?)
   if (isFALSE(is.function(rng_fun) && is.function(metric_mu) && is.function(mu_link))) {
@@ -331,14 +329,12 @@ test_rng_quantiles <- function(rng_fun,
                                relative = FALSE) {
   for (mu in mu_list) {
     for (aux in aux_list) {
-      sample <- mu_link(
-        rng_fun(
-          n,
-          mu = mu,
-          aux
-        )
+      sample <- rng_fun(
+        n,
+        mu = mu_link(mu),
+        aux
       )
-      true_quantiles <- do.call(quantile_fun, list(quantiles, mu, aux))
+      true_quantiles <- do.call(quantile_fun, list(quantiles, mu_link(mu), aux))
       expect_eps(
         a = true_quantiles,
         b = quantile(sample, quantiles),
@@ -394,7 +390,8 @@ expect_bigger <- function(a, b) {
 #' @param intercept Intercept for data generating RNG.
 #' @param ref_intercept Reference intercept to compare model against. If NULL (default) uses the given intercept.
 #' @param aux_par Auxiliary parameter of each distribution.
-#' @param link Link function pointer used data. For positive bounded uses exp as example. No default.
+#' @param rng_link Link function pointer used for data generation. Mainly for transformed normals.
+#' @param parameter_link Link function pointer for the latent parameters. Used to transform for comparison with ref_intercept
 #' @param family BRMS family under test.
 #' @param rng function pointer of bespoke RNG for the family to be tested.
 #' @param aux_name BRMS string of aux_par argument name. Single string.
@@ -423,7 +420,8 @@ expect_brms_family <- function(n_data_sampels = 1000,
                                intercept,
                                ref_intercept = NULL,
                                aux_par,
-                               link,
+                               rng_link,
+                               parameter_link,
                                family,
                                rng,
                                aux_name,
@@ -440,7 +438,7 @@ expect_brms_family <- function(n_data_sampels = 1000,
   posterior_fit <- construct_brms(n_data_sampels,
     intercept,
     aux_par,
-    link,
+    rng_link = rng_link,
     family,
     rng,
     seed = seed,
@@ -449,7 +447,7 @@ expect_brms_family <- function(n_data_sampels = 1000,
   )
 
   intercept_recovered <- test_brms_quantile(
-    posterior_fit, "b_Intercept", ref_intercept, thresh, debug
+    posterior_fit, "b_Intercept", parameter_link(ref_intercept), thresh, debug
   )
   aux_par_recovered <- test_brms_quantile(
     posterior_fit, aux_name, aux_par, thresh, debug
@@ -481,7 +479,7 @@ expect_brms_family <- function(n_data_sampels = 1000,
 #' @param n_data_sampels How many samples per chain. Positive integer scalar.
 #' @param intercept Intercept data argument, real scalar.
 #' @param aux_par aux_par argument of each distribution.
-#' @param link Link function pointer used data. For positive bounded uses exp as example.
+#' @param rng_link Link function pointer used data. For positive bounded uses exp as example.
 #' @param family BRMS family under test.
 #' @param rng function pointer of bespoke RNG for the family to be tested.
 #' @param aux_name BRMS string of aux_par argument name. Single string.
@@ -502,14 +500,14 @@ expect_brms_family <- function(n_data_sampels = 1000,
 construct_brms <- function(n_data_sampels,
                            intercept,
                            aux_par,
-                           link,
+                           rng_link,
                            family,
                            rng,
                            seed = NULL,
                            data_threshold = NULL,
                            suppress_output = TRUE) {
-  if (!(is.function(family) && is.function(rng) && is.function(link))) {
-    stop("family, rng or link argument were not a function!")
+  if (!(is.function(family) && is.function(rng) && is.function(rng_link))) {
+    stop("family, rng or rng_link argument were not a function!")
   }
   if (!(isNat_len(n_data_sampels))) {
     stop("n_data_sampels has to be a positive integer scalar")
@@ -534,7 +532,7 @@ construct_brms <- function(n_data_sampels,
     set.seed(seed)
   }
 
-  y_data <- rng(n_data_sampels, link(intercept), aux_par)
+  y_data <- rng(n_data_sampels, rng_link(intercept), aux_par)
   if (!is.null(data_threshold)) {
     y_data <- limit_data(y_data, data_threshold)
   }
@@ -698,7 +696,6 @@ density_lookup_generator <- function(n_param = 10,
                                      density_fun,
                                      density_name,
                                      save_folder = "tests/testthat/precalc_values/") {
-
   # assert parameters (why all the assertions, if only I ever get to use it?)
   # dunno, just felt like it :P
   if (isFALSE(is.function(density_fun))) {

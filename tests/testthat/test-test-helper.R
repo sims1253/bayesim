@@ -232,7 +232,7 @@ test_that("test custom expect_bigger", {
 })
 
 test_that("test_brms_quantile", {
-  #skip("Takes too long for now...")
+  # skip("Takes too long for now...")
 
   # To test this, first construct a BRMS model with Cloglognormal
   n_brms <- 1000

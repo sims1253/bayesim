@@ -3,7 +3,7 @@ test_that("custom-cloglognormal", {
   n <- 10000
   eps <- 1e-6
   x <- seq(from = eps, to = 1 - eps, length.out = n)
-  n_small <- 20
+  n_small <- 10
   mu_list <- seq(from = eps, to = 1 - eps, length.out = n_small)
   sigma_list <- seq(from = 0.01, to = 10, length.out = n_small)
   accepted_relative_error <- 1e-6
@@ -18,7 +18,7 @@ test_that("custom-cloglognormal", {
   warning("No reference density available to test against!")
 
   # check if the RNG is close enough to the true mean in most cases
-  bayesim:::test_rng(
+  test_rng(
     rng_fun = rcloglognormal,
     metric_mu = median,
     n = 10 * n,
@@ -27,9 +27,11 @@ test_that("custom-cloglognormal", {
     mu_eps = accepted_rng_error,
     p_acceptable_failures = accepred_rng_failures,
     relative = TRUE,
-    debug = TRUE,
     mu_link = cloglog
   )
+
+  # Check if the RNG can recover the quantiles
+  warning("No quantile function available to test rng quantile recovery.")
 
   # Check density function for errors
   expect_error(dcloglognormal(0.5, 2)) # to few arguments
@@ -53,7 +55,8 @@ test_that("custom-cloglognormal", {
     intercept = cloglog(0.5),
     aux_par = 0.4,
     ref_intercept = 0.5,
-    link = inv_cloglog,
+    parameter_link = cloglog,
+    rng_link = identity,
     family = cloglognormal,
     rng = rcloglognormal,
     aux_name = "sigma"

@@ -23,7 +23,7 @@ Beta prime brms custom family
 a <- rnorm(n = 1000)
 data <- list(a = a, y = rbetaprime(n = 1000, mu = exp(0.5 * a + 1), phi = 2))
 # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
-# For an example without surpress, checkout the Bayesim betaprime Example script
+# For an example without surpress, checkout the Bayesim beta prime Example script
 BBmisc::suppressAll({
   fit1 <- brms::brm(y ~ 1 + a,
     data = data, family = betaprime(),

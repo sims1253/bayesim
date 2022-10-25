@@ -26,10 +26,10 @@ Density of the pdf given x, mu and phi.
 Probability density function for the beta prime distribution (aka. inverse Beta)
 }
 \details{
-The betaprime distribution has density
+The beta prime distribution has density
 \deqn{f(y) = \frac{y^{(\mu(\Phi+1)-1)} (1+y)^{(-(\mu(\Phi+1)+\Phi+2))}} {\Beta(\mu(1+\Phi), \Phi +2)}}
 
-With the usual betaprime parameters
+With the usual beta prime parameters
 \deqn{\beta = \Phi + 2, \alpha = \mu(\Phi + 1)}
 }
 \examples{

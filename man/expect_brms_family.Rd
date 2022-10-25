@@ -10,7 +10,8 @@ expect_brms_family(
   intercept,
   ref_intercept = NULL,
   aux_par,
-  link,
+  rng_link,
+  parameter_link,
   family,
   rng,
   aux_name,
@@ -29,7 +30,9 @@ expect_brms_family(
 
 \item{aux_par}{Auxiliary parameter of each distribution.}
 
-\item{link}{Link function pointer used data. For positive bounded uses exp as example. No default.}
+\item{rng_link}{Link function pointer used for data generation. Mainly for transformed normals.}
+
+\item{parameter_link}{Link function pointer for the latent parameters. Used to transform for comparison with ref_intercept}
 
 \item{family}{BRMS family under test.}
 

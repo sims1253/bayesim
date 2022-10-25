@@ -35,6 +35,30 @@ dbeta_custom <- function(x, mu, phi, log = FALSE) {
   # TODO: needs indepth stability testing!!!
 }
 
+#' Mean parameterization of the beta quantile function
+#'
+#' @param p Probabilities, for which to calculate the quantiles
+#' @param mu Mean, mu e (0, 1).
+#' @param phi Precision parameter, phi > 0.
+#'
+#' @return Quantiles of the beta distribution
+#' @export
+#'
+#' @examples x <- seq(from = 0, to = 1, length.out = 100)
+#' plot(x, qbetaprime(x, mu = 1, phi = 2), type = "l")
+qbeta_custom <- function(p, mu, phi) {
+  if (isTRUE(any(p < 0 | p > 1))) {
+    stop("p has to be in an interval of [0, 1]")
+  }
+  if (isTRUE(any(mu <= 0 | mu >= 1))) {
+    stop("The mean must be in (0, 1).")
+  }
+  if (isTRUE(any(phi <= 0))) {
+    stop("P must be above 0.")
+  }
+  qbeta(p, shape1 = mu * phi, shape2 = (1 - mu) * phi)
+}
+
 #' Custom Beta distribution RNG
 #'
 #' @param n Number of draws.
