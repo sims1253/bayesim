@@ -7,15 +7,15 @@
 logit(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, 0 < x < 1}
+\item{x}{value of x to be transformed, x e (0, 1)}
 }
 \value{
-logit value of x
+logit value of x, x unbound
 }
 \description{
 Logit link function
 }
 \examples{
 x <- seq(from = 0.1, to = 0.9, length.out = 100)
-y <- logit(x)
+plot(x, logit(x), type = "l")
 }

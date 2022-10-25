@@ -12,14 +12,15 @@ rbeta_custom(n, mu, phi)
 \item{mu}{Mean}
 
 \item{phi}{Precision}
+
+\item{log}{TRUE if log pdf is wanted}
 }
 \value{
-n samples beta distributed.
+n samples Beta distributed.
 }
 \description{
 Custom Beta distribution RNG
 }
 \examples{
-samples <- rbeta_custom(1000, 0.5, 1)
-hist(samples)
+hist(rbeta_custom(1000, mu = 0.5, phi = 1))
 }

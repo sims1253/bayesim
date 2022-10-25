@@ -1,24 +1,29 @@
 
+# used only for an internal function
+
 #' Check that |a - b| < eps. Works with scalars and vectors on any input.
 #' For vector input, one may defined, how many |a - b| >= eps are acceptable with r argument.
+#' Given it is a "workhorse" used in almost all test-files, this function is also very well tested.
 #'
-#' @param a scalar or vector a to be compared
-#' @param b scalar or vector b to be compared
-#' @param eps scalar or vector, setting the max differences, eps > 0
-#' @param r optional scalar (r = 0), relative number of values, that may have an difference > eps.
-#' Used internally, to calculate acceptable amount of deviances. Calculated absolute value will be floored.
+#' @param a numeric scalar or vector a to be compared
+#' @param b numeric scalar or vector b to be compared
+#' @param eps numeric scalar or vector, setting the max differences, eps > 0
+#' @param r optional numeric scalar (r = 0 in defualt), relative number of values, that may have an difference > eps.
+#' @param note optional parameter used for debugging.
+#' @param relative bool argument, if set will take the normale difference with euler metric. Default = FALSE
+#' @param debug bool argument, if set will printout the difference, in case of failure. Default = FALSE
+#' Used internally, tlo calculate acceptable amount of deviances. Calculated absolute value will be floored.
 #'
-#' @details For vector/scalar combinations, allowed are (r always scalar!):
-#' \describe{
-#'   \item{- all scalar}
-#'   \item{- a vector, b scalar, eps scalar -> compare a values to be close enough to b}
-#'   \item{- a scalar, b vector, eps scalar -> compare b values to be close enough to a}
-#'   \item{- a scalar, b scalar, eps vector -> compare the difference a, b too all eps
-#'   -> case not intended, but would work}
-#'   \item{- a vector, b scalar, eps vector -> compare each vector-difference entry against each eps}
-#'   \item{- all vectors -> each entry of |a - b| is compared to the same entry in eps}
-#'   -> different vector lengths != 1 dissallowed!}
-#' }
+#' @md
+#' @details For vector/scalar combinations, allowed are (r has to always be a scalar!):
+#'   * all scalar
+#'   * a vector, b scalar, eps scalar -> compare a values to be close enough to b
+#'   * a scalar, b vector, eps scalar -> compare b values to be close enough to a
+#'   * a scalar, b scalar, eps vector -> compare the difference a, b too all eps
+#'   -> case not intended, but would work
+#'   * a vector, b scalar, eps vector -> compare each vector-difference entry against each eps
+#'   * all vectors -> each entry of |a - b| is compared to the same entry in eps
+#'   -> different vector lengths != 1 dissallowed!expect_brms_family
 #'
 #' @return success or failure with message
 #'
@@ -28,59 +33,319 @@
 #' expect_eps(-1, -1.1, 0.2) # should pass
 #' expect_eps(-1.00001, -1.00001, 1e-4) # should pass
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.4) # should pass (only 1/3 were wrong, but 40% was allowed)
-#' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 0.1) # should fail (1/3 were wrong, but only 1/10 was allowed)
+#' expect_eps(c(0, 1, 3), c(1, 1, 2), 1e-4, 1 / 3) # should fail (2/3 were wrong, but only 1/3 was allowed)
 #' expect_eps(1, 1.3, 0.2) # should fail (|a - b| = 0.3 > 0.2)
 #' expect_eps(c(1, 1.1), c(1, 1.1, 1.2), 0.5) # should produce an error (different vector-lengths)
 #' expect_eps(1, 1.1, -0.2) # should produce an error (negative eps)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, -0.4) # should produce an error (r too small)
 #' expect_eps(c(0, 1, 2), c(1, 1, 2), 1e-4, 1.4) # should produce an error (r too big)
-expect_eps <- function(a, b, eps, r = 0.0) {
-  # first check, that the type is always a scalar or vector
-  all_numeric <- is.numeric(a) && is.numeric(b) && is.numeric(eps) && is.numeric(r)
-  if (isFALSE(all_numeric)) {
-    stop("At least one of the vectors was not a scalar/vector.")
+#' expect_eps(NA, 1, 0.1) # should produce an error, NAs are dissallowed
+expect_eps <- function(a, b, eps, r = 0, relative = FALSE, note = NULL, debug = FALSE) {
+  # then check, that r is only a scalar. Also check, that r is in range [0, 1)
+  if (isFALSE(isNum_len(r) && r >= 0 && r < 1)) {
+    stop("The relative number of tolerated deviances r has to be a scalar in [0, 1).")
+  }
+  if (!isLogic_len(relative)) {
+    stop("The relative argument has to be a single boolean value")
+  }
+  # then check, that all eps are >= 0
+  # (changed to >= given the r might also prove interesting for i.e. integer comparisons)
+  if (isTRUE(any(eps < 0))) {
+    stop("Tried checking against negative differences.")
+  }
+  if (relative && isTRUE(any(eps >= 1.0))) {
+    stop("In relative mode, the eps should be in [0, 1)")
+  }
+  # then check, if vectors are of same length or length 1
+  if (!lenEqual(list(a, b, eps), scalars_allowed = TRUE, type_check = is.numeric)) {
+    stop("Used different length of numeric vectors in test. (Or vectors containing NAs)")
+  }
+  if (!is.null(note) && !isSingleString(note)) {
+    stop("If note is to be used, it has to be a single string argument")
   }
 
-  # then check, that r is only a scalar
-  if (isTRUE(length(r) > 1)) {
-    stop("The relative number of tolerated deviances r has to be a scalar.")
-  }
-
-  # also check, that r is in range [0, 1]
-  if (isTRUE(r < 0 || r > 1)) {
-    stop("The relative number of tolerated deviances r has to be in [0, 1].")
-  }
-
-  # then check, that all eps are > 0
-  if (isTRUE(any(eps <= 0))) {
-    stop("Tried checking against negative or zero differences. For zero difference, use expect_equal.")
-  }
-
-  # then check, if vectors are of same length
+  # For the test, calculate the absolute value, of how many entries in |a - b|
+  # may be > eps. This is especially important for RNG tests, which will not always be precise
+  # (obviously). Opposed to this in PDF comparisons, this figure is usually 0, as they
+  # should always produce comparable results within a few eps machine precision.
   vector_length <- max(length(a), length(b), length(eps))
   tolerated_deviances <- floor(vector_length * r)
 
-  a_wrong <- length(a) > 1 && length(a) != vector_length
-  b_wrong <- length(b) > 1 && length(b) != vector_length
-  eps_wrong <- length(eps) > 1 && length(eps) != vector_length
-  if (a_wrong || b_wrong || eps_wrong) {
-    stop("Used different length of vectors in test.")
+  # last check, the actual value difference, either as an absolute or relative error
+  if (relative) {
+    # relative_eps <- dplyr::case_when(
+    #   length(a) == 1 && length(b) == 1 ~ eps * min(a, b),
+    #   length(a) == length(b) ~ eps * sapply(
+    #     seq(1, length(a)), function(x) min(c(a[x], b[x]))
+    #   ),
+    #   length(a) == 1 ~ eps * sapply(
+    #     seq(1, length(b)), function(x) min(c(a, b[x]))
+    #   ),
+    #   length(b) == 1 ~ eps * sapply(
+    #     seq(1, length(a)), function(x) min(c(a[x], b))
+    #   ),
+    # )
+    # eps_comparison_wrong <- (abs(a - b) > relative_eps)
+    difference <- normale_difference(a, b)
+  } else {
+    difference <- abs(a - b)
   }
+  eps_comparison_wrong <- (difference > eps)
 
-  # last check, the actual value difference
-  eps_comparison_wrong <- abs(a - b) > eps
+  # convert the logical vector in a sum of how many entries were wrong
   number_deviances <- sum(eps_comparison_wrong, na.rm = TRUE)
+
+  # at the end, check only the allowed number of entries were wrong
   if (isTRUE(number_deviances <= tolerated_deviances)) {
     succeed()
   } else {
+    # in case of a failure, print how many entries have been incorrect and how many were allowed.
     if (isTRUE(tolerated_deviances > 0)) {
-      message <- paste("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. Only ", toString(tolerated_deviances), " allowed!", sep = "")
+      message <- paste0(
+        "In expect_eps: ", toString(number_deviances), " of ",
+        toString(vector_length), " were bigger, then eps. Only ",
+        toString(tolerated_deviances), " allowed!"
+      )
     } else {
-      message <- paste("In expect_eps: ", toString(number_deviances), " of ", toString(vector_length), " were bigger, then eps. None were allowed!", sep = "")
+      message <- paste0(
+        "In expect_eps: ", toString(number_deviances), " of ",
+        toString(vector_length), " were bigger, then eps. None were allowed!"
+      )
     }
-    fail(message)
+    if (debug) {
+      print(paste0("relative: ", relative))
+      print(paste0("a: ", a, " b: ", b, " dif: ", difference, " eps: ", eps))
+    }
+    # fail(message)
+    fail(paste(message, "\nWith relative:", relative, "the max difference was:", max(difference)))
   }
 }
+
+#' Calculates Normale Difference, as useful for relative error.
+#' Uses euler metric for denominator. I like it, that is why. :D
+#'
+#' @param va Numeric scalar or vector of entries
+#' @param vb Numeric scalar or vector of entries
+#' If both va and vb are no scalars, their lengths have to be equal
+#'
+#' @return Vector of normalized differences
+#'
+#' @examples
+normale_difference <- function(va, vb) {
+  if (!lenEqual(list(va, vb), scalars_allowed = TRUE, type_check = is.numeric)) {
+    stop("In normale_difference function, both vector va and vb have to be numeric and of same len (or scalar)")
+  }
+  difference <- abs(va - vb)
+  denominator <- (va^2 + vb^2)^0.5
+
+  result <- difference / denominator
+  result[denominator == 0.0] <- 0.0 # those would be NAs, but are clearly valid 0!
+  # I think, this should be the only point, where this formula would fail
+
+  return(result)
+}
+
+
+#' Tests if an RNG can achieve a good enough location often enough
+#'
+#' @param rng_fun RNG function under test
+#' @param metric_mu Metric to be used on RNG data (usually mean or median)
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_list Auxiliary parameter
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#' useful in link-normal-distributions
+#' @param relative True if the error should be relative to the mu_list, Default = FALSE
+#' @param debug bool argument, if set will printout the difference, in case of failure. Default = FALSE
+#'
+#' @return Nothing actually, just wraps the test
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng(
+#'   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
+#'   aux_list = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+#' )
+test_rng <- function(rng_fun,
+                     metric_mu,
+                     n,
+                     mu_list,
+                     aux_list,
+                     mu_eps,
+                     p_acceptable_failures,
+                     mu_link = identity,
+                     relative = FALSE,
+                     debug = TRUE) {
+  # check, that all function arguments are actually functions
+  # TODO: (Is it possible, to check, if they also take the correct arguments?)
+  if (isFALSE(is.function(rng_fun) && is.function(metric_mu) && is.function(mu_link))) {
+    stop("RNG-, Metric- or mu_link-function argument was not a function!")
+  }
+  # check the number of samples to be generated and cecked
+  if (!(isInt_len(n) && n >= 1)) {
+    stop("n must be an integer, positive scalar!")
+  }
+  # check, that compare eps is a scalar
+  # all used moments should only deviate by eps in most tests)
+  if (isFALSE(length(mu_eps) == 1)) {
+    stop("mu_eps has to be a scalar in this test-function!")
+  }
+  # all other arguments are passed and then checked in the called functions!
+
+  # prepare the data, use a vector for ease of use
+  # allows re-using the expect_eps.
+  # As opposed to using a matrix, which would just complicate implementation and comparison.
+  len_mu <- length(mu_list)
+  len_aux <- length(aux_list)
+  expected_mus <- rep(mu_list, times = len_aux)
+  rng_mu_list <- vector(mode = "numeric", length = len_aux * len_mu)
+
+  # calculate rng data
+  for (i in seq_along(aux_list)) {
+    for (j in seq_along(mu_list)) {
+      rng_mu_list[(i - 1) * len_mu + j] <-
+        metric_mu(
+          rng_fun(
+            n,
+            mu = mu_link(mu_list[j]), aux_list[i]
+          )
+        )
+    }
+  }
+  # print(normale_difference(rng_mus, expected_mus))
+  # now the data was written, compare it
+  expect_eps(
+    a = rng_mu_list,
+    b = expected_mus,
+    eps = mu_eps,
+    r = p_acceptable_failures,
+    relative = relative,
+    debug = debug
+  )
+}
+
+#' Test if an RNG asymptotically approaches the true location
+#'
+#' Is currently not in a reliable state useful for testing. Needs more thought.
+#'
+#' @param rng_fun RNG function under test
+#' @param metric_mu Metric to be used on RNG data (usually mean or median)
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_par Auxiliary parameter
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#'
+#'
+#' @return Success or failure with message
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng_asym(
+#'   rng_fun = rbetaprime,
+#'   metric_mu = mean,
+#'   n = 10000,
+#'   mu_list = mu_list,
+#'   aux_par = phis,
+#'   relative = TRUE
+#' )
+test_rng_asym <- function(rng_fun,
+                          metric_mu,
+                          n,
+                          mu_list,
+                          aux_list,
+                          mu_link = identity) {
+  exponents <- seq(1, floor(log10(n)), by = 2)
+
+  # Generate a list of mus per mu, aux combination for growing sample sizes
+  for (mu in mu_list) {
+    for (aux in aux_list) {
+      loop_mu_list <- vector(mode = "numeric", length = length(exponents))
+      for (i in seq_along(exponents)) {
+        loop_n <- 10^exponents[i]
+        loop_mu_list[i] <- mu_link(
+          metric_mu(
+            rng_fun(
+              loop_n,
+              mu = mu, aux
+            )
+          )
+        )
+      }
+      # Tests if the resulting distances to the true mu reduce with growing sample size
+      if (!identical(
+        abs(loop_mu_list - mu),
+        sort(abs(loop_mu_list - mu), decreasing = TRUE)
+      )) {
+        fail(paste(
+          "The RNG did not approach the true location parameter asymptotically \n",
+          abs(loop_mu_list - mu),
+          "\n vs \n",
+          sort(abs(loop_mu_list - mu), decreasing = TRUE),
+          "\n",
+          mu, aux, exponents
+        ))
+      }
+    }
+  }
+  succeed()
+}
+
+#' Tests if an RNG can recover the true quantiles within a margin of error
+#'
+#' @param rng_fun RNG function under test
+#' @param mu_list Metric data used as RNG argument and to be compared to (usually mean or median)
+#' @param aux_par Auxiliary parameter
+#' @param mu_eps Acceptable difference of |mu - metric_mu(rng_fun)
+#' @param p_acceptable_failures Acceptable rate of failure, relative value of difference bigger mu_eps
+#' @param mu_link Default=identity, optional link-function argument, for example
+#' useful in link-normal-distributions
+#' @param relative True if the error should be relative to the mu_list
+#'
+#' @return Nothing actually, just wraps the test
+#'
+#' @examples library(testthat)
+#' library(bayesim)
+#' mu_list <- seq(from = 1 + eps, to = 20, length.out = 10)
+#' phis <- seq(from = 2 + eps, to = 20, length.out = 10)
+#' test_rng(
+#'   rng_fun = rbetaprime, metric_mu = mean, n = 10000, mu_list = mu_list,
+#'   aux_par = phis, mu_eps = 0.2, p_acceptable_failures = 0.05
+#' )
+test_rng_quantiles <- function(rng_fun,
+                               quantile_fun,
+                               n,
+                               mu_list,
+                               aux_list,
+                               eps,
+                               quantiles,
+                               p_acceptable_failures,
+                               mu_link = identity,
+                               relative = FALSE) {
+  for (mu in mu_list) {
+    for (aux in aux_list) {
+      sample <- rng_fun(
+        n,
+        mu = mu_link(mu),
+        aux
+      )
+      true_quantiles <- do.call(quantile_fun, list(quantiles, mu_link(mu), aux))
+      expect_eps(
+        a = true_quantiles,
+        b = quantile(sample, quantiles),
+        eps = eps,
+        r = p_acceptable_failures,
+        relative = relative
+      )
+    }
+  }
+}
+
 
 #' Check, if a is bigger than b. expect_smaller(a, b) can be done,
 #' by expect_bigger(b, a) with swapped arguments.
@@ -97,6 +362,7 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #'
 #' @return expect(a > threshold)
 #'
+#'
 #' @examples expect_bigger(1, 0) # should pass
 #' expect_bigger(0, 1) # should fail
 #' expect_bigger(c(1, 2), 0) # should pass
@@ -104,18 +370,8 @@ expect_eps <- function(a, b, eps, r = 0.0) {
 #' expect_bigger(c(1, 2), c(0, 3)) # should fail
 #' expect_bigger(c(1, 2, 3), c(0, 1)) # should produce an error
 expect_bigger <- function(a, b) {
-
-  # check, that both are numerical data
-  if (!is.numeric(a) || !is.numeric(b)) {
-    stop("All inputs have to be numeric data.")
-  }
-
-  # check, if vectors both are vectors, both are of equal length
-  vector_length <- max(length(a), length(b))
-  a_wrong <- length(a) > 1 && length(a) != vector_length
-  b_wrong <- length(b) > 1 && length(b) != vector_length
-  if (a_wrong || b_wrong) {
-    stop("Used different lengths of vectors in test")
+  if (!lenEqual(list(a, b), scalars_allowed = TRUE, type_check = is.numeric)) {
+    stop("Used different lengths of vectors in test, or non-numeric data")
   }
 
   # now compare all a and b values
@@ -125,4 +381,610 @@ expect_bigger <- function(a, b) {
   } else {
     fail("At least one number a was smaller than b")
   }
+}
+
+#' BRMS family expect recovery. Tries linear baysian model y ~ 1 + a.
+#' Checking of the arguments done in construct_brms.
+#'
+#' @param n_data_sampels How many samples per chain. Positive integer scalar. Default = 1000.
+#' @param intercept Intercept for data generating RNG.
+#' @param ref_intercept Reference intercept to compare model against. If NULL (default) uses the given intercept.
+#' @param aux_par Auxiliary parameter of each distribution.
+#' @param rng_link Link function pointer used for data generation. Mainly for transformed normals.
+#' @param parameter_link Link function pointer for the latent parameters. Used to transform for comparison with ref_intercept
+#' @param family BRMS family under test.
+#' @param rng function pointer of bespoke RNG for the family to be tested.
+#' @param aux_name BRMS string of aux_par argument name. Single string.
+#' @param seed Seed argument, so that input data is always the same in each test.
+#' BRMS test does not test RNG and is not guarateed to fit on all data. Positive Integer scalar, Default = 1337.
+#' Seed is stored before test and restored after it finished. If wants not to use a seed set to NA.
+#' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+#' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+#' Default = Null, will be in R terms "invisible" and will not cap any input data.
+#' @param thresh Acceptable threshold for quantiles of recovered arguments.
+#' Scalar or 2-entry real vector within (0, 1).
+#' Vector is used as is, scalar will be interpreted as c(tresh, 1-thresh).
+#' Default = 0.05
+#' @param debug Scalar Boolean argument, whether debug info is printed or not. Default = False.
+#' Note: Will supress everything, besides errors (so tests stay clean).
+#'
+#' @return None
+#'
+#' @examples library(testthat)
+#' result <- expect_brms_family(
+#'   link = exp, family = betaprime,
+#'   rng = rbetaprime, aux_name = "phi"
+#' )
+#' print(result)
+expect_brms_family <- function(n_data_sampels = 1000,
+                               intercept,
+                               ref_intercept = NULL,
+                               aux_par,
+                               rng_link,
+                               parameter_link,
+                               family,
+                               rng,
+                               aux_name,
+                               seed = 1235813,
+                               data_threshold = NULL,
+                               thresh = 0.05,
+                               debug = FALSE) {
+  if (!isSingleString(aux_name)) {
+    stop("The aux_par name argument has to be a single string")
+  }
+  if (is.null(ref_intercept)) {
+    ref_intercept <- intercept
+  }
+  posterior_fit <- construct_brms(n_data_sampels,
+    intercept,
+    aux_par,
+    rng_link = rng_link,
+    family,
+    rng,
+    seed = seed,
+    suppress_output = !debug,
+    data_threshold = data_threshold
+  )
+
+  intercept_recovered <- test_brms_quantile(
+    posterior_fit, "b_Intercept", parameter_link(ref_intercept), thresh, debug
+  )
+  aux_par_recovered <- test_brms_quantile(
+    posterior_fit, aux_name, aux_par, thresh, debug
+  )
+  success <- intercept_recovered & aux_par_recovered
+
+  if (debug & !success) {
+    print("Data were not recovered correctly! Print plot.")
+    fam_name <- posterior_fit$family$name
+    debug <- paste0(
+      fam_name,
+      " expect_brms_family failed with inputs intercept = ",
+      intercept,
+      " and aux_par = ",
+      aux_par
+    )
+    plot(posterior_fit, main = debug)
+  }
+
+  if (success) {
+    succeed()
+  } else {
+    fail("One or more variables have not been recovered correctly! You may set debug true and check the plot.")
+  }
+}
+
+#' Construct BRMS family for simple linear y ~ 1 + a model.
+#'
+#' @param n_data_sampels How many samples per chain. Positive integer scalar.
+#' @param intercept Intercept data argument, real scalar.
+#' @param aux_par aux_par argument of each distribution.
+#' @param rng_link Link function pointer used data. For positive bounded uses exp as example.
+#' @param family BRMS family under test.
+#' @param rng function pointer of bespoke RNG for the family to be tested.
+#' @param aux_name BRMS string of aux_par argument name. Single string.
+#' @param seed Seed argument, so that input data is always the same in each test.
+#' BRMS test does not test RNG and is not guarateed to fit on all data.
+#' Positive Integer scalar, Default = NA will do nothing. Seed is stored before and restored after.
+#' @param data_threshold Usually unused. But in rare cases, data too close at the boundary may cause trouble.
+#' If so, set a two entry real vector c(lower, uppper). If one of them is NA, the data will not be capped for that boundary.
+#' Default = Null, will be in R terms "invisible" and will not cap any input data.
+#' @param suppress_output Scalar Boolean argument. Default = TRUE supresses all prints.
+#' Only exceptions will be printed. For testing reasons, to not spam the test-window.
+#'
+#' @return BRMS model for the specified family.
+#'
+#' @examples posterior_fit <- construct_brms(1000, 0.5, 1.0, 2.0, exp, betaprime, rbetaprime, 2)
+#' plot(posterior_fit)
+#' # Only used internally with wrapper expect_brms_family, but I can't stop you anyways!
+construct_brms <- function(n_data_sampels,
+                           intercept,
+                           aux_par,
+                           rng_link,
+                           family,
+                           rng,
+                           seed = NULL,
+                           data_threshold = NULL,
+                           suppress_output = TRUE) {
+  if (!(is.function(family) && is.function(rng) && is.function(rng_link))) {
+    stop("family, rng or rng_link argument were not a function!")
+  }
+  if (!(isNat_len(n_data_sampels))) {
+    stop("n_data_sampels has to be a positive integer scalar")
+  }
+  if (!isNum_len(intercept)) {
+    stop("intercept argument has to be a real scalar")
+  }
+  if (!isNum_len(aux_par)) {
+    stop("aux_par argument has to be a real scalar")
+  }
+  if (!(isNum_len(seed) || is.null(seed))) {
+    stop("seed argument if used has to be a real scalar. Else it is let default as NULL,
+         which will not change the current RNG seed")
+  }
+  if (!isLogic_len(suppress_output)) {
+    stop("The argument suppress_output has to be a single boolean")
+  }
+
+
+  if (!is.null(seed)) {
+    old_seed <- .Random.seed
+    set.seed(seed)
+  }
+
+  y_data <- rng(n_data_sampels, rng_link(intercept), aux_par)
+  if (!is.null(data_threshold)) {
+    y_data <- limit_data(y_data, data_threshold)
+  }
+
+  if (!is.null(seed)) {
+    set.seed(old_seed)
+  }
+
+
+  data <- list(y = y_data)
+
+  if (isTRUE(suppress_output)) {
+    # if printout suppression is wished, use suppressAll as wrapper
+    BBmisc::suppressAll({
+      posterior_fit <- brms::brm(
+        y ~ 1,
+        data = data,
+        family = family(),
+        stanvars = family()$stanvars,
+        backend = "cmdstanr",
+        chains = 2,
+        cores = 1,
+        silent = 2,
+        refresh = 0,
+        init = 0.1
+      )
+    })
+  } else {
+    # and if not, do nothing special
+    posterior_fit <- brms::brm(
+      y ~ 1,
+      data = data,
+      family = family(),
+      stanvars = family()$stanvars,
+      backend = "cmdstanr",
+      chains = 2,
+      cores = 1,
+      silent = 2,
+      refresh = 0,
+      init = 0.1
+    )
+  }
+
+  return(posterior_fit)
+}
+
+#' Check, that data of the posterior is close enough to the reference data.
+#'
+#' @param posterior_data Data fitted and drawn, a BRMS object, which is a list in R terms
+#' @param name Name of the variable to check, as single string
+#' @param reference Reference value to check against, single real scalar
+#' @param thresh real scalar or 2-length vector of quantile bounds.
+#' For scalar constructs bound as [tresh, 1-thresh]
+#' thresh has to be inside the Unit-Interval.
+#'
+#' @return Single boolean succeess, fail or error
+#'
+#' @examples ba_in <- 0.5
+#' # with seed=1337 returns true in my case, but it may fail on other machines
+#' # especially if the RNG generator does not work the same. In any case, you may check visually against the plot!
+#' fit1 <- construct_brms(1000, ba = ba_in, 1.0, 2.0, exp, betaprime, rbetaprime, 2, seed = 1337)
+#' result <- test_brms_quantile(fit1, "b_a", ba_in, 0.025)
+#' print(result)
+#' plot(fit1)
+test_brms_quantile <- function(posterior_data, name, reference, thresh, debug = FALSE) {
+  if (!is.list(posterior_data)) {
+    stop("The posterior_data frame has to be BRMS data, which itself is in R of type list")
+  }
+  if (!isSingleString(name)) {
+    stop("The variable name argument has to be a single string")
+  }
+  if (!isNum_len(reference)) {
+    stop("The reference data has to be a single real scalar")
+  }
+  if (isTRUE(any(thresh <= 0 | thresh >= 1))) {
+    stop("The threshold has to be in the Unit-Interval")
+  }
+  if (!isLogic_len(debug)) {
+    stop("The argument debug has to be a single boolean")
+  }
+  if (isNum_len(thresh)) {
+    if (thresh > 0.5) {
+      stop("Any threshold scalar bigger 0.5 would create a bigger lower bound than upper bound!")
+    }
+    bounds <- c(thresh, 1 - thresh)
+  } else if (isNum_len(thresh, 2)) {
+    if (isFALSE(thresh[1] <= tresh[2])) {
+      stop("If a 2 entry vector is used for the bounds, the first entry is the lower bound")
+    }
+    bounds <- thresh
+  } else {
+    stop("The quantile-thresholds can only be a scalar, or a 2 length vector")
+  }
+
+  calculated <- tryCatch(
+    {
+      posterior::extract_variable_matrix(posterior_data, variable = name)
+    },
+    error = function(e) {
+      # if the extract fails, most probably cause is a wrong variable name string
+      # instead of giving an unreadable error, throw clear warning and return false
+      warning(paste0("In test_brms_quantile, the variable extraction of ", name, " failed.
+                   Most probable cause, the variable-string was written wrong or did not exist somehow.
+                   Return FALSE in this case."))
+      # warning(paste0("Original error was: ", e))
+      return(FALSE)
+    }
+  )
+
+  quantiles <- unname(quantile(calculated, probs = bounds))
+  if (debug) {
+    print(paste("At: ", bounds, " the quantile is: ", quantiles))
+    print(paste("The supplied reference value was: ", reference))
+  }
+
+  # if(quantiles[1] < reference && reference < quantiles[2])
+  #   succeed()
+  # else
+  #   fail("The reference value was not within the quantiles of the given posterior data!")
+  value <- quantiles[1] < reference && reference < quantiles[2]
+  return(isTRUE(value))
+}
+
+#' This is meant for development only. Use at your own risk (and sanity). You have been warned!
+#'
+#' @param n_param Number of paramerter for each mu and aux_par. Will yield n_param^2 permutations of both.
+#' @param n_x Number of the x values.
+#' @param eps Allowed precision tolerance.
+#' @param mu_int Interval of the densities mu variable.
+#' @param aux_par_int Interval of the densities aux_par variable.
+#' @param density_fun The PDF to be saved.
+#' @param density_name The name of the whole pre-calculated thingy. Probably the one of the density.
+#' @param save_folder The folder where to save the results. Default is set to
+#' "tests/testthat/precalc_values/" for internal use.
+#' @param x_int_prelink Interval of x-values, before the x_link function is used on them.
+#' @param x_link Link function to be used on x_int_prelink. Default is identity.
+#'
+#' @details This function will generate (n_param^2)*n_x number of reference samples.
+#' So be aware not to increase both too much. Otherwise you'll require alot of memory.
+#' As an example, for tests in this repo using modest n_x=1000 and leaving n_param=10 as default,
+#' this function already generates about 800KiB of files per PDF to be tested.
+#'
+#' @return Nothing, but saves input and reference files for later use!
+#'
+#' @examples eps <- 1e-6
+#' density_lookup_generator(
+#'   mu_int = c(eps, 1 - eps), aux_par_int = c(2, 10), x_int_prelink = c(eps, 1 - eps),
+#'   density_fun = dcauchitnormal, density_name = "cauchitnormal_demodata",
+#'   save_folder = ""
+#' )
+#' # saves cauchit_normal_demodata_refpdf lookup-data
+#' readRDS("cauchitnormal_demodata_refdata")
+density_lookup_generator <- function(n_param = 10,
+                                     n_x = 100,
+                                     eps = 10^-12,
+                                     mu_int,
+                                     mu_link = identity,
+                                     aux_par_int,
+                                     x_int_prelink,
+                                     x_link = identity,
+                                     density_fun,
+                                     density_name,
+                                     save_folder = "tests/testthat/precalc_values/") {
+  # assert parameters (why all the assertions, if only I ever get to use it?)
+  # dunno, just felt like it :P
+  if (isFALSE(is.function(density_fun))) {
+    stop("The given density_fun was no function. Expect density-function as input.")
+  }
+  if (!isSingleString(density_name)) {
+    stop("The given density_name has to be a single string.")
+  }
+  if (!isSingleString(save_folder)) {
+    stop("The given save_folder has to be a single string.")
+  }
+  if (!is.function(x_link)) {
+    stop("The given x_link was no function. Expect link-function as input.")
+  }
+  if (!isNum_len(mu_int, 2)) {
+    stop("The mu_int interval has to be a two long vector")
+  }
+  if (isFALSE(is.function(mu_link))) {
+    stop("The mu_link function must be a function pointer")
+  }
+  if (!isNum_len(aux_par_int, 2)) {
+    stop("The aux_par_int interval has to be a two long vector")
+  }
+  if (!isNum_len(x_int_prelink, 2)) {
+    stop("The x_int_prelink interval has to be a two long vector")
+  }
+  if (!isNat_len(n_param)) {
+    stop("The n_param has to be a single whole integer bigger 0")
+  }
+  if (!isNat_len(n_x)) {
+    stop("The n_x has to be a single whole integer bigger 0")
+  }
+  if (isFALSE(isNum_len(eps) && eps > 0)) {
+    stop("The eps has to be a scalar bigger 0")
+  }
+
+  # generate input data
+  mus <- mu_link(seq(from = mu_int[1], to = mu_int[2], length.out = n_param))
+  aux_pars <- seq(from = aux_par_int[1], to = aux_par_int[2], length.out = n_param)
+
+  x_ref <- x_link(seq(from = x_int_prelink[1], to = x_int_prelink[2], length.out = n_x))
+  y_ref <- matrix(data = list(), nrow = n_param, ncol = n_param)
+
+  # generate reference data
+  for (outer in 1:n_param) {
+    for (inner in 1:n_param) {
+      mu <- mus[outer]
+      aux_par <- aux_pars[inner]
+      y_ref[[outer, inner]] <- density_fun(x_ref, mu, aux_par)
+    }
+  }
+
+  # pack data into frames
+  # inp_scalars <- data.frame(n = n_x, n_small = n_param, eps = eps)
+  # inp_vectors <- data.frame(mus = mus, aux_pars = aux_pars)
+  # x_data <- data.frame(x = x_ref)
+  y_data <- data.frame(y = y_ref)
+  # In future, the refdata is in the test itself. If it runs on master once, should run anywhere.
+  # return_data <- c(inp_scalars, inp_vectors, x_data)
+  # then save them to RDS objects
+  # saveRDS(return_data, paste0(save_folder, density_name, "_refdata"))
+  saveRDS(y_data, paste0(save_folder, density_name, "_refpdf"))
+  # after reading the help, the issue with saveRDS (and save for that matter) is,
+  # that it might be used incorrectly, which will not occur, if any bayesim dev implements them
+
+
+  # If no errors occured, give feedback, of what density reference was saved where
+  print(paste0(
+    "Generated lookup data \"", density_name, "\" and saved to file in \"",
+    "package-root/", save_folder, "\" folder for tests"
+  ), quote = FALSE)
+}
+
+
+#' Check if a vector is numeric, has no na entries and has length len
+#'
+#' @param x Numeric vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether x was numeric and of correct size
+#'
+#' @examples isNum_len(c(1.1, 2.2), 2) # should be TRUE
+#' isNum_len(0.2) # should be TRUE
+#' isNum_len(0.2, 2) # should be FALSE, wrong length
+#' isNum_len("r") # should be FALSE, not numeric
+#' isNum_len(c("r", 0.2), 2) # should be FALSE, partially not numeric
+#' isNum_len(c("r", 0.2), 3) # should be FALSE, both not numeric and wrong length
+#'
+isNum_len <- function(x, len = 1) {
+  value <- all(!is.na(x)) && all(is.numeric(x)) && length(x) == len
+  return(isTRUE(value))
+}
+
+#' Integer vector check
+#'
+#' @param int Integer vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether int was Integer and of correct size
+#' @export
+#'
+#' @examples isInt_len(c(1, 2), 2) # should be TRUE
+#' isInt_len(1) # should be TRUE
+#' isInt_len(1, 2) # should be FALSE, wrong length
+#' isInt_len("r") # should be FALSE, not integer
+#' isInt_len(0.2) # should be FALSE, not integer
+#' isInt_len(c("r", 1), 2) # should be FALSE, partially not integer
+#' isInt_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
+isInt_len <- function(int, len = 1) {
+  all_numeric <- all(!is.na(int)) && all(is.numeric(int))
+  if (isTRUE(all_numeric)) {
+    # only check for integer, if the type is numeric!
+    value <- all(int %% 1 == 0) && length(int) == len
+    return(isTRUE(value))
+  } else {
+    return(FALSE)
+  }
+  # One might also do this all in a single AND beginning with is.numeric.
+  # In a single test, this worked fine, given if !is.numeric, the other boolean,
+  # checks were not done (because FALSE & x <=> FALSE)
+  # this did prevent errors (from "r" %% 1 == 0) at the least
+
+  # But I would prefer only checking numerics,
+  # given logical AND may not necassarily follow this behaviour!
+}
+
+#' Natural number vector check. Natural in informatic sense (n >= 0).
+#'
+#' @param int Integer vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether int was Integer >= 0 and of correct size
+#' @export
+#'
+#' @examples isNat_len(c(1, 2), 2) # should be TRUE
+#' isNat_len(1) # should be TRUE
+#' isNat_len(-1) # should be FALSE
+#' isNat_len(1, 2) # should be FALSE, wrong length
+#' isNat_len("r") # should be FALSE, not integer
+#' isNat_len(0.2) # should be FALSE, not integer
+#' isNat_len(c("r", 1), 2) # should be FALSE, partially not integer
+#' isNat_len(c("r", 1), 3) # should be FALSE, both not integer and wrong length
+isNat_len <- function(int, len = 1) {
+  return(isInt_len(int, len) && all(int >= 0))
+  # May require Unit-Tests (though as a wrapper to isInt_len, may makes it almost redundant)
+}
+
+#' Boolean vector check
+#'
+#' @param logic Logic vector to be checked
+#' @param len Length of vector, default argument is 1
+#'
+#' @return Boolean, whether logic was Boolean and of correct size
+#' @export
+#'
+#' @examples isLogic_len(c(TRUE, FALSE), 2) # should be TRUE
+#' isLogic_len(TRUE) # should be TRUE
+#' isLogic_len(TRUE, FALSE) # should be FALSE, wrong length
+#' isLogic_len("r") # should be FALSE, not boolean
+#' isLogic_len(0) # should be FALSE, not boolean
+#' isLogic_len(c("r", TRUE), 2) # should be FALSE, partially not boolean
+#' isLogic_len(c("r", TRUE), 3) # should be FALSE, both not boolean and wrong length
+isLogic_len <- function(logic, len = 1) {
+  if (any(is.function(logic))) {
+    # other comparable functions threw warnings for function-ptr.
+    # This did not, so I added it in manually.
+    warning("Function type given instead of boolean in isLogic_len")
+    return(FALSE)
+  }
+  value <- all(is.logical(logic)) && length(logic) == len
+  return(isTRUE(value))
+}
+
+#' Check, if the input is a single string
+#'
+#' @param input String argument
+#'
+#' @return Is a string and only one string
+#' @export
+#'
+#' @examples isSingleString("abc") # should be TRUE
+#' isSingleString(c("abc")) # should be TRUE
+#' isSingleString(c("abc", "def")) # should be FALSE, not a single string
+#' isSingleString(1) # should be FALSE, not a string
+#' isSingleString(c("abc", 1)) # should be FALSE, partially not a string and
+#' # also wrong length
+isSingleString <- function(input) {
+  value <- all(!is.na(input)) && is.character(input) && length(input) == 1
+  return(isTRUE(value))
+}
+
+#' Length and data check function
+#'
+#' @param list_of_vectors List of vectors of any type you want
+#' @param scalars_allowed In many applications, mixing scalars with vectors may be fine,
+#' so this argument controls, if scalars (length == 1) would be fine to. Default = FALSE
+#' @param type_check Function pointer argument of type to be checked. All vectors have to
+#' be of this type, if defined. Default = NULL
+#'
+#' @return boolean, given the arguments above
+#'
+#' @examples va <- c(1, 2, 3)
+#' vb <- c(NA, 5, 6)
+#' vc <- c(7, 8)
+#' lenEqual(list(va, vb))
+#' lenEqual(list(va, vc))
+lenEqual <- function(list_of_vectors, scalars_allowed = FALSE, type_check = NULL, na_allowed = FALSE) {
+  if (!isLogic_len(scalars_allowed)) {
+    stop("scalars_allowed has to be a single boolean value")
+  }
+  if (!isLogic_len(na_allowed)) {
+    stop("na_allowed has to be a single boolean value")
+  }
+  if (!is.null(type_check) && !is.function(type_check)) {
+    stop("If type_check is to be used, it has to be a function pointer, to a type checking function
+         (for example is.numeric)")
+  }
+
+  maxLen <- 0
+  for (vector in list_of_vectors) {
+    currentLen <- length(vector)
+    if (currentLen > maxLen) {
+      maxLen <- length(vector)
+    }
+    # gets the vector of the greatest length
+
+    if (is.function(type_check) && !type_check(vector)) {
+      warning("At least one vector was not of the specified type! Return FALSE immediatly.")
+      return(FALSE)
+    }
+    if (!na_allowed && any(is.na(vector))) {
+      # if NAs are dissallowed and the input contains any NAs, the function returns FALSE immediatly.
+      warning("NAs dissallowed, but at least one entry in the vectors was a NA! Return FALSE immediatly.")
+      return(FALSE)
+    }
+  }
+
+  for (vector in list_of_vectors) {
+    currentLen <- length(vector)
+    scalar_correct <- scalars_allowed && currentLen == 1
+    if (!scalar_correct && currentLen != maxLen) {
+      # if not scalar, nor the correct max len, then return false immediatly.
+      return(FALSE)
+    }
+  }
+
+  # if no issues occured so far, the result must be of the correct length.
+  return(TRUE)
+}
+
+#' Data limit function
+#'
+#' @param data Data to be limited
+#' @param limits Limits to be used. Vector with 2 real entries, limits[1] <= limits[2]
+#' If the lower bound does not have to be restricted, set it to NA and vice versa.
+#' Sets data outside those bounds to those bounds.
+#'
+#' @return data limited by the limits
+#' @export
+#'
+#' @examples input <- c(1, 2, 3, 4)
+#' print(input)
+#' print(limit_data(input, c(2, 3)))
+#' print(limit_data(input, c(2, NA)))
+limit_data <- function(data, limits) {
+  # check that the limit is usable
+  if (length(limits) != 2) {
+    stop("If the limits is to be used, it has to be of size 2.")
+  }
+  if (!isNum_len(data, len = length(data))) {
+    stop("Some data was not numeric, or was NA")
+  }
+
+  # if so, use the applicable limit (If one uses to na, well. What are you trying to achieve? :)
+  if (isNum_len(limits, 2)) {
+    if (limits[1] > limits[2]) {
+      stop("In limit_data, the first limit is the lower limit, so it has to be
+           smaller than the second limit.")
+    }
+  }
+
+  # isNum_len will certailny return false, if NA
+  if (isNum_len(limits[1])) {
+    data[data < limits[1]] <- limits[1]
+  }
+  if (isNum_len(limits[2])) {
+    data[data > limits[2]] <- limits[2]
+  }
+
+  # now return the data
+  return(data)
 }

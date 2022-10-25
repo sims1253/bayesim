@@ -10,12 +10,12 @@ cauchit(x)
 \item{x}{value of x to be transformed, not defined for x of whole integer}
 }
 \value{
-cauchit value of x
+cauchit value of x, result is unbound
 }
 \description{
 Cauchit link function
 }
 \examples{
 x <- seq(from = 0.1, to = 0.9, length.out = 100)
-y <- cauchit(x)
+plot(x, cauchit(x), type = "l")
 }

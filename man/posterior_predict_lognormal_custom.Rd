@@ -2,13 +2,20 @@
 % Please edit documentation in R/lognormal.R
 \name{posterior_predict_lognormal_custom}
 \alias{posterior_predict_lognormal_custom}
-\title{Title}
+\title{Posterior-predict vignette for the Lognormal distribution, with Median parametrization.}
 \usage{
 posterior_predict_lognormal_custom(i, prep, ...)
 }
 \arguments{
+\item{i}{Indices}
+
+\item{prep}{BRMS data}
+
 \item{...}{}
 }
+\value{
+Posterior prediction for BRMS
+}
 \description{
-Title
+Posterior-predict vignette for the Lognormal distribution, with Median parametrization.
 }

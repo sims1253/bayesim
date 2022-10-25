@@ -2,13 +2,33 @@
 % Please edit documentation in R/lognormal.R
 \name{lognormal_custom}
 \alias{lognormal_custom}
-\title{Title}
+\title{Custom BRMS family Log-Normal in median parametrization.}
 \usage{
 lognormal_custom(link = "identity", link_sigma = "log")
 }
 \arguments{
-\item{link_sigma}{}
+\item{link}{Link function argument (as string) for Median argument. Left as identity!}
+
+\item{link_sigma}{Link function argument (as string) for Shape argument}
+}
+\value{
+Lognormal BRMS model-object
 }
 \description{
-Title
+Custom BRMS family Log-Normal in median parametrization.
+}
+\examples{
+# Running the example might take a while and may make RStudio unresponsive.
+# Just relax and grab a cup of coffe or tea in the meantime.
+a <- rnorm(1000)
+data <- list(a = a, y = bayesim::rlognormal_custom(1000, 0.5 * a + 1, 2))
+# BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+# For an example without surpress, checkout the Bayesim Betaprime Example script
+BBmisc::suppressAll({
+  fit1 <- brms::brm(y ~ 1 + a,
+    data = data, family = bayesim::lognormal_custom(),
+    stanvars = bayesim::lognormal_custom()$stanvars, backend = "cmdstanr", cores = 4
+  )
+})
+plot(fit1)
 }

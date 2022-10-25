@@ -2,15 +2,23 @@
 % Please edit documentation in R/custom_weibull.R
 \name{rweibull_custom}
 \alias{rweibull_custom}
-\title{Title}
+\title{Custom Weibull RNG function in mean parametrisation.}
 \usage{
 rweibull_custom(n, mu, k)
 }
 \arguments{
-\item{mu}{Mean}
+\item{n}{Number of samples, scalar natural number.}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter, mu > 0.}
+
+\item{k}{Shape parameter, k > 0.}
+}
+\value{
+n Weibull distributed samples.
 }
 \description{
-Title
+Custom Weibull RNG function in mean parametrisation.
+}
+\examples{
+hist(log(rweibull_custom(10000, mu = 2, k = 1)))
 }

@@ -2,13 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{erf}
 \alias{erf}
-\title{Title}
+\title{Gaussion Error function}
 \usage{
 erf(x)
 }
 \arguments{
-\item{x}{}
+\item{x}{value to be transformed, x unbound}
+}
+\value{
+erf function of x, result e (0, 1)
 }
 \description{
-Title
+Gaussion Error function
+}
+\examples{
+x <- seq(from = -2, to = 2, length.out = 100)
+plot(x, erf(x), type = "l")
 }

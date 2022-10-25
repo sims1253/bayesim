@@ -2,34 +2,33 @@
 % Please edit documentation in R/custom_beta.R
 \name{dbeta_custom}
 \alias{dbeta_custom}
-\title{Custom Beta distribibution density.}
+\title{Custom implementation of the Beta Distribution Density.}
 \usage{
 dbeta_custom(x, mu, phi, log = FALSE)
 }
 \arguments{
-\item{x}{x-value}
+\item{x}{x-value, x e (0, 1)}
 
-\item{mu}{Mean}
+\item{mu}{Mean parameter, mu e (0, 1)}
 
-\item{phi}{Precision}
+\item{phi}{Precision parameter, phi > 0}
 
-\item{log}{TRUE if log pdf is wanted}
+\item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
 }
 \value{
-PDF of Custom Beta distribution, with mean parameterasation
+PDF of custom Beta Distribution
 }
 \description{
-Custom Beta distribibution density.
+Custom implementation of the Beta Distribution Density.
 }
 \details{
-The beta-prime distribution has density
-\deqn{f(y) = {y^{\mu \phi - 1}(1 - y)^{(1 - \mu) \phi - 1} } / beta(\mu \phi, (1 - \mu) \phi) }
+The Beta Distribution has Density
+\deqn{f(y | \mu, \phi) = \frac{\Gamma(\phi) x^{\mu\phi - 1} (1 - x)^{(1-\mu)\phi}}{\Gamma(\mu\phi)\Gamma((1 - \mu)\phi)} }
+
+With parameterisation of the usual Beta-Distribution's shape parameters a and b as:
+\deqn{a := \mu\phi, b := (1 - \mu)\phi}
 }
 \examples{
-x <- seq(from = 0, to = 1, length.out = 100)
-phi <- 2
-mean <- 0.5
-y <- bayesim::dbeta_custom(x, mu = mean, phi = phi)
-plot(x, y, type = "l", ylab = "Density", main = "dbeta_custom(mu = 0.5, phi = 2)")
-# Compare to online ressources
+x <- seq(from = 0.01, to = 0.99, length.out = 1000)
+plot(x, dbeta_custom(x, mu = 0.5, phi = 1), type = "l")
 }

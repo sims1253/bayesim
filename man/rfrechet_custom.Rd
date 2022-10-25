@@ -2,15 +2,23 @@
 % Please edit documentation in R/custom_frechet.R
 \name{rfrechet_custom}
 \alias{rfrechet_custom}
-\title{Title}
+\title{Frechet RNG function}
 \usage{
 rfrechet_custom(n, mu, nu)
 }
 \arguments{
+\item{n}{Number samples to draw}
+
 \item{mu}{Mean}
 
 \item{nu}{Shape}
 }
+\value{
+n samples in Frechet-Distribution
+}
 \description{
-Title
+Frechet RNG function
+}
+\examples{
+hist(bayesim::rbetaprime(100, mu = 1, nu = 2))
 }

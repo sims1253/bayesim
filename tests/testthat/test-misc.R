@@ -1,10 +1,8 @@
-library(brms)
 
 eps <- 1e-6
 n_testset <- 100
 
-# Test the link function of misc.R with Testthat Unit-Change
-
+# Test the link functions
 test_that("logit-link", {
   # check, that the error is within reason
   expect_eps(0, logit(0.5), eps)
@@ -15,15 +13,16 @@ test_that("logit-link", {
   # check link against link from another package
   testset_logit <- seq(from = eps, to = 1 - eps, length.out = n_testset)
   expect_eps(brms:::logit(testset_logit), logit(testset_logit), eps)
-  # check values outside the defined space, to throw warning
-  expect_warning(logit(-1))
-  expect_warning(logit(2))
   # check values at the boundary of the defined space
   expect_equal(logit(0), -Inf)
   expect_equal(logit(1), Inf)
   # check, that non-numeric arguments result in an error
   expect_error(logit("R"))
-  expect_error(logit("R", 0.5))
+  # check, that wrong number of arguments produce an error
+  expect_error(logit(0.1, 0.5))
+  # check ranges
+  expect_error(logit(-1))
+  expect_error(logit(2))
 })
 
 test_that("inverse-logit-link", {
@@ -41,28 +40,8 @@ test_that("inverse-logit-link", {
   expect_equal(0, inv_logit(-Inf))
   # check, that non-numeric arguments result in an error
   expect_error(inv_logit("R"))
-  expect_error(inv_logit("R", 0.5))
-})
-
-test_that("logistic-link", {
-  # same tests as inverse-logit-link, given, it another name for the same link
-  # check, that the error is within reason
-  expect_eps(0.5, logistic(0), eps)
-  expect_eps(0.119202922022, logistic(-2), eps)
-  expect_eps(0.73105857863, logistic(1), eps)
-  # check vector as argument returns vector with same results
-  expect_eps(c(0.5, 0.119202922022, 0.73105857863), logistic(c(0, -2, 1)), eps)
-  # equivalent to inverse logit
-  testset_logistic <- seq(from = -100, to = 100, length.out = n_testset)
-  expect_equal(inv_logit(testset_logistic), logistic(testset_logistic))
-  # also check against other package
-  expect_eps(brms:::inv_logit(testset_logistic), logistic(testset_logistic), eps)
-  # check values, for x to Inf/x on boundary of defined space
-  expect_equal(1, logistic(Inf))
-  expect_equal(0, logistic(-Inf))
-  # check, that non-numeric arguments result in an error
-  expect_error(logistic("R"))
-  expect_error(logistic("R", 0.5))
+  # check, that wrong number of arguments produce an error
+  expect_error(logit(0.1, 0.5))
 })
 
 test_that("cloglog-link", {
@@ -79,12 +58,13 @@ test_that("cloglog-link", {
   # check boundary values
   expect_equal(-Inf, cloglog(0))
   expect_equal(Inf, cloglog(1))
-  # check values outside of the defined space to throw warning
-  expect_warning(logit(-1))
-  expect_warning(logit(2))
   # check, that non-numeric arguments result in an error
   expect_error(cloglog("R"))
-  expect_error(cloglog("R", 0.5))
+  # check, that wrong number of arguments produce an error
+  expect_error(cloglog(0.1, 0.5))
+  # check ranges
+  expect_error(cloglog(-1))
+  expect_error(cloglog(2))
 })
 
 test_that("inverse-cloglog-link", {
@@ -103,7 +83,8 @@ test_that("inverse-cloglog-link", {
   expect_equal(1, inv_cloglog(Inf))
   # check, that non-numeric arguments result in an error
   expect_error(inv_cloglog("R"))
-  expect_error(inv_cloglog("R", 0.5))
+  # check, that wrong number of arguments produce an error
+  expect_error(inv_cloglog(0.1, 0.5))
 })
 
 test_that("cauchit-link", {
@@ -120,12 +101,13 @@ test_that("cauchit-link", {
   # check values on the boundary, should logically be Inf, but just approach Inf
   expect_equal(cauchit(0), -Inf)
   expect_equal(cauchit(1), Inf)
-  # check values outside the defined scope are NaN and throw warning
-  expect_warning(expect_true(is.na(cauchit(-1))))
-  expect_warning(expect_true(is.na(cauchit(2))))
+  # check ranges
+  expect_error(cauchit(-1))
+  expect_error(cauchit(2))
   # check, that non-numeric arguments result in an error
-  expect_error(inv_cloglog("R"))
-  expect_error(inv_cloglog("R", 0.5))
+  expect_error(cauchit("R"))
+  # check, that wrong number of arguments produce an error
+  expect_error(cauchit(0.1, 0.5))
 })
 
 test_that("inv-cauchit-link", {
@@ -143,5 +125,58 @@ test_that("inv-cauchit-link", {
   expect_equal(1, inv_cauchit(Inf))
   # check, that non-numeric arguments result in an error
   expect_error(inv_cauchit("R"))
-  expect_error(inv_cauchit("R", 0.5))
+  # check, that wrong number of arguments produce an error
+  expect_error(inv_cauchit(0.1, 0.5))
+})
+
+test_that("gaussian-error-function", {
+  # check, that the error is within reason
+  expect_eps(-0.8427008, erf(-1), eps)
+  expect_equal(0, erf(0))
+  expect_eps(0.2227026, erf(0.2), eps)
+  # check vector as argument returns vector with same results
+  expect_eps(c(-0.8427008, 0, 0.2227026), erf(c(-1, 0, 0.2)), eps)
+  # check x approaching Inf on boundry of defined space
+  expect_equal(-1, erf(-Inf))
+  expect_equal(1, erf(Inf))
+  # check, that non-numeric arguments result in an error
+  expect_error(erf("R"))
+  # check, that wrong number of arguments produce an error
+  expect_error(erf(0.1, 0.5))
+})
+
+test_that("Softplus link-function", {
+  # check, that the error is within reason
+  expect_eps(-2.252168, softplus(0.1), eps)
+  expect_eps(0.5413249, softplus(1), eps)
+  expect_eps(3.981515, softplus(4), eps)
+  expect_equal(100, softplus(100)) # should be equal to machine precision (I think)
+  # check vector as argument returns vector with same results
+  expect_eps(c(-2.252168, 0.5413249, 3.981515, 100), softplus(c(0.1, 1, 4, 100)), eps)
+  # check x approaching Inf on boundry of defined space
+  expect_equal(-Inf, softplus(0))
+  expect_equal(Inf, softplus(Inf))
+  # check, that non-numeric arguments result in an error
+  expect_error(softplus("R"))
+  # check, that wrong number of arguments produce an error
+  expect_error(softplus(0.1, 0.5))
+  # check values outside the defined scope are NaN and throw warning
+  expect_warning(expect_true(is.na(softplus(-1))))
+})
+
+test_that("Inverse Softplus link-function", {
+  # check, that the error is within reason
+  expect_eps(4.53989e-05, inv_softplus(-10), eps)
+  expect_eps(0.3132617, inv_softplus(-1), eps)
+  expect_eps(1.313262, inv_softplus(1), eps)
+  expect_equal(100, inv_softplus(100)) # should be equal to machine precision (I think)
+  # check vector as argument returns vector with same results
+  expect_eps(c(4.53989e-05, 0.3132617, 1.313262, 100), inv_softplus(c(-10, -1, 1, 100)), eps)
+  # check x approaching Inf on boundry of defined space
+  expect_equal(0, inv_softplus(-Inf))
+  expect_equal(Inf, inv_softplus(Inf))
+  # check, that non-numeric arguments result in an error
+  expect_error(inv_softplus("R"))
+  # check, that wrong number of arguments produce an error
+  expect_error(inv_softplus(0.1, 0.5))
 })

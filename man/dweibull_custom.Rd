@@ -2,15 +2,33 @@
 % Please edit documentation in R/custom_weibull.R
 \name{dweibull_custom}
 \alias{dweibull_custom}
-\title{Title}
+\title{Custom Weibull PDF in mean parametrisation.}
 \usage{
-dweibull_custom(x, mu, k)
+dweibull_custom(x, mu, k, log = FALSE)
 }
 \arguments{
-\item{mu}{Mean}
+\item{x}{Value space, x > 0.}
 
-\item{k}{Shape}
+\item{mu}{Mean parameter, mu > 0.}
+
+\item{k}{Shape parameter, k > 0.}
+
+\item{log}{Optional argument. If TRUE, returns log(pdf). Normally False.}
+}
+\value{
+f(x | mu, k)
 }
 \description{
-Title
+Custom Weibull PDF in mean parametrisation.
+}
+\details{
+Define constant sigma as
+\deqn{\sigma(\mu, k) := \mu / \Gamma(1 + 1 / k)}
+
+The Weibull distribution density is defined as
+\deqn{f(y) = \frac{k}{\sigma} * (\frac{x}{\sigma})^{\alpha - 1} * exp(-(\frac{x}{\sigma})^\alpha)}
+}
+\examples{
+x <- seq(from = 0.01, to = 10, length.out = 1000)
+plot(x, dweibull_custom(x, mu = 2, k = 1), type = "l")
 }

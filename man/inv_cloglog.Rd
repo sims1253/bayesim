@@ -2,20 +2,20 @@
 % Please edit documentation in R/misc.R
 \name{inv_cloglog}
 \alias{inv_cloglog}
-\title{Inverse CLogLog link function}
+\title{Complementary-Log-Log response function}
 \usage{
 inv_cloglog(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, any real scalar or vector allowed}
+\item{x}{value of x to be transformed, x unbound}
 }
 \value{
-inverse-cloglog value of x
+inverse-cloglog value of x, result is e (0, 1)
 }
 \description{
-Inverse CLogLog link function
+Complementary-Log-Log response function
 }
 \examples{
 x <- seq(from = -3, to = 1, length.out = 100)
-y <- inv_cloglog(x)
+plot(x, inv_cloglog(x), type = "l")
 }

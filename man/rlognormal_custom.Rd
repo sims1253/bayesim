@@ -2,13 +2,23 @@
 % Please edit documentation in R/lognormal.R
 \name{rlognormal_custom}
 \alias{rlognormal_custom}
-\title{Title}
+\title{Lognormal RNG-function in median parametrization.}
 \usage{
 rlognormal_custom(n, mu, sigma)
 }
 \arguments{
-\item{sigma}{}
+\item{n}{Number of draws}
+
+\item{mu}{Median paramameter, mu unbound, mu already log transformed}
+
+\item{sigma}{Sigma shape parameter, sigma > 0}
+}
+\value{
+n Lognormally ditributed samples
 }
 \description{
-Title
+Lognormal RNG-function in median parametrization.
+}
+\examples{
+hist(rlognormal_custom(100, 1, 0.5))
 }

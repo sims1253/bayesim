@@ -5,13 +5,15 @@
 #' @param beta Scale parameter
 #' @param log Optional argument. If TRUE, returns log(pdf).
 #'
-#' @return PDF of gompertz distribution, with median parametrization.
+#' @details PDF of Gompertz implementation, with constant b:
+#' \deqn{b(\mu,\eta) := (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
+#' \deqn{f(x) = \eta*b*exp(\eta + bx - \eta * e^{bx})}
+#'
+#' @return f(x | mu, eta)
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 5, length.out = 100)
-#' y <- bayesim::dgompertz(x, mu = 10, beta = 10)
-#' plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=10, beta=10)")
-#' # Compare to online ressources
+#' @examples x <- seq(from = 0.1, to = 5, length.out = 100)
+#' plot(x, dgompertz(x, mu = 2, beta = 4), type = "l")
 dgompertz <- function(x, mu, beta, log = FALSE) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -42,8 +44,8 @@ dgompertz <- function(x, mu, beta, log = FALSE) {
 #' @return Inverse of CDF, calculates a value, given a probability p
 #' @export
 #'
-#' @examples x <- seq(from = 0, to = 1, length.out = 100)
-#' plot(x, bayesim::qgompertz(x, mu = 10, beta = 1), type = "l", ylab = "Quantile", main = "apex-after-origin Gompertz(mu=10, beta=1)")
+#' @examples x <- seq(from = 0.01, to = 0.99, length.out = 100)
+#' plot(x, bayesim::qgompertz(x, mu = 10, beta = 1), type = "l")
 qgompertz <- function(p, mu, beta) {
   # check the arguments
   if (isTRUE(any(p <= 0 | p >= 1))) {
@@ -69,8 +71,7 @@ qgompertz <- function(p, mu, beta) {
 #' @return A Gompertz distributed RNG vector of size n
 #' @export
 #'
-#' @examples y <- bayesim::rgompertz(n, mu = 2, eta = 0.1)
-#' hist(y, main = c(paste("Median:", median(y)), " for RNG of apex-after-origin Gompertz(mu=2, eta=0.1)"))
+#' @examples hist(bayesim::rgompertz(n = 100, mu = 2, beta = 0.1))
 rgompertz <- function(n, mu, beta) {
   if (isTRUE(mu <= 0)) {
     stop("rgompertz is only defined for mu > 0")
@@ -90,8 +91,6 @@ rgompertz <- function(n, mu, beta) {
 #' @param prep BRMS data
 #'
 #' @return Log-Likelihood of gompertz given data in prep
-#'
-#' @examples
 log_lik_gompertz <- function(i, prep) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   beta <- brms::get_dpar(prep, "beta", i = i)
@@ -106,8 +105,6 @@ log_lik_gompertz <- function(i, prep) {
 #' @param ...
 #'
 #' @return Posterior prediction of gompertz, given data in prep
-#'
-#' @examples
 posterior_predict_gompertz <- function(i, prep, ...) {
   mu <- brms::get_dpar(prep, "mu", i = i)
   beta <- brms::get_dpar(prep, "beta", i = i)
@@ -119,15 +116,13 @@ posterior_predict_gompertz <- function(i, prep, ...) {
 #'
 #' @param prep BRMS data
 #'
-#' @return Recover the given mean of data prep
-#'
-#' @examples
+#' @return Nothing
 posterior_epred_gompertz <- function(prep) {
   stop("posterior_epred is not defined for the gompertz family")
 }
 
 
-#' Gompertz Stan-implementation in median parametrization.
+#' Custom Gompertz BRMS-implementation in median parametrization.
 #'
 #' @param link Link function for function
 #' @param link_eta Link function for eta argument
@@ -135,11 +130,18 @@ posterior_epred_gompertz <- function(prep) {
 #' @return BRMS gompertz distribution family
 #' @export
 #'
-#' @examples data <- list(a = a, y = bayesim::rgompertz(n, exp(0.5 * a + 1), 0.2))
-#' fit1 <- brm(y ~ 1 + a,
-#'   data = data, family = bayesim::gompertz(),
-#'   stanvars = bayesim::gompertz()$stanvars, backend = "cmdstan"
-#' )
+#' @examples # Running the example might take a while and may make RStudio unresponsive.
+#' # Just relax and grab a cup of coffe or tea in the meantime.
+#' a <- rnorm(1000)
+#' data <- list(a = a, y = bayesim::rgompertz(1000, mu = exp(0.5 * a + 1), beta = 0.1))
+#' # BBmisc::surpressAll necassary, the RStudio Roxygen help would be filled with slash symbols...
+#' # For an example without surpress, checkout the Bayesim Betaprime Example script
+#' BBmisc::suppressAll({
+#'   fit1 <- brms::brm(y ~ 1 + a,
+#'     data = data, family = bayesim::gompertz(),
+#'     stanvars = bayesim::gompertz()$stanvars, backend = "cmdstanr", cores = 4
+#'   )
+#' })
 #' plot(fit1)
 gompertz <- function(link = "log", link_b = "log") {
   family <- brms::custom_family(

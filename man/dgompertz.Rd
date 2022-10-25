@@ -16,14 +16,17 @@ dgompertz(x, mu, beta, log = FALSE)
 \item{log}{Optional argument. If TRUE, returns log(pdf).}
 }
 \value{
-PDF of gompertz distribution, with median parametrization.
+f(x | mu, eta)
 }
 \description{
 Probability density function for the Gompertz distribution, with Median parametrization.
 }
+\details{
+PDF of Gompertz implementation, with constant b:
+\deqn{b(\mu,\eta) := (1 / \mu) * log1p((-1 / \eta) * log(0.5))}
+\deqn{f(x) = \eta*b*exp(\eta + bx - \eta * e^{bx})}
+}
 \examples{
-x <- seq(from = 0, to = 5, length.out = 100)
-y <- bayesim::dgompertz(x, mu = 10, beta = 10)
-plot(x, y, type = "l", ylab = "Density", main = "dgompertz(mu=10, beta=10)")
-# Compare to online ressources
+x <- seq(from = 0.1, to = 5, length.out = 100)
+plot(x, dgompertz(x, mu = 2, beta = 4), type = "l")
 }

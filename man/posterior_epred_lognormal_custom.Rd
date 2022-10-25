@@ -2,13 +2,16 @@
 % Please edit documentation in R/lognormal.R
 \name{posterior_epred_lognormal_custom}
 \alias{posterior_epred_lognormal_custom}
-\title{Title}
+\title{Posterior expected value prediction vignette for Lognormal distribution.}
 \usage{
 posterior_epred_lognormal_custom(prep)
 }
 \arguments{
-\item{prep}{}
+\item{prep}{BRMS data}
+}
+\value{
+Expectation value prediction for BRMS
 }
 \description{
-Title
+Posterior expected value prediction vignette for Lognormal distribution.
 }

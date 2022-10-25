@@ -7,15 +7,15 @@
 cloglog(x)
 }
 \arguments{
-\item{x}{value of x to be transformed, 0 < x < 1}
+\item{x}{value of x to be transformed, x e (0, 1)}
 }
 \value{
-cloglog value of x
+cloglog value of x, result is unbound
 }
 \description{
 Complementary-Log-Log link function
 }
 \examples{
 x <- seq(from = 0.1, to = 0.9, length.out = 100)
-y <- cloglog(x)
+plot(x, cloglog(x), type = "l")
 }

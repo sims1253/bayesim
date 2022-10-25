@@ -1,13 +1,19 @@
-#' Title
+#' Frechet Density function
 #'
-#' @param x
+#' @param x x value space, x > 0
 #' @param mu Mean
 #' @param nu Shape
 #'
-#' @return
+#' @details Define scale parameter sigma as
+#' \deqn{\sigma(\mu, \nu) := \mu / \Gamma(1 - 1 / \nu)}
+#' @details The Frechet distribution has density
+#' \deqn{f(y) = (\nu /\sigma) * (y / \sigma)^{-(1 - \nu)} * exp(-(y / \sigma)^{-\nu}) }
+#'
+#' @return dfrechet(x | mu, nu)
 #' @export
 #'
-#' @examples
+#' @examples x <- seq(from = 0.1, to = 20, length.out = 1000)
+#' plot(x, dfrechet_custom(x, mu = 6, nu = 4), type = "l")
 dfrechet_custom <- function(x, mu, nu) {
   # check the arguments
   if (isTRUE(any(x <= 0))) {
@@ -23,16 +29,16 @@ dfrechet_custom <- function(x, mu, nu) {
 }
 
 
-#' Title
+#' Frechet RNG function
 #'
-#' @param n
+#' @param n Number samples to draw
 #' @param mu Mean
 #' @param nu Shape
 #'
-#' @return
+#' @return n samples in Frechet-Distribution
 #' @export
 #'
-#' @examples
+#' @examples hist(bayesim::rbetaprime(100, mu = 1, nu = 2))
 rfrechet_custom <- function(n, mu, nu) {
   # check the arguments
   if (isTRUE(nu <= 1)) {
