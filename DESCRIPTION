@@ -1,8 +1,8 @@
 Package: bayesim
 Type: Package
-Title: Simulation-Study Framework for Bayesian Modeling
-Version: 0.30.0.9000
-Date: 2022-04-14
+Title: Simulation Framework for Bayesian Modeling
+Version: 0.31.0.9000
+Date: 2022-11-10
 Authors@R:
     c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
              role = c("aut", "cre")),
@@ -13,28 +13,22 @@ Authors@R:
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+License: GPL-3 + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
+    bayesfam (>= 0.2.1),
     brms (>= 2.18.1),
+    rstan,
     posterior (>= 1.3.1),
-    loo (>= 2.5.1),
+    plyr,
     stats,
-    matrixStats,
-    latex2exp,
-    ggplot2,
-    ggthemes,
-    tidyr,
-    dplyr
+    matrixStats
 Suggests:
     cmdstanr (>= 0.5.3),
     foreach,
     parallel,
-    doParallel,
-    rmutil,
-    extraDistr,
-    BBmisc,
+    doParallel
 RoxygenNote: 7.2.1
 Config/testthat/parallel: true
 Config/testthat/edition: 3

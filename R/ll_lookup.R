@@ -10,21 +10,21 @@
 brms_family_lookup <- function(family, link = NULL) {
   switch(family,
     "beta" = brms::brmsfamily("beta", link = link),
-    "kumaraswamy" = kumaraswamy(link = link),
-    "logitnormal" = logitnormal(link = link),
-    "cauchitnormal" = cauchitnormal(link = link),
-    "cloglognormal" = cloglognormal(link = link),
-    "simplex" = simplex(link = link),
+    "kumaraswamy" = bayesfam::kumaraswamy(link = link),
+    "logitnormal" = bayesfam::logitnormal(link = link),
+    "cauchitnormal" = bayesfam::cauchitnormal(link = link),
+    "cloglognormal" = bayesfam::cloglognormal(link = link),
+    "simplex" = bayesfam::simplex(link = link),
     "gaussian" = brms::brmsfamily("gaussian", link = link),
     "gamma" = brms::brmsfamily("gamma", link = link),
     "weibull" = brms::brmsfamily("weibull", link = link),
     "lognormal" = brms::brmsfamily("lognormal", link = link),
-    "softplusnormal" = softplusnormal(link = link),
-    "lomax" = lomax(link = link),
+    "softplusnormal" = bayesfam::softplusnormal(link = link),
+    "lomax" = bayesfam::lomax(link = link),
     "frechet" = brms::brmsfamily("frechet", link = link),
     "inverse.gaussian" = brms::brmsfamily("inverse.gaussian", link = link),
-    "betaprime" = betaprime(link = link),
-    "gompertz" = gompertz(link = link)
+    "betaprime" = bayesfam::betaprime(link = link),
+    "gompertz" = bayesfam::gompertz(link = link)
   )
 }
 
@@ -39,22 +39,22 @@ brms_family_lookup <- function(family, link = NULL) {
 #' @examples
 rng_lookup <- function(family) {
   switch(family,
-    "beta" = rbeta_custom,
-    "kumaraswamy" = rkumaraswamy,
-    "logitnormal" = rlogitnormal,
-    "cauchitnormal" = rcauchitnormal,
-    "cloglognormal" = rcloglognormal,
-    "simplex" = rsimplex,
+    "beta" = bayesfam::rbeta_mean,
+    "kumaraswamy" = bayesfam::rkumaraswamy,
+    "logitnormal" = bayesfam::rlogitnormal,
+    "cauchitnormal" = bayesfam::rcauchitnormal,
+    "cloglognormal" = bayesfam::rcloglognormal,
+    "simplex" = bayesfam::rsimplex,
     "gaussian" = rnorm,
-    "gamma" = rgamma_custom,
-    "weibull" = rweibull_custom,
-    "lognormal" = rlognormal_custom,
-    "softplusnormal" = rsoftplusnormal,
-    "lomax" = rlomax,
-    "frechet" = rfrechet_custom,
+    "gamma" = bayesfam::rgamma_mean,
+    "weibull" = bayesfam::rweibull_median,
+    "lognormal" = bayesfam::rlognormal,
+    "softplusnormal" = bayesfam::rsoftplusnormal,
+    "lomax" = bayesfam::rlomax,
+    "frechet" = bayesfam::rfrechet_median,
     "inverse.gaussian" = brms::rinv_gaussian,
-    "betaprime" = rbetaprime,
-    "gompertz" = rgompertz
+    "betaprime" = bayesfam::rbetaprime,
+    "gompertz" = bayesfam::rgompertz
   )
 }
 
@@ -69,12 +69,12 @@ rng_lookup <- function(family) {
 #' @examples
 inv_link_lookup <- function(link) {
   switch(link,
-    "logit" = inv_logit,
-    "cauchit" = inv_cauchit,
-    "cloglog" = inv_cloglog,
+    "logit" = bayesfam::inv_logit,
+    "cauchit" = bayesfam::inv_cauchit,
+    "cloglog" = bayesfam::inv_cloglog,
     "identity" = identity,
     "log" = exp,
-    "softplus" = inv_softplus
+    "softplus" = bayesfam::inv_softplus
   )
 }
 
