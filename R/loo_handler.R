@@ -90,7 +90,7 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
     for (i in seq_along(compare_metrics)) {
       metric <- compare_metrics[[i]]
 
-      loo_result <- loo_compare(lapply(loo_object_matrix[valid_entries], function(x) {
+      loo_result <- brms::loo_compare(lapply(loo_object_matrix[valid_entries], function(x) {
         x[[i]]
       }))
       deltas <- numeric(length = length(index))
@@ -172,7 +172,7 @@ rmse_loo <- function(fit,
       }
       pointwise_rmse <- rmse(
         y = brms::get_y(fit),
-        yrep = posterior_predict(fit, fit$data),
+        yrep = brms::posterior_predict(fit, fit$data),
         weights = exp(psis_object$log_weights)
       )
 
@@ -346,7 +346,7 @@ r2_loo <- function(fit, psis_object = NULL, ...) {
         psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
       }
       pointwise_loo_r2 <- r2(
-        y = get_y(fit),
+        y = brms::get_y(fit),
         yrep = brms::posterior_predict(fit, fit$data),
         weights = exp(psis_object$log_weights)
       )
