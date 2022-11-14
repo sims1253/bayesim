@@ -60,16 +60,14 @@ fit_sim <- function(prefit,
       if (debug == TRUE) {
         saveRDS(all_metric_results, paste0(paste(result_path, "all_metric_results", sep = "/"), ".RDS"))
       }
-      numeric_results <- all_metric_results$numeric_results
+      numeric_results <- dplyr::as_tibble(all_metric_results$numeric_results)
       loo_objects <- all_metric_results$loo_objects
       final_result <- list(
-        numeric_results = data.frame(
-          c(
-            numeric_results,
-            fit_conf,
-            data_gen_conf,
-            c(stan_seed = seed)
-          )
+        numeric_results = dplyr::bind_cols(
+          numeric_results,
+          fit_conf,
+          data_gen_conf,
+          c(stan_seed = seed)
         ),
         loo_objects = loo_objects
       )
@@ -82,7 +80,7 @@ fit_sim <- function(prefit,
       numeric_results <- NA
       loo_objects <- NULL
       final_result <- list(
-        numeric_results = data.frame(
+        numeric_results = dplyr::tibble(
           c(
             numeric_results,
             fit_conf,
@@ -178,7 +176,7 @@ dataset_sim <- function(data_gen_conf,
     loo_objects[[i]] <- row_results$loo_objects
   }
 
-  final_result <- do.call(plyr::rbind.fill, final_result)
+  final_result <- dplyr::bind_rows(final_result)
   if ("NA." %in% colnames(final_result)) {
     final_result <- subset(final_result, select = -c(which(colnames(final_result) == "NA.")))
   }
@@ -186,7 +184,7 @@ dataset_sim <- function(data_gen_conf,
   if (any(grep("_compare", predictive_metrics))) {
     names(loo_objects) <- seq_len(length(loo_objects))
     loo_compare_results <- loo_compare_handler(loo_objects, predictive_metrics)
-    final_result <- cbind(final_result, loo_compare_results)
+    final_result <- dplyr::bind_cols(final_result, loo_compare_results)
   }
 
   final_result$dataset_seed <- seed
@@ -197,7 +195,7 @@ dataset_sim <- function(data_gen_conf,
     saveRDS(final_result, paste0(paste(result_path, "dataset_result", sep = "/"), ".RDS"))
   }
 
-  return(as.data.frame(final_result))
+  return(dplyr::as_tibble(final_result))
 }
 
 
@@ -290,7 +288,7 @@ dataset_conf_sim <- function(data_gen_conf,
       }
     }
 
-    final_result <- do.call(rbind, results)
+    final_result <- dplyr::bind_rows(results)
     final_result$data_config_seed <- seed
     final_result$global_seed <- global_seed
     final_result$brms_backend <- brms_backend
@@ -368,7 +366,7 @@ full_simulation <- function(data_gen_confs,
       global_seed = seed
     )
   }
-  final_result <- do.call(rbind, final_result)
+  final_result <- dplyr::bind_rows(final_result)
 
   if (!is.null(result_path)) {
     saveRDS(final_result, paste(result_path, "full_sim_result.RDS", sep = "/"))
