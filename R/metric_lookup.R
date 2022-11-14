@@ -42,7 +42,10 @@ metric_lookup <- function(identifier,
       "rmse_loo" = return(rmse_loo(fit, ...)),
       "rmse_newdata" = return(rmse_newdata(fit, testing_data)),
       "r2_loo" = return(r2_loo(fit, ...)),
-      "r2_newdata" = return(r2_newdata(fit, testing_data))
+      "r2_newdata" = return(r2_newdata(fit, testing_data)),
+      "residuals" = return(
+        list(residuals = residuals(fit, method = "posterior_predict")[, 1])
+      )
     )
   }
 }

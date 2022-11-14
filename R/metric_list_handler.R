@@ -37,7 +37,7 @@ metric_list_handler <- function(fit,
     predictive_results[[i]] <- result[names(result) != "object"]
   }
 
-  numeric_results <- vector(mode = "list", length = length(numeric_metrics))
+  numeric_result_list <- vector(mode = "list", length = length(numeric_metrics))
   for (i in seq_along(numeric_metrics)) {
     identifier <- numeric_metrics[[i]]
     result <- metric_lookup(
@@ -50,15 +50,17 @@ metric_list_handler <- function(fit,
     if (length(result) == 1) {
       result <- list(result)
       names(result) <- identifier
-      numeric_results[[i]] <- result
+      numeric_result_list[[i]] <- result
     } else {
-      numeric_results[[i]] <- result
+      numeric_result_list[[i]] <- result
     }
   }
 
   return(
     list(
-      numeric_results = unlist(c(numeric_results, predictive_results)),
+      numeric_results = unlist(c(numeric_result_list, predictive_results),
+        recursive = FALSE
+      ),
       loo_objects = loo_objects
     )
   )
