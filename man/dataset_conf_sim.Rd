@@ -7,17 +7,14 @@
 dataset_conf_sim(
   data_gen_conf,
   fit_confs,
-  numeric_metrics,
-  predictive_metrics,
   prefits,
   seed = NULL,
   result_path = NULL,
-  brms_backend,
-  cmdstan_path,
-  cmdstan_write_path,
+  stan_pars,
   ncores,
   debug,
-  global_seed
+  global_seed,
+  ...
 )
 }
 \arguments{

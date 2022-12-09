@@ -2,19 +2,28 @@
 % Please edit documentation in R/metric_lookup.R
 \name{metric_lookup}
 \alias{metric_lookup}
-\title{Title}
+\title{Access metrics with string identifiers}
 \usage{
 metric_lookup(
-  identifier,
-  fit,
-  posterior_draws = NULL,
+  metric,
+  fit = NULL,
+  draws = NULL,
   testing_data = NULL,
+  variables = NULL,
+  references = NULL,
+  threshold = 0.7,
+  psis_object = NULL,
+  quantiles = NULL,
   ...
 )
 }
 \arguments{
-\item{posterior_draws}{}
+\item{metric}{A string that identifies a supported metric}
+}
+\value{
+The function corresponding to the identifier string.
 }
 \description{
-Title
+This function is mostly a helper function that maps identifier strings to
+metrics for convenient use in some contexts.
 }

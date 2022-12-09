@@ -7,15 +7,12 @@
 full_simulation(
   data_gen_confs,
   fit_confs,
-  numeric_metrics,
-  predictive_metrics,
   ncores_simulation = 1,
-  brms_backend = "cmdstanr",
-  cmdstan_path = NULL,
-  cmdstan_write_path = NULL,
+  stan_pars,
   seed = NULL,
   result_path = NULL,
-  debug = FALSE
+  debug = FALSE,
+  ...
 )
 }
 \arguments{

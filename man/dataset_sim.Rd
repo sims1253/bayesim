@@ -8,14 +8,11 @@ dataset_sim(
   data_gen_conf,
   fit_confs,
   prefits,
-  numeric_metrics,
-  predictive_metrics,
-  brms_backend,
-  cmdstan_path,
-  cmdstan_write_path,
+  stan_pars,
   seed,
   debug,
-  result_path
+  result_path,
+  ...
 )
 }
 \arguments{
