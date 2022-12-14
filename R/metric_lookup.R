@@ -167,7 +167,8 @@ metric_lookup <- function(metric,
           "y_summaries" = list(
             y_mean = mean(y),
             y_sd = sd(y)
-          )
+          ),
+          TRUE = stop(paste(metric, "is not a supported metric!"))
         )
       )
     }, error = function(e) {
