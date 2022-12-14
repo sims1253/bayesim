@@ -22,6 +22,7 @@ metric_lookup <- function(metric,
   variables <- unlist(variables)
   references <- unlist(references)
   quantiles <- unlist(quantiles)
+  y <- brms::get_y(fit)
 
   tryCatch(
     expr = {
@@ -86,7 +87,7 @@ metric_lookup <- function(metric,
               seq_along(tmp), function(x) paste0("pareto_k_obs_", x))
             tmp
           },
-          "time" = bayeshear::sampling_time(fit, absolute = FALSE),
+          "time_per_sample" = bayeshear::sampling_time(fit, absolute = FALSE),
 
           # Variable MCMC Diagnostics
           "rhat" = {
@@ -149,8 +150,8 @@ metric_lookup <- function(metric,
             quantiles,
             "log_lik_summary"
           ),
-          "ppred_summary" = observation_x_sample_summarizer(
-            brms::posterior_predict(fit),
+          "ppred_summary_y_scaled" = observation_x_sample_summarizer(
+            ((brms::posterior_predict(fit) - mean(y)) / sd(y)),
             quantiles,
             "ppred_summary"
           ),
@@ -158,14 +159,14 @@ metric_lookup <- function(metric,
             list(residuals = residuals(fit, method = "posterior_predict")[, 1]),
 
           # Observations
-          "y" = {
-            tmp <- as.list(brms::get_y(fit))
+          "y_pointwise_z_scaled" = {
+            tmp <- (as.list(y) - mean(y))/ sd(y)
             names(tmp) <- lapply(seq_along(tmp), function(x) paste0("obs_", x))
             tmp
           },
           "y_summaries" = list(
-            y_mean = mean(brms::get_y(fit)),
-            y_sd = sd(brms::get_y(fit))
+            y_mean = mean(y),
+            y_sd = sd(y)
           )
         )
       )
