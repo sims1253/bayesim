@@ -86,7 +86,7 @@ metric_lookup <- function(metric,
               seq_along(tmp), function(x) paste0("pareto_k_obs_", x))
             tmp
           },
-          "time" = bayeshear::sampling_time(fit),
+          "time" = bayeshear::sampling_time(fit, absolute = FALSE),
 
           # Variable MCMC Diagnostics
           "rhat" = {
@@ -157,12 +157,16 @@ metric_lookup <- function(metric,
           "residuals" =
             list(residuals = residuals(fit, method = "posterior_predict")[, 1]),
 
-          # Other
+          # Observations
           "y" = {
-            tmp <- as.list(get_y(fit))
+            tmp <- as.list(brms::get_y(fit))
             names(tmp) <- lapply(seq_along(tmp), function(x) paste0("obs_", x))
             tmp
-          }
+          },
+          "y_summaries" = list(
+            y_mean = mean(brms::get_y(fit)),
+            y_sd = sd(brms::get_y(fit))
+          )
         )
       )
     }, error = function(e) {
