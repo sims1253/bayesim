@@ -17,6 +17,8 @@ metric_lookup <- function(metric,
                           threshold = 0.7,
                           psis_object = NULL,
                           quantiles = NULL,
+                          data_gen_conf = NULL,
+                          fit_conf = NULL,
                           ...) {
   # TODO this is a workaround. These shouldn't be lists in the first place.
   variables <- unlist(variables)
@@ -168,7 +170,15 @@ metric_lookup <- function(metric,
             y_mean = mean(y),
             y_sd = sd(y)
           ),
-          TRUE = stop(paste(metric, "is not a supported metric!"))
+
+          # Data
+          "data_gen" = list(
+            data_family = data_gen_conf$data_family,
+            data_link = data_gen_conf$data_link,
+            fit_family = fit_conf$fit_family,
+            fit_link = fit_conf$fit_link
+          ),
+          stop(paste(metric, "is not a supported metric!"))
         )
       )
     }, error = function(e) {

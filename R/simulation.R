@@ -43,10 +43,11 @@ fit_sim <- function(prefit,
     metric_list_handler,
     c(
       list(
-        fit = fit
+        fit = fit,
+        data_gen_conf = data_gen_conf,
+        fit_conf = fit_conf
       ),
-      list(...),
-      data_gen_conf
+      list(...)
     )
   )
   if (debug == TRUE) {
