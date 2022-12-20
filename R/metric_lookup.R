@@ -259,9 +259,9 @@ get_custom_loo_summary <- function(loo_object, quantiles, name) {
     quantiles,
     function(x) paste0(name, "_quantile_", x)
   )
-  out[paste0(name, "_mean")] <- mean(pointwise)
-  out[paste0(name, "_sd")] <- sd(pointwise)
-  out[paste0(name, "_se_mean")] <- loo_object$estimates[1, 2] /
+  quantile_list[paste0(name, "_mean")] <- mean(pointwise)
+  quantile_list[paste0(name, "_sd")] <- sd(pointwise)
+  quantile_list[paste0(name, "_se_mean")] <- loo_object$estimates[1, 2] /
                                    length(pointwise)
-  return(out)
+  return(quantile_list)
 }
