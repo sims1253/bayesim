@@ -73,6 +73,7 @@ fit_sim <- function(prefit,
 #'
 #' @examples
 dataset_sim <- function(data_gen_conf,
+                        data_gen_fun,
                         fit_confs,
                         prefits,
                         stan_pars,
@@ -93,7 +94,7 @@ dataset_sim <- function(data_gen_conf,
     size = nrow(fit_confs)
   )
   datagen_result <- do.call(
-    basedag_data,
+    data_gen_fun,
     c(list(seed = seed), data_gen_conf)
   )
   if (debug == TRUE) {
@@ -107,7 +108,7 @@ dataset_sim <- function(data_gen_conf,
 
   for (i in seq_len(nrow(fit_confs))) {
     fit_conf <- fit_confs[i, ]
-    prefit <- prefits[[paste0(fit_conf$fit_family, fit_conf$fit_link)]]
+    prefit <- prefits[[fit_conf_key(fit_conf)]]
     if (debug == TRUE) {
       saveRDS(fit_conf, paste0(paste(result_path, "fit_conf", sep = "/"), ".RDS"))
       saveRDS(prefit, paste0(paste(result_path, "prefit", sep = "/"), ".RDS"))
@@ -162,6 +163,7 @@ dataset_sim <- function(data_gen_conf,
 #'
 #' @examples
 dataset_conf_sim <- function(data_gen_conf,
+                             data_gen_fun,
                              fit_confs,
                              prefits,
                              seed = NULL,
@@ -196,6 +198,7 @@ dataset_conf_sim <- function(data_gen_conf,
       ) %dopar% {
         dataset_sim(
           data_gen_conf = data_gen_conf,
+          data_gen_fun = data_gen_fun,
           fit_confs = fit_confs,
           prefits = prefits,
           stan_pars = stan_pars,
@@ -213,6 +216,7 @@ dataset_conf_sim <- function(data_gen_conf,
       for (i in seq_along(seed_list)) {
         results[[i]] <- dataset_sim(
           data_gen_conf = data_gen_conf,
+          data_gen_fun = data_gen_fun,
           fit_confs = fit_confs,
           prefits = prefits,
           stan_pars = stan_pars,
@@ -256,6 +260,7 @@ dataset_conf_sim <- function(data_gen_conf,
 #'
 #' @examples
 full_simulation <- function(data_gen_confs,
+                            data_gen_fun = NULL,
                             fit_confs,
                             ncores_simulation = 1,
                             stan_pars,
@@ -277,15 +282,19 @@ full_simulation <- function(data_gen_confs,
     }
   }
 
-  # Compile a list of model configurations to be updated throughout the simulation
+  # Compile a list of model configurations to be updated throughout the run
   # This prevents unnecessary compilation times and prevents dll overflow.
-  prefit_list <- build_prefit_list(fit_configuration = fit_confs, brms_backend = stan_pars$backend)
+  prefit_list <- build_prefit_list(
+    fit_configuration = fit_confs,
+    stan_pars = stan_pars
+  )
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results
   for (i in seq_len(nrow(data_gen_confs))) {
     final_result[[i]] <- dataset_conf_sim(
       data_gen_conf = as.list(data_gen_confs[i, ]),
+      data_gen_fun = data_gen_fun,
       fit_confs = fit_confs,
       prefits = prefit_list,
       seed = seed_list[[i]],
@@ -319,7 +328,7 @@ full_simulation <- function(data_gen_confs,
 #' @export
 #'
 #' @examples
-reproduce_result <- function(result) {
+reproduce_result <- function(result, data_gen_fun) {
   family <- brms_family_lookup(
     result$fit_family,
     result$fit_link
@@ -363,7 +372,7 @@ reproduce_result <- function(result) {
   )
 
   datagen_result <- do.call(
-    basedag_data,
+    data_gen_fun,
     data_gen_conf
   )
   dataset <- datagen_result$dataset

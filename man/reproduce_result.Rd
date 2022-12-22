@@ -5,7 +5,7 @@
 \title{This method will reproduce the exact dataset and fit corresponding to the
 supplied result dataframe row.}
 \usage{
-reproduce_result(result)
+reproduce_result(result, data_gen_fun)
 }
 \arguments{
 \item{result}{}

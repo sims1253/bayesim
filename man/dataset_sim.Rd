@@ -6,6 +6,7 @@
 \usage{
 dataset_sim(
   data_gen_conf,
+  data_gen_fun,
   fit_confs,
   prefits,
   stan_pars,

@@ -110,3 +110,31 @@ prior_lookup <- function(family) {
     )
   )
 }
+
+#' Generate lookup keys for fit configurations to retrieve prefit objects
+#' matching said config.
+#'
+#' @param fit_conf
+#'
+#' @return A hash generated from the fit configuration
+#' @export
+#'
+#' @examples
+#' fit_conf_key(
+#'   list(
+#'     fit_family = "gaussian",
+#'     fit_link = "identity",
+#'     prior = list(c(brms::set_prior("", class = "Intercept")))
+#'   )
+#' )
+fit_conf_key <- function(fit_conf) {
+  return(
+    rlang::hash(
+      list(
+        fit_conf$fit_family,
+        fit_conf$fit_link,
+        fit_conf$prior
+      )
+    )
+  )
+}

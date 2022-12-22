@@ -338,6 +338,7 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @param ...
 #'
 #' @return \code{custom_loo_object} object with R² acting as elpd.
+#' @export
 #'
 #' @examples
 r2_loo <- function(fit, psis_object = NULL, return_object = FALSE, ...) {

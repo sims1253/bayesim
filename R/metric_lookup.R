@@ -84,10 +84,9 @@ metric_lookup <- function(metric,
               bayeshear::bad_pareto_ks(fit, threshold)
           ),
           "pareto_k_values" = {
-            tmp <- as.list(bayeshear::pareto_k_values(psis_object))
-            names(tmp) <- lapply(
-              seq_along(tmp), function(x) paste0("pareto_k_obs_", x))
-            tmp
+            list(
+              pareto_k_values = list(bayeshear::pareto_k_values(psis_object))
+            )
           },
           "time_per_sample" = bayeshear::sampling_time(fit, absolute = FALSE),
 
@@ -113,57 +112,106 @@ metric_lookup <- function(metric,
           },
 
           # Predictive Metrics
+          "elpd_loo" = elpd_loo_handler(fit),
+          "elpd_loo_pointwise" = {
+            loo_object <- brms::loo(fit)
+            list(
+              elpd_loo_pointwise = list(loo_object$pointwise[, 1]),
+              mcse_elpd_loo_pointwise = list(loo_object$pointwise[, 2]),
+              p_loo_pointwise = list(loo_object$pointwise[, 3])
+            )
+          },
           "elpd_loo_pointwise_summary" = elpd_pointwise_summaries(
             fit,
             quantiles
           ),
-          "elpd_loo" = elpd_loo_handler(fit),
           "elpd_test" = elpd_test(fit, testing_data, FALSE),
           "elpd_test_pointwise_summary" =
             elpd_pointwise_summaries(fit, quantiles, testing_data),
-          "rmse_loo" = rmse_loo(fit, ...),
+          "rmse_loo" = rmse_loo(fit, psis_object = psis_object, ...),
           "rmse_loo_pointwise_summary" =
-            get_custom_loo_summary(rmse_loo(fit,
-                                            psis_object,
-                                            return_object = TRUE),
-                                   quantiles, "rmse_loo"),
+            get_custom_loo_summary(
+              rmse_loo(fit,
+                psis_object,
+                return_object = TRUE
+              ),
+              quantiles, "rmse_loo"
+            ),
           "rmse_test" = rmse_test(fit, testing_data),
           "rmse_test_pointwise_summary" =
-            get_custom_loo_summary(rmse_test(fit,
-                                             testing_data,
-                                            return_object = TRUE),
-                                   quantiles, "rmse_test"),
-          "r2_loo" = r2_loo(fit, ...),
+            get_custom_loo_summary(
+              rmse_test(fit,
+                testing_data,
+                return_object = TRUE
+              ),
+              quantiles, "rmse_test"
+            ),
+          "r2_loo" = r2_loo(fit, psis_object),
+          "r2_loo_pointwise" = {
+            loo_object <- r2_loo(fit, psis_object, return_object = TRUE)
+            list(
+              r2_loo_pointwise = list(loo_object$pointwise[, 1]),
+              r2_loo_se = loo_object$estimates[1, 2]
+            )
+          },
           "r2_loo_pointwise_summary" =
-            get_custom_loo_summary(r2_loo(fit,
-                                          psis_object,
-                                          return_object = TRUE),
-                                   quantiles, "r2_loo"),
+            get_custom_loo_summary(
+              r2_loo(fit,
+                psis_object,
+                return_object = TRUE
+              ),
+              quantiles, "r2_loo"
+            ),
           "r2_test" = r2_test(fit, testing_data),
           "r2_test_pointwise_summary" =
-            get_custom_loo_summary(r2_test(fit,
-                                           testing_data,
-                                           return_object = TRUE),
-                                   quantiles, "r2_test"),
+            get_custom_loo_summary(
+              r2_test(fit,
+                testing_data,
+                return_object = TRUE
+              ),
+              quantiles, "r2_test"
+            ),
 
           # Posterior sample based metrics
+          "log_lik_pointwise" = {
+            ll <- brms::log_lik(fit)
+            list(
+              log_lik_pointwise_mean = list(colMeans(ll)),
+              log_lik_pointwise_sd = list(apply(ll, 2, sd))
+            )
+          },
           "log_lik_summary" = observation_x_sample_summarizer(
-            brms::log_lik(fit),
-            quantiles,
-            "log_lik_summary"
+            -brms::log_lik(fit),
+            -quantiles,
+            -"log_lik_summary"
           ),
           "ppred_summary_y_scaled" = observation_x_sample_summarizer(
             ((brms::posterior_predict(fit) - mean(y)) / sd(y)),
             quantiles,
             "ppred_summary"
           ),
+          "ppred_pointwise" = {
+            pp <- brms::posterior_predict(fit)
+            list(
+              ppred_pointwise_mean = list(colMeans(pp)),
+              ppred_pointwise_sd = list(apply(pp, 2, sd))
+            )
+          },
           "residuals" =
             list(residuals = residuals(fit, method = "posterior_predict")[, 1]),
 
           # Observations
-          "y_pointwise_z_scaled" = {
-            tmp <- (as.list(y) - mean(y))/ sd(y)
+          "y_pointwise" = {
+            tmp <- as.list(y)
             names(tmp) <- lapply(seq_along(tmp), function(x) paste0("obs_", x))
+            list(y_pointwise = tmp)
+          },
+          "y_pointwise_z_scaled" = {
+            tmp <- (as.list(y) - mean(y)) / sd(y)
+            names(tmp) <- lapply(
+              seq_along(tmp),
+              function(x) paste0("obs_z_scaled", x)
+            )
             tmp
           },
           "y_summaries" = list(
@@ -172,12 +220,10 @@ metric_lookup <- function(metric,
           ),
 
           # Data
-          "data_gen" = list(
-            data_family = data_gen_conf$data_family,
-            data_link = data_gen_conf$data_link,
-            fit_family = fit_conf$fit_family,
-            fit_link = fit_conf$fit_link
-          ),
+          "data_gen" = data_gen_conf,
+
+          # Fits
+          "fit_gen" = fit_conf,
           stop(paste(metric, "is not a supported metric!"))
         )
       )
@@ -262,6 +308,6 @@ get_custom_loo_summary <- function(loo_object, quantiles, name) {
   quantile_list[paste0(name, "_mean")] <- mean(pointwise)
   quantile_list[paste0(name, "_sd")] <- sd(pointwise)
   quantile_list[paste0(name, "_se_mean")] <- loo_object$estimates[1, 2] /
-                                   length(pointwise)
+    length(pointwise)
   return(quantile_list)
 }

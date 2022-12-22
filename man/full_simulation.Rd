@@ -6,6 +6,7 @@
 \usage{
 full_simulation(
   data_gen_confs,
+  data_gen_fun = NULL,
   fit_confs,
   ncores_simulation = 1,
   stan_pars,

@@ -54,7 +54,11 @@ metric_list_handler <- function(fit,
     "quantiles", "v_bias", "v_rmse", "v_mae", "v_mse",
     "v_percentile", "rstar"
   )
-  needs_psis <- list("pareto_k_values", "bad_pareto_ks", "rmse_loo", "r2_loo")
+  needs_psis <- list(
+    "pareto_k_values", "bad_pareto_ks", "rmse_loo", "r2_loo",
+    "rmse_loo_pointwise_summary", "r2_loo_pointwise",
+    "r2_loo_pointwise_summary"
+  )
 
   if (length(intersect(needs_draws, metrics)) > 0) {
     draws <- posterior::as_draws(fit)
