@@ -4,7 +4,7 @@
 \alias{rmse_loo}
 \title{Calculate PSIS-loo rmse for a given brms fit}
 \usage{
-rmse_loo(fit, psis_object = NULL, return_object = FALSE, ...)
+rmse_loo(fit, psis_object = NULL, return_object = FALSE, yrep = NULL, ...)
 }
 \arguments{
 \item{psis_object}{}

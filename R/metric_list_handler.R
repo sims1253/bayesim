@@ -59,7 +59,10 @@ metric_list_handler <- function(fit,
     "rmse_loo_pointwise_summary", "r2_loo_pointwise",
     "r2_loo_pointwise_summary"
   )
-
+  needs_ppred <- list(
+    "rmse_loo", "r2_loo", "rmse_loo_pointwise_summary", "r2_loo_pointwise",
+    "r2_loo_pointwise_summary", "ppred_pointwise", "ppred_summary_y_scaled"
+  )
   if (length(intersect(needs_draws, metrics)) > 0) {
     draws <- posterior::as_draws(fit)
   } else {
@@ -70,11 +73,18 @@ metric_list_handler <- function(fit,
   } else {
     psis_object <- NULL
   }
+  if (length(intersect(needs_ppred, metrics)) > 0) {
+    ppred <- brms::posterior_predict(fit, fit$data)
+  } else {
+    ppred <- NULL
+  }
+
   results <- lapply(metrics,
     metric_lookup,
     fit = fit,
     draws = draws,
     psis_object = psis_object,
+    ppred = ppred,
     ...
   )
   return(dplyr::as_tibble(do.call(c, results)))

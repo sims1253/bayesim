@@ -206,13 +206,17 @@ custom_loo_object <- function(pointwise_criterion,
 rmse_loo <- function(fit,
                      psis_object = NULL,
                      return_object = FALSE,
+                     yrep = NULL,
                      ...) {
   if (is.null(psis_object)) {
     psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
   }
+  if (is.null(yrep)) {
+    yrep <- brms::posterior_predict(fit, fit$data)
+  }
   pointwise_rmse <- rmse(
     y = brms::get_y(fit),
-    yrep = brms::posterior_predict(fit, fit$data),
+    yrep = yrep,
     weights = exp(psis_object$log_weights)
   )
   if (return_object) {
@@ -341,13 +345,20 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @export
 #'
 #' @examples
-r2_loo <- function(fit, psis_object = NULL, return_object = FALSE, ...) {
+r2_loo <- function(fit,
+                   psis_object = NULL,
+                   yrep = NULL,
+                   return_object = FALSE,
+                   ...) {
   if (is.null(psis_object)) {
     psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
   }
+  if (is.null(yrep)) {
+    yrep <- brms::posterior_predict(fit, fit$data)
+  }
   pointwise_loo_r2 <- r2(
     y = brms::get_y(fit),
-    yrep = brms::posterior_predict(fit, fit$data),
+    yrep = yrep,
     weights = exp(psis_object$log_weights)
   )
   if (return_object) {

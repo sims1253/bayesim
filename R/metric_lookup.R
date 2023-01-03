@@ -16,8 +16,9 @@ metric_lookup <- function(metric,
                           references = NULL,
                           threshold = 0.7,
                           psis_object = NULL,
+                          ppred = NULL,
                           quantiles = NULL,
-                          data_gen_conf = NULL,
+                          data_gen_output = NULL,
                           fit_conf = NULL,
                           ...) {
   # TODO this is a workaround. These shouldn't be lists in the first place.
@@ -128,11 +129,12 @@ metric_lookup <- function(metric,
           "elpd_test" = elpd_test(fit, testing_data, FALSE),
           "elpd_test_pointwise_summary" =
             elpd_pointwise_summaries(fit, quantiles, testing_data),
-          "rmse_loo" = rmse_loo(fit, psis_object = psis_object, ...),
+          "rmse_loo" = rmse_loo(fit, psis_object = psis_object, yrep = ppred, ...),
           "rmse_loo_pointwise_summary" =
             get_custom_loo_summary(
               rmse_loo(fit,
                 psis_object,
+                yrep = ppred,
                 return_object = TRUE
               ),
               quantiles, "rmse_loo"
@@ -146,9 +148,9 @@ metric_lookup <- function(metric,
               ),
               quantiles, "rmse_test"
             ),
-          "r2_loo" = r2_loo(fit, psis_object),
+          "r2_loo" = r2_loo(fit, psis_object = psis_object, yrep = ppred),
           "r2_loo_pointwise" = {
-            loo_object <- r2_loo(fit, psis_object, return_object = TRUE)
+            loo_object <- r2_loo(fit, psis_object = psis_object, yrep = ppred, return_object = TRUE)
             list(
               r2_loo_pointwise = list(loo_object$pointwise[, 1]),
               r2_loo_se = loo_object$estimates[1, 2]
@@ -186,15 +188,14 @@ metric_lookup <- function(metric,
             -"log_lik_summary"
           ),
           "ppred_summary_y_scaled" = observation_x_sample_summarizer(
-            ((brms::posterior_predict(fit) - mean(y)) / sd(y)),
+            ((ppred - mean(y)) / sd(y)),
             quantiles,
             "ppred_summary"
           ),
           "ppred_pointwise" = {
-            pp <- brms::posterior_predict(fit)
             list(
-              ppred_pointwise_mean = list(colMeans(pp)),
-              ppred_pointwise_sd = list(apply(pp, 2, sd))
+              ppred_pointwise_mean = list(colMeans(ppred)),
+              ppred_pointwise_sd = list(apply(ppred, 2, sd))
             )
           },
           "residuals" =
@@ -202,9 +203,7 @@ metric_lookup <- function(metric,
 
           # Observations
           "y_pointwise" = {
-            tmp <- as.list(y)
-            names(tmp) <- lapply(seq_along(tmp), function(x) paste0("obs_", x))
-            list(y_pointwise = tmp)
+            list(y_pointwise = list(y))
           },
           "y_pointwise_z_scaled" = {
             tmp <- (as.list(y) - mean(y)) / sd(y)
@@ -220,7 +219,7 @@ metric_lookup <- function(metric,
           ),
 
           # Data
-          "data_gen" = data_gen_conf,
+          "data_gen" = data_gen_output,
 
           # Fits
           "fit_gen" = fit_conf,
