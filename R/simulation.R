@@ -164,6 +164,7 @@ dataset_conf_sim <- function(data_gen_conf,
                              result_path = NULL,
                              stan_pars,
                              ncores,
+                             cluster_type,
                              debug,
                              global_seed,
                              ...) {
@@ -177,18 +178,27 @@ dataset_conf_sim <- function(data_gen_conf,
   } else {
     if (ncores > 1) {
       # Multiprocessing setup
-      cluster <- parallel::makeCluster(ncores, type = "PSOCK")
+      cluster <- parallel::makeCluster(ncores,
+        type = cluster_type,
+        outfile = paste(
+          result_path, "cluster_log",
+          sep = "/"
+        )
+      )
       doParallel::registerDoParallel(cluster)
       parallel::clusterEvalQ(cl = cluster, {
-        library(brms)
-        library(bayesim)
         options(mc.cores = 1)
       })
       `%dopar%` <- foreach::`%dopar%`
 
       # Multiprocessing run
-      results <- foreach::foreach(
-        par_seed = seed_list
+      final_result <- foreach::foreach(
+        par_seed = seed_list,
+        .packages = "bayesim",
+        .combine = dplyr::bind_rows, .multicombine = TRUE,
+        .maxcombine = length(seed_list),
+        .verbose = debug,
+        .inorder = FALSE
       ) %dopar% {
         dataset_sim(
           data_gen_conf = data_gen_conf,
@@ -220,9 +230,9 @@ dataset_conf_sim <- function(data_gen_conf,
           ...
         )
       }
+      final_result <- dplyr::bind_rows(results)
     }
 
-    final_result <- dplyr::bind_rows(results)
     final_result$data_config_seed <- seed
     final_result$global_seed <- global_seed
     final_result$brms_backend <- stan_pars$backend
@@ -257,6 +267,7 @@ full_simulation <- function(data_gen_confs,
                             data_gen_fun = NULL,
                             fit_confs,
                             ncores_simulation = 1,
+                            cluster_type = "PSOCK",
                             stan_pars,
                             seed = NULL,
                             result_path = NULL,
@@ -295,6 +306,7 @@ full_simulation <- function(data_gen_confs,
       result_path = result_path,
       stan_pars = stan_pars,
       ncores = ncores_simulation,
+      cluster_type = cluster_type,
       debug = debug,
       global_seed = seed,
       ...

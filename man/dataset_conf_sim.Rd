@@ -13,6 +13,7 @@ dataset_conf_sim(
   result_path = NULL,
   stan_pars,
   ncores,
+  cluster_type,
   debug,
   global_seed,
   ...
