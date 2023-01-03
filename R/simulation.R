@@ -16,7 +16,7 @@
 #' @examples
 fit_sim <- function(prefit,
                     dataset,
-                    data_gen_conf,
+                    data_gen_output,
                     fit_conf,
                     seed,
                     debug,
@@ -44,7 +44,7 @@ fit_sim <- function(prefit,
     c(
       list(
         fit = fit,
-        data_gen_conf = data_gen_conf,
+        data_gen_output = data_gen_output,
         fit_conf = fit_conf
       ),
       list(...)
@@ -101,10 +101,6 @@ dataset_sim <- function(data_gen_conf,
     saveRDS(datagen_result, paste0(paste(result_path, "datagen_result", sep = "/"), ".RDS"))
     saveRDS(data_gen_conf, paste0(paste(result_path, "data_gen_conf", sep = "/"), ".RDS"))
   }
-  dataset <- datagen_result$dataset
-  sampling_loops <- datagen_result$sampling_loops
-  bad_samples <- datagen_result$bad_samples
-  testing_data <- datagen_result$testing_data
 
   for (i in seq_len(nrow(fit_confs))) {
     fit_conf <- fit_confs[i, ]
@@ -116,9 +112,9 @@ dataset_sim <- function(data_gen_conf,
 
     final_result[[i]] <- fit_sim(
       prefit = prefit,
-      dataset = dataset,
-      testing_data = testing_data,
-      data_gen_conf = data_gen_conf,
+      dataset = datagen_result$dataset,
+      testing_data = datagen_result$testing_data,
+      data_gen_output = datagen_result$data_gen_output,
       fit_conf = fit_conf,
       seed = seed_list[[i]],
       debug = debug,
@@ -136,8 +132,6 @@ dataset_sim <- function(data_gen_conf,
   }
 
   final_result$dataset_seed <- seed
-  final_result$bad_samples <- bad_samples
-  final_result$sampling_loops <- sampling_loops
 
   if (debug == TRUE) {
     saveRDS(final_result, paste0(paste(result_path, "dataset_result", sep = "/"), ".RDS"))

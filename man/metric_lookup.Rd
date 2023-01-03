@@ -13,8 +13,9 @@ metric_lookup(
   references = NULL,
   threshold = 0.7,
   psis_object = NULL,
+  ppred = NULL,
   quantiles = NULL,
-  data_gen_conf = NULL,
+  data_gen_output = NULL,
   fit_conf = NULL,
   ...
 )

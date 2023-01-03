@@ -7,7 +7,7 @@
 fit_sim(
   prefit,
   dataset,
-  data_gen_conf,
+  data_gen_output,
   fit_conf,
   seed,
   debug,
