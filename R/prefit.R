@@ -23,7 +23,7 @@ get_prefit <- function(fit_conf, stan_pars) {
     refresh = 0,
     silent = 2,
     backend = stan_pars$backend,
-    prior = fit_conf$prior[[1]],
+    prior = fit_conf$prior,
     init = 0.1
   )
   return(prefit)
@@ -43,9 +43,16 @@ get_prefit <- function(fit_conf, stan_pars) {
 #'
 #' @examples
 build_prefit_list <- function(fit_configuration, stan_pars) {
-  prefit_configurations <- unique(
-    fit_configuration[c("fit_family", "fit_link", "prior")]
-  )
+  if (is.null(fit_configuration$prior)) {
+    prefit_configurations <- unique(
+      fit_configuration[c("fit_family", "fit_link")]
+    )
+  } else {
+    prefit_configurations <- unique(
+      fit_configuration[c("fit_family", "fit_link", "prior")]
+    )
+  }
+
   prefit_configurations <- lapply(split(
     prefit_configurations,
     sort(as.numeric(rownames(prefit_configurations)))
