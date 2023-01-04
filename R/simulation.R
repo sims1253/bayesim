@@ -180,10 +180,7 @@ dataset_conf_sim <- function(data_gen_conf,
       # Multiprocessing setup
       cluster <- parallel::makeCluster(ncores,
         type = cluster_type,
-        outfile = paste(
-          result_path, "cluster_log",
-          sep = "/"
-        )
+        outfile = ifelse(debug, paste(result_path, "cluster_log", sep = "/"), NULL)
       )
       doParallel::registerDoParallel(cluster)
       parallel::clusterEvalQ(cl = cluster, {
