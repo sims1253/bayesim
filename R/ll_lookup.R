@@ -138,3 +138,32 @@ fit_conf_key <- function(fit_conf) {
     )
   )
 }
+
+#' Lookup for limits of family auxiliary parameters.
+#'
+#' @param family The identifier string of a family.
+#'
+#' @return List containing lower and upper bounds for the auxiliary parameter.
+#' @export
+#'
+#' @examples
+aux_limits_lookup <- function(family) {
+  switch(family,
+    "beta" = list(lb = 0, ub = Inf),
+    "kumaraswamy" = list(lb = 0, ub = Inf),
+    "logitnormal" = list(lb = 0, ub = Inf),
+    "cauchitnormal" = list(lb = 0, ub = Inf),
+    "cloglognormal" = list(lb = 0, ub = Inf),
+    "simplex" = list(lb = -Inf, ub = Inf),
+    "gaussian" = list(lb = 0, ub = Inf),
+    "gamma" = list(lb = 0, ub = Inf),
+    "weibull" = list(lb = 0, ub = Inf),
+    "lognormal" = list(lb = 0, ub = Inf),
+    "softplusnormal" = list(lb = 0, ub = Inf),
+    "lomax" = list(lb = 1, ub = Inf),
+    "frechet" = list(lb = 1, ub = Inf),
+    "inverse.gaussian" = list(lb = 0, ub = Inf),
+    "betaprime" = list(lb = 0, ub = Inf),
+    "gompertz" = list(lb = 0, ub = Inf)
+  )
+}

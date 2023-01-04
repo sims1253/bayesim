@@ -235,23 +235,38 @@ basedag_data_noisy <- function(data_N,
     "noisy_sigma_z2",
     "noisy_sigma_z3",
     "noisy_sigma_z4",
-    "noisy_sigma_x",
-    "noisy_sigma_y"
+    "noisy_sigma_x"
   )
   for (argument in noisy_list) {
     if (is.null(get(argument))) {
       assign(
         argument,
         rnorm(1,
-              mean = get(substring(argument, first = 7)),
-              sd = noise_sd * get(substring(argument, first = 7)))
+          mean = get(substring(argument, first = 7)),
+          sd = noise_sd * get(substring(argument, first = 7))
+        )
       )
+    }
+  }
+  if (is.null(noisy_sigma_y)) {
+    bounds <- aux_limits_lookup(data_family)
+    while (is.null(noisy_sigma_y)) {
+      sample_list <- rnorm(100, mean = sigma_y, sd = noise_sd * sigma_y)
+      sample_list <- subset(
+        sample_list,
+        sample_list > bounds$lb & sample_list < bounds$ub
+      )
+      if (length(sample_list) > 0) {
+        noisy_sigma_y <- sample_list[[1]]
+      }
     }
   }
   arguments <- as.list(c(as.list(environment()), list(...)))
   arguments$seed <- NULL
   arguments$noisy_list <- NULL
   arguments$argument <- NULL
+  arguments$bounds <- NULL
+  arguments$sample_list <- NULL
 
   if (!is.null(seed)) {
     set.seed(seed)
