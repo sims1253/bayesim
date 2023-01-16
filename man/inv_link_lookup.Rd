@@ -4,7 +4,7 @@
 \alias{inv_link_lookup}
 \title{Title}
 \usage{
-inv_link_lookup(link)
+inv_link_lookup(link, family = NULL)
 }
 \arguments{
 \item{link}{}
