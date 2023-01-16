@@ -4,7 +4,7 @@
 \alias{metric_list_handler}
 \title{Collect multiple metrics at once}
 \usage{
-metric_list_handler(fit, metrics, ...)
+metric_list_handler(fit, metrics, data_gen_output, fit_conf, ...)
 }
 \arguments{
 \item{fit}{A brmsfit object.}

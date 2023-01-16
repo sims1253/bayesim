@@ -48,6 +48,8 @@
 #' @examples
 metric_list_handler <- function(fit,
                                 metrics,
+                                data_gen_output,
+                                fit_conf,
                                 ...) {
   needs_draws <- list(
     "v_mean", "v_sd", "v_median", "v_mad", "v_pos_prob",
@@ -63,21 +65,28 @@ metric_list_handler <- function(fit,
     "rmse_loo", "r2_loo", "rmse_loo_pointwise_summary", "r2_loo_pointwise",
     "r2_loo_pointwise_summary", "ppred_pointwise", "ppred_summary_y_scaled"
   )
-  if (length(intersect(needs_draws, metrics)) > 0) {
-    draws <- posterior::as_draws(fit)
-  } else {
-    draws <- NULL
-  }
-  if (length(intersect(needs_psis, metrics)) > 0) {
-    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-  } else {
-    psis_object <- NULL
-  }
-  if (length(intersect(needs_ppred, metrics)) > 0) {
-    ppred <- brms::posterior_predict(fit, fit$data)
-  } else {
-    ppred <- NULL
-  }
+  result <- tryCatch(
+    {
+      if (length(intersect(needs_draws, metrics)) > 0) {
+        draws <- posterior::as_draws(fit)
+      } else {
+        draws <- NULL
+      }
+      if (length(intersect(needs_psis, metrics)) > 0) {
+        psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+      } else {
+        psis_object <- NULL
+      }
+      if (length(intersect(needs_ppred, metrics)) > 0) {
+        ppred <- brms::posterior_predict(fit, fit$data)
+      } else {
+        ppred <- NULL
+      }
+    },
+    error = function(e) {
+      return(dplyr::as_tibble(do.call(c, list(data_gen_output, fit_conf))))
+    }
+  )
 
   results <- lapply(metrics,
     metric_lookup,
@@ -85,6 +94,8 @@ metric_list_handler <- function(fit,
     draws = draws,
     psis_object = psis_object,
     ppred = ppred,
+    data_gen_output = data_gen_output,
+    fit_conf = fit_conf,
     ...
   )
   return(dplyr::as_tibble(do.call(c, results)))

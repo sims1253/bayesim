@@ -23,7 +23,11 @@ metric_lookup <- function(metric,
                           ...) {
   # TODO this is a workaround. These shouldn't be lists in the first place.
   variables <- unlist(variables)
-  references <- unlist(references)
+  if (is.null(references)) {
+    references <- data_gen_output$references
+  } else {
+    references <- unlist(references)
+  }
   quantiles <- unlist(quantiles)
   y <- brms::get_y(fit)
 
@@ -183,9 +187,9 @@ metric_lookup <- function(metric,
             )
           },
           "log_lik_summary" = observation_x_sample_summarizer(
-            -brms::log_lik(fit),
-            -quantiles,
-            -"log_lik_summary"
+            brms::log_lik(fit),
+            quantiles,
+            "log_lik_summary"
           ),
           "ppred_summary_y_scaled" = observation_x_sample_summarizer(
             ((ppred - mean(y)) / sd(y)),
@@ -199,8 +203,24 @@ metric_lookup <- function(metric,
             )
           },
           "residuals" =
-            list(residuals = residuals(fit, method = "posterior_predict")[, 1]),
-
+            list(residuals = list(residuals(fit, method = "posterior_predict")[, 1])),
+          "posterior_linpred" = {
+            linpred <- brms::posterior_linpred(fit)
+            list(
+              posterior_linpred_mean = list(colMeans(linpred)),
+              posterior_linpred_sd = list(apply(linpred, 2, sd))
+            )
+          },
+          "posterior_linpred_transformed" = {
+            linpred <- do.call(
+              inv_link_lookup(fit_conf$fit_link, fit_conf$fit_family),
+              list(brms::posterior_linpred(fit))
+              )
+            list(
+              posterior_linpred_transformed_mean = list(colMeans(linpred)),
+              posterior_linpred_transformed_sd = list(apply(linpred, 2, sd))
+            )
+          },
           # Observations
           "y_pointwise" = {
             list(y_pointwise = list(y))
