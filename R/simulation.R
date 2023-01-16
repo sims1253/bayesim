@@ -173,15 +173,26 @@ dataset_conf_sim <- function(data_gen_conf,
     size = data_gen_conf$dataset_N
   )
 
-  if (file.exists(paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS"))) {
-    return(readRDS(paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS")))
+  if (
+    file.exists(
+      paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS")
+    )) {
+    return(
+      readRDS(paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS"))
+    )
   } else {
     if (ncores > 1) {
+      if (debug) {
+        cluster <- parallel::makeCluster(ncores,
+          type = cluster_type,
+          outfile = paste(result_path, "cluster_log")
+        )
+      } else {
+        cluster <- parallel::makeCluster(ncores,
+          type = cluster_type
+        )
+      }
       # Multiprocessing setup
-      cluster <- parallel::makeCluster(ncores,
-        type = cluster_type,
-        outfile = ifelse(debug, paste(result_path, "cluster_log", sep = "/"), NULL)
-      )
       doParallel::registerDoParallel(cluster)
       parallel::clusterEvalQ(cl = cluster, {
         options(mc.cores = 1)
