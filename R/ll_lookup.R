@@ -142,6 +142,7 @@ fit_conf_key <- function(fit_conf) {
       list(
         fit_conf$fit_family,
         fit_conf$fit_link,
+        fit_conf$formula,
         fit_conf$prior
       )
     )

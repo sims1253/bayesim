@@ -14,9 +14,17 @@ get_prefit <- function(fit_conf, stan_pars) {
   if (is.null(fit_conf$prior)) {
     fit_conf$prior <- prior_lookup(fit_conf$fit_family)
   }
+  formula <- brms::brmsformula(fit_conf$formula)
+  data <- do.call(
+    rng_lookup(fit_conf$fit_family),
+    list(
+      n = length(all.vars(formula$formula))
+    )
+  )
+  names(data) <- all.vars(formula$formula)
   prefit <- brms::brm(
-    y ~ 1 + x,
-    data = list(y = c(0.5), x = c(1)),
+    formula = formula,
+    data = as.list(data),
     family = family,
     stanvars = family$stanvars,
     chains = 0,
@@ -45,11 +53,11 @@ get_prefit <- function(fit_conf, stan_pars) {
 build_prefit_list <- function(fit_configuration, stan_pars) {
   if (is.null(fit_configuration$prior)) {
     prefit_configurations <- unique(
-      fit_configuration[c("fit_family", "fit_link")]
+      fit_configuration[c("fit_family", "fit_link", "formula")]
     )
   } else {
     prefit_configurations <- unique(
-      fit_configuration[c("fit_family", "fit_link", "prior")]
+      fit_configuration[c("fit_family", "fit_link", "prior", "formula")]
     )
   }
 
