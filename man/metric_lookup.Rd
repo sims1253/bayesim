@@ -9,7 +9,7 @@ metric_lookup(
   fit = NULL,
   draws = NULL,
   testing_data = NULL,
-  variables = NULL,
+  vars_of_interest = NULL,
   references = NULL,
   threshold = 0.7,
   psis_object = NULL,

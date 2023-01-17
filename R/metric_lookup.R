@@ -12,7 +12,7 @@ metric_lookup <- function(metric,
                           fit = NULL,
                           draws = NULL,
                           testing_data = NULL,
-                          variables = NULL,
+                          vars_of_interest = NULL,
                           references = NULL,
                           threshold = 0.7,
                           psis_object = NULL,
@@ -22,7 +22,11 @@ metric_lookup <- function(metric,
                           fit_conf = NULL,
                           ...) {
   # TODO this is a workaround. These shouldn't be lists in the first place.
-  variables <- unlist(variables)
+  if (is.null(vars_of_interest)) {
+    vars_of_interest <- data_gen_output$vars_of_interest
+  } else {
+    vars_of_interest <- unlist(vars_of_interest)
+  }
   if (is.null(references)) {
     references <- data_gen_output$references
   } else {
@@ -37,38 +41,38 @@ metric_lookup <- function(metric,
         switch(metric,
           # Variable summaries
           "v_mean" = padd_variable_summay(
-            draws, variables, mean, metric
+            draws, vars_of_interest, mean, metric
           ),
           "v_sd" = padd_variable_summay(
-            draws, variables, sd, metric
+            draws, vars_of_interest, sd, metric
           ),
           "v_median" = padd_variable_summay(
-            draws, variables, median, metric
+            draws, vars_of_interest, median, metric
           ),
           "v_mad" = padd_variable_summay(
-            draws, variables, mad, metric
+            draws, vars_of_interest, mad, metric
           ),
           "v_pos_prob" = padd_variable_summay(
-            draws, variables, bayeshear::variable_pos_prob, metric
+            draws, vars_of_interest, bayeshear::variable_pos_prob, metric
           ),
-          "v_quantiles" = padd_quantiles(draws, variables, quantiles),
+          "v_quantiles" = padd_quantiles(draws, vars_of_interest, quantiles),
 
           # Variable distance measures
           "v_bias" = padd_variable_distance(
-            draws, variables, references, bayeshear::variable_bias, metric
+            draws, vars_of_interest, references, bayeshear::variable_bias, metric
           ),
           "v_rmse" = padd_variable_distance(
-            draws, variables, references, bayeshear::variable_rmse, metric
+            draws, vars_of_interest, references, bayeshear::variable_rmse, metric
           ),
           "v_mae" = padd_variable_distance(
-            draws, variables, references, bayeshear::variable_mae, metric
+            draws, vars_of_interest, references, bayeshear::variable_mae, metric
           ),
           "v_mse" = padd_variable_distance(
-            draws, variables, references, bayeshear::variable_mse, metric
+            draws, vars_of_interest, references, bayeshear::variable_mse, metric
           ),
           "v_true_percentile" = padd_variable_distance(
             draws,
-            variables,
+            vars_of_interest,
             references,
             bayeshear::variable_true_percentile,
             metric
@@ -97,21 +101,21 @@ metric_lookup <- function(metric,
 
           # Variable MCMC Diagnostics
           "rhat" = {
-            tmp <- as.list(posterior::rhat(fit, pars = variables))
-            names(tmp) <- lapply(variables, function(x) paste0("rhat_", x))
+            tmp <- as.list(posterior::rhat(fit, pars = vars_of_interest))
+            names(tmp) <- lapply(vars_of_interest, function(x) paste0("rhat_", x))
             tmp
           },
           "ess_bulk" = {
-            ess_list <- lapply(variables, get_ess, fit, posterior::ess_bulk)
+            ess_list <- lapply(vars_of_interest, get_ess, fit, posterior::ess_bulk)
             names(ess_list) <- lapply(
-              variables, function(x) paste0("ess_bulk_", x)
+              vars_of_interest, function(x) paste0("ess_bulk_", x)
             )
             ess_list
           },
           "ess_tail" = {
-            ess_list <- lapply(variables, get_ess, fit, posterior::ess_tail)
+            ess_list <- lapply(vars_of_interest, get_ess, fit, posterior::ess_tail)
             names(ess_list) <- lapply(
-              variables, function(x) paste0("ess_tail_", x)
+              vars_of_interest, function(x) paste0("ess_tail_", x)
             )
             ess_list
           },
@@ -134,6 +138,13 @@ metric_lookup <- function(metric,
           "elpd_test_pointwise_summary" =
             elpd_pointwise_summaries(fit, quantiles, testing_data),
           "rmse_loo" = rmse_loo(fit, psis_object = psis_object, yrep = ppred, ...),
+          "rmse_loo_pointwise" = {
+            loo_object <- rmse_loo(fit, psis_object = psis_object, yrep = ppred, return_object = TRUE)
+            list(
+              rmse_loo_pointwise = list(loo_object$pointwise[, 1]),
+              rmse_loo_se = loo_object$estimates[1, 2]
+            )
+          },
           "rmse_loo_pointwise_summary" =
             get_custom_loo_summary(
               rmse_loo(fit,
@@ -215,7 +226,7 @@ metric_lookup <- function(metric,
             linpred <- do.call(
               inv_link_lookup(fit_conf$fit_link, fit_conf$fit_family),
               list(brms::posterior_linpred(fit))
-              )
+            )
             list(
               posterior_linpred_transformed_mean = list(colMeans(linpred)),
               posterior_linpred_transformed_sd = list(apply(linpred, 2, sd))

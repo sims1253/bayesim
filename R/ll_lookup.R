@@ -68,13 +68,13 @@ rng_lookup <- function(family) {
 #'
 #' @examples
 inv_link_lookup <- function(link, family = NULL) {
-  if(!is.null(family)){
-    switch (family,
-            "logitnormal" = return(bayesfam::inv_logit),
-            "cauchitnormal" = return(bayesfam::inv_cauchit),
-            "cloglognormal" = return(bayesfam::inv_cloglog),
-            "lognormal" = return(exp),
-            "softplusnormal" = return(bayesfam::inv_softplus)
+  if (!is.null(family)) {
+    switch(family,
+      "logitnormal" = return(bayesfam::inv_logit),
+      "cauchitnormal" = return(bayesfam::inv_cauchit),
+      "cloglognormal" = return(bayesfam::inv_cloglog),
+      "lognormal" = return(exp),
+      "softplusnormal" = return(bayesfam::inv_softplus)
     )
   }
   switch(link,
