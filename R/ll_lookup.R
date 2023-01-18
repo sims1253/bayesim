@@ -67,24 +67,42 @@ rng_lookup <- function(family) {
 #' @export
 #'
 #' @examples
-inv_link_lookup <- function(link, family = NULL) {
-  if (!is.null(family)) {
+link_lookup <- function(link, family = NULL, inv = FALSE) {
+  if (inv) {
+    if (!is.null(family)) {
+      switch(family,
+        "logitnormal" = return(bayesfam::inv_logit),
+        "cauchitnormal" = return(bayesfam::inv_cauchit),
+        "cloglognormal" = return(bayesfam::inv_cloglog),
+        "lognormal" = return(exp),
+        "softplusnormal" = return(bayesfam::inv_softplus)
+      )
+    }
+    switch(link,
+      "logit" = bayesfam::inv_logit,
+      "cauchit" = bayesfam::inv_cauchit,
+      "cloglog" = bayesfam::inv_cloglog,
+      "identity" = identity,
+      "log" = exp,
+      "softplus" = bayesfam::inv_softplus
+    )
+  } else {
     switch(family,
-      "logitnormal" = return(bayesfam::inv_logit),
-      "cauchitnormal" = return(bayesfam::inv_cauchit),
-      "cloglognormal" = return(bayesfam::inv_cloglog),
-      "lognormal" = return(exp),
-      "softplusnormal" = return(bayesfam::inv_softplus)
+      "logitnormal" = return(bayesfam::logit),
+      "cauchitnormal" = return(bayesfam::cauchit),
+      "cloglognormal" = return(bayesfam::cloglog),
+      "lognormal" = return(log),
+      "softplusnormal" = return(bayesfam::softplus)
+    )
+    switch(link,
+      "logit" = bayesfam::logit,
+      "cauchit" = bayesfam::cauchit,
+      "cloglog" = bayesfam::cloglog,
+      "identity" = identity,
+      "log" = log,
+      "softplus" = bayesfam::softplus
     )
   }
-  switch(link,
-    "logit" = bayesfam::inv_logit,
-    "cauchit" = bayesfam::inv_cauchit,
-    "cloglog" = bayesfam::inv_cloglog,
-    "identity" = identity,
-    "log" = exp,
-    "softplus" = bayesfam::inv_softplus
-  )
 }
 
 #' Title
