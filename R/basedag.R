@@ -288,7 +288,7 @@ basedag_data_noisy <- function(data_N,
     x <- rnorm(n = resample * data_gen_size, mean = (noisy_z1_x_coef * z1 + noisy_z3_x_coef * z3), sd = noisy_sigma_x)
 
     mu <- do.call(
-      inv_link_lookup(data_link),
+      link_lookup(data_link, inv = TRUE),
       list(
         y_intercept +
           noisy_x_y_coef * x +

@@ -224,7 +224,7 @@ metric_lookup <- function(metric,
           },
           "posterior_linpred_transformed" = {
             linpred <- do.call(
-              link_lookup(fit_conf$fit_link, family = fit_conf$fit_family, inv = TRUE),
+              link_lookup(fit_conf$fit_link, inv = TRUE),
               list(brms::posterior_linpred(fit))
             )
             list(
