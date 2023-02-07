@@ -67,15 +67,42 @@ rng_lookup <- function(family) {
 #' @export
 #'
 #' @examples
-inv_link_lookup <- function(link) {
-  switch(link,
-    "logit" = bayesfam::inv_logit,
-    "cauchit" = bayesfam::inv_cauchit,
-    "cloglog" = bayesfam::inv_cloglog,
-    "identity" = identity,
-    "log" = exp,
-    "softplus" = bayesfam::inv_softplus
-  )
+link_lookup <- function(link, family = NULL, inv = FALSE) {
+  if (inv) {
+    if (!is.null(family)) {
+      switch(family,
+        "logitnormal" = return(bayesfam::inv_logit),
+        "cauchitnormal" = return(bayesfam::inv_cauchit),
+        "cloglognormal" = return(bayesfam::inv_cloglog),
+        "lognormal" = return(exp),
+        "softplusnormal" = return(bayesfam::inv_softplus)
+      )
+    }
+    switch(link,
+      "logit" = bayesfam::inv_logit,
+      "cauchit" = bayesfam::inv_cauchit,
+      "cloglog" = bayesfam::inv_cloglog,
+      "identity" = identity,
+      "log" = exp,
+      "softplus" = bayesfam::inv_softplus
+    )
+  } else {
+    switch(family,
+      "logitnormal" = return(bayesfam::logit),
+      "cauchitnormal" = return(bayesfam::cauchit),
+      "cloglognormal" = return(bayesfam::cloglog),
+      "lognormal" = return(log),
+      "softplusnormal" = return(bayesfam::softplus)
+    )
+    switch(link,
+      "logit" = bayesfam::logit,
+      "cauchit" = bayesfam::cauchit,
+      "cloglog" = bayesfam::cloglog,
+      "identity" = identity,
+      "log" = log,
+      "softplus" = bayesfam::softplus
+    )
+  }
 }
 
 #' Title
@@ -108,5 +135,63 @@ prior_lookup <- function(family) {
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = second_family_parameter_lookup(family))
     )
+  )
+}
+
+#' Generate lookup keys for fit configurations to retrieve prefit objects
+#' matching said config.
+#'
+#' @param fit_conf
+#'
+#' @return A hash generated from the fit configuration
+#' @export
+#'
+#' @examples
+#' fit_conf_key(
+#'   list(
+#'     fit_family = "gaussian",
+#'     fit_link = "identity",
+#'     prior = list(c(brms::set_prior("", class = "Intercept")))
+#'   )
+#' )
+fit_conf_key <- function(fit_conf) {
+  return(
+    rlang::hash(
+      list(
+        fit_conf$fit_family,
+        fit_conf$fit_link,
+        fit_conf$formula,
+        fit_conf$prior
+      )
+    )
+  )
+}
+
+#' Lookup for limits of family auxiliary parameters.
+#'
+#' @param family The identifier string of a family.
+#'
+#' @return List containing lower and upper bounds for the auxiliary parameter.
+#' @export
+#'
+#' @examples
+aux_limits_lookup <- function(family) {
+  switch(family,
+    "beta" = list(lb = 0, ub = Inf),
+    "kumaraswamy" = list(lb = 0, ub = Inf),
+    "logitnormal" = list(lb = 0, ub = Inf),
+    "cauchitnormal" = list(lb = 0, ub = Inf),
+    "cloglognormal" = list(lb = 0, ub = Inf),
+    "simplex" = list(lb = -Inf, ub = Inf),
+    "gaussian" = list(lb = 0, ub = Inf),
+    "gamma" = list(lb = 0, ub = Inf),
+    "weibull" = list(lb = 0, ub = Inf),
+    "lognormal" = list(lb = 0, ub = Inf),
+    "softplusnormal" = list(lb = 0, ub = Inf),
+    "lomax" = list(lb = 1, ub = Inf),
+    "frechet" = list(lb = 1, ub = Inf),
+    "inverse.gaussian" = list(lb = 0, ub = Inf),
+    "betaprime" = list(lb = 0, ub = Inf),
+    "gompertz" = list(lb = 0, ub = Inf)
   )
 }

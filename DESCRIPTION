@@ -1,15 +1,13 @@
 Package: bayesim
 Type: Package
 Title: Simulation Framework for Bayesian Modeling
-Version: 0.31.1.9000
+Version: 0.32.0.9000
 Date: 2022-11-10
 Authors@R:
     c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
              role = c("aut", "cre")),
       person("Paul-Christian", "Bürkner", email = "paul.buerkner@gmail.com",
-             role = c("ctb")),
-      person("Yannick", "Dzubba", email = "yannick@dzubba.net",
-             role = c("ctb")))
+             role = c("aut")))
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
@@ -18,6 +16,7 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     bayesfam (>= 0.2.1),
+    bayeshear (>= 0.2.0.9000),
     brms (>= 2.18.1),
     rstan,
     posterior (>= 1.3.1),
@@ -31,6 +30,7 @@ Suggests:
     doParallel
 Remotes:
     sims1253/bayesfam
-RoxygenNote: 7.2.2
+    sims1253/bayeshear
+RoxygenNote: 7.2.3
 Config/testthat/parallel: true
 Config/testthat/edition: 3

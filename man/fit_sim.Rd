@@ -7,15 +7,13 @@
 fit_sim(
   prefit,
   dataset,
-  testing_data,
-  numeric_metrics,
-  predictive_metrics,
-  data_gen_conf,
+  data_gen_output,
   fit_conf,
-  brms_backend,
   seed,
   debug,
-  result_path
+  result_path,
+  stan_pars,
+  ...
 )
 }
 \arguments{

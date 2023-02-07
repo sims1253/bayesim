@@ -2,13 +2,19 @@
 % Please edit documentation in R/prefit.R
 \name{build_prefit_list}
 \alias{build_prefit_list}
-\title{Title}
+\title{Prepare a list of brmsfit objects to update during repeated simulations}
 \usage{
-build_prefit_list(fit_configuration, brms_backend)
+build_prefit_list(fit_configuration, stan_pars)
 }
 \arguments{
-\item{fit_configuration}{}
+\item{fit_configuration}{A named list that currently holds family, link and
+prior.}
+
+\item{stan_pars}{A named list which contains a backend field.}
+}
+\value{
+A list of
 }
 \description{
-Title
+This is mainly used to save on constant recompilation times.
 }

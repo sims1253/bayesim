@@ -2,19 +2,56 @@
 % Please edit documentation in R/metric_list_handler.R
 \name{metric_list_handler}
 \alias{metric_list_handler}
-\title{Title}
+\title{Collect multiple metrics at once}
 \usage{
-metric_list_handler(
-  fit,
-  numeric_metrics,
-  predictive_metrics,
-  testing_data,
-  ...
-)
+metric_list_handler(fit, metrics, data_gen_output, fit_conf, ...)
 }
 \arguments{
-\item{fit}{}
+\item{fit}{A brmsfit object.}
+
+\item{metrics}{A vector of metric identifiers. See details for supported
+identifiers.}
+}
+\value{
+A named list containing all requested metrics' results.
 }
 \description{
-Title
+A convenience function that collects all given metrics at once. This
+can save time compared to manually calling all metric functions
+individually, as some variables can be reused instead of being calculated
+multiple times.
+}
+\details{
+Currently, the following identifiers are supported. See linked
+ functions for required additional arguments:
+\itemize{
+\item "bias": \code{\link{posterior_bias}}
+\item "divergents": \code{\link{divergents}}
+\item "ess": \code{\link{ess}}
+\item "elpd_loo": \code{\link{elpd_loo}}
+\item "elpd_newdata": \code{\link{elpd_newdata}}
+\item "epred": \code{\link{epred}}
+\item "mae_s": \code{\link{}}
+\item "p_mean": \code{\link{p_mean}}
+\item "p_sd": \code{\link{p_sd}}
+\item "pareto_k": \code{\link{}}
+\item "pos_prob": \code{\link{}}
+\item "ppred": \code{\link{}}
+\item "pq": \code{\link{}}
+\item "q_true": \code{\link{}}
+\item "r2_loo": \code{\link{}}
+\item "r2_newdata": \code{\link{}}
+\item "residuals": \code{\link{}}
+\item "rhat": \code{\link{}}
+\item "rmse_loo": \code{\link{}}
+\item "rmse_newdata": \code{\link{}}
+\item "rmse_s": \code{\link{}}
+\item "rstar": \code{\link{}}
+\item "time_sampling": \code{\link{}}
+\item "time_total": \code{\link{}}
+\item "time_warmup": \code{\link{}}
+\item "y": \code{\link{}}
+}
+
+Note,that not all identifiers are supported for each input class.
 }

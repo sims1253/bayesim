@@ -4,7 +4,7 @@
 \alias{get_prefit}
 \title{Title}
 \usage{
-get_prefit(family_list, brms_backend)
+get_prefit(fit_conf, stan_pars)
 }
 \arguments{
 \item{family_list}{}

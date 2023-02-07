@@ -7,35 +7,76 @@
 #'
 #' @examples
 elpd_loo_handler <- function(fit) {
-  tryCatch(
-    expr = {
-      loo_object <- brms::loo(fit, save_psis = TRUE)
-      return(
-        list(
-          "p_loo" = loo_object$estimates[2, 1],
-          "se_p_loo" = loo_object$estimates[2, 2],
-          "elpd_loo" = loo_object$estimates[1, 1],
-          "se_elpd_loo" = loo_object$estimates[1, 2],
-          "looic" = loo_object$estimates[3, 1],
-          "se_looic" = loo_object$estimates[3, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "p_loo" = NA,
-          "se_p_loo" = NA,
-          "elpd_loo" = NA,
-          "se_elpd_loo" = NA,
-          "looic" = NA,
-          "se_looic" = NA,
-          "object" = NULL
-        )
-      )
-    }
+  loo_object <- brms::loo(fit)
+  return(
+    list(
+      "p_loo" = loo_object$estimates[2, 1],
+      "se_p_loo" = loo_object$estimates[2, 2],
+      "elpd_loo" = loo_object$estimates[1, 1],
+      "se_elpd_loo" = loo_object$estimates[1, 2],
+      "looic" = loo_object$estimates[3, 1],
+      "se_looic" = loo_object$estimates[3, 2]
+    )
   )
+}
+
+#' Pointwise elps summaries
+#'
+#' Convenience function to collect quantiles and summaries of the pointwise elpd
+#' estimates instead of just the main estimates.
+#' The returned summaries are all sample size independent.
+#'
+#' @param fit A brmsfit object.
+#' @param quantiles A vector of quantiles of interest.
+#' @param newdata If supplied, returns the summaries for \code{\link{elpd_test}}
+#'                otherwise, returns \code{\link[brms]{elpd}} summaries by
+#'                default.
+#' @return A named list of summaries.
+#' @export
+#'
+#' @examples
+#' fit <- brms::brm(y ~ 1, data = list(rnorm(1000)))
+#' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
+#' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
+elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
+  if (is.null(newdata)) {
+    loo_object <- brms::loo(fit)
+
+    elpd_pointwise <- loo_object$pointwise[, 1]
+    elpd_quantiles <- as.list(quantile(elpd_pointwise, prob = quantiles))
+    names(elpd_quantiles) <- lapply(
+      quantiles,
+      function(x) paste0("elpd_loo_quantile_", x)
+    )
+
+    p_loo_pointwise <- loo_object$pointwise[, 3]
+    p_loo_quantiles <- as.list(quantile(p_loo_pointwise, prob = quantiles))
+    names(p_loo_quantiles) <- lapply(
+      quantiles,
+      function(x) paste0("p_loo_quantile_", x)
+    )
+    out <- c(elpd_quantiles, p_loo_quantiles)
+    out$elpd_loo_mean <- mean(elpd_pointwise)
+    out$elpd_loo_sd <- sd(elpd_pointwise)
+    out$p_loo_mean <- sd(p_loo_pointwise)
+    out$p_loo_sd <- sd(p_loo_pointwise)
+    out$elpd_loo_se_mean <- mean(loo_object$pointwise[, 2])
+    return(out)
+  } else {
+    loo_object <- elpd_test(fit, newdata, TRUE)
+
+    elpd_pointwise <- loo_object$pointwise[, 1]
+    elpd_quantiles <- as.list(quantile(elpd_pointwise, prob = quantiles))
+    names(elpd_quantiles) <- lapply(
+      quantiles,
+      function(x) paste0("elpd_test_quantile_", x)
+    )
+    out <- c(elpd_quantiles)
+    out$elpd_test_mean <- mean(elpd_pointwise)
+    out$elpd_test_sd <- sd(elpd_pointwise)
+    out$elpd_test_se_mean <- loo_object$estimates[1, 2] / length(elpd_pointwise)
+    return(out)
+  }
 }
 
 #' Title
@@ -164,40 +205,30 @@ custom_loo_object <- function(pointwise_criterion,
 #' @examples
 rmse_loo <- function(fit,
                      psis_object = NULL,
+                     return_object = FALSE,
+                     yrep = NULL,
                      ...) {
-  tryCatch(
-    expr = {
-      if (is.null(psis_object)) {
-        psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-      }
-      pointwise_rmse <- rmse(
-        y = brms::get_y(fit),
-        yrep = brms::posterior_predict(fit, fit$data),
-        weights = exp(psis_object$log_weights)
-      )
-
-      loo_object <- custom_loo_object(
-        pointwise_criterion = -pointwise_rmse,
-        psis_object = psis_object
-      )
-      return(
-        list(
-          "rmse_loo" = loo_object$estimates[1, 1],
-          "se_rmse_loo" = loo_object$estimates[1, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "rmse_loo" = NA,
-          "se_rmse_loo" = NA,
-          "object" = NULL
-        )
-      )
-    }
+  if (is.null(psis_object)) {
+    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+  }
+  if (is.null(yrep)) {
+    yrep <- brms::posterior_predict(fit, fit$data)
+  }
+  pointwise_rmse <- rmse(
+    y = brms::get_y(fit),
+    yrep = yrep,
+    weights = exp(psis_object$log_weights)
   )
+  if (return_object) {
+    return(custom_loo_object(pointwise_criterion = pointwise_rmse))
+  } else {
+    return(
+      list(
+        "rmse_loo" = pointwise_rmse,
+        "se_rmse_loo" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
+      )
+    )
+  }
 }
 
 #' Title
@@ -209,35 +240,22 @@ rmse_loo <- function(fit,
 #' @export
 #'
 #' @examples
-rmse_newdata <- function(fit, newdata) {
-  tryCatch(
-    expr = {
-      pointwise_rmse <- rmse(
-        y = y <- newdata$y,
-        yrep = brms::posterior_predict(fit, newdata = newdata)
-      )
-
-      loo_object <- custom_loo_object(
-        pointwise_criterion = -pointwise_rmse
-      )
-      return(
-        list(
-          "rmse_newdata" = loo_object$estimates[1, 1],
-          "se_rmse_newdata" = loo_object$estimates[1, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "rmse_newdata" = NA,
-          "se_rmse_newdata" = NA,
-          "object" = NULL
-        )
-      )
-    }
+rmse_test <- function(fit, newdata, return_object = FALSE) {
+  pointwise_rmse <- rmse(
+    y = y <- newdata$y,
+    yrep = brms::posterior_predict(fit, newdata = newdata)
   )
+
+  if (return_object) {
+    return(custom_loo_object(pointwise_criterion = pointwise_rmse))
+  } else {
+    return(
+      list(
+        "rmse_test" = pointwise_rmse,
+        "se_rmse_test" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
+      )
+    )
+  }
 }
 
 #' Calculate the root-mean-squared-error for given y and yrep.
@@ -278,32 +296,19 @@ rmse <- function(y, yrep, weights = NULL) {
 #' @export
 #'
 #' @examples
-elpd_newdata <- function(fit, newdata) {
-  tryCatch(
-    expr = {
-      ll <- brms::log_lik(fit, newdata = newdata)
-      elpd <- matrixStats::colLogSumExps(ll) - log(nrow(ll))
-      loo_object <- custom_loo_object(
-        pointwise_criterion = elpd
+elpd_test <- function(fit, newdata, return_object = FALSE) {
+  ll <- brms::log_lik(fit, newdata = newdata)
+  elpd <- matrixStats::colLogSumExps(ll) - log(nrow(ll))
+  if (return_object) {
+    return(custom_loo_object(pointwise_criterion = elpd))
+  } else {
+    return(
+      list(
+        "elpd_test" = sum(elpd),
+        "se_elpd_test" = sqrt(length(elpd) * var(elpd))
       )
-      return(
-        list(
-          "elpd_newdata" = loo_object$estimates[1, 1],
-          "se_elpd_newdata" = loo_object$estimates[1, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "elpd_newdata" = NA,
-          "se_elpd_newdata" = NA,
-          "object" = NULL
-        )
-      )
-    }
-  )
+    )
+  }
 }
 
 #' Title
@@ -337,42 +342,35 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @param ...
 #'
 #' @return \code{custom_loo_object} object with R² acting as elpd.
+#' @export
 #'
 #' @examples
-r2_loo <- function(fit, psis_object = NULL, ...) {
-  tryCatch(
-    expr = {
-      if (is.null(psis_object)) {
-        psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
-      }
-      pointwise_loo_r2 <- r2(
-        y = brms::get_y(fit),
-        yrep = brms::posterior_predict(fit, fit$data),
-        weights = exp(psis_object$log_weights)
-      )
-
-      loo_object <- custom_loo_object(
-        pointwise_criterion = pointwise_loo_r2,
-        psis_object = psis_object
-      )
-      return(
-        list(
-          "r2_loo" = loo_object$estimates[1, 1],
-          "se_r2_loo" = loo_object$estimates[1, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "r2_loo" = NA,
-          "se_r2_loo" = NA,
-          "object" = NULL
-        )
-      )
-    }
+r2_loo <- function(fit,
+                   psis_object = NULL,
+                   yrep = NULL,
+                   return_object = FALSE,
+                   ...) {
+  if (is.null(psis_object)) {
+    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+  }
+  if (is.null(yrep)) {
+    yrep <- brms::posterior_predict(fit, fit$data)
+  }
+  pointwise_loo_r2 <- r2(
+    y = brms::get_y(fit),
+    yrep = yrep,
+    weights = exp(psis_object$log_weights)
   )
+  if (return_object) {
+    return(custom_loo_object(pointwise_criterion = pointwise_loo_r2))
+  } else {
+    return(
+      list(
+        "r2_loo" = sum(pointwise_loo_r2),
+        "se_r2_loo" = sqrt(length(pointwise_loo_r2) * var(pointwise_loo_r2))
+      )
+    )
+  }
 }
 
 #' Title
@@ -384,33 +382,20 @@ r2_loo <- function(fit, psis_object = NULL, ...) {
 #' @export
 #'
 #' @examples
-r2_newdata <- function(fit, newdata) {
-  tryCatch(
-    expr = {
-      pointwise_r2 <- r2(
-        y = y <- newdata$y,
-        yrep = brms::posterior_predict(fit, newdata = newdata)
-      )
-
-      loo_object <- custom_loo_object(
-        pointwise_criterion = pointwise_r2
-      )
-      return(
-        list(
-          "r2_newdata" = loo_object$estimates[1, 1],
-          "se_r2_newdata" = loo_object$estimates[1, 2],
-          "object" = loo_object
-        )
-      )
-    },
-    error = function(e) {
-      return(
-        list(
-          "r2_newdata" = NA,
-          "se_r2_newdata" = NA,
-          "object" = NULL
-        )
-      )
-    }
+r2_test <- function(fit, newdata, return_object = FALSE) {
+  pointwise_r2 <- r2(
+    y = y <- newdata$y,
+    yrep = brms::posterior_predict(fit, newdata = newdata)
   )
+
+  if (return_object) {
+    return(custom_loo_object(pointwise_criterion = pointwise_r2))
+  } else {
+    return(
+      list(
+        "r2_test" = sum(pointwise_r2),
+        "se_r2_test" = sqrt(length(pointwise_r2) * var(pointwise_r2))
+      )
+    )
+  }
 }
