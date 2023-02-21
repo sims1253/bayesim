@@ -29,7 +29,7 @@ Suggests:
     parallel,
     doParallel
 Remotes:
-    sims1253/bayesfam
+    sims1253/bayesfam,
     sims1253/bayeshear
 RoxygenNote: 7.2.3
 Config/testthat/parallel: true
