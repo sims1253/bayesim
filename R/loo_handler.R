@@ -224,7 +224,7 @@ rmse_loo <- function(fit,
   } else {
     return(
       list(
-        "rmse_loo" = pointwise_rmse,
+        "rmse_loo" = sum(pointwise_rmse),
         "se_rmse_loo" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
       )
     )
@@ -251,7 +251,7 @@ rmse_test <- function(fit, newdata, return_object = FALSE) {
   } else {
     return(
       list(
-        "rmse_test" = pointwise_rmse,
+        "rmse_test" = sum(pointwise_rmse),
         "se_rmse_test" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
       )
     )
