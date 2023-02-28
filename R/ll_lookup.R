@@ -24,7 +24,15 @@ brms_family_lookup <- function(family, link = NULL) {
     "frechet" = brms::brmsfamily("frechet", link = link),
     "inverse.gaussian" = brms::brmsfamily("inverse.gaussian", link = link),
     "betaprime" = bayesfam::betaprime(link = link),
-    "gompertz" = bayesfam::gompertz(link = link)
+    "gompertz" = bayesfam::gompertz(link = link),
+    "student" = brms::brmsfamily("student", link = link),
+    "skew_normal" = brms::brmsfamily("skew_normal", link = link),
+    "generalized_normal" = bayesfam::generalized_normal(link = link),
+    "asym_laplace" = brms::brmsfamily("asym_laplace", link = link),
+    "exgaussian" = brms::brmsfamily("exgaussian", link = link),
+    "gumbel" = bayesfam::gumbel_mean(link = link),
+    "symlognormal" = bayesfam::symlognormal(link = link)
+
   )
 }
 
@@ -54,7 +62,14 @@ rng_lookup <- function(family) {
     "frechet" = bayesfam::rfrechet_median,
     "inverse.gaussian" = brms::rinv_gaussian,
     "betaprime" = bayesfam::rbetaprime,
-    "gompertz" = bayesfam::rgompertz
+    "gompertz" = bayesfam::rgompertz,
+    "student" = brms::rstudent_t,
+    "skew_normal" = brms::rskew_normal,
+    "generalized_normal" = bayesfam::rgeneralized_normal,
+    "asym_laplace" = brms::rasym_laplace,
+    "exgaussian" = brms::rexgaussian,
+    "gumbel" = bayesfam::rgumbel_mean,
+    "symlognormal" = bayesfam::rsymlognormal
   )
 }
 
@@ -192,6 +207,13 @@ aux_limits_lookup <- function(family) {
     "frechet" = list(lb = 1, ub = Inf),
     "inverse.gaussian" = list(lb = 0, ub = Inf),
     "betaprime" = list(lb = 0, ub = Inf),
-    "gompertz" = list(lb = 0, ub = Inf)
+    "gompertz" = list(lb = 0, ub = Inf),
+    "student" = list(lb = c(0, 0), ub = c(Inf, Inf)),
+    "skew_normal" = list(lb = c(0, -Inf), ub = c(Inf, Inf)),
+    "generalized_normal" = list(lb = c(0, 0), ub = c(Inf, Inf)),
+    "asym_laplace" = list(lb = c(0, 0), ub = c(Inf, 1)),
+    "exgaussian" = list(lb = c(0, 0), ub = c(Inf, Inf)),
+    "gumbel" = list(lb = 0, ub = Inf),
+    "symlognormal" = list(lb = 0, ub = Inf)
   )
 }
