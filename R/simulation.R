@@ -280,6 +280,7 @@ full_simulation <- function(data_gen_confs,
                             seed = NULL,
                             result_path = NULL,
                             debug = FALSE,
+                            calibration_mode = FALSE
                             ...) {
   # Set seed for reproducability.
   if (!is.null(seed)) {
@@ -304,21 +305,44 @@ full_simulation <- function(data_gen_confs,
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   # Iterate over dataset configurations and combine the results
-  for (i in seq_len(nrow(data_gen_confs))) {
-    final_result[[i]] <- dataset_conf_sim(
-      data_gen_conf = as.list(data_gen_confs[i, ]),
-      data_gen_fun = data_gen_fun,
-      fit_confs = fit_confs,
-      prefits = prefit_list,
-      seed = seed_list[[i]],
-      result_path = result_path,
-      stan_pars = stan_pars,
-      ncores = ncores_simulation,
-      cluster_type = cluster_type,
-      debug = debug,
-      global_seed = seed,
-      ...
-    )
+  if (isFALSE(calibration_mode)) {
+    for (i in seq_len(nrow(data_gen_confs))) {
+
+      final_result[[i]] <- dataset_conf_sim(
+        data_gen_conf = as.list(data_gen_confs[i, ]),
+        data_gen_fun = data_gen_fun,
+        fit_confs = fit_confs,
+        prefits = prefit_list,
+        seed = seed_list[[i]],
+        result_path = result_path,
+        stan_pars = stan_pars,
+        ncores = ncores_simulation,
+        cluster_type = cluster_type,
+        debug = debug,
+        global_seed = seed,
+        ...
+      )
+    }
+  } else # in calibration mode, filter out fit-conf with same family as data_gen_conf
+  {
+    for (i in seq_len(nrow(data_gen_confs))) {
+      family <- data_gen_confs[i, ["data_family"]]
+
+      final_result[[i]] <- dataset_conf_sim(
+        data_gen_conf = as.list(data_gen_confs[i, ]),
+        data_gen_fun = data_gen_fun,
+        fit_confs = filter(fit_confs, fit_family == family),
+        prefits = prefit_list,
+        seed = seed_list[[i]],
+        result_path = result_path,
+        stan_pars = stan_pars,
+        ncores = ncores_simulation,
+        cluster_type = cluster_type,
+        debug = debug,
+        global_seed = seed,
+        ...
+      )
+    }
   }
   final_result <- dplyr::bind_rows(final_result)
 
