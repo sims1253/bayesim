@@ -81,13 +81,26 @@ basedag_data <- function(data_N,
       )
     )
 
+    # y <- do.call(
+    #   rng_lookup(data_family),
+    #   list(
+    #     length(mu),
+    #     mu,
+    #     sigma_y
+    #   )
+    # )
+    arg_list <- list(
+      length(mu),
+      mu
+    )
+    # add all remaining sigma y arguments
+    sigma_y_vec <- sigma_y[[1]]
+    for(i in seq_along(sigma_y_vec)) {
+      arg_list[[2 + i]] <- sigma_y_vec[i]
+    }
     y <- do.call(
       rng_lookup(data_family),
-      list(
-        length(mu),
-        mu,
-        sigma_y
-      )
+      arg_list
     )
 
     sanitized_index <- which(y < ub & y > lb)
@@ -248,16 +261,21 @@ basedag_data_noisy <- function(data_N,
       )
     }
   }
+  sigma_y_vec <- sigma_y[[1]]
   if (is.null(noisy_sigma_y)) {
+    noisy_sigma_y <- rep(NA, length(sigma_y_vec))
     bounds <- aux_limits_lookup(data_family)
-    while (is.null(noisy_sigma_y)) {
-      sample_list <- rnorm(100, mean = sigma_y, sd = noise_sd * sigma_y)
-      sample_list <- subset(
-        sample_list,
-        sample_list > bounds$lb & sample_list < bounds$ub
-      )
-      if (length(sample_list) > 0) {
-        noisy_sigma_y <- sample_list[[1]]
+    for(i in seq_along(sigma_y_vec)) {
+      # sigma_y may be a vector, so repeat for each entry
+      while (is.na(noisy_sigma_y)) {
+        sample_list <- rnorm(100, mean = sigma_y_vec[i], sd = noise_sd * sigma_y_vec[i])
+        sample_list <- subset(
+          sample_list,
+          sample_list > bounds$lb & sample_list < bounds$ub
+        )
+        if (length(sample_list) > 0) {
+          noisy_sigma_y[i] <- sample_list[[1]]
+        }
       }
     }
   }
@@ -297,13 +315,17 @@ basedag_data_noisy <- function(data_N,
       )
     )
 
+    arg_list <- list(
+      length(mu),
+      mu
+    )
+    # add all remaining sigma y arguments
+    for(i in seq_along(noisy_sigma_y)) {
+      arg_list[[2 + i]] <- noisy_sigma_y[i]
+    }
     y <- do.call(
       rng_lookup(data_family),
-      list(
-        length(mu),
-        mu,
-        noisy_sigma_y
-      )
+      arg_list
     )
 
     sanitized_index <- which(y < ub & y > lb)
