@@ -63,11 +63,11 @@ rng_lookup <- function(family) {
     "inverse.gaussian" = brms::rinv_gaussian,
     "betaprime" = bayesfam::rbetaprime,
     "gompertz" = bayesfam::rgompertz,
-    "student" = brms::rstudent_t,
+    "student" = bayesfam::rstudent_custom,
     "skew_normal" = brms::rskew_normal,
     "generalized_normal" = bayesfam::rgeneralized_normal,
     "asym_laplace" = brms::rasym_laplace,
-    "exgaussian" = brms::rexgaussian,
+    "exgaussian" = bayesfam::rexgauss_custom,
     "gumbel" = bayesfam::rgumbel_mean,
     "symlognormal" = bayesfam::rsymlognormal
   )
