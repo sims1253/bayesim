@@ -7,7 +7,7 @@
 #'
 #' @examples
 get_prefit <- function(fit_conf, stan_pars) {
-  family <- brms_family_lookup(
+  family <- bayesfam::brms_family_lookup(
     fit_conf$fit_family,
     fit_conf$fit_link
   )
@@ -16,7 +16,7 @@ get_prefit <- function(fit_conf, stan_pars) {
   }
   formula <- brms::brmsformula(fit_conf$formula)
   data <- do.call(
-    rng_lookup(fit_conf$fit_family),
+    bayesfam::rng_lookup(fit_conf$fit_family),
     list(
       n = length(all.vars(formula$formula))
     )
