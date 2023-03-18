@@ -2,7 +2,6 @@
 
 export(build_prefit_list)
 export(custom_loo_object)
-export(data_gen_conf_y_analysis)
 export(dataset_conf_sim)
 export(dataset_sim)
 export(elpd_loo_handler)
