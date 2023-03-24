@@ -31,8 +31,8 @@ brms_family_lookup <- function(family, link = NULL) {
     "asym_laplace" = brms::brmsfamily("asym_laplace", link = link),
     "exgaussian" = brms::brmsfamily("exgaussian", link = link),
     "gumbel" = bayesfam::gumbel_mean(link = link),
-    "symlognormal" = bayesfam::symlognormal(link = link)
-
+    "symlognormal" = bayesfam::symlognormal(link = link),
+    "logistic" = bayesfam::logistic(link = link)
   )
 }
 
@@ -63,6 +63,7 @@ rng_lookup <- function(family) {
     "inverse.gaussian" = brms::rinv_gaussian,
     "betaprime" = bayesfam::rbetaprime,
     "gompertz" = bayesfam::rgompertz,
+    "logistic" = bayesfam::rlogistic,
     "student" = bayesfam::rstudent_custom,
     "skew_normal" = brms::rskew_normal,
     "generalized_normal" = bayesfam::rgeneralized_normal,
@@ -146,6 +147,13 @@ prior_lookup <- function(family) {
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = "nu", lb = 1.00001)
     ),
+    # maybe implement this more generalized, to facilitate other custom
+    # families with 3 or more parameters
+    "generalized_normal" = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = "sigma", lb = 0),
+      brms::set_prior("", class = "beta", lb = 0)
+    ),
     c(
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = second_family_parameter_lookup(family))
@@ -214,6 +222,7 @@ aux_limits_lookup <- function(family) {
     "asym_laplace" = list(lb = c(0, 0), ub = c(Inf, 1)),
     "exgaussian" = list(lb = c(0, 0), ub = c(Inf, Inf)),
     "gumbel" = list(lb = 0, ub = Inf),
-    "symlognormal" = list(lb = 0, ub = Inf)
+    "symlognormal" = list(lb = 0, ub = Inf),
+    "logistic" = list(lb = 0, ub = Inf)
   )
 }

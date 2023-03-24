@@ -284,7 +284,13 @@ full_simulation <- function(data_gen_confs,
                             result_path = NULL,
                             debug = FALSE,
                             calibration_mode = FALSE,
+                            time_info = FALSE,
                             ...) {
+
+  if(isTRUE(time_info)) {
+    cat("Start full_simulation @", as.character(Sys.time(), usetz = TRUE), "\n")
+  }
+
   # Set seed for reproducability.
   if (!is.null(seed)) {
     set.seed(seed)
@@ -311,17 +317,28 @@ full_simulation <- function(data_gen_confs,
   )
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
+  if(isTRUE(time_info)) {
+    cat("All models compiled @", as.character(Sys.time(), usetz = TRUE),
+        "begin with sim now\n")
+  }
+
   # Iterate over dataset configurations and combine the results
   for (i in seq_len(nrow(data_gen_confs))) {
 
 
     if(isTRUE(calibration_mode)) {
-      matching_family <- data_gen_confs[i, ]$data_family
-      relevant_fit_confs <- dplyr::filter(fit_confs, fit_family == matching_family)
+      data_family <- data_gen_confs[i, ]$data_family
+      relevant_fit_confs <- dplyr::filter(fit_confs, fit_family == data_family)
       # for each dataset, only compute the matching distribution
       # to safe time during calibration
     } else {
       relevant_fit_confs <- fit_confs
+    }
+    if(isTRUE(time_info)) {
+      data_family <- data_gen_confs[i, ]$data_family
+      shape <- data_gen_confs[i, ]$shape
+      cat("simulate on", data_family, "-", shape, "dataset now @",
+          as.character(Sys.time(), usetz = TRUE), "\n")
     }
 
     final_result[[i]] <- dataset_conf_sim(
