@@ -320,6 +320,7 @@ full_simulation <- function(data_gen_confs,
   if(isTRUE(time_info)) {
     cat("All models compiled @", as.character(Sys.time(), usetz = TRUE),
         "begin with sim now\n")
+    time_per_model <- list()
   }
 
   # Iterate over dataset configurations and combine the results
@@ -334,30 +335,53 @@ full_simulation <- function(data_gen_confs,
     } else {
       relevant_fit_confs <- fit_confs
     }
-    if(isTRUE(time_info)) {
-      data_family <- data_gen_confs[i, ]$data_family
-      shape <- data_gen_confs[i, ]$shape
-      cat("simulate on", data_family, "-", shape, "dataset now @",
-          as.character(Sys.time(), usetz = TRUE), "\n")
+
+    if(length(relevant_fit_confs[,1]) > 0) {
+      # only do sim on dataset, if there are distributions to fit to it!
+      if(isTRUE(time_info)) {
+        dataset_name <- paste0(data_gen_confs[i, ]$data_family,
+                               "-",
+                               data_gen_confs[i, ]$shape)
+        dataset_sim_start <- Sys.time()
+        cat("simulate on", dataset_name, "dataset now @",
+            as.character(dataset_sim_start, usetz = TRUE), "\n")
+      }
+
+      final_result[[i]] <- dataset_conf_sim(
+        data_gen_conf = as.list(data_gen_confs[i, ]),
+        data_gen_fun = data_gen_fun,
+        fit_confs = relevant_fit_confs,
+        prefits = prefit_list,
+        seed = seed_list[[i]],
+        result_path = result_path,
+        stan_pars = stan_pars,
+        ncores = ncores_simulation,
+        cluster_type = cluster_type,
+        debug = debug,
+        global_seed = seed,
+        ...
+      )
+      if(isTRUE(time_info)) {
+        dataset_sim_dt <- Sys.time() - dataset_sim_start
+        cat("simulation on", dataset_name, "dataset took",
+            format(dataset_sim_dt, format="%H:%M:%S"), "\n")
+        if(exists(dataset_name, time_per_model)) {
+          time_per_model[[dataset_name]] <- time_per_model[[dataset_name]]
+          + dataset_sim_dt
+        } else {
+          time_per_model[[dataset_name]] <- dataset_sim_dt
+        }
+      }
     }
-
-    final_result[[i]] <- dataset_conf_sim(
-      data_gen_conf = as.list(data_gen_confs[i, ]),
-      data_gen_fun = data_gen_fun,
-      fit_confs = relevant_fit_confs,
-      prefits = prefit_list,
-      seed = seed_list[[i]],
-      result_path = result_path,
-      stan_pars = stan_pars,
-      ncores = ncores_simulation,
-      cluster_type = cluster_type,
-      debug = debug,
-      global_seed = seed,
-      ...
-    )
-
   }
   final_result <- dplyr::bind_rows(final_result)
+
+  if(isTRUE(time_info)) {
+    # for(time_info_model in time_per_model) {
+    #   print(time_info_model)
+    # }
+    print(time_per_model)
+  }
 
   if (!is.null(result_path)) {
     saveRDS(final_result, paste(result_path, "full_sim_result.RDS", sep = "/"))
