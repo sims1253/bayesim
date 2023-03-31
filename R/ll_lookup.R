@@ -151,8 +151,13 @@ prior_lookup <- function(family) {
     # families with 3 or more parameters
     "generalized_normal" = c(
       brms::set_prior("", class = "Intercept"),
-      brms::set_prior("", class = "sigma", lb = 0),
-      brms::set_prior("", class = "beta", lb = 0)
+      brms::set_prior("", class = "sigma", lb = 1e-5),
+      brms::set_prior("", class = "beta", lb = 0.01)
+    ),
+    "exgaussian" = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = "sigma", lb = 1e-5),
+      brms::set_prior("", class = "beta", lb = 1e-5)
     ),
     c(
       brms::set_prior("", class = "Intercept"),
