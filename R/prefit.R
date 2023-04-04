@@ -6,7 +6,7 @@
 #' @export
 #'
 #' @examples
-get_prefit <- function(fit_conf, stan_pars) {
+get_prefit <- function(fit_conf, stan_pars, compile_dir = NULL) {
   family <- brms_family_lookup(
     fit_conf$fit_family,
     fit_conf$fit_link
@@ -22,6 +22,31 @@ get_prefit <- function(fit_conf, stan_pars) {
     )
   )
   names(data) <- all.vars(formula$formula)
+  prefit_name <- paste(
+    fit_conf$fit_family, fit_conf$fit_link, fit_conf$formula, stan_pars$backend,
+    sep = "_")
+  prefit_dir <- paste0(
+    paste(compile_dir, prefit_name, sep = "/"), ".RDS")
+
+  if(!is.null(compile_dir) && file.exists(prefit_dir)) {
+    cat("Found pre-compiled model", prefit_name, "\n")
+    prefit <- readRDS(prefit_dir)
+    prefit <- stats::update(prefit,
+                            newdata = as.list(data),
+                            formula. = formula,
+                            stanvars = family$stanvars,
+                            chains = 0,
+                            refresh = 0,
+                            silent = 2,
+                            backend = stan_pars$backend,
+                            prior = fit_conf$prior,
+                            init = 0.1
+    )
+    return(prefit)
+  }
+
+
+
   prefit <- brms::brm(
     formula = formula,
     data = as.list(data),
@@ -34,6 +59,11 @@ get_prefit <- function(fit_conf, stan_pars) {
     prior = fit_conf$prior,
     init = 0.1
   )
+  if(!is.null(compile_dir))
+  {
+    cat("Saved pre-compiled model", prefit_name, "\n")
+    saveRDS(prefit, prefit_dir)
+  }
   return(prefit)
 }
 
@@ -50,7 +80,7 @@ get_prefit <- function(fit_conf, stan_pars) {
 #' @export
 #'
 #' @examples
-build_prefit_list <- function(fit_configuration, stan_pars) {
+build_prefit_list <- function(fit_configuration, stan_pars, compile_dir = NULL) {
   if (is.null(fit_configuration$prior)) {
     prefit_configurations <- unique(
       fit_configuration[c("fit_family", "fit_link", "formula")]
@@ -69,7 +99,7 @@ build_prefit_list <- function(fit_configuration, stan_pars) {
   prefit_list <- vector(mode = "list")
   for (conf in prefit_configurations) {
     prefit_list[[fit_conf_key(conf)]] <- get_prefit(
-      fit_conf = conf, stan_pars
+      fit_conf = conf, stan_pars, compile_dir
     )
   }
 

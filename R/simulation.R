@@ -285,10 +285,16 @@ full_simulation <- function(data_gen_confs,
                             debug = FALSE,
                             calibration_mode = FALSE,
                             time_info = FALSE,
+                            model_compile_dir = NULL,
                             ...) {
 
   if(isTRUE(time_info)) {
     cat("Start full_simulation @", as.character(Sys.time(), usetz = TRUE), "\n")
+  }
+  if(!is.null(model_compile_dir)) {
+    cat("Try reading pre-compiled models out of dir", model_compile_dir, "\n")
+    cat("This feature is experimental and only recommended for very small\n")
+    cat("Dataset_N values, to save on compile time!\n")
   }
 
   # Set seed for reproducability.
@@ -306,14 +312,15 @@ full_simulation <- function(data_gen_confs,
   }
 
   if(isTRUE(calibration_mode)) {
-    print("calibration mode, only fit data to the matching distributions")
+    cat("calibration mode, only fit data to the matching distributions\n")
   }
 
   # Compile a list of model configurations to be updated throughout the run
   # This prevents unnecessary compilation times and prevents dll overflow.
   prefit_list <- build_prefit_list(
     fit_configuration = fit_confs,
-    stan_pars = stan_pars
+    stan_pars = stan_pars,
+    compile_dir = model_compile_dir
   )
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
@@ -365,9 +372,9 @@ full_simulation <- function(data_gen_confs,
         dataset_sim_dt <- Sys.time() - dataset_sim_start
         cat("simulation on", dataset_name, "dataset took",
             format(dataset_sim_dt, format="%H:%M:%S"), "\n")
-        if(exists(dataset_name, time_per_model)) {
-          time_per_model[[dataset_name]] <- time_per_model[[dataset_name]]
-          + dataset_sim_dt
+        time_prev_models <- time_per_model[[dataset_name]]
+        if(!is.null(time_prev_models)) {
+          time_per_model[[dataset_name]] <- time_prev_models + dataset_sim_dt
         } else {
           time_per_model[[dataset_name]] <- dataset_sim_dt
         }

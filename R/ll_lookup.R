@@ -30,6 +30,7 @@ brms_family_lookup <- function(family, link = NULL) {
     "generalized_normal" = bayesfam::generalized_normal(link = link),
     "asym_laplace" = brms::brmsfamily("asym_laplace", link = link),
     "exgaussian" = brms::brmsfamily("exgaussian", link = link),
+    "exgauss2" = bayesfam::exgauss2(link = link),
     "gumbel" = bayesfam::gumbel_mean(link = link),
     "symlognormal" = bayesfam::symlognormal(link = link),
     "logistic" = bayesfam::logistic(link = link)
@@ -70,7 +71,8 @@ rng_lookup <- function(family) {
     "asym_laplace" = brms::rasym_laplace,
     "exgaussian" = bayesfam::rexgauss_custom,
     "gumbel" = bayesfam::rgumbel_mean,
-    "symlognormal" = bayesfam::rsymlognormal
+    "symlognormal" = bayesfam::rsymlognormal,
+    "exgauss2" = bayesfam::rexgauss_custom
   )
 }
 
@@ -158,6 +160,11 @@ prior_lookup <- function(family) {
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = "sigma", lb = 1e-5),
       brms::set_prior("", class = "beta", lb = 1e-5)
+    ),
+    "exgauss2" = c(
+      brms::set_prior("", class = "Intercept"),
+      brms::set_prior("", class = "sigma", lb = 1e-8),
+      brms::set_prior("", class = "beta", lb = 1e-8)
     ),
     c(
       brms::set_prior("", class = "Intercept"),
