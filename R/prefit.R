@@ -22,31 +22,34 @@ get_prefit <- function(fit_conf, stan_pars, compile_dir = NULL) {
     )
   )
   names(data) <- all.vars(formula$formula)
-  prefit_name <- paste(
-    fit_conf$fit_family, fit_conf$fit_link, fit_conf$formula, stan_pars$backend,
-    sep = "_")
-  prefit_dir <- paste0(
-    paste(compile_dir, prefit_name, sep = "/"), ".RDS")
 
-  if(!is.null(compile_dir) && file.exists(prefit_dir)) {
-    cat("Found pre-compiled model", prefit_name, "\n")
-    prefit <- readRDS(prefit_dir)
-    prefit <- stats::update(prefit,
-                            newdata = as.list(data),
-                            formula. = formula,
-                            stanvars = family$stanvars,
-                            chains = 0,
-                            refresh = 0,
-                            silent = 2,
-                            backend = stan_pars$backend,
-                            prior = fit_conf$prior,
-                            init = 0.1
-    )
-    return(prefit)
+  if(!is.null(compile_dir)) {
+    prefit_name <- paste(
+      fit_conf$fit_family, fit_conf$fit_link, fit_conf$formula, stan_pars$backend,
+      sep = "_")
+    prefit_dir <- paste0(
+      paste(compile_dir, prefit_name, sep = "/"), ".RDS")
+    prefit_dir <- gsub(" ", "", prefit_dir)
+
+    if(file.exists(prefit_dir)) {
+      cat("Found pre-compiled model", prefit_name, "update with new data\n")
+      prefit <- readRDS(prefit_dir)
+      prefit <- stats::update(prefit,
+                              newdata = as.list(data),
+                              formula. = formula,
+                              stanvars = family$stanvars,
+                              chains = 0,
+                              refresh = 0,
+                              silent = 2,
+                              backend = stan_pars$backend,
+                              prior = fit_conf$prior,
+                              init = 0.1
+      )
+      return(prefit)
+    }
   }
 
-
-
+  # no pre-compiled data found, or feature unused, compile model now
   prefit <- brms::brm(
     formula = formula,
     data = as.list(data),
