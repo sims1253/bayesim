@@ -27,9 +27,9 @@ get_prefit <- function(fit_conf, stan_pars, compile_dir = NULL) {
     prefit_name <- paste(
       fit_conf$fit_family, fit_conf$fit_link, fit_conf$formula, stan_pars$backend,
       sep = "_")
+    prefit_name <- gsub("[[:space:]]", "", prefit_name)
     prefit_dir <- paste0(
       paste(compile_dir, prefit_name, sep = "/"), ".RDS")
-    prefit_dir <- gsub(" ", "", prefit_dir)
 
     if(file.exists(prefit_dir)) {
       cat("Found pre-compiled model", prefit_name, "update with new data\n")
