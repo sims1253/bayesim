@@ -16,11 +16,12 @@ cluster_setup <- function(ncores = 2,
                           outfile = NULL) {
   if (debug) {
     cluster <- parallel::makeCluster(ncores,
-                                     type = cluster_type,
-                                     outfile = outfile)
+      type = cluster_type,
+      outfile = outfile
+    )
   } else {
     cluster <- parallel::makeCluster(ncores,
-                                     type = cluster_type
+      type = cluster_type
     )
   }
   # Multiprocessing setup
