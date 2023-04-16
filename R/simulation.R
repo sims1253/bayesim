@@ -325,7 +325,7 @@ full_simulation <- function(data_gen_confs,
   final_result <- vector(mode = "list", length = nrow(data_gen_confs))
 
   if(isTRUE(time_info)) {
-    cat("All models compiled @", as.character(Sys.time(), usetz = TRUE),
+    cat("\nAll models compiled @", as.character(Sys.time(), usetz = TRUE),
         "begin with sim now\n")
     time_per_model <- list()
   }
@@ -384,9 +384,7 @@ full_simulation <- function(data_gen_confs,
   final_result <- dplyr::bind_rows(final_result)
 
   if(isTRUE(time_info)) {
-    # for(time_info_model in time_per_model) {
-    #   print(time_info_model)
-    # }
+    cat("\n")
     print(time_per_model)
   }
 
