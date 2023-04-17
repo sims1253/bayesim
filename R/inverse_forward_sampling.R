@@ -1,4 +1,4 @@
-#' Simulate a new dataset using inverse forward sampling.
+#' Simulate a new dataset using forward sampling.
 #'
 #' @param fit An object of class brmsfit.
 #' @param i The index of a single posterior draw to simulate a dataset for.
@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @examples
-inverse_forward_sampling <- function(fit, i, n) {
+forward_sampling <- function(fit, i, n) {
   model_formula <- fit$formula
   df <- data.frame(matrix(0, # Create empty data frame
     nrow = n,
