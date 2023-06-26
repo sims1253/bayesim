@@ -4,7 +4,7 @@
 \alias{get_prefit}
 \title{Title}
 \usage{
-get_prefit(fit_conf, stan_pars)
+get_prefit(fit_conf, stan_pars, compile_dir = NULL)
 }
 \arguments{
 \item{family_list}{}

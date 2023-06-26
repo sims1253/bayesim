@@ -14,6 +14,9 @@ full_simulation(
   seed = NULL,
   result_path = NULL,
   debug = FALSE,
+  calibration_mode = FALSE,
+  time_info = FALSE,
+  model_compile_dir = NULL,
   ...
 )
 }

@@ -4,7 +4,7 @@
 \alias{build_prefit_list}
 \title{Prepare a list of brmsfit objects to update during repeated simulations}
 \usage{
-build_prefit_list(fit_configuration, stan_pars)
+build_prefit_list(fit_configuration, stan_pars, compile_dir = NULL)
 }
 \arguments{
 \item{fit_configuration}{A named list that currently holds family, link and

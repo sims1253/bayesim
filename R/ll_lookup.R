@@ -65,14 +65,14 @@ rng_lookup <- function(family) {
     "betaprime" = bayesfam::rbetaprime,
     "gompertz" = bayesfam::rgompertz,
     "logistic" = bayesfam::rlogistic,
-    "student" = bayesfam::rstudent_custom,
+    "student" = bayesfam::rstudent_mean,
     "skew_normal" = brms::rskew_normal,
     "generalized_normal" = bayesfam::rgeneralized_normal,
     "asym_laplace" = brms::rasym_laplace,
-    "exgaussian" = bayesfam::rexgauss_custom,
+    "exgaussian" = bayesfam::rexgauss_mean,
     "gumbel" = bayesfam::rgumbel_mean,
     "symlognormal" = bayesfam::rsymlognormal,
-    "exgauss2" = bayesfam::rexgauss_custom
+    "exgauss2" = bayesfam::rexgauss_mean
   )
 }
 
