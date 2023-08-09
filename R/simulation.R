@@ -343,7 +343,7 @@ full_simulation <- function(data_gen_confs,
 #'
 #' @examples
 reproduce_result <- function(result, data_gen_fun) {
-  family <- brms_family_lookup(
+  family <- bayesfam::brms_family_lookup(
     result$fit_family,
     result$fit_link
   )
