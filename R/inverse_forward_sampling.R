@@ -65,7 +65,7 @@ forward_sampling.brmsfit <- function(x, i, n, ...) {
           }
           newdata <- df[all_variables[!(all_variables == response)]]
           df[response] <- as.vector(
-            brms::posterior_predict(fit,
+            brms::posterior_predict(x,
               newdata = newdata,
               resp = response,
               draw_ids = i
