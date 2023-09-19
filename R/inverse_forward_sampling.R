@@ -4,6 +4,7 @@
 #' @param i The index of a single posterior draw to simulate a dataset for.
 #'          The index is passed to \code{\link{posterior_predict}}'s "draw_ids" argument.
 #' @param n The number of samples for the newly simulated dataset.
+#' @param newdata A dataframe that is passed to posterior predict in the univariate case.
 #' @param ... Potential additional arguments.
 #'
 #' @return A data.frame containing n observations for each variable in the fit.
@@ -15,7 +16,7 @@ forward_sampling <- function(x, i, n, ...) {
 }
 
 #' @export
-forward_sampling.brmsfit <- function(x, i, n, ...) {
+forward_sampling.brmsfit <- function(x, i, n, newdata = NULL, ...) {
   if (i > bayeshear::post_warmup_samples(x) | i <= 0) {
     stop("You tried to use a non-existent posterior sample.")
   }
@@ -24,20 +25,29 @@ forward_sampling.brmsfit <- function(x, i, n, ...) {
   if (is(model_formula, "brmsformula")) {
     response <- model_formula$resp
     if (length(all.vars(model_formula$formula)) > 1) {
-      stop("Your model does not contain responses for all used variables.")
-    }
-    df <- data.frame(matrix(0, # Create empty data frame
-      nrow = n,
-      ncol = 1
-    ))
-    colnames(df) <- c(response)
-    df[response] <- as.vector(
-      brms::posterior_predict(x,
-        newdata = df[response],
-        resp = response,
-        draw_ids = i
+      df <- newdata
+      df[response] <- as.vector(
+        brms::posterior_predict(x,
+        newdata = newdata,
+        draw_ids = i,
+        ...
       )
-    )
+      )
+    } else {
+      df <- data.frame(matrix(0, # Create empty data frame
+        nrow = n,
+        ncol = 1
+      ))
+      colnames(df) <- c(response)
+      df[response] <- as.vector(
+        brms::posterior_predict(x,
+          newdata = df[response],
+          resp = response,
+          draw_ids = i,
+          ...
+        )
+      )
+    }
   } else {
     df <- data.frame(matrix(0, # Create empty data frame
       nrow = n,
@@ -68,7 +78,8 @@ forward_sampling.brmsfit <- function(x, i, n, ...) {
             brms::posterior_predict(x,
               newdata = newdata,
               resp = response,
-              draw_ids = i
+              draw_ids = i,
+              ...
             )
           )
           missing_responses <- missing_responses[!(missing_responses == response)]
@@ -120,7 +131,8 @@ forward_sampling.list <- function(x, i, n, ...) {
           brms::posterior_predict(x[[resp_list[[response]]]],
             newdata = df[var_list[[response]]],
             resp = response,
-            draw_ids = i
+            draw_ids = i,
+            ...
           )
         )
         missing_responses <- missing_responses[!(missing_responses == response)]
