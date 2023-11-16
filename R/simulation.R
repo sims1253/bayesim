@@ -203,7 +203,8 @@ dataset_conf_sim <- function(data_gen_conf,
       final_result <- foreach::foreach(
         par_seed = seed_list,
         .packages = "bayesim",
-        .combine = dplyr::bind_rows, .multicombine = TRUE,
+        .combine = dplyr::bind_rows,
+        .multicombine = TRUE,
         .maxcombine = length(seed_list),
         .verbose = debug,
         .inorder = FALSE

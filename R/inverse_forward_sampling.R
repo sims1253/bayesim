@@ -2,101 +2,20 @@
 #'
 #' @param fit An object of class brmsfit or a list of brmsfit objects.
 #' @param i The index of a single posterior draw to simulate a dataset for.
-#'          The index is passed to \code{\link{posterior_predict}}'s "draw_ids" argument.
-#' @param n The number of samples for the newly simulated dataset.
-#' @param newdata A dataframe that is passed to posterior predict in the univariate case.
+#'  The index is passed to \code{\link{posterior_predict}}'s "draw_ids"
+#'  argument.
+#' @param newdata A dataframe that is passed to posterior predict.
 #' @param ... Potential additional arguments.
 #'
 #' @return A data.frame containing n observations for each variable in the fit.
-#' @export forward_sampling forward_sampling.brmsfit forward_sampling.list
+#' @export forward_sampling forward_sampling.list
 #'
 #'
 forward_sampling <- function(fit, i, n, ...) {
   UseMethod("forward_sampling")
 }
 
-#' @export
-forward_sampling.brmsfit <- function(fit, i, n, newdata = NULL, ...) {
-  if (i > posterior::ndraws(fit) | i <= 0) {
-    stop("You tried to use a non-existent posterior sample.")
-  }
-
-  model_formula <- fit$formula
-  if (is(model_formula, "brmsformula")) {
-    # TODO add option to pass simulator
-    response <- model_formula$response
-    variables <- all.vars(model_formula$formula)
-    df <- data.frame(matrix(rnorm(n * length(variables)), # Create empty data frame
-      nrow = n,
-      ncol = length(variables)
-    ))
-    colnames(df) <- variables
-    df[response] <- as.vector(
-      brms::posterior_predict(fit,
-        newdata = df,
-        draw_ids = i
-      )
-      )
-    } else {
-      df <- data.frame(matrix(0, # Create empty data frame
-        nrow = n,
-        ncol = 1
-      ))
-      colnames(df) <- c(response)
-      df[response] <- as.vector(
-        brms::posterior_predict(fit,
-          newdata = df[response],
-          resp = response,
-          draw_ids = i,
-          ...
-        )
-      )
-    }
-  } else {
-    df <- data.frame(matrix(0, # Create empty data frame
-      nrow = n,
-      ncol = length(model_formula$responses)
-    ))
-    colnames(df) <- unname(model_formula$responses)
-    missing_responses <- unname(model_formula$responses)
-    while (length(missing_responses) > 0) {
-      for (response in missing_responses) {
-        cur_formula <- model_formula$forms[response]
-        all_variables <- all.vars(cur_formula[[response]]$formula)
-        if (length(intersect(missing_responses, all_variables)) == 1) {
-          missing_variables <- all_variables[
-            !(all_variables %in% unname(model_formula$responses))
-          ]
-          if (length(missing_variables) != 0) {
-            stop(
-              paste(
-                missing_variables,
-                "are needed to model",
-                response,
-                "but are not modeled by the provided model."
-              )
-            )
-          }
-          newdata <- df[all_variables[!(all_variables == response)]]
-          df[response] <- as.vector(
-            brms::posterior_predict(fit,
-              newdata = newdata,
-              resp = response,
-              draw_ids = i,
-              ...
-            )
-          )
-          missing_responses <- missing_responses[!(missing_responses == response)]
-        }
-      }
-    }
-  }
-  return(df)
-}
-
-
-
-#' @export
+#'
 forward_sampling.list <- function(x, i, n, ...) {
   if (any(lapply(x, bayeshear::post_warmup_samples) < i) | i <= 0) {
     stop("You tried to use a non-existent posterior sample.")
