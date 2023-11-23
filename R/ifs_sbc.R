@@ -41,10 +41,9 @@ ifs_SBC <- function(fit,
     ub = ub,
     ...,
     future.seed = TRUE,
-    future.chunk.size = SBC::default_chunk_size(n_sims),
+    future.chunk.size = floor(SBC::default_chunk_size(n_sims)),
     future.packages = c("bayesim")
   )
-
 
   # Clean up the results to work with SBC plotting functions
   for (i in seq_along(results)) {
@@ -59,7 +58,9 @@ ifs_SBC <- function(fit,
 
 
 sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...) {
-  gen_dataset <- SBC:::brms_full_ppred(
+  options(mc.cores = 1)
+
+  gen_dataset <- brms_full_ppred(
     fit = fit,
     draws = index,
     newdata = ppred_data_gen(fit, ...),
@@ -68,15 +69,21 @@ sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...) {
   # Truncate in case of numerical instabilities. Currently all responses are
   # truncated to the same values.
   if (!is.null(lb)) {
-    response_list <- SBC:::brms_response_sequence(fit)
+    response_list <- brms_response_sequence(fit)
     for (response in response_list) {
-      gen_dataset[response] <- ifelse(gen_dataset[[response]] < lb, lb, gen_dataset[[response]])
+      gen_dataset[response] <- ifelse(gen_dataset[[response]] < lb,
+        lb,
+        gen_dataset[[response]]
+      )
     }
   }
   if (!is.null(ub)) {
-    response_list <- SBC:::brms_response_sequence(fit)
+    response_list <- brms_response_sequence(fit)
     for (response in response_list) {
-      gen_dataset[response] <- ifelse(gen_dataset[[response]] < ub, ub, gen_dataset[[response]])
+      gen_dataset[response] <- ifelse(gen_dataset[[response]] < ub,
+        ub,
+        gen_dataset[[response]]
+      )
     }
   }
 
@@ -93,11 +100,11 @@ sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...) {
 
   # Fit model to sbc dataset and extract the poserior draws and log likelihood
   sbc_fit <- update(fit,
-                    newdata = full_data,
-                    chains = 1,
-                    init_r = 0.1,
-                    refresh = 0,
-                    silent = 2
+    newdata = full_data,
+    chains = 1,
+    init_r = 0.1,
+    refresh = 0,
+    silent = 2
   )
   fit_pars <- as.data.frame(as_draws_matrix(sbc_fit))
   fit_ll <- rowSums(log_lik(sbc_fit, gen_dataset))
