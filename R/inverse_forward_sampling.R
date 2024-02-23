@@ -98,7 +98,7 @@ brms_full_ppred <- function(fit, newdata = NULL, draws = NULL, validate_all = FA
 
   if (!validate_all) {
     # Validate once
-    newdata <- brms::validate_newdata(newdata, fit)
+    newdata <- brms::validate_newdata(newdata, fit, allow_new_levels = TRUE)
   }
 
   for (i in draws) {
@@ -109,7 +109,8 @@ brms_full_ppred <- function(fit, newdata = NULL, draws = NULL, validate_all = FA
           fit,
           newdata = pp_data[[i]],
           resp = vars, draw_ids = i,
-          skip_validate = !validate_all
+          skip_validate = !validate_all,
+          allow_new_levels = TRUE
         ),
         dim = c(1, n, length(vars))
       )[1, , ]

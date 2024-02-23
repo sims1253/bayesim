@@ -63,33 +63,47 @@ sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...) {
   gen_dataset <- brms_full_ppred(
     fit = fit,
     draws = index,
-    newdata = ppred_data_gen(fit, ...),
+    newdata = ppred_data_gen(fit, ...)
   )[[index]]
 
-  # Truncate in case of numerical instabilities. Currently all responses are
-  # truncated to the same values.
-  if (!is.null(lb)) {
-    response_list <- brms_response_sequence(fit)
-    for (response in response_list) {
-      gen_dataset[response] <- ifelse(gen_dataset[[response]] < lb,
-        lb,
-        gen_dataset[[response]]
-      )
-    }
-  }
-  if (!is.null(ub)) {
-    response_list <- brms_response_sequence(fit)
-    for (response in response_list) {
-      gen_dataset[response] <- ifelse(gen_dataset[[response]] < ub,
-        ub,
-        gen_dataset[[response]]
-      )
-    }
+  responses <- brms_response_sequence(fit)
+  resample_counter <- 0
+
+  while (length(
+    bad_indices <- which(
+      if (is.na(lb)) {
+        is.infinite(unlist(gen_dataset[unlist(responses)]))
+      } else {
+        {
+          unlist(gen_dataset[unlist(responses)] <= lb)
+        } |
+          if (is.na(ub)) {
+            is.infinite(unlist(gen_dataset[unlist(responses)]))
+          } else {
+            unlist(gen_dataset[unlist(responses)] >= ub)
+          }
+      }
+    )
+  ) > 0
+  ) {
+    if (resample_counter > 100) stop("Couldn't sample fitting values after 100
+                                       resample tries.")
+    resample_counter <- resample_counter + 1
+
+    gen_dataset[bad_indices, ] <- brms_full_ppred(
+      fit = fit,
+      draws = index,
+      newdata = ppred_data_gen(fit, ...)[bad_indices, ]
+    )[[index]]
   }
 
   # Collect true parameters for SBC rank comparison
   true_pars <- as.data.frame(posterior::as_draws_matrix(fit)[index, ])
-  true_ll <- sum(brms::log_lik(fit, gen_dataset, draw_ids = index))
+  true_ll <- sum(brms::log_lik(fit,
+    gen_dataset,
+    draw_ids = index,
+    allow_new_levels = TRUE
+  ))
 
   # Preserve the generated dataset for the loglik later.
   full_data <- gen_dataset
@@ -118,5 +132,6 @@ sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...) {
     tmp[[name]] <- sum(fit_pars[[name]] < true_pars[[name]])
   }
   tmp[["loglik"]] <- sum(fit_ll < true_ll)
+  # tmp[["resample_counter"]] <- resample_counter
   return(tmp)
 }
