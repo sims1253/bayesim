@@ -15,7 +15,19 @@ ifs_SBC(
 )
 }
 \arguments{
-\item{...}{}
+\item{fit}{brmsfit object that is used to generate SBC datasets and fit SBC models}
+
+\item{n_sims}{Number of SBC simulations/datasets.}
+
+\item{ppred_data_gen}{Function that generates the data for the newdata argument of posterior_predict to generate SBC datasets.}
+
+\item{precon_sample}{The dataset that was used to precondition the fit.}
+
+\item{lb}{Lower bound for the outcome. Is used to resample.}
+
+\item{ub}{Upper bound for the outcome. Is used to resample.}
+
+\item{...}{further parameters. Currently only passed to ppred_data_gen.}
 }
 \description{
 Full inverse forward sampling supported SBC

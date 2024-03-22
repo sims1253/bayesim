@@ -327,6 +327,7 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 #'
 #' @param ranks Rank distribution
 #' @param post_warmup_draws Number of posterior draws that were used to
+#' @param log True of the result should be on the log scale.
 #' calculate the rank distribution.
 #'
 #' @return Measure quantifying deviation from uniformity. This value can
@@ -335,7 +336,10 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 #' @export
 #'
 #' @examples
-gamma_discrepancy <- function(ranks, post_warmup_draws) {
+gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
+  if (any(is.na(ranks))){
+    return(NA)
+  }
   # observed count of ranks smaller than i
   R_i <- sapply(1:post_warmup_draws + 1, function(i) sum(ranks < i))
   # expected proportion of observed ranks smaller than i
@@ -346,5 +350,10 @@ gamma_discrepancy <- function(ranks, post_warmup_draws) {
   x1 <- pbinom(q = R_i, size = length(ranks), prob = z_i, log.p = TRUE)
   x2 <- 1 - pbinom(q = R_i - 1, size = length(ranks), prob = z_i, log.p = TRUE)
 
-  return(2 * exp(min(x1, x2, na.rm = TRUE)))
+  if (log){
+    return(log(2) + min(x1, x2, na.rm = TRUE))
+  } else {
+    return(2 * exp(min(x1, x2, na.rm = TRUE)))
+  }
+
 }
