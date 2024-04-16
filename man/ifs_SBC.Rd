@@ -11,6 +11,8 @@ ifs_SBC(
   precon_sample = NULL,
   lb = NULL,
   ub = NULL,
+  truncate = FALSE,
+  post_warmup_samples = 1000,
   ...
 )
 }
@@ -26,6 +28,11 @@ ifs_SBC(
 \item{lb}{Lower bound for the outcome. Is used to resample.}
 
 \item{ub}{Upper bound for the outcome. Is used to resample.}
+
+\item{truncate}{If TRUE, will truncate outcome values, if FALSE, will resample instead.}
+
+\item{post_warmup_samples}{Is passed to the sbc model updates and used to
+make sure resampling only uses valid samples. Increase in case of numerical instability.}
 
 \item{...}{further parameters. Currently only passed to ppred_data_gen.}
 }
