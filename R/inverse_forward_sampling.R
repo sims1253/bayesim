@@ -337,7 +337,7 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 #'
 #' @examples
 gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
-  if (any(is.na(ranks))){
+  if (any(is.na(ranks))) {
     return(NA)
   }
   # observed count of ranks smaller than i
@@ -350,10 +350,9 @@ gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
   x1 <- pbinom(q = R_i, size = length(ranks), prob = z_i, log.p = TRUE)
   x2 <- 1 - pbinom(q = R_i - 1, size = length(ranks), prob = z_i, log.p = TRUE)
 
-  if (log){
+  if (log) {
     return(log(2) + min(x1, x2, na.rm = TRUE))
   } else {
     return(2 * exp(min(x1, x2, na.rm = TRUE)))
   }
-
 }
