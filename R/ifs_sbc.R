@@ -132,8 +132,6 @@ ifs_SBC <- function(fit,
 
 sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...,
                     truncate = FALSE, post_warmup_samples = 1000) {
-  options(mc.cores = 1)
-
   gen_dataset <- brms_full_ppred(
     fit = fit,
     draws = index,
@@ -196,6 +194,7 @@ sbc_sim <- function(index, fit, ppred_data_gen, precon_sample, lb, ub, ...,
   sbc_fit <- update(fit,
     newdata = full_data,
     chains = 1,
+    cores = 1,
     refresh = 0,
     silent = 2,
     iter = 2 * post_warmup_samples,
