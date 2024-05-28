@@ -341,14 +341,14 @@ gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
     return(NA)
   }
   # observed count of ranks smaller than i
-  R_i <- sapply(1:post_warmup_draws + 1, function(i) sum(ranks < i))
+  R_i <- sapply(1:(post_warmup_draws + 1), function(i) sum(ranks < i))
   # expected proportion of observed ranks smaller than i
   z_i <- sapply(
-    1:post_warmup_draws + 1, function(i) i / (post_warmup_draws + 1)
+    1:(post_warmup_draws + 1), function(i) i / (post_warmup_draws + 1)
   )
 
   x1 <- pbinom(q = R_i, size = length(ranks), prob = z_i, log.p = TRUE)
-  x2 <- 1 - pbinom(q = R_i - 1, size = length(ranks), prob = z_i, log.p = TRUE)
+  x2 <- log1p(-pbinom(q = R_i - 1, size = length(ranks), prob = z_i, log.p = FALSE))
 
   if (log) {
     return(log(2) + min(x1, x2, na.rm = TRUE))
