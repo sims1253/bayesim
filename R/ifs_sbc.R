@@ -125,8 +125,8 @@ ifs_SBC <- function(fit,
     ranks[i, ] <- results[[i]]
   }
   ranks_df <- ranks %>%
-    mutate(sim_id = seq_len(n())) %>%
-    pivot_longer(c(-sim_id), names_to = "variable", values_to = "rank")
+    dplyr::mutate(sim_id = seq_len(dplyr::n())) %>%
+    tidyr::pivot_longer(c(-sim_id), names_to = "variable", values_to = "rank")
   return(list("ranks_df" = ranks_df, diagnostics = list("resample" = i)))
 }
 

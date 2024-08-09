@@ -11,10 +11,10 @@ gamma_discrepancy(ranks, post_warmup_draws, log = FALSE)
 \arguments{
 \item{ranks}{Rank distribution}
 
-\item{post_warmup_draws}{Number of posterior draws that were used to}
-
-\item{log}{True of the result should be on the log scale.
+\item{post_warmup_draws}{Number of posterior draws that were used to
 calculate the rank distribution.}
+
+\item{log}{True of the result should be on the log scale.}
 }
 \value{
 Measure quantifying deviation from uniformity. This value can
