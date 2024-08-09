@@ -4,17 +4,18 @@
 \alias{forward_sampling}
 \title{Simulate a new dataset using forward sampling.}
 \usage{
-forward_sampling(x, i, n, ...)
+forward_sampling(fit, i, n, ...)
 }
 \arguments{
-\item{x}{An object of class brmsfit or a list of brmsfit objects.}
+\item{fit}{An object of class brmsfit or a list of brmsfit objects.}
 
 \item{i}{The index of a single posterior draw to simulate a dataset for.
-The index is passed to \code{\link{posterior_predict}}'s "draw_ids" argument.}
-
-\item{n}{The number of samples for the newly simulated dataset.}
+The index is passed to \code{\link{posterior_predict}}'s "draw_ids"
+argument.}
 
 \item{...}{Potential additional arguments.}
+
+\item{newdata}{A dataframe that is passed to posterior predict.}
 }
 \value{
 A data.frame containing n observations for each variable in the fit.
