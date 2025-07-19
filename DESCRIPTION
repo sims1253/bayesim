@@ -1,7 +1,7 @@
 Package: bayesim
 Type: Package
 Title: Simulation Framework for Bayesian Modeling
-Version: 0.34.0.9000
+Version: 0.34.1.9000
 Date: 2022-11-10
 Authors@R:
     c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",

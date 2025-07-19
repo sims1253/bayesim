@@ -7,7 +7,8 @@
 #'
 #' @examples
 prior_lookup <- function(family) {
-  switch(family,
+  switch(
+    family,
     "frechet" = c(
       brms::set_prior("", class = "Intercept"),
       brms::set_prior("", class = "nu", lb = 1.00001)

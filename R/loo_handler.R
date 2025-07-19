@@ -100,7 +100,10 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
     nchar(predictive_metrics[1]) - 8
   )
 
-  final_result <- data.frame(matrix(nrow = length(loo_object_matrix), ncol = 2 * length(predictive_metrics)))
+  final_result <- data.frame(matrix(
+    nrow = length(loo_object_matrix),
+    ncol = 2 * length(predictive_metrics)
+  ))
   colnames(final_result) <- unlist(lapply(compare_metrics, function(x) {
     c(paste0(x, "_delta"), paste0(x, "_se_delta"))
   }))
@@ -109,8 +112,10 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 
   valid_entries <- c()
   for (i in seq_along(loo_object_matrix)) {
-    if (!is.null(loo_object_matrix[[i]]) &
-      !any(sapply(loo_object_matrix[[i]], is.null))) {
+    if (
+      !is.null(loo_object_matrix[[i]]) &
+        !any(sapply(loo_object_matrix[[i]], is.null))
+    ) {
       valid_entries <- c(valid_entries, i)
     }
   }
@@ -131,15 +136,20 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
     for (i in seq_along(compare_metrics)) {
       metric <- compare_metrics[[i]]
 
-      loo_result <- brms::loo_compare(lapply(loo_object_matrix[valid_entries], function(x) {
-        x[[i]]
-      }))
+      loo_result <- brms::loo_compare(lapply(
+        loo_object_matrix[valid_entries],
+        function(x) {
+          x[[i]]
+        }
+      ))
       deltas <- numeric(length = length(index))
       errors <- numeric(length = length(index))
 
       for (i in seq_along(index)) {
-        if (any(sapply(loo_object_matrix[[i]], is.null)) |
-          is.null(loo_object_matrix[[i]])) {
+        if (
+          any(sapply(loo_object_matrix[[i]], is.null)) |
+            is.null(loo_object_matrix[[i]])
+        ) {
           deltas[[i]] <- NA
           errors[[i]] <- NA
         } else {
@@ -168,8 +178,7 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 #' @export
 #'
 #' @examples
-custom_loo_object <- function(pointwise_criterion,
-                              psis_object = NULL) {
+custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
   loo_object <- list()
   criterion <- sum(pointwise_criterion)
   se_criterion <- sqrt(length(pointwise_criterion) * var(pointwise_criterion))
@@ -203,11 +212,13 @@ custom_loo_object <- function(pointwise_criterion,
 #' @export
 #'
 #' @examples
-rmse_loo <- function(fit,
-                     psis_object = NULL,
-                     return_object = FALSE,
-                     yrep = NULL,
-                     ...) {
+rmse_loo <- function(
+  fit,
+  psis_object = NULL,
+  return_object = FALSE,
+  yrep = NULL,
+  ...
+) {
   if (is.null(psis_object)) {
     psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
   }
@@ -278,12 +289,12 @@ rmse <- function(y, yrep, weights = NULL) {
     byrow <- TRUE
   )
   if (is.null(weights)) {
-    return(sqrt(colMeans(((y_matrix - yrep)^2
-    ))))
+    return(sqrt(colMeans(((y_matrix - yrep)^2))))
   } else {
-    return(sqrt(colSums(weights * ((y_matrix - yrep)^2
-    )) /
-      colSums(weights)))
+    return(sqrt(
+      colSums(weights * ((y_matrix - yrep)^2)) /
+        colSums(weights)
+    ))
   }
 }
 
@@ -345,11 +356,13 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @export
 #'
 #' @examples
-r2_loo <- function(fit,
-                   psis_object = NULL,
-                   yrep = NULL,
-                   return_object = FALSE,
-                   ...) {
+r2_loo <- function(
+  fit,
+  psis_object = NULL,
+  yrep = NULL,
+  return_object = FALSE,
+  ...
+) {
   if (is.null(psis_object)) {
     psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
   }

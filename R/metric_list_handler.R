@@ -46,24 +46,38 @@
 #'
 #' @export
 #' @examples
-metric_list_handler <- function(fit,
-                                metrics,
-                                data_gen_output,
-                                fit_conf,
-                                ...) {
+metric_list_handler <- function(fit, metrics, data_gen_output, fit_conf, ...) {
   needs_draws <- list(
-    "v_mean", "v_sd", "v_median", "v_mad", "v_pos_prob",
-    "quantiles", "v_bias", "v_rmse", "v_mae", "v_mse",
-    "v_percentile", "rstar"
+    "v_mean",
+    "v_sd",
+    "v_median",
+    "v_mad",
+    "v_pos_prob",
+    "quantiles",
+    "v_bias",
+    "v_rmse",
+    "v_mae",
+    "v_mse",
+    "v_percentile",
+    "rstar"
   )
   needs_psis <- list(
-    "pareto_k_values", "bad_pareto_ks", "rmse_loo", "r2_loo",
-    "rmse_loo_pointwise_summary", "r2_loo_pointwise",
+    "pareto_k_values",
+    "bad_pareto_ks",
+    "rmse_loo",
+    "r2_loo",
+    "rmse_loo_pointwise_summary",
+    "r2_loo_pointwise",
     "r2_loo_pointwise_summary"
   )
   needs_ppred <- list(
-    "rmse_loo", "r2_loo", "rmse_loo_pointwise_summary", "r2_loo_pointwise",
-    "r2_loo_pointwise_summary", "ppred_pointwise", "ppred_summary_y_scaled"
+    "rmse_loo",
+    "r2_loo",
+    "rmse_loo_pointwise_summary",
+    "r2_loo_pointwise",
+    "r2_loo_pointwise_summary",
+    "ppred_pointwise",
+    "ppred_summary_y_scaled"
   )
   result <- tryCatch(
     {
@@ -88,7 +102,8 @@ metric_list_handler <- function(fit,
     }
   )
 
-  results <- lapply(metrics,
+  results <- lapply(
+    metrics,
     metric_lookup,
     fit = fit,
     draws = draws,

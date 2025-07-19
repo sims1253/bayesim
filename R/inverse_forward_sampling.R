@@ -35,11 +35,14 @@ forward_sampling.list <- function(x, i, n, ...) {
         var_list[[formula$resp]] <- all.vars(formula$formula)[-1]
       }
     } else {
-      stop("Unsupported model type detected!
-           Please use brmsfit or stanfit objects.")
+      stop(
+        "Unsupported model type detected!
+           Please use brmsfit or stanfit objects."
+      )
     }
   }
-  df <- data.frame(matrix(0, # Create empty data frame
+  df <- data.frame(matrix(
+    0, # Create empty data frame
     nrow = n,
     ncol = length(resp_list)
   ))
@@ -51,7 +54,8 @@ forward_sampling.list <- function(x, i, n, ...) {
     for (response in missing_responses) {
       if (length(intersect(missing_responses, var_list[[response]])) == 0) {
         df[response] <- as.vector(
-          brms::posterior_predict(x[[resp_list[[response]]]],
+          brms::posterior_predict(
+            x[[resp_list[[response]]]],
             newdata = df[var_list[[response]]],
             resp = response,
             draw_ids = i,
@@ -85,14 +89,23 @@ forward_sampling.list <- function(x, i, n, ...) {
 #' @keywords internal
 #' @examples # Pending
 #' @export
-brms_full_ppred <- function(fit, newdata = NULL, draws = NULL, validate_all = FALSE) {
+brms_full_ppred <- function(
+  fit,
+  newdata = NULL,
+  draws = NULL,
+  validate_all = FALSE
+) {
   # 1. determine term hierarchy
   resp <- brms_response_sequence(fit)
   # 2.1. initialize dataframe using the original fit's data
-  if (is.null(newdata)) newdata <- fit$data
+  if (is.null(newdata)) {
+    newdata <- fit$data
+  }
   n <- nrow(newdata)
   # 2.3. if no draws set, range from 1 to all iters (check draws < iters)
-  if (is.null(draws)) draws <- seq_len(sum(fit$fit@sim$n_save))
+  if (is.null(draws)) {
+    draws <- seq_len(sum(fit$fit@sim$n_save))
+  }
   # 2.4. create list to hold data
   pp_data <- list()
 
@@ -108,7 +121,8 @@ brms_full_ppred <- function(fit, newdata = NULL, draws = NULL, validate_all = FA
         brms::posterior_predict(
           fit,
           newdata = pp_data[[i]],
-          resp = vars, draw_ids = i,
+          resp = vars,
+          draw_ids = i,
           skip_validate = !validate_all,
           allow_new_levels = TRUE
         ),
@@ -159,7 +173,7 @@ brms_response_sequence.bform <- function(x) {
   term_list <- brms_response_sequence(brms::brmsterms(x))
   resp_vars <- names(term_list)
 
-  adjacency <- t(sapply(term_list, \(x)is.element(resp_vars, x)))
+  adjacency <- t(sapply(term_list, \(x) is.element(resp_vars, x)))
   attr(adjacency, "dimnames") <- list(resp_vars, resp_vars)
   nodes_by_depth(adjacency)
 }
@@ -238,8 +252,12 @@ adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
     for (i in seq_along(z1)) {
       tmp <- p_interior(
         p_int,
-        x1 = x1, x2 = x2_lower[i]:x2_upper[i],
-        z1 = z1[i], z2 = z2[i], gamma = gamma, N = N
+        x1 = x1,
+        x2 = x2_lower[i]:x2_upper[i],
+        z1 = z1[i],
+        z2 = z2[i],
+        gamma = gamma,
+        N = N
       )
       x1 <- tmp$x1
       p_int <- tmp$p_int
@@ -265,25 +283,36 @@ adjust_gamma_simulate <- function(N, L, K, conf_level = 0.95, M = 5000) {
     for (m in seq_len(M)) {
       u <- u_scale(replicate(L, runif(N)))
       scaled_ecdfs <- apply(outer(u, z, "<="), c(2, 3), sum)
-      gamma[m] <- 2 * min(
-        apply(
-          scaled_ecdfs, 1, phyper,
-          m = N, n = n, k = k
-        ),
-        apply(
-          scaled_ecdfs - 1, 1, phyper,
-          m = N, n = n, k = k, lower.tail = FALSE
+      gamma[m] <- 2 *
+        min(
+          apply(
+            scaled_ecdfs,
+            1,
+            phyper,
+            m = N,
+            n = n,
+            k = k
+          ),
+          apply(
+            scaled_ecdfs - 1,
+            1,
+            phyper,
+            m = N,
+            n = n,
+            k = k,
+            lower.tail = FALSE
+          )
         )
-      )
     }
   } else {
     for (m in seq_len(M)) {
       u <- runif(N)
       scaled_ecdf <- colSums(outer(u, z, "<="))
-      gamma[m] <- 2 * min(
-        pbinom(scaled_ecdf, N, z),
-        pbinom(scaled_ecdf - 1, N, z, lower.tail = FALSE)
-      )
+      gamma[m] <- 2 *
+        min(
+          pbinom(scaled_ecdf, N, z),
+          pbinom(scaled_ecdf - 1, N, z, lower.tail = FALSE)
+        )
     }
   }
   alpha_quantile(gamma, 1 - conf_level)
@@ -344,7 +373,8 @@ gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
   R_i <- sapply(1:(post_warmup_draws + 1), function(i) sum(ranks < i))
   # expected proportion of observed ranks smaller than i
   z_i <- sapply(
-    1:(post_warmup_draws + 1), function(i) i / (post_warmup_draws + 1)
+    1:(post_warmup_draws + 1),
+    function(i) i / (post_warmup_draws + 1)
   )
 
   x1 <- pbinom(q = R_i, size = length(ranks), prob = z_i)

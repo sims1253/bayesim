@@ -8,19 +8,21 @@
 #' @return The function corresponding to the identifier string.
 #' @export
 #'
-metric_lookup <- function(metric,
-                          fit = NULL,
-                          draws = NULL,
-                          testing_data = NULL,
-                          vars_of_interest = NULL,
-                          references = NULL,
-                          threshold = 0.7,
-                          psis_object = NULL,
-                          ppred = NULL,
-                          quantiles = NULL,
-                          data_gen_output = NULL,
-                          fit_conf = NULL,
-                          ...) {
+metric_lookup <- function(
+  metric,
+  fit = NULL,
+  draws = NULL,
+  testing_data = NULL,
+  vars_of_interest = NULL,
+  references = NULL,
+  threshold = 0.7,
+  psis_object = NULL,
+  ppred = NULL,
+  quantiles = NULL,
+  data_gen_output = NULL,
+  fit_conf = NULL,
+  ...
+) {
   # TODO this is a workaround. These shouldn't be lists in the first place.
   if (is.null(vars_of_interest)) {
     vars_of_interest <- data_gen_output$vars_of_interest
@@ -38,37 +40,69 @@ metric_lookup <- function(metric,
   tryCatch(
     expr = {
       return(
-        switch(metric,
+        switch(
+          metric,
           # Variable summaries
           "v_mean" = padd_variable_summay(
-            draws, vars_of_interest, mean, metric
+            draws,
+            vars_of_interest,
+            mean,
+            metric
           ),
           "v_sd" = padd_variable_summay(
-            draws, vars_of_interest, sd, metric
+            draws,
+            vars_of_interest,
+            sd,
+            metric
           ),
           "v_median" = padd_variable_summay(
-            draws, vars_of_interest, median, metric
+            draws,
+            vars_of_interest,
+            median,
+            metric
           ),
           "v_mad" = padd_variable_summay(
-            draws, vars_of_interest, mad, metric
+            draws,
+            vars_of_interest,
+            mad,
+            metric
           ),
           "v_pos_prob" = padd_variable_summay(
-            draws, vars_of_interest, bayeshear::variable_pos_prob, metric
+            draws,
+            vars_of_interest,
+            bayeshear::variable_pos_prob,
+            metric
           ),
           "v_quantiles" = padd_quantiles(draws, vars_of_interest, quantiles),
 
           # Variable distance measures
           "v_bias" = padd_variable_distance(
-            draws, vars_of_interest, references, bayeshear::variable_bias, metric
+            draws,
+            vars_of_interest,
+            references,
+            bayeshear::variable_bias,
+            metric
           ),
           "v_rmse" = padd_variable_distance(
-            draws, vars_of_interest, references, bayeshear::variable_rmse, metric
+            draws,
+            vars_of_interest,
+            references,
+            bayeshear::variable_rmse,
+            metric
           ),
           "v_mae" = padd_variable_distance(
-            draws, vars_of_interest, references, bayeshear::variable_mae, metric
+            draws,
+            vars_of_interest,
+            references,
+            bayeshear::variable_mae,
+            metric
           ),
           "v_mse" = padd_variable_distance(
-            draws, vars_of_interest, references, bayeshear::variable_mse, metric
+            draws,
+            vars_of_interest,
+            references,
+            bayeshear::variable_mse,
+            metric
           ),
           "v_true_percentile" = padd_variable_distance(
             draws,
@@ -82,15 +116,15 @@ metric_lookup <- function(metric,
           "divergent_transitions_rel" = list(
             "divergent_transitions_rel" = bayeshear::divergent_transitions(fit)
           ),
-          "divergent_transitions_abs" =
-            list(
-              "divergent_transitions_abs" =
-                bayeshear::divergent_transitions(fit, absolute = TRUE)
-            ),
+          "divergent_transitions_abs" = list(
+            "divergent_transitions_abs" = bayeshear::divergent_transitions(
+              fit,
+              absolute = TRUE
+            )
+          ),
           "rstar" = list("rstar" = posterior::rstar(draws)),
           "bad_pareto_ks" = list(
-            "bad_pareto_ks" =
-              bayeshear::bad_pareto_ks(fit, threshold)
+            "bad_pareto_ks" = bayeshear::bad_pareto_ks(fit, threshold)
           ),
           "pareto_k_values" = {
             list(
@@ -102,20 +136,34 @@ metric_lookup <- function(metric,
           # Variable MCMC Diagnostics
           "rhat" = {
             tmp <- as.list(posterior::rhat(fit, pars = vars_of_interest))
-            names(tmp) <- lapply(vars_of_interest, function(x) paste0("rhat_", x))
+            names(tmp) <- lapply(vars_of_interest, function(x) {
+              paste0("rhat_", x)
+            })
             tmp
           },
           "ess_bulk" = {
-            ess_list <- lapply(vars_of_interest, get_ess, fit, posterior::ess_bulk)
+            ess_list <- lapply(
+              vars_of_interest,
+              get_ess,
+              fit,
+              posterior::ess_bulk
+            )
             names(ess_list) <- lapply(
-              vars_of_interest, function(x) paste0("ess_bulk_", x)
+              vars_of_interest,
+              function(x) paste0("ess_bulk_", x)
             )
             ess_list
           },
           "ess_tail" = {
-            ess_list <- lapply(vars_of_interest, get_ess, fit, posterior::ess_tail)
+            ess_list <- lapply(
+              vars_of_interest,
+              get_ess,
+              fit,
+              posterior::ess_tail
+            )
             names(ess_list) <- lapply(
-              vars_of_interest, function(x) paste0("ess_tail_", x)
+              vars_of_interest,
+              function(x) paste0("ess_tail_", x)
             )
             ess_list
           },
@@ -135,59 +183,64 @@ metric_lookup <- function(metric,
             quantiles
           ),
           "elpd_test" = elpd_test(fit, testing_data, FALSE),
-          "elpd_test_pointwise_summary" =
-            elpd_pointwise_summaries(fit, quantiles, testing_data),
-          "rmse_loo" = rmse_loo(fit, psis_object = psis_object, yrep = ppred, ...),
+          "elpd_test_pointwise_summary" = elpd_pointwise_summaries(
+            fit,
+            quantiles,
+            testing_data
+          ),
+          "rmse_loo" = rmse_loo(
+            fit,
+            psis_object = psis_object,
+            yrep = ppred,
+            ...
+          ),
           "rmse_loo_pointwise" = {
-            loo_object <- rmse_loo(fit, psis_object = psis_object, yrep = ppred, return_object = TRUE)
+            loo_object <- rmse_loo(
+              fit,
+              psis_object = psis_object,
+              yrep = ppred,
+              return_object = TRUE
+            )
             list(
               rmse_loo_pointwise = list(loo_object$pointwise[, 1]),
               rmse_loo_se = loo_object$estimates[1, 2]
             )
           },
-          "rmse_loo_pointwise_summary" =
-            get_custom_loo_summary(
-              rmse_loo(fit,
-                psis_object,
-                yrep = ppred,
-                return_object = TRUE
-              ),
-              quantiles, "rmse_loo"
-            ),
+          "rmse_loo_pointwise_summary" = get_custom_loo_summary(
+            rmse_loo(fit, psis_object, yrep = ppred, return_object = TRUE),
+            quantiles,
+            "rmse_loo"
+          ),
           "rmse_test" = rmse_test(fit, testing_data),
-          "rmse_test_pointwise_summary" =
-            get_custom_loo_summary(
-              rmse_test(fit,
-                testing_data,
-                return_object = TRUE
-              ),
-              quantiles, "rmse_test"
-            ),
+          "rmse_test_pointwise_summary" = get_custom_loo_summary(
+            rmse_test(fit, testing_data, return_object = TRUE),
+            quantiles,
+            "rmse_test"
+          ),
           "r2_loo" = r2_loo(fit, psis_object = psis_object, yrep = ppred),
           "r2_loo_pointwise" = {
-            loo_object <- r2_loo(fit, psis_object = psis_object, yrep = ppred, return_object = TRUE)
+            loo_object <- r2_loo(
+              fit,
+              psis_object = psis_object,
+              yrep = ppred,
+              return_object = TRUE
+            )
             list(
               r2_loo_pointwise = list(loo_object$pointwise[, 1]),
               r2_loo_se = loo_object$estimates[1, 2]
             )
           },
-          "r2_loo_pointwise_summary" =
-            get_custom_loo_summary(
-              r2_loo(fit,
-                psis_object,
-                return_object = TRUE
-              ),
-              quantiles, "r2_loo"
-            ),
+          "r2_loo_pointwise_summary" = get_custom_loo_summary(
+            r2_loo(fit, psis_object, return_object = TRUE),
+            quantiles,
+            "r2_loo"
+          ),
           "r2_test" = r2_test(fit, testing_data),
-          "r2_test_pointwise_summary" =
-            get_custom_loo_summary(
-              r2_test(fit,
-                testing_data,
-                return_object = TRUE
-              ),
-              quantiles, "r2_test"
-            ),
+          "r2_test_pointwise_summary" = get_custom_loo_summary(
+            r2_test(fit, testing_data, return_object = TRUE),
+            quantiles,
+            "r2_test"
+          ),
 
           # Posterior sample based metrics
           "log_lik_pointwise" = {
@@ -213,8 +266,9 @@ metric_lookup <- function(metric,
               ppred_pointwise_sd = list(apply(ppred, 2, sd))
             )
           },
-          "residuals" =
-            list(residuals = list(residuals(fit, method = "posterior_predict")[, 1])),
+          "residuals" = list(
+            residuals = list(residuals(fit, method = "posterior_predict")[, 1])
+          ),
           "posterior_linpred" = {
             linpred <- brms::posterior_linpred(fit)
             list(
@@ -257,7 +311,8 @@ metric_lookup <- function(metric,
           stop(paste(metric, "is not a supported metric!"))
         )
       )
-    }, error = function(e) {
+    },
+    error = function(e) {
       return(list())
     }
   )
