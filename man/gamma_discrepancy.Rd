@@ -3,8 +3,8 @@
 \name{gamma_discrepancy}
 \alias{gamma_discrepancy}
 \title{Quantifies deviation from uniformity by the likelihood of observing the
- most extreme point on the empirical CDF of the given rank distribution
- according to [1] (equation 7).}
+most extreme point on the empirical CDF of the given rank distribution
+according to \link{1} (equation 7).}
 \usage{
 gamma_discrepancy(ranks, post_warmup_draws, log = FALSE)
 }
@@ -18,13 +18,13 @@ calculate the rank distribution.}
 }
 \value{
 Measure quantifying deviation from uniformity. This value can
- be compared to the distribution of gamma expected under uniformity
- calculated by validation.gamma_null_distribution.
+be compared to the distribution of gamma expected under uniformity
+calculated by validation.gamma_null_distribution.
 }
 \description{
-[1] Modrák, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
- Kateřina Faltejsková, Andrew Gelman, and Aki Vehtari.
- “Simulation-Based Calibration Checking for Bayesian Computation:
- The Choice of Test Quantities Shapes Sensitivity.” arXiv, June 15, 2023.
- https://doi.org/10.48550/arXiv.2211.02383.
+\link{1} Modrák, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
+Kateřina Faltejsková, Andrew Gelman, and Aki Vehtari.
+“Simulation-Based Calibration Checking for Bayesian Computation:
+The Choice of Test Quantities Shapes Sensitivity.” arXiv, June 15, 2023.
+https://doi.org/10.48550/arXiv.2211.02383.
 }

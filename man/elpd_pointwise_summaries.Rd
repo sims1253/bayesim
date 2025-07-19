@@ -11,8 +11,8 @@ elpd_pointwise_summaries(fit, quantiles, newdata = NULL)
 
 \item{quantiles}{A vector of quantiles of interest.}
 
-\item{newdata}{If supplied, returns the summaries for \code{\link{elpd_test}}
-otherwise, returns \code{\link[brms]{elpd}} summaries by
+\item{newdata}{If supplied, returns the summaries for \code{\link[=elpd_test]{elpd_test()}}
+otherwise, returns \code{\link[brms:elpd]{brms::elpd()}} summaries by
 default.}
 }
 \value{

@@ -23,17 +23,17 @@ multiple times.
 }
 \details{
 Currently, the following identifiers are supported. See linked
- functions for required additional arguments:
+functions for required additional arguments:
 \itemize{
-\item "bias": \code{\link{posterior_bias}}
-\item "divergents": \code{\link{divergents}}
-\item "ess": \code{\link{ess}}
-\item "elpd_loo": \code{\link{elpd_loo}}
-\item "elpd_newdata": \code{\link{elpd_newdata}}
-\item "epred": \code{\link{epred}}
+\item "bias": \code{\link[=posterior_bias]{posterior_bias()}}
+\item "divergents": \code{\link[=divergents]{divergents()}}
+\item "ess": \code{\link[=ess]{ess()}}
+\item "elpd_loo": \code{\link[=elpd_loo]{elpd_loo()}}
+\item "elpd_newdata": \code{\link[=elpd_newdata]{elpd_newdata()}}
+\item "epred": \code{\link[=epred]{epred()}}
 \item "mae_s": \code{\link{}}
-\item "p_mean": \code{\link{p_mean}}
-\item "p_sd": \code{\link{p_sd}}
+\item "p_mean": \code{\link[=p_mean]{p_mean()}}
+\item "p_sd": \code{\link[=p_sd]{p_sd()}}
 \item "pareto_k": \code{\link{}}
 \item "pos_prob": \code{\link{}}
 \item "ppred": \code{\link{}}

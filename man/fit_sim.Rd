@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation.R
 \name{fit_sim}
 \alias{fit_sim}
-\title{Title}
+\title{Fit a single model in a simulation study}
 \usage{
 fit_sim(
   prefit,
@@ -17,8 +17,34 @@ fit_sim(
 )
 }
 \arguments{
-\item{path}{}
+\item{prefit}{A precompiled brms model object from \code{\link{get_prefit}}}
+
+\item{dataset}{A data.frame containing the data to fit the model to}
+
+\item{data_gen_output}{Output from the data generation function containing true parameters}
+
+\item{fit_conf}{A list or data.frame row containing model configuration (formula, family, etc.)}
+
+\item{seed}{Random seed for reproducible model fitting}
+
+\item{debug}{Logical; if TRUE, saves intermediate results for debugging}
+
+\item{result_path}{Path where debug files should be saved}
+
+\item{stan_pars}{List of Stan/brms parameters (chains, iter, warmup, etc.)}
+
+\item{...}{Additional arguments passed to metric calculation functions}
+}
+\value{
+A tibble containing calculated metrics for the fitted model
 }
 \description{
-Title
+This function fits a Bayesian model using a precompiled brms model object
+and calculates specified metrics on the fitted model.
+}
+\examples{
+\dontrun{
+# This function is typically called internally by full_simulation()
+# See full_simulation() examples for complete usage
+}
 }

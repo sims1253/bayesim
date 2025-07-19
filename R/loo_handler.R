@@ -28,8 +28,8 @@ elpd_loo_handler <- function(fit) {
 #'
 #' @param fit A brmsfit object.
 #' @param quantiles A vector of quantiles of interest.
-#' @param newdata If supplied, returns the summaries for \code{\link{elpd_test}}
-#'                otherwise, returns \code{\link[brms]{elpd}} summaries by
+#' @param newdata If supplied, returns the summaries for [elpd_test()]
+#'                otherwise, returns [brms::elpd()] summaries by
 #'                default.
 #' @return A named list of summaries.
 #' @export
@@ -172,7 +172,7 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 #' so to use loo objects, we have to disguise other criterions as elpd.
 #'
 #' @param pointwise_criterion vector of criterion values for each observation
-#' @param psis_object \code{brms:::.psis} object for psis diagnostics
+#' @param psis_object `brms:::.psis` object for psis diagnostics
 #'
 #' @return a loo object, containing a criterion, disguised as elpd
 #' @export
@@ -208,7 +208,7 @@ custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
 #' @param fit
 #' @param psis_object
 #'
-#' @return \code{custom_loo_object} object with rmse acting as elpd.
+#' @return `custom_loo_object` object with rmse acting as elpd.
 #' @export
 #'
 #' @examples
@@ -352,7 +352,7 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @param psis_object
 #' @param ...
 #'
-#' @return \code{custom_loo_object} object with R² acting as elpd.
+#' @return `custom_loo_object` object with R² acting as elpd.
 #' @export
 #'
 #' @examples

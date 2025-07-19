@@ -10,7 +10,7 @@ forward_sampling(fit, i, n, ...)
 \item{fit}{An object of class brmsfit or a list of brmsfit objects.}
 
 \item{i}{The index of a single posterior draw to simulate a dataset for.
-The index is passed to \code{\link{posterior_predict}}'s "draw_ids"
+The index is passed to \code{\link[=posterior_predict]{posterior_predict()}}'s "draw_ids"
 argument.}
 
 \item{...}{Potential additional arguments.}

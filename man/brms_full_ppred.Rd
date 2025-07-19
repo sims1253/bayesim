@@ -5,14 +5,14 @@
 \title{Full forward sampling of a the response of brms fit, including multivariate models.}
 \source{
 This function is taken from the SBC package
-  (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
-  it is not exported in SBC.
+(https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
+it is not exported in SBC.
 }
 \usage{
 brms_full_ppred(fit, newdata = NULL, draws = NULL, validate_all = FALSE)
 }
 \arguments{
-\item{fit}{An object of class `brmsfit`}
+\item{fit}{An object of class \code{brmsfit}}
 
 \item{newdata}{An optional data.frame for which to evaluate predictions. If NULL (default), the original data of the model is used.}
 
