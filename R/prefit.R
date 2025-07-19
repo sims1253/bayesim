@@ -61,15 +61,19 @@ build_prefit_list <- function(fit_configuration, stan_pars) {
     )
   }
 
-  prefit_configurations <- lapply(split(
-    prefit_configurations,
-    sort(as.numeric(rownames(prefit_configurations)))
-  ), as.list)
+  prefit_configurations <- lapply(
+    split(
+      prefit_configurations,
+      sort(as.numeric(rownames(prefit_configurations)))
+    ),
+    as.list
+  )
 
   prefit_list <- vector(mode = "list")
   for (conf in prefit_configurations) {
     prefit_list[[fit_conf_key(conf)]] <- get_prefit(
-      fit_conf = conf, stan_pars
+      fit_conf = conf,
+      stan_pars
     )
   }
 

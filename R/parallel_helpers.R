@@ -10,19 +10,20 @@
 #' @export
 #'
 #' @examples
-cluster_setup <- function(ncores = 2,
-                          cluster_type = "FORK",
-                          debug = FALSE,
-                          outfile = NULL) {
+cluster_setup <- function(
+  ncores = 2,
+  cluster_type = "FORK",
+  debug = FALSE,
+  outfile = NULL
+) {
   if (debug) {
-    cluster <- parallel::makeCluster(ncores,
+    cluster <- parallel::makeCluster(
+      ncores,
       type = cluster_type,
       outfile = outfile
     )
   } else {
-    cluster <- parallel::makeCluster(ncores,
-      type = cluster_type
-    )
+    cluster <- parallel::makeCluster(ncores, type = cluster_type)
   }
   # Multiprocessing setup
   doParallel::registerDoParallel(cluster)

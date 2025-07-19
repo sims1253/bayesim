@@ -14,16 +14,19 @@
 #' @export
 #'
 #' @examples
-fit_sim <- function(prefit,
-                    dataset,
-                    data_gen_output,
-                    fit_conf,
-                    seed,
-                    debug,
-                    result_path,
-                    stan_pars,
-                    ...) {
-  fit <- stats::update(prefit,
+fit_sim <- function(
+  prefit,
+  dataset,
+  data_gen_output,
+  fit_conf,
+  seed,
+  debug,
+  result_path,
+  stan_pars,
+  ...
+) {
+  fit <- stats::update(
+    prefit,
     newdata = dataset,
     formula. = brms::brmsformula(fit_conf$formula),
     refresh = 0,
@@ -51,7 +54,10 @@ fit_sim <- function(prefit,
     )
   )
   if (debug == TRUE) {
-    saveRDS(all_metric_results, paste0(paste(result_path, "metric_results", sep = "/"), ".RDS"))
+    saveRDS(
+      all_metric_results,
+      paste0(paste(result_path, "metric_results", sep = "/"), ".RDS")
+    )
   }
   return(all_metric_results)
 }
@@ -72,15 +78,16 @@ fit_sim <- function(prefit,
 #' @export
 #'
 #' @examples
-dataset_sim <- function(data_gen_conf,
-                        data_gen_fun,
-                        fit_confs,
-                        prefits,
-                        stan_pars,
-                        seed,
-                        debug,
-                        result_path,
-                        ...) {
+dataset_sim <- function(
+  data_gen_conf,
+  fit_confs,
+  prefits,
+  stan_pars,
+  seed,
+  debug,
+  result_path,
+  ...
+) {
   if (stan_pars$backend == "cmdstanr") {
     cmdstanr::set_cmdstan_path(stan_pars$cmdstan_path)
     if (!is.null(stan_pars$cmdstan_write_path)) {
@@ -90,23 +97,27 @@ dataset_sim <- function(data_gen_conf,
   final_result <- vector(mode = "list", length = nrow(fit_confs))
   loo_objects <- vector(mode = "list", length = nrow(fit_confs))
   set.seed(seed)
-  seed_list <- sample(1000000000:.Machine$integer.max,
-    size = nrow(fit_confs)
-  )
-  datagen_result <- do.call(
-    data_gen_fun,
-    c(list(seed = seed), data_gen_conf)
-  )
+  seed_list <- sample(1000000000:.Machine$integer.max, size = nrow(fit_confs))
+  datagen_result <- data_generator(config = data_gen_conf, seed = seed)
   if (debug == TRUE) {
-    saveRDS(datagen_result, paste0(paste(result_path, "datagen_result", sep = "/"), ".RDS"))
-    saveRDS(data_gen_conf, paste0(paste(result_path, "data_gen_conf", sep = "/"), ".RDS"))
+    saveRDS(
+      datagen_result,
+      paste0(paste(result_path, "datagen_result", sep = "/"), ".RDS")
+    )
+    saveRDS(
+      data_gen_conf,
+      paste0(paste(result_path, "data_gen_conf", sep = "/"), ".RDS")
+    )
   }
 
   for (i in seq_len(nrow(fit_confs))) {
     fit_conf <- fit_confs[i, ]
     prefit <- prefits[[fit_conf_key(fit_conf)]]
     if (debug == TRUE) {
-      saveRDS(fit_conf, paste0(paste(result_path, "fit_conf", sep = "/"), ".RDS"))
+      saveRDS(
+        fit_conf,
+        paste0(paste(result_path, "fit_conf", sep = "/"), ".RDS")
+      )
       saveRDS(prefit, paste0(paste(result_path, "prefit", sep = "/"), ".RDS"))
     }
 
@@ -114,7 +125,7 @@ dataset_sim <- function(data_gen_conf,
       prefit = prefit,
       dataset = datagen_result$dataset,
       testing_data = datagen_result$testing_data,
-      data_gen_output = datagen_result$data_gen_output,
+      data_gen_output = datagen_result$true_parameters,
       fit_conf = fit_conf,
       seed = seed_list[[i]],
       debug = debug,
@@ -126,7 +137,8 @@ dataset_sim <- function(data_gen_conf,
 
   final_result <- dplyr::bind_rows(final_result)
   if ("NA." %in% colnames(final_result)) {
-    final_result <- subset(final_result,
+    final_result <- subset(
+      final_result,
       select = -c(which(colnames(final_result) == "NA."))
     )
   }
@@ -134,7 +146,10 @@ dataset_sim <- function(data_gen_conf,
   final_result$dataset_seed <- seed
 
   if (debug == TRUE) {
-    saveRDS(final_result, paste0(paste(result_path, "dataset_result", sep = "/"), ".RDS"))
+    saveRDS(
+      final_result,
+      paste0(paste(result_path, "dataset_result", sep = "/"), ".RDS")
+    )
   }
 
   return(dplyr::as_tibble(final_result))
@@ -156,41 +171,43 @@ dataset_sim <- function(data_gen_conf,
 #' @export
 #'
 #' @examples
-dataset_conf_sim <- function(data_gen_conf,
-                             data_gen_fun,
-                             fit_confs,
-                             prefits,
-                             seed = NULL,
-                             result_path = NULL,
-                             stan_pars,
-                             ncores,
-                             cluster_type,
-                             debug,
-                             global_seed,
-                             ...) {
+dataset_conf_sim <- function(
+  data_gen_conf,
+  fit_confs,
+  prefits,
+  seed = NULL,
+  result_path = NULL,
+  stan_pars,
+  ncores,
+  cluster_type,
+  debug,
+  global_seed,
+  ...
+) {
   set.seed(seed)
-  seed_list <- sample(1000000000:.Machine$integer.max,
+  seed_list <- sample(
+    1000000000:.Machine$integer.max,
     size = data_gen_conf$dataset_N
   )
 
   if (
     file.exists(
       paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS")
-    )) {
+    )
+  ) {
     return(
       readRDS(paste0(paste(result_path, data_gen_conf$id, sep = "/"), ".RDS"))
     )
   } else {
     if (ncores > 1) {
       if (debug) {
-        cluster <- parallel::makeCluster(ncores,
+        cluster <- parallel::makeCluster(
+          ncores,
           type = cluster_type,
           outfile = paste(result_path, "cluster_log")
         )
       } else {
-        cluster <- parallel::makeCluster(ncores,
-          type = cluster_type
-        )
+        cluster <- parallel::makeCluster(ncores, type = cluster_type)
       }
       # Multiprocessing setup
       doParallel::registerDoParallel(cluster)
@@ -208,19 +225,19 @@ dataset_conf_sim <- function(data_gen_conf,
         .maxcombine = length(seed_list),
         .verbose = debug,
         .inorder = FALSE
-      ) %dopar% {
-        dataset_sim(
-          data_gen_conf = data_gen_conf,
-          data_gen_fun = data_gen_fun,
-          fit_confs = fit_confs,
-          prefits = prefits,
-          stan_pars = stan_pars,
-          seed = par_seed,
-          debug = debug,
-          result_path = result_path,
-          ...
-        )
-      }
+      ) %dopar%
+        {
+          dataset_sim(
+            data_gen_conf = data_gen_conf,
+            fit_confs = fit_confs,
+            prefits = prefits,
+            stan_pars = stan_pars,
+            seed = par_seed,
+            debug = debug,
+            result_path = result_path,
+            ...
+          )
+        }
 
       # Multiprocessing teardown
       parallel::stopCluster(cluster)
@@ -229,7 +246,6 @@ dataset_conf_sim <- function(data_gen_conf,
       for (i in seq_along(seed_list)) {
         results[[i]] <- dataset_sim(
           data_gen_conf = data_gen_conf,
-          data_gen_fun = data_gen_fun,
           fit_confs = fit_confs,
           prefits = prefits,
           stan_pars = stan_pars,
@@ -272,21 +288,23 @@ dataset_conf_sim <- function(data_gen_conf,
 #' @export
 #'
 #' @examples
-full_simulation <- function(data_gen_confs,
-                            data_gen_fun = NULL,
-                            fit_confs,
-                            ncores_simulation = 1,
-                            cluster_type = "PSOCK",
-                            stan_pars,
-                            seed = NULL,
-                            result_path = NULL,
-                            debug = FALSE,
-                            ...) {
+full_simulation <- function(
+  data_gen_confs,
+  fit_confs,
+  ncores_simulation = 1,
+  cluster_type = "PSOCK",
+  stan_pars,
+  seed = NULL,
+  result_path = NULL,
+  debug = FALSE,
+  ...
+) {
   # Set seed for reproducability.
   if (!is.null(seed)) {
     set.seed(seed)
   }
-  seed_list <- sample(1000000000:.Machine$integer.max,
+  seed_list <- sample(
+    1000000000:.Machine$integer.max,
     size = nrow(data_gen_confs)
   )
   if (stan_pars$backend == "cmdstanr") {
@@ -308,7 +326,6 @@ full_simulation <- function(data_gen_confs,
   for (i in seq_len(nrow(data_gen_confs))) {
     final_result[[i]] <- dataset_conf_sim(
       data_gen_conf = as.list(data_gen_confs[i, ]),
-      data_gen_fun = data_gen_fun,
       fit_confs = fit_confs,
       prefits = prefit_list,
       seed = seed_list[[i]],
@@ -343,7 +360,7 @@ full_simulation <- function(data_gen_confs,
 #' @export
 #'
 #' @examples
-reproduce_result <- function(result, data_gen_fun) {
+reproduce_result <- function(result) {
   family <- bayesfam::brms_family_lookup(
     result$fit_family,
     result$fit_link
@@ -386,16 +403,17 @@ reproduce_result <- function(result, data_gen_fun) {
     seed = result$dataset_seed
   )
 
-  datagen_result <- do.call(
-    data_gen_fun,
-    data_gen_conf
+  datagen_result <- data_generator(
+    config = data_gen_conf,
+    seed = data_gen_conf$seed
   )
   dataset <- datagen_result$dataset
   sampling_loops <- datagen_result$sampling_loops
   bad_samples <- datagen_result$bad_samples
   testing_data <- datagen_result$testing_data
 
-  fit <- stats::update(prefit,
+  fit <- stats::update(
+    prefit,
     newdata = dataset,
     formula. = brms::brmsformula(result$formula),
     refresh = 0,
