@@ -5,8 +5,8 @@
 \title{Determine the response sequence of brms model}
 \source{
 This function is taken from the SBC package
-  (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
-  it is not exported in SBC.
+(https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
+it is not exported in SBC.
 }
 \usage{
 brms_response_sequence(x)

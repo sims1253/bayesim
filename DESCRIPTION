@@ -1,37 +1,46 @@
-Package: bayesim
 Type: Package
+Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
 Version: 0.34.1.9000
 Date: 2022-11-10
-Authors@R:
-    c(person("Maximilian", "Scholz", email = "research.scholz@mailbox.org",
-             role = c("aut", "cre")),
-      person("Paul-Christian", "Bürkner", email = "paul.buerkner@gmail.com",
-             role = c("aut")))
+Authors@R: c(
+    person("Maximilian", "Scholz", , "research.scholz@mailbox.org", role = c("aut", "cre")),
+    person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", role = "aut")
+  )
 Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: GPL-3 + file LICENSE
-Encoding: UTF-8
-LazyData: true
+Description: A comprehensive simulation framework for Bayesian modeling studies.
+    Provides tools for running complex simulation studies with brms models,
+    including parallel processing, comprehensive metrics calculation, and
+    advanced analyses like Simulation-Based Calibration (SBC). Supports
+    custom data generation processes and extensible metric systems.
+License: GPL (>= 3)
 Imports:
     bayesfam (>= 0.2.1),
     bayeshear (>= 0.3.0.9000),
     brms (>= 2.18.1),
-    rstan,
-    posterior (>= 1.3.1),
+    cli,
     dplyr,
-    stats,
+    future.apply,
+    glue,
+    lifecycle,
     matrixStats,
-    future.apply
+    posterior (>= 1.3.1),
+    rlang,
+    rstan,
+    stats,
+    withr
 Suggests:
     cmdstanr (>= 0.5.3),
+    doParallel,
     foreach,
-    parallel,
-    doParallel
+    parallel
 Remotes:
     sims1253/bayesfam,
-    sims1253/bayeshear
-RoxygenNote: 7.3.1
-Config/testthat/parallel: true
+    sims1253/bayeshear,
+    stan-dev/cmdstanr
 Config/testthat/edition: 3
+Config/testthat/parallel: true
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

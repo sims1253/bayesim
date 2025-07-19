@@ -1,19 +1,26 @@
-#' Title
+#' Fit a single model in a simulation study
 #'
-#' @param dataset
-#' @param seed
-#' @param data_gen_conf
-#' @param prefit
-#' @param fit_conf
-#' @param testing_data
-#' @param brms_backend
-#' @param debug
-#' @param path
+#' This function fits a Bayesian model using a precompiled brms model object
+#' and calculates specified metrics on the fitted model.
 #'
-#' @return
+#' @param prefit A precompiled brms model object from \code{\link{get_prefit}}
+#' @param dataset A data.frame containing the data to fit the model to
+#' @param data_gen_output Output from the data generation function containing true parameters
+#' @param fit_conf A list or data.frame row containing model configuration (formula, family, etc.)
+#' @param seed Random seed for reproducible model fitting
+#' @param debug Logical; if TRUE, saves intermediate results for debugging
+#' @param result_path Path where debug files should be saved
+#' @param stan_pars List of Stan/brms parameters (chains, iter, warmup, etc.)
+#' @param ... Additional arguments passed to metric calculation functions
+#'
+#' @return A tibble containing calculated metrics for the fitted model
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # This function is typically called internally by full_simulation()
+#' # See full_simulation() examples for complete usage
+#' }
 fit_sim <- function(
   prefit,
   dataset,
@@ -62,22 +69,28 @@ fit_sim <- function(
   return(all_metric_results)
 }
 
-#' Title
+#' Run simulation for a single dataset configuration
 #'
-#' @param seed
-#' @param fit_confs
-#' @param prefits
-#' @param data_gen_conf
-#' @param brms_backend
-#' @param cmdstan_path
-#' @param seed
-#' @param debug
-#' @param path
+#' This function generates a single dataset and fits all specified models to it,
+#' calculating metrics for each model fit.
 #'
-#' @return
+#' @param data_gen_conf A list containing data generation configuration parameters
+#' @param fit_confs A data.frame containing model fitting configurations
+#' @param prefits A list of precompiled brms model objects
+#' @param stan_pars A list containing Stan/brms fitting parameters
+#' @param seed Random seed for reproducible data generation and model fitting
+#' @param debug Logical; if TRUE, saves intermediate results for debugging
+#' @param result_path Path where debug files should be saved
+#' @param ... Additional arguments passed to metric calculation functions
+#'
+#' @return A tibble containing simulation results for all models
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # This function is typically called internally by dataset_conf_sim()
+#' # See full_simulation() examples for complete usage
+#' }
 dataset_sim <- function(
   data_gen_conf,
   fit_confs,
@@ -361,7 +374,7 @@ full_simulation <- function(
 #'
 #' @examples
 reproduce_result <- function(result) {
-  family <- bayesfam::brms_family_lookup(
+  family <- brms_family_lookup(
     result$fit_family,
     result$fit_link
   )

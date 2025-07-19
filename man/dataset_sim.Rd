@@ -2,11 +2,10 @@
 % Please edit documentation in R/simulation.R
 \name{dataset_sim}
 \alias{dataset_sim}
-\title{Title}
+\title{Run simulation for a single dataset configuration}
 \usage{
 dataset_sim(
   data_gen_conf,
-  data_gen_fun,
   fit_confs,
   prefits,
   stan_pars,
@@ -17,8 +16,32 @@ dataset_sim(
 )
 }
 \arguments{
-\item{path}{}
+\item{data_gen_conf}{A list containing data generation configuration parameters}
+
+\item{fit_confs}{A data.frame containing model fitting configurations}
+
+\item{prefits}{A list of precompiled brms model objects}
+
+\item{stan_pars}{A list containing Stan/brms fitting parameters}
+
+\item{seed}{Random seed for reproducible data generation and model fitting}
+
+\item{debug}{Logical; if TRUE, saves intermediate results for debugging}
+
+\item{result_path}{Path where debug files should be saved}
+
+\item{...}{Additional arguments passed to metric calculation functions}
+}
+\value{
+A tibble containing simulation results for all models
 }
 \description{
-Title
+This function generates a single dataset and fits all specified models to it,
+calculating metrics for each model fit.
+}
+\examples{
+\dontrun{
+# This function is typically called internally by dataset_conf_sim()
+# See full_simulation() examples for complete usage
+}
 }
