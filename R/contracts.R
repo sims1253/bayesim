@@ -451,7 +451,7 @@ validate_fitter_interface <- function(fitter) {
   }
 
   # Check that fitter inherits from Fitter
-  if (!inherits(fitter, "Fitter")) {
+  if (!S7::S7_inherits(fitter, Fitter)) {
     stop(
       bayesim_contract_error(
         "fitter must inherit from Fitter class, got class: " %+%
@@ -550,7 +550,7 @@ validate_metric_interface <- function(metric) {
   }
 
   # Check that metric inherits from Metric
-  if (!inherits(metric, "Metric")) {
+  if (!S7::S7_inherits(metric, Metric)) {
     stop(
       bayesim_contract_error(
         "metric must inherit from Metric class, got class: " %+%

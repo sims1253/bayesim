@@ -33,7 +33,7 @@ library(bayesim)
 
 ### Define a Data Generator
 
-The data generator creates synthetic datasets for your simulation:
+The data generator creates synthetic datasets for your simulation. It must have the signature `(data_spec, seed, task_ctx)`:
 
 ```{r}
 my_data_generator <- function(data_spec, seed, task_ctx) {
@@ -58,6 +58,8 @@ my_data_generator <- function(data_spec, seed, task_ctx) {
 
 ### Create a Configuration
 
+Create a simulation configuration with your data grid, fit grid, and other parameters. Note that metrics should be passed as a list of Metric objects:
+
 ```{r}
 config <- simulation_config(
   data_grid = data.frame(
@@ -71,7 +73,7 @@ config <- simulation_config(
   ),
   data_generator = my_data_generator,
   fitter = MockFitter(),  # Use mock for this example
-  metrics = c("rmse", "bias"),
+  metrics = list(RmseMetric(), BiasMetric()),  # Pass Metric objects
   n_replicates = 10L,
   seed = 42L
 )
@@ -102,7 +104,7 @@ config <- simulation_config(
   fit_grid = my_fit_grid,
   data_generator = my_data_generator,
   fitter = my_fitter,
-  metrics = c("rmse"),
+  metrics = list(RmseMetric()),  # Pass Metric objects
   n_replicates = 1000L,
   seed = 42L,
   result_path = "my_simulation",
@@ -139,8 +141,16 @@ S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, conte
   list(value = 0.5)
 }
 
-# Register and use
-register_metric(MyMetric())
+# Use directly in simulation_config
+config <- simulation_config(
+  data_grid = data.frame(n = 100),
+  fit_grid = data.frame(model = "test"),
+  data_generator = my_data_generator,
+  fitter = MockFitter(),
+  metrics = list(MyMetric()),  # Use your custom metric
+  n_replicates = 5L,
+  seed = 42L
+)
 ```
 
 # Next Steps

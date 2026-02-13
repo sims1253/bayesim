@@ -23,7 +23,7 @@ register_metric <- function(metric, overwrite = FALSE) {
   }
 
   # Check it's actually a Metric subclass
-  if (!inherits(metric, "Metric")) {
+  if (!S7::S7_inherits(metric, Metric)) {
     cli::cli_abort("metric must inherit from the Metric S7 class")
   }
 
