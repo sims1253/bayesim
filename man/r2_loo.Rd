@@ -17,3 +17,7 @@ r2_loo(fit, psis_object = NULL, yrep = NULL, return_object = FALSE, ...)
 \description{
 Calculate PSIS-loo R² for a given brms fit
 }
+\examples{
+\dontrun{
+}
+}

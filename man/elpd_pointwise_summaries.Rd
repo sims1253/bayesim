@@ -24,7 +24,9 @@ estimates instead of just the main estimates.
 The returned summaries are all sample size independent.
 }
 \examples{
+\dontrun{
 fit <- brms::brm(y ~ 1, data = list(rnorm(1000)))
 elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
 elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
+}
 }

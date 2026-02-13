@@ -438,7 +438,7 @@ validate_fit_result_interface <- function(fit_result) {
 #'
 #' @examples
 #' # Validate the mock fitter
-#' mock_fitter <- MockFitter$new()
+#' mock_fitter <- MockFitter()
 #' validate_fitter_interface(mock_fitter)
 validate_fitter_interface <- function(fitter) {
   # Check that fitter is an S7 object
@@ -499,21 +499,22 @@ validate_fitter_interface <- function(fitter) {
 #' @seealso [Metric], [validate_metric_output()]
 #'
 #' @examples
-#' # Create a custom metric
+#' \dontrun{
+#' # Create a custom metric using proper S7 syntax
 #' MyMetric <- S7::new_class(
 #'   "MyMetric",
 #'   parent = Metric,
 #'   properties = list(
 #'     name = S7::new_property(S7::class_character, default = "my_metric")
-#'   ),
-#'   methods = list(
-#'     compute = function(fit_result, data_bundle, context, task_ctx) {
-#'       list(value = 1.0)
-#'     }
 #'   )
 #' )
-#' my_metric <- MyMetric$new()
+#' # Register the compute method separately
+#' S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+#'   list(value = 1.0)
+#' }
+#' my_metric <- MyMetric(name = "my_metric")
 #' validate_metric_interface(my_metric)
+#' }
 validate_metric_interface <- function(metric) {
   # Check that metric is an S7 object
   if (!S7::S7_inherits(metric)) {

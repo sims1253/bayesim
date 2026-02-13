@@ -12,3 +12,7 @@ elpd_loo_handler(fit)
 \description{
 Title
 }
+\examples{
+\dontrun{
+}
+}

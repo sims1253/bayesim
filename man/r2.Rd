@@ -9,3 +9,7 @@ r2(y, yrep, weights = NULL)
 \description{
 Title
 }
+\examples{
+\dontrun{
+}
+}

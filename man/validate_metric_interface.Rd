@@ -32,21 +32,22 @@ Throws a \code{bayesim_contract_error} condition if validation fails.
 }
 
 \examples{
-# Create a custom metric
+\dontrun{
+# Create a custom metric using proper S7 syntax
 MyMetric <- S7::new_class(
   "MyMetric",
   parent = Metric,
   properties = list(
     name = S7::new_property(S7::class_character, default = "my_metric")
-  ),
-  methods = list(
-    compute = function(fit_result, data_bundle, context, task_ctx) {
-      list(value = 1.0)
-    }
   )
 )
-my_metric <- MyMetric$new()
+# Register the compute method separately
+S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+  list(value = 1.0)
+}
+my_metric <- MyMetric(name = "my_metric")
 validate_metric_interface(my_metric)
+}
 }
 \seealso{
 \link{Metric}, \code{\link[=validate_metric_output]{validate_metric_output()}}

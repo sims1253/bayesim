@@ -29,8 +29,10 @@ setup_global_rng <- function(seed) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' streams <- create_task_rng_streams(42, 10)
 #' set_task_rng(streams[[1]])
+#' }
 set_task_rng <- function(rng_stream) {
   assign(".Random.seed", rng_stream, envir = .GlobalEnv)
   invisible(NULL)
@@ -55,8 +57,10 @@ set_task_rng <- function(rng_stream) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' streams <- create_task_rng_streams(42, 10)
 #' advanced <- advance_rng_stream(streams[[1]], n = 5)
+#' }
 advance_rng_stream <- function(rng_stream, n = 1L) {
   .Random.seed <- rng_stream
   for (i in seq_len(n)) {

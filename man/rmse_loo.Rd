@@ -17,3 +17,7 @@ rmse_loo(fit, psis_object = NULL, return_object = FALSE, yrep = NULL, ...)
 \description{
 Calculate PSIS-loo rmse for a given brms fit
 }
+\examples{
+\dontrun{
+}
+}

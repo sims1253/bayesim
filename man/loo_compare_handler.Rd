@@ -12,3 +12,7 @@ loo_compare_handler(loo_object_matrix, predictive_metrics)
 \description{
 Title
 }
+\examples{
+\dontrun{
+}
+}

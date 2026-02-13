@@ -19,3 +19,7 @@ rmse for the given y and yrep vectors
 \description{
 If psis-weights are supplied, the corresponding psis-rmse is returned.
 }
+\examples{
+\dontrun{
+}
+}

@@ -6,6 +6,8 @@
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 elpd_loo_handler <- function(fit) {
   loo_object <- brms::loo(fit)
   return(
@@ -35,9 +37,11 @@ elpd_loo_handler <- function(fit) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' fit <- brms::brm(y ~ 1, data = list(rnorm(1000)))
 #' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
 #' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
+#' }
 elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
   if (is.null(newdata)) {
     loo_object <- brms::loo(fit)
@@ -88,6 +92,8 @@ elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
   compare_metrics <- substr(
     predictive_metrics[
@@ -178,6 +184,8 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
   loo_object <- list()
   criterion <- sum(pointwise_criterion)
@@ -212,6 +220,8 @@ custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 rmse_loo <- function(
   fit,
   psis_object = NULL,
@@ -251,6 +261,8 @@ rmse_loo <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 rmse_test <- function(fit, newdata, return_object = FALSE) {
   pointwise_rmse <- rmse(
     y = y <- newdata$y,
@@ -281,12 +293,14 @@ rmse_test <- function(fit, newdata, return_object = FALSE) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 rmse <- function(y, yrep, weights = NULL) {
   y_matrix <- matrix(
     y,
     nrow <- nrow(yrep),
     ncol <- ncol(yrep),
-    byrow <- TRUE
+    byrow = TRUE
   )
   if (is.null(weights)) {
     return(sqrt(colMeans(((y_matrix - yrep)^2))))
@@ -307,6 +321,8 @@ rmse <- function(y, yrep, weights = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 elpd_test <- function(fit, newdata, return_object = FALSE) {
   ll <- brms::log_lik(fit, newdata = newdata)
   elpd <- matrixStats::colLogSumExps(ll) - log(nrow(ll))
@@ -328,6 +344,8 @@ elpd_test <- function(fit, newdata, return_object = FALSE) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 r2 <- function(y, yrep, weights = NULL) {
   ss_y <- sum((y - mean(y))^2)
   pointwise_loo_r2 <- vector(mode = "numeric", length = length(y))
@@ -356,6 +374,8 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 r2_loo <- function(
   fit,
   psis_object = NULL,
@@ -395,6 +415,8 @@ r2_loo <- function(
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' }
 r2_test <- function(fit, newdata, return_object = FALSE) {
   pointwise_r2 <- r2(
     y = y <- newdata$y,

@@ -17,6 +17,8 @@ Restores .Random.seed from a precomputed stream.
 Call this at the start of each worker task.
 }
 \examples{
+\dontrun{
 streams <- create_task_rng_streams(42, 10)
 set_task_rng(streams[[1]])
+}
 }

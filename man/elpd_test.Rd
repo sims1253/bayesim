@@ -12,3 +12,7 @@ elpd_test(fit, newdata, return_object = FALSE)
 \description{
 Title
 }
+\examples{
+\dontrun{
+}
+}

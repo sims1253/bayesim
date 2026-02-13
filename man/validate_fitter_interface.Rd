@@ -40,7 +40,7 @@ Throws a \code{bayesim_contract_error} condition if validation fails.
 
 \examples{
 # Validate the mock fitter
-mock_fitter <- MockFitter$new()
+mock_fitter <- MockFitter()
 validate_fitter_interface(mock_fitter)
 }
 \seealso{
