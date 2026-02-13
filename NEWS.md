@@ -96,3 +96,38 @@ memory-bounded execution.
 * Fixed `execute_tasks()` to pass proper S7 config object
 * Fixed `run_task_safe()` to propagate fatal errors
 * Removed duplicate `create_task_rng_streams()` function
+
+## Phase 3: Checkpoint/Resume
+
+### Checkpoint System
+
+* `init_checkpoint_dir()` creates checkpoint directory structure
+* `write_checkpoint()` atomically writes checkpoint with validation
+* `read_checkpoint()` reads checkpoint with checksum verification
+* `list_checkpoints()` lists available checkpoint IDs
+* `get_latest_valid_checkpoint()` finds newest valid checkpoint
+* Schema versioning for format compatibility
+* Read-back validation for integrity
+
+### Resume Logic
+
+* `can_resume()` checks for valid resumable run
+* `load_for_resume()` loads previous state with validation
+* `get_resume_summary()` shows resumption summary
+* `merge_task_grid_status()` merges task status from checkpoint
+* `merge_results()` deduplicates results by task_id
+
+### Integration
+
+* `run_simulation()` supports `resume` and `force_restart` parameters
+* Periodic checkpointing during execution
+* Resume continues from pending tasks
+* Prior results carried into final output
+
+### Bug Fixes
+
+* Fixed checkpoint write to use atomic RDS operations
+* Fixed get_next_checkpoint_id() to ignore .tmp directories
+* Fixed resume to validate both schema versions
+* Fixed resume to not reinitialize manifest
+* Fixed resume to carry prior results into final checkpoint

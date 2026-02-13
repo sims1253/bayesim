@@ -4,7 +4,14 @@
 \alias{build_simulation_result}
 \title{Build final simulation result}
 \usage{
-build_simulation_result(config, task_results, task_grid, elapsed)
+build_simulation_result(
+  config,
+  task_results,
+  task_grid,
+  final_results_df = NULL,
+  elapsed,
+  checkpoint_path = NULL
+)
 }
 \arguments{
 \item{config}{A SimulationConfig S7 object}
@@ -13,7 +20,11 @@ build_simulation_result(config, task_results, task_grid, elapsed)
 
 \item{task_grid}{The task grid tibble with updated statuses}
 
+\item{final_results_df}{Dataframe with merged results (prior + new)}
+
 \item{elapsed}{Total elapsed time in seconds}
+
+\item{checkpoint_path}{Character; path where checkpoints were stored}
 }
 \value{
 A bayesim_simulation_result S3 object

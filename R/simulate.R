@@ -49,8 +49,43 @@ run_simulation <- function(
   # Set up global RNG
   setup_global_rng(config@seed)
 
-  # Create task grid
-  task_grid <- create_task_grid(config)
+  # Compute config fingerprint for checkpoint validation
+  config_fingerprint <- compute_config_fingerprint(config)
+
+  # Initialize or resume from checkpoint
+  should_resume <- resume && !force_restart
+  has_existing_checkpoints <- !is.null(config@result_path) &&
+    dir.exists(file.path(config@result_path, "checkpoints"))
+
+  if (should_resume && has_existing_checkpoints) {
+    resume_data <- tryCatch(
+      load_for_resume(config@result_path, config, force_restart = FALSE),
+      error = function(e) NULL
+    )
+    if (!is.null(resume_data)) {
+      cli::cli_alert_info("Resuming from previous run")
+      task_grid <- resume_data$task_grid
+      prior_results <- resume_data$prior_results
+      # Don't call init_checkpoint_dir() here!
+    } else {
+      # Resume failed, start fresh
+      cli::cli_alert_info("Resume failed, starting fresh")
+      init_checkpoint_dir(config@result_path, config_fingerprint)
+      task_grid <- create_task_grid(config)
+      prior_results <- NULL
+    }
+  } else {
+    # Fresh start
+    if (!is.null(config@result_path)) {
+      if (force_restart && can_resume(config@result_path)) {
+        cli::cli_alert_info("Force restart: ignoring previous run")
+      }
+      init_checkpoint_dir(config@result_path, config_fingerprint)
+    }
+    task_grid <- create_task_grid(config)
+    prior_results <- NULL
+  }
+
   total_tasks <- nrow(task_grid)
 
   # Convert config to spec for worker transport
@@ -64,7 +99,7 @@ run_simulation <- function(
 
   cli::cli_alert_info("Starting simulation with {total_tasks} tasks")
 
-  # Execute tasks
+  # Execute tasks with periodic checkpointing
   results <- execute_tasks(
     task_grid = task_grid,
     config = config,
@@ -73,17 +108,43 @@ run_simulation <- function(
     metrics = metrics,
     retain = config@retain,
     max_errors = config@max_errors,
-    progress = progress
+    progress = progress,
+    result_path = config@result_path,
+    config_fingerprint = config_fingerprint,
+    checkpoint_every = config@checkpoint_every
   )
 
   timer$stop()
 
-  # Build final result
+  # Convert new results to dataframe
+  new_results_df <- results_to_dataframe(results$task_results)
+
+  # Merge with prior results if resuming
+  if (!is.null(prior_results) && nrow(prior_results) > 0) {
+    final_results_df <- merge_results(prior_results, new_results_df)
+  } else {
+    final_results_df <- new_results_df
+  }
+
+  # Write final checkpoint with merged results
+  if (!is.null(config@result_path)) {
+    # Create combined task_results for checkpoint
+    write_checkpoint(
+      config@result_path,
+      results$task_grid,
+      results$task_results,
+      config_fingerprint
+    )
+  }
+
+  # Build final result with merged results
   build_simulation_result(
     config = config,
     task_results = results$task_results,
     task_grid = results$task_grid,
-    elapsed = timer$elapsed()
+    final_results_df = final_results_df,
+    elapsed = timer$elapsed(),
+    checkpoint_path = config@result_path
   )
 }
 
@@ -97,6 +158,9 @@ run_simulation <- function(
 #' @param retain Character vector of what to retain
 #' @param max_errors Maximum number of errors before stopping
 #' @param progress Logical; if TRUE, show progress bar
+#' @param result_path Character; path for checkpoint storage (optional)
+#' @param config_fingerprint Character; configuration fingerprint for validation
+#' @param checkpoint_every Integer; write checkpoint every N completed tasks
 #'
 #' @return A list with task_results and task_grid
 #'
@@ -109,13 +173,17 @@ execute_tasks <- function(
   metrics,
   retain,
   max_errors,
-  progress
+  progress,
+  result_path = NULL,
+  config_fingerprint = NULL,
+  checkpoint_every = 50L
 ) {
   pending <- get_pending_tasks(task_grid)
   n_pending <- nrow(pending)
 
   task_results <- vector("list", nrow(task_grid))
   error_count <- 0
+  checkpoint_counter <- 0
 
   if (progress && n_pending > 0) {
     pb <- cli::cli_progress_bar(
@@ -159,6 +227,20 @@ execute_tasks <- function(
     if (progress) {
       cli::cli_progress_update(id = pb)
     }
+
+    # Periodic checkpointing
+    if (!is.null(result_path) && !is.null(config_fingerprint)) {
+      checkpoint_counter <- checkpoint_counter + 1
+      if (checkpoint_counter >= checkpoint_every) {
+        write_checkpoint(
+          result_path,
+          task_grid,
+          task_results,
+          config_fingerprint
+        )
+        checkpoint_counter <- 0
+      }
+    }
   }
 
   if (progress) {
@@ -176,34 +258,48 @@ execute_tasks <- function(
 #' @param config A SimulationConfig S7 object
 #' @param task_results List of bayesim_task_result objects
 #' @param task_grid The task grid tibble with updated statuses
+#' @param final_results_df Dataframe with merged results (prior + new)
 #' @param elapsed Total elapsed time in seconds
+#' @param checkpoint_path Character; path where checkpoints were stored
 #'
 #' @return A bayesim_simulation_result S3 object
 #'
 #' @keywords internal
-build_simulation_result <- function(config, task_results, task_grid, elapsed) {
-  # Flatten task results to summary tibble
-  summary_rows <- lapply(task_results, function(tr) {
-    if (is.null(tr)) {
-      return(NULL)
-    }
-    row <- list(
-      task_id = tr$task_id,
-      status = tr$status,
-      total_time = tr$timing$total
-    )
-    if (!is.null(tr$metrics)) {
-      row <- c(row, tr$metrics)
-    }
-    if (!is.null(tr$diagnostics)) {
-      row <- c(row, tr$diagnostics)
-    }
-    row
-  })
+build_simulation_result <- function(
+  config,
+  task_results,
+  task_grid,
+  final_results_df = NULL,
+  elapsed,
+  checkpoint_path = NULL
+) {
+  # Use merged results if available, otherwise compute from task_results
+  if (!is.null(final_results_df) && nrow(final_results_df) > 0) {
+    summary <- final_results_df
+  } else {
+    # Flatten task results to summary tibble
+    summary_rows <- lapply(task_results, function(tr) {
+      if (is.null(tr)) {
+        return(NULL)
+      }
+      row <- list(
+        task_id = tr$task_id,
+        status = tr$status,
+        total_time = tr$timing$total
+      )
+      if (!is.null(tr$metrics)) {
+        row <- c(row, tr$metrics)
+      }
+      if (!is.null(tr$diagnostics)) {
+        row <- c(row, tr$diagnostics)
+      }
+      row
+    })
 
-  summary <- tibble::as_tibble(
-    do.call(rbind, lapply(summary_rows, as.data.frame))
-  )
+    summary <- tibble::as_tibble(
+      do.call(rbind, lapply(summary_rows, as.data.frame))
+    )
+  }
 
   # Extract errors
   errors <- do.call(
@@ -236,6 +332,6 @@ build_simulation_result <- function(config, task_results, task_grid, elapsed) {
     summary = summary,
     timing = list(total = elapsed),
     errors = errors,
-    checkpoint_path = NULL # Set by checkpoint system in Phase 3
+    checkpoint_path = checkpoint_path
   )
 }

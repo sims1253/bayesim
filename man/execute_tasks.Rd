@@ -12,7 +12,10 @@ execute_tasks(
   metrics,
   retain,
   max_errors,
-  progress
+  progress,
+  result_path = NULL,
+  config_fingerprint = NULL,
+  checkpoint_every = 50L
 )
 }
 \arguments{
@@ -31,6 +34,12 @@ execute_tasks(
 \item{max_errors}{Maximum number of errors before stopping}
 
 \item{progress}{Logical; if TRUE, show progress bar}
+
+\item{result_path}{Character; path for checkpoint storage (optional)}
+
+\item{config_fingerprint}{Character; configuration fingerprint for validation}
+
+\item{checkpoint_every}{Integer; write checkpoint every N completed tasks}
 }
 \value{
 A list with task_results and task_grid
