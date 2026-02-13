@@ -460,35 +460,10 @@ validate_fitter_interface <- function(fitter) {
     )
   }
 
-  # Check for required methods
-  required_methods <- c(
-    "fit",
-    "extract_draws",
-    "predict",
-    "log_lik",
-    "loo",
-    "diagnostics"
-  )
-
-  for (method_name in required_methods) {
-    # Check if method exists and is not the default "not implemented" stub
-    method_fn <- tryCatch(
-      {
-        fitter[[method_name]]
-      },
-      error = function(e) {
-        NULL
-      }
-    )
-
-    if (is.null(method_fn)) {
-      stop(
-        bayesim_contract_error(
-          "fitter must implement method '" %+% method_name %+% "'"
-        )
-      )
-    }
-  }
+  # Note: We do NOT check for method existence here because S7 methods are
+  # dispatched via generics, not stored as properties. The Fitter base class
+  # uses S7::stop_method_not_implemented() for abstract methods, so subclasses
+  # that don't override will get appropriate errors when methods are called.
 
   invisible(fitter)
 }
@@ -559,23 +534,10 @@ validate_metric_interface <- function(metric) {
     )
   }
 
-  # Check for required compute method
-  compute_fn <- tryCatch(
-    {
-      metric[["compute"]]
-    },
-    error = function(e) {
-      NULL
-    }
-  )
-
-  if (is.null(compute_fn)) {
-    stop(
-      bayesim_contract_error(
-        "metric must implement the 'compute' method"
-      )
-    )
-  }
+  # Note: We do NOT check for compute method existence here because S7 methods
+  # are dispatched via generics, not stored as properties. The Metric base class
+  # uses S7::stop_method_not_implemented() for abstract methods, so subclasses
+  # that don't override will get appropriate errors when methods are called.
 
   # Check that name property is valid
   metric_name <- tryCatch(

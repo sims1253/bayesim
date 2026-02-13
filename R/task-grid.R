@@ -161,8 +161,8 @@ get_task_spec <- function(task_grid, task_id, config) {
     data_idx = row$data_idx[[1]],
     fit_idx = row$fit_idx[[1]],
     rep_idx = row$rep_idx[[1]],
-    data_spec = as.list(config@data_grid[row$data_idx[[1]], ]),
-    fit_spec = as.list(config@fit_grid[row$fit_idx[[1]], ]),
+    data_spec = as.list(config@data_grid[row$data_idx[[1]], , drop = FALSE]),
+    fit_spec = as.list(config@fit_grid[row$fit_idx[[1]], , drop = FALSE]),
     task_ctx = list(
       task_id = task_id,
       data_idx = row$data_idx[[1]],

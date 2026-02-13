@@ -334,7 +334,7 @@ resolve_metrics <- function(metrics) {
 #' # spec can now be serialized or hashed
 #' }
 as_config_spec <- function(config) {
-  if (!S7::S7_inherits(config) || !inherits(config, "SimulationConfig")) {
+  if (!S7::S7_inherits(config, SimulationConfig)) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
@@ -492,7 +492,7 @@ capture_metrics_spec <- function(metrics) {
 #' # Use fingerprint for caching or deduplication
 #' }
 compute_config_fingerprint <- function(config) {
-  if (!S7::S7_inherits(config) || !inherits(config, "SimulationConfig")) {
+  if (!S7::S7_inherits(config, SimulationConfig)) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
@@ -517,7 +517,7 @@ compute_config_fingerprint <- function(config) {
 #'
 #' @export
 is_simulation_config <- function(x) {
-  S7::S7_inherits(x) && inherits(x, "SimulationConfig")
+  S7::S7_inherits(x, SimulationConfig)
 }
 
 #' Validate SimulationConfig Completeness
@@ -530,7 +530,7 @@ is_simulation_config <- function(x) {
 #'
 #' @keywords internal
 validate_config_completeness <- function(config) {
-  if (!is_simulation_config(config)) {
+  if (!S7::S7_inherits(config, SimulationConfig)) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
@@ -572,7 +572,7 @@ validate_config_completeness <- function(config) {
 #' get_total_tasks(config)  # Returns 400 (2 * 2 * 100)
 #' }
 get_total_tasks <- function(config) {
-  if (!is_simulation_config(config)) {
+  if (!S7::S7_inherits(config, SimulationConfig)) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 

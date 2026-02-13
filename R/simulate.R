@@ -243,6 +243,22 @@ execute_tasks <- function(
     }
   }
 
+  # After the main loop, fill any remaining NULL slots with skipped results
+  for (i in seq_along(task_results)) {
+    if (is.null(task_results[[i]])) {
+      task_results[[i]] <- new_task_result(
+        task_id = task_grid$task_id[i],
+        status = "skipped",
+        timing = list(total = 0),
+        error = list(
+          class = "skipped",
+          message = "Task not executed (max_errors reached)"
+        )
+      )
+      task_grid$status[i] <- "skipped"
+    }
+  }
+
   if (progress) {
     cli::cli_progress_done(id = pb)
   }
