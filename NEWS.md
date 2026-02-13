@@ -131,3 +131,43 @@ memory-bounded execution.
 * Fixed resume to validate both schema versions
 * Fixed resume to not reinitialize manifest
 * Fixed resume to carry prior results into final checkpoint
+
+## Phase 4: Memory Management
+
+### Retention System
+
+* `resolve_retention()` resolves retention profiles to explicit options
+* `apply_fit_retention()` removes non-retained fields from fit results
+* `apply_task_retention()` adds retained fields to task results
+* `estimate_size()` estimates object memory size
+* `exceeds_size_threshold()` checks if result exceeds size limit
+* `externalize_artifact()` moves large artifacts to external files
+
+### Retention Profiles
+
+* `minimal`: metrics only
+* `standard`: metrics + diagnostics (default)
+* `debug`: all fields retained
+
+## Phase 5: brms Integration and Documentation
+
+### BrmsFitter
+
+* `BrmsFitter` class extending Fitter
+* Supports rstan and cmdstanr backends
+* Configurable MCMC settings (chains, iter, warmup, etc.)
+* Full method implementations: fit, extract_draws, predict, log_lik, loo, diagnostics
+* Automatic warning capture and diagnostic extraction
+
+### Built-in Metrics
+
+* `RmseMetric`: Root Mean Square Error
+* `BiasMetric`: Mean prediction bias
+* `CoverageMetric`: Credible interval coverage
+* `PosteriorMeanMetric`: Posterior mean estimates
+* `register_built_in_metrics()` for auto-registration
+
+### Documentation
+
+* Getting started vignette with examples
+* Collate field added for proper file load order

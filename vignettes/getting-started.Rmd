@@ -1,0 +1,150 @@
+---
+title: "Getting Started with bayesim"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with bayesim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Introduction
+
+bayesim is a modern simulation framework for Bayesian modeling studies. It provides:
+
+- **Deterministic reproducibility** across sequential, parallel, and resumed runs
+- **Checkpoint/resume** capabilities for long-running simulations
+- **Memory-bounded execution** with configurable artifact retention
+- **Extensible interfaces** for custom fitters and metrics
+
+# Basic Usage
+
+## Setting Up a Simulation
+
+```{r setup}
+library(bayesim)
+```
+
+### Define a Data Generator
+
+The data generator creates synthetic datasets for your simulation:
+
+```{r}
+my_data_generator <- function(data_spec, seed, task_ctx) {
+  set.seed(seed)
+  n <- data_spec$n
+  
+  # Generate synthetic data
+  x <- rnorm(n)
+  y <- data_spec$intercept + data_spec$slope * x + rnorm(n, sd = data_spec$sigma)
+  
+  list(
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
+    true_params = c(intercept = data_spec$intercept, slope = data_spec$slope, sigma = data_spec$sigma),
+    vars_of_interest = c("intercept", "slope", "sigma"),
+    references = c(intercept = 0, slope = 0, sigma = 1),
+    meta = list()
+  )
+}
+```
+
+### Create a Configuration
+
+```{r}
+config <- simulation_config(
+  data_grid = data.frame(
+    n = c(100, 500),
+    intercept = 1,
+    slope = 2,
+    sigma = 1
+  ),
+  fit_grid = data.frame(
+    model = "linear"
+  ),
+  data_generator = my_data_generator,
+  fitter = MockFitter(),  # Use mock for this example
+  metrics = c("rmse", "bias"),
+  n_replicates = 10L,
+  seed = 42L
+)
+```
+
+### Run the Simulation
+
+```{r}
+result <- run_simulation(config, progress = FALSE)
+```
+
+### Examine Results
+
+```{r}
+print(result)
+
+# Summary tibble
+head(result$summary)
+```
+
+# Checkpointing and Resume
+
+For long-running simulations, use checkpointing:
+
+```{r, eval=FALSE}
+config <- simulation_config(
+  data_grid = my_data_grid,
+  fit_grid = my_fit_grid,
+  data_generator = my_data_generator,
+  fitter = my_fitter,
+  metrics = c("rmse"),
+  n_replicates = 1000L,
+  seed = 42L,
+  result_path = "my_simulation",
+  checkpoint_every = 50L
+)
+
+# Run (can be interrupted and resumed)
+result <- run_simulation(config, resume = TRUE)
+```
+
+If interrupted, resume with:
+
+```{r, eval=FALSE}
+result <- run_simulation(config, resume = TRUE)
+```
+
+# Custom Metrics
+
+Create custom metrics by extending the Metric class:
+
+```{r}
+MyMetric <- S7::new_class(
+  "MyMetric",
+  parent = Metric,
+  properties = list(
+    name = S7::new_property(S7::class_character, default = "my_metric"),
+    needs = S7::new_property(S7::class_character, default = "predictions"),
+    required = S7::new_property(S7::class_logical, default = FALSE)
+  )
+)
+
+S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+  # Your metric computation
+  list(value = 0.5)
+}
+
+# Register and use
+register_metric(MyMetric())
+```
+
+# Next Steps
+
+- See `vignette("custom-fitters")` for creating custom model fitters
+- See `vignette("reproducibility")` for understanding determinism guarantees
+- See `vignette("memory-management")` for handling large simulations

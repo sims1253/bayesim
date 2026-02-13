@@ -17,6 +17,36 @@ Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
+Collate: 
+    'bayesim-package.R'
+    'errors.R'
+    'utils.R'
+    'results.R'
+    'fitter.R'
+    'metric.R'
+    'simulation-config.R'
+    'contracts.R'
+    'rng.R'
+    'task-grid.R'
+    'worker.R'
+    'metric-registry.R'
+    'simulate.R'
+    'checkpoint.R'
+    'resume.R'
+    'retention.R'
+    'brms-fitter.R'
+    'metrics-built-in.R'
+    'global_imports.R'
+    'simulation_building_blocks.R'
+    'simulation.R'
+    'prefit.R'
+    'parallel_helpers.R'
+    'metric_lookup.R'
+    'metric_list_handler.R'
+    'loo_handler.R'
+    'll_lookup.R'
+    'inverse_forward_sampling.R'
+    'ifs_sbc.R'
 Imports:
     S7,
     cli (>= 3.6.0),
