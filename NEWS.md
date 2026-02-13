@@ -57,3 +57,42 @@ memory-bounded execution.
 * Added jsonlite for serialization
 * Added tibble for result data frames
 * Moved brms, rstan, cmdstanr to Suggests
+
+## Phase 2: Deterministic Engine Core
+
+### Execution Engine
+
+* `run_simulation()` main entry point for simulation runs
+* `create_task_grid()` generates deterministic task table with precomputed RNG streams
+* Task IDs in format `dXXX_fXXX_rXXXXX` for lexicographic ordering
+* `execute_tasks()` iterates through tasks with progress bar and error tracking
+
+### RNG Management
+
+* `setup_global_rng()` initializes L'Ecuyer-CMRG RNG
+* `set_task_rng()` restores per-task RNG state deterministically
+* `advance_rng_stream()` pure function for advancing RNG state
+* Each task gets independent, precomputed RNG stream
+
+### Worker Execution
+
+* `run_task()` executes single task: data generation, fitting, metrics
+* `run_task_safe()` wrapper with fatal error propagation
+* `build_metric_context()` precomputes context (predictions, log_lik, loo)
+* `compute_all_metrics()` with required vs optional metric handling
+* `apply_retention()` removes large objects based on retention policy
+
+### Metric Registry
+
+* `register_metric()` adds metrics with Metric subtype enforcement
+* `get_metric()` retrieves metrics by name
+* `list_metrics()` returns all registered metric names
+* `unregister_metric()` removes metrics
+* `clear_registry()` for testing (internal)
+
+### Bug Fixes
+
+* Fixed `set_task_rng()` to use explicit environment assignment
+* Fixed `execute_tasks()` to pass proper S7 config object
+* Fixed `run_task_safe()` to propagate fatal errors
+* Removed duplicate `create_task_rng_streams()` function
