@@ -2,9 +2,12 @@
 % Please edit documentation in R/inverse_forward_sampling.R
 \name{forward_sampling}
 \alias{forward_sampling}
+\alias{forward_sampling.list}
 \title{Simulate a new dataset using forward sampling.}
 \usage{
 forward_sampling(fit, i, n, ...)
+
+\method{forward_sampling}{list}(fit, i, n, ...)
 }
 \arguments{
 \item{fit}{An object of class brmsfit or a list of brmsfit objects.}
@@ -13,13 +16,19 @@ forward_sampling(fit, i, n, ...)
 The index is passed to \code{\link[rstantools:posterior_predict]{rstantools::posterior_predict()}}'s "draw_ids"
 argument.}
 
-\item{...}{Potential additional arguments.}
+\item{n}{Number of observations to simulate.}
 
-\item{newdata}{A dataframe that is passed to posterior predict.}
+\item{...}{Potential additional arguments passed to \code{\link[brms:posterior_predict.brmsfit]{brms::posterior_predict()}}.}
 }
 \value{
 A data.frame containing n observations for each variable in the fit.
 }
 \description{
 Simulate a new dataset using forward sampling.
+}
+\examples{
+\dontrun{
+fit <- brms::brm(y ~ x, data = data.frame(y = rnorm(10), x = rnorm(10)))
+forward_sampling(fit, i = 1, n = 100)
+}
 }

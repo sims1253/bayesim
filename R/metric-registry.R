@@ -10,13 +10,7 @@
 #'
 #' @return Invisible NULL
 #'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' my_metric <- MyMetricClass(name = "my_metric")
-#' register_metric(my_metric)
-#' }
+#' @noRd
 register_metric <- function(metric, overwrite = FALSE) {
   if (!S7::S7_inherits(metric)) {
     cli::cli_abort("metric must be an S7 object")
@@ -50,12 +44,7 @@ register_metric <- function(metric, overwrite = FALSE) {
 #'
 #' @return The S7 Metric object, or NULL if not found
 #'
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' metric <- get_metric("rmse")
-#' }
+#' @noRd
 get_metric <- function(name) {
   if (!is.character(name) || length(name) != 1) {
     cli::cli_abort("name must be a single character string")
@@ -68,7 +57,7 @@ get_metric <- function(name) {
 #'
 #' @return Character vector of registered metric names
 #'
-#' @export
+#' @noRd
 list_metrics <- function() {
   ls(.metric_registry)
 }
@@ -81,7 +70,7 @@ list_metrics <- function() {
 #'
 #' @return Invisible NULL
 #'
-#' @export
+#' @noRd
 unregister_metric <- function(name) {
   if (!is.character(name) || length(name) != 1) {
     cli::cli_abort("name must be a single character string")
@@ -89,6 +78,7 @@ unregister_metric <- function(name) {
 
   if (is.null(.metric_registry[[name]])) {
     cli::cli_warn("Metric '{name}' is not registered")
+    return(invisible(NULL))
   }
 
   rm(list = name, envir = .metric_registry)

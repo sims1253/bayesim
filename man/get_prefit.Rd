@@ -2,13 +2,39 @@
 % Please edit documentation in R/prefit.R
 \name{get_prefit}
 \alias{get_prefit}
-\title{Title}
+\title{Create a precompiled brms model object}
 \usage{
 get_prefit(fit_conf, stan_pars)
 }
 \arguments{
-\item{family_list}{}
+\item{fit_conf}{A list or data.frame row containing model configuration:
+\itemize{
+\item fit_family: The model family (e.g., "gaussian", "student_t")
+\item fit_link: The link function (e.g., "identity", "log")
+\item formula: The model formula as a character string
+\item prior: (optional) Prior specifications
+}}
+
+\item{stan_pars}{A list containing Stan parameters, must include:
+\itemize{
+\item backend: Stan backend ("cmdstanr" or "rstan")
+}}
+}
+\value{
+A brmsfit object with compiled Stan code (chains = 0)
 }
 \description{
-Title
+Creates a brmsfit object with compiled Stan code that can be efficiently
+updated with new data during simulation runs, avoiding recompilation.
+}
+\examples{
+\dontrun{
+fit_conf <- list(
+  fit_family = "gaussian",
+  fit_link = "identity",
+  formula = "y ~ x"
+)
+stan_pars <- list(backend = "cmdstanr")
+prefit <- get_prefit(fit_conf, stan_pars)
+}
 }

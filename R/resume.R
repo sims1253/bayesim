@@ -60,8 +60,6 @@ can_resume <- function(result_path) {
 #'
 #' @param result_path Character; path to results directory containing checkpoints.
 #' @param config SimulationConfig; current configuration object.
-#' @param force_restart Logical; if TRUE, ignore fingerprint mismatch and
-#'   restart anyway. Default is FALSE.
 #'
 #' @return A list with elements:
 #'   - `task_grid`: Task grid with restored status from checkpoint
@@ -72,7 +70,7 @@ can_resume <- function(result_path) {
 #' The function performs the following validation steps:
 #' 1. Reads and validates run_manifest.json
 #' 2. Checks schema version compatibility
-#' 3. Computes and compares configuration fingerprint (unless force_restart)
+#' 3. Computes and compares configuration fingerprints
 #' 4. Finds the most recent valid checkpoint
 #' 5. Rebuilds task grid with status from checkpoint
 #'
@@ -85,7 +83,7 @@ can_resume <- function(result_path) {
 #' task_grid <- resume_state$task_grid
 #' prior_results <- resume_state$prior_results
 #' }
-load_for_resume <- function(result_path, config, force_restart = FALSE) {
+load_for_resume <- function(result_path, config) {
   # Read manifest
   manifest_path <- file.path(result_path, "run_manifest.json")
   manifest <- tryCatch(
@@ -122,28 +120,28 @@ load_for_resume <- function(result_path, config, force_restart = FALSE) {
     )
   }
 
-  # Find valid checkpoint (scan backward from latest if corrupted)
-  checkpoint <- get_latest_valid_checkpoint(result_path)
-  if (is.null(checkpoint)) {
+  manifest_format <- manifest$checkpoint_format %||% "rds"
+  if (!identical(manifest_format, config@checkpoint_format)) {
     cli::cli_abort(
-      "No valid checkpoint found in {result_path}",
+      c(
+        "Checkpoint format mismatch",
+        "x" = "Checkpoint uses '{manifest_format}' but config requests '{config@checkpoint_format}'"
+      ),
       class = "bayesim_checkpoint_error"
     )
   }
 
-  # Validate checkpoint fingerprint (not just manifest)
+  # Find valid checkpoint (scan backward from latest if corrupted)
   expected_fingerprint <- compute_config_fingerprint(config)
-  if (!identical(checkpoint$meta$config_fingerprint, expected_fingerprint)) {
-    if (!force_restart) {
-      cli::cli_abort(
-        c(
-          "Configuration fingerprint mismatch",
-          "x" = "Cannot resume: checkpoint was created with different configuration",
-          "i" = "Use force_restart = TRUE to restart anyway"
-        ),
-        class = "bayesim_checkpoint_error"
-      )
-    }
+  checkpoint <- get_latest_valid_checkpoint(
+    result_path,
+    config_fingerprint = expected_fingerprint
+  )
+  if (is.null(checkpoint)) {
+    cli::cli_abort(
+      "No valid compatible checkpoint found in {result_path}",
+      class = "bayesim_checkpoint_error"
+    )
   }
 
   # Rebuild task grid with restored status
@@ -213,8 +211,8 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
 #' Merge Prior and New Results
 #'
 #' Combines results from a resumed run with new results from continued
-#' execution. Deduplicates by task_id using last-write-wins semantics
-#' (new results take precedence over prior results).
+#' execution. Duplicate task rows must be identical or an integrity error
+#' is raised.
 #'
 #' @param prior_results Data frame of results from checkpoint.
 #' @param new_results Data frame of results from new execution.
@@ -237,9 +235,43 @@ merge_results <- function(prior_results, new_results) {
     return(prior_results)
   }
 
-  # Remove duplicates from prior (keep new - last-write-wins)
+  duplicate_ids <- intersect(prior_results$task_id, new_results$task_id)
+
+  if (length(duplicate_ids) > 0) {
+    for (task_id in duplicate_ids) {
+      prior_row <- prior_results[
+        prior_results$task_id == task_id,
+        ,
+        drop = FALSE
+      ]
+      new_row <- new_results[new_results$task_id == task_id, , drop = FALSE]
+
+      if (nrow(prior_row) != 1 || nrow(new_row) != 1) {
+        cli::cli_abort(
+          "Duplicate terminal rows detected for task_id '{task_id}'",
+          class = "bayesim_checkpoint_error"
+        )
+      }
+
+      if (
+        !identical(
+          normalize_result_row(prior_row),
+          normalize_result_row(new_row)
+        )
+      ) {
+        cli::cli_abort(
+          paste(
+            "Conflicting duplicate terminal rows detected for task_id",
+            shQuote(task_id)
+          ),
+          class = "bayesim_checkpoint_error"
+        )
+      }
+    }
+  }
+
   prior_only <- prior_results[
-    !prior_results$task_id %in% new_results$task_id,
+    !prior_results$task_id %in% duplicate_ids,
     ,
     drop = FALSE
   ]
@@ -251,6 +283,171 @@ merge_results <- function(prior_results, new_results) {
   rownames(combined) <- NULL
 
   combined
+}
+
+normalize_result_row <- function(x) {
+  cols <- sort(names(x))
+  x <- x[, cols, drop = FALSE]
+
+  lapply(x, function(col) {
+    if (is.factor(col)) {
+      as.character(col)
+    } else {
+      col
+    }
+  })
+}
+
+rehydrate_config_from_manifest <- function(result_path) {
+  manifest <- read_run_manifest(result_path)
+
+  if (is.null(manifest) || is.null(manifest$config_spec)) {
+    cli::cli_abort(
+      "Run manifest does not contain a rehydratable configuration; please supply config explicitly"
+    )
+  }
+
+  spec <- manifest$config_spec
+  data_generator <- rehydrate_function_spec(spec$data_generator_spec)
+  fitter <- rehydrate_s7_spec(spec$fitter_spec)
+  metrics <- lapply(spec$metrics_spec %||% list(), rehydrate_s7_spec)
+
+  data_grid <- normalize_manifest_df(spec$data_grid)
+  fit_grid <- normalize_manifest_df(spec$fit_grid)
+  task_grid <- normalize_manifest_df(spec$task_grid)
+  retain <- normalize_manifest_retain(spec$retain)
+  max_errors <- normalize_manifest_numeric(spec$max_errors, default = Inf)
+  seed <- as.integer(normalize_manifest_numeric(spec$seed, default = 1L))
+  n_replicates <- as.integer(normalize_manifest_numeric(
+    spec$n_replicates,
+    default = 1L
+  ))
+
+  simulation_config(
+    data_grid = data_grid,
+    fit_grid = fit_grid,
+    task_grid = task_grid,
+    data_generator = data_generator,
+    fitter = fitter,
+    metrics = metrics,
+    n_replicates = n_replicates,
+    seed = seed,
+    result_path = result_path,
+    checkpoint_format = spec$checkpoint_format %||% "rds",
+    retain = retain,
+    max_errors = max_errors
+  )
+}
+
+rehydrate_function_spec <- function(spec) {
+  if (is.null(spec) || !isTRUE(spec$rehydratable) || is.null(spec$reference)) {
+    cli::cli_abort(
+      "Run manifest references non-rehydratable executable components; please supply config explicitly"
+    )
+  }
+
+  validate_namespace_version(spec$reference$package, spec$reference$version)
+
+  get(spec$reference$name, envir = asNamespace(spec$reference$package))
+}
+
+rehydrate_s7_spec <- function(spec) {
+  if (is.null(spec) || (length(spec) == 1 && is.na(spec))) {
+    return(NULL)
+  }
+
+  if (!isTRUE(spec$rehydratable) || is.null(spec$class)) {
+    cli::cli_abort(
+      "Run manifest references non-rehydratable executable components; please supply config explicitly"
+    )
+  }
+
+  class_parts <- strsplit(spec$class, "::", fixed = TRUE)[[1]]
+  if (length(class_parts) != 2) {
+    cli::cli_abort(
+      "Cannot rehydrate S7 object without namespaced class reference"
+    )
+  }
+
+  validate_namespace_version(class_parts[[1]], spec$package_version)
+
+  constructor <- get(class_parts[[2]], envir = asNamespace(class_parts[[1]]))
+  props <- spec$properties %||% list()
+  do.call(constructor, props)
+}
+
+validate_namespace_version <- function(package, expected_version = NULL) {
+  if (is.null(expected_version)) {
+    return(invisible(TRUE))
+  }
+
+  current_version <- as.character(getNamespaceVersion(package))
+  if (!identical(current_version, expected_version)) {
+    cli::cli_abort(
+      c(
+        "Component version mismatch during resume rehydration",
+        "x" = "Package '{package}' version is '{current_version}', expected '{expected_version}'"
+      )
+    )
+  }
+
+  invisible(TRUE)
+}
+
+normalize_manifest_df <- function(x) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+
+  if (is.list(x) && length(x) == 0) {
+    return(NULL)
+  }
+
+  if (is.data.frame(x)) {
+    return(x)
+  }
+
+  if (is.list(x) && all(vapply(x, is.list, logical(1)))) {
+    return(dplyr::bind_rows(x))
+  }
+
+  tryCatch(as.data.frame(x), error = function(e) x)
+}
+
+normalize_manifest_retain <- function(x) {
+  if (is.null(x) || (is.list(x) && length(x) == 0)) {
+    return(c("metrics", "diagnostics"))
+  }
+
+  if (is.character(x)) {
+    return(x)
+  }
+
+  if (!is.list(x)) {
+    return(c("metrics", "diagnostics"))
+  }
+
+  lapply(x, function(value) {
+    if (is.character(value)) {
+      value
+    } else if (is.list(value)) {
+      unlist(value, use.names = FALSE)
+    } else {
+      as.character(value)
+    }
+  })
+}
+
+normalize_manifest_numeric <- function(x, default = NULL) {
+  if (is.null(x) || (is.list(x) && length(x) == 0)) {
+    return(default)
+  }
+
+  if (is.character(x) && identical(x, "Inf")) {
+    return(Inf)
+  }
+
+  as.numeric(x)
 }
 
 #' Get Resume Summary

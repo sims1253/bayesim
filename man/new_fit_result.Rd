@@ -11,7 +11,8 @@ new_fit_result(
   diagnostics = list(),
   timing = list(total = 0, warmup = 0, sample = 0),
   warnings = character(),
-  error = NULL
+  error = NULL,
+  data_bundle = NULL
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ new_fit_result(
 \item{warnings}{Character vector of warning messages captured during fitting}
 
 \item{error}{A condition object if the fit failed, NULL otherwise}
+
+\item{data_bundle}{Optional list containing the training/test data used for fitting}
 }
 \value{
 A validated \code{bayesim_fit_result} object

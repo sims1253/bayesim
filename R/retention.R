@@ -33,7 +33,7 @@ RETAIN_OPTIONS <- c(
 #' @keywords internal
 RETENTION_PROFILES <- list(
   minimal = c("metrics"),
-  standard = c("metrics", "diagnostics"),
+  standard = c("metrics", "diagnostics", "warnings"),
   debug = c(
     "metrics",
     "diagnostics",
@@ -64,6 +64,10 @@ RETENTION_PROFILES <- list(
 #' resolve_retention("minimal")
 #' resolve_retention(c("metrics", "draws"))
 resolve_retention <- function(retain) {
+  if (is.null(retain)) {
+    return(character())
+  }
+
   # Check if retain is a profile name
   if (
     is.character(retain) &&
@@ -80,6 +84,45 @@ resolve_retention <- function(retain) {
   }
 
   intersect(retain, RETAIN_OPTIONS)
+}
+
+#' Resolve retention options for a task result
+#'
+#' @param retain_spec Canonical retention spec list with success/warning/error entries
+#' @param status Task status
+#' @param warnings Character vector of warnings for the task
+#'
+#' @return Character vector of retention options for that task outcome
+#' @keywords internal
+retention_for_task_result <- function(
+  retain_spec,
+  status,
+  warnings = character()
+) {
+  if (is.null(retain_spec)) {
+    return(c("metrics"))
+  }
+
+  if (is.character(retain_spec)) {
+    retain_spec <- list(
+      success = unique(c("metrics", retain_spec)),
+      warning = unique(c("metrics", retain_spec)),
+      error = unique(c("metrics", retain_spec))
+    )
+  }
+
+  context <- if (identical(status, "failed")) {
+    "error"
+  } else if (length(warnings) > 0) {
+    "warning"
+  } else {
+    "success"
+  }
+
+  unique(c(
+    "metrics",
+    retain_spec[[context]] %||% retain_spec$success %||% character()
+  ))
 }
 
 ## Fit Result Retention --------------------------------------------------------
@@ -225,4 +268,74 @@ externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
     hash = compute_hash(artifact),
     size = estimate_size(artifact)
   )
+}
+
+## Memory-Bounded Execution ----------------------------------------------------
+
+#' Lighten task result after checkpointing
+#'
+#' Removes heavy objects from a task result that has been checkpointed.
+#' This reduces memory usage while keeping lightweight summary data needed
+#' for the final result construction.
+#'
+#' @param task_result A bayesim_task_result object
+#' @param retain Character vector of retention options specifying what to keep
+#'
+#' @return A lightened bayesim_task_result object with heavy fields removed.
+#'   If all heavy fields are removed and only minimal data remains, may return
+#'   a lightweight summary object instead.
+#'
+#' @details
+#' After a task result has been checkpointed to disk, we can safely remove
+#' heavy objects from memory since they can be reconstructed from the checkpoint.
+#' This function:
+#' \itemize{
+#'   \item Always keeps: task_id, status, metrics, timing, error
+#'   \item Keeps diagnostics only if "diagnostics" is in retain
+#'   \item Removes: draws, predictions, fit, data (always, since checkpointed)
+#'   \item Keeps warnings only if "warnings" is in retain
+#' }
+#'
+#' The rationale is that metrics and diagnostics are needed for the final
+#' summary dataframe construction, while heavy objects (fit, draws, data)
+#' can be loaded from checkpoint if needed for detailed analysis.
+#'
+#' @export
+#'
+#' @seealso [execute_tasks()], [write_checkpoint()]
+lighten_task_result <- function(task_result, retain) {
+  if (is.null(task_result)) {
+    return(NULL)
+  }
+
+  # Create a lightweight copy with only essential fields
+  light <- list(
+    task_id = task_result$task_id,
+    status = task_result$status,
+    metrics = task_result$metrics,
+    timing = task_result$timing,
+    error = task_result$error
+  )
+
+  # Keep diagnostics if retention includes it (needed for summary)
+  if ("diagnostics" %in% retain && !is.null(task_result$diagnostics)) {
+    light$diagnostics <- task_result$diagnostics
+  }
+
+  # Keep warnings if retention includes it
+  if ("warnings" %in% retain && !is.null(task_result$warnings)) {
+    light$warnings <- task_result$warnings
+  }
+
+  # Always remove heavy objects after checkpointing:
+  # - fit, draws, predictions, data
+  # These can be loaded from checkpoint if needed for analysis
+  # We do NOT copy them even if in retain, since they're now on disk
+
+  # Preserve class if it exists
+  if (!is.null(attr(task_result, "class"))) {
+    class(light) <- class(task_result)
+  }
+
+  light
 }

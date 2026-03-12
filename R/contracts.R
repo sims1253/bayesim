@@ -32,7 +32,7 @@ NULL
 #'     `vars_of_interest`
 #'   \item `vars_of_interest`: A non-empty character vector of unique names
 #'   \item `references`: A named numeric vector where names exactly match
-#'     `vars_of_interest`
+#'     `vars_of_interest` (optional)
 #'   \item `meta`: Optional named list with scalar values only
 #' }
 #'
@@ -44,7 +44,7 @@ NULL
 #'   \item `true_params` must be a named numeric vector
 #'   \item `vars_of_interest` must be a non-empty unique character vector
 #'   \item `setequal(names(true_params), vars_of_interest)` must be TRUE
-#'   \item `setequal(names(references), vars_of_interest)` must be TRUE
+#'   \item If provided, `setequal(names(references), vars_of_interest)` must be TRUE
 #'   \item No duplicate names in any named vector/list
 #'   \item `meta` must be a named list with scalar values only (if present)
 #' }
@@ -79,54 +79,49 @@ validate_data_bundle <- function(data_bundle) {
   if (is.null(data_bundle$train)) {
     stop(bayesim_data_error("data_bundle$train is required and cannot be NULL"))
   }
-  if (!is.data.frame(data_bundle$train)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$train must be a data.frame, got " %+%
-          class(data_bundle$train)[1]
-      )
-    )
-  }
-  if (nrow(data_bundle$train) < 1) {
+  if (is.data.frame(data_bundle$train) && nrow(data_bundle$train) < 1) {
     stop(bayesim_data_error("data_bundle$train must have at least 1 row"))
   }
 
   # Validate test
   if (!is.null(data_bundle$test)) {
-    if (!is.data.frame(data_bundle$test)) {
-      stop(
-        bayesim_data_error(
-          "data_bundle$test must be NULL or a data.frame, got " %+%
-            class(data_bundle$test)[1]
-        )
-      )
+    if (
+      !is.data.frame(data_bundle$test) &&
+        !is.matrix(data_bundle$test) &&
+        !is.list(data_bundle$test)
+    ) {
+      stop(bayesim_data_error(
+        "data_bundle$test must be NULL or a structured object (data.frame, matrix, or list)"
+      ))
     }
   }
 
-  # Validate response
-  if (is.null(data_bundle$response)) {
-    stop(bayesim_data_error(
-      "data_bundle$response is required and cannot be NULL"
-    ))
-  }
-  if (
-    !is.character(data_bundle$response) || length(data_bundle$response) != 1
-  ) {
+  # Validate response (optional fitter-specific hint)
+  if (!is.null(data_bundle$response) && !is.character(data_bundle$response)) {
     stop(
       bayesim_data_error(
-        "data_bundle$response must be a scalar character, got " %+%
-          typeof(data_bundle$response) %+%
-          " of length " %+%
-          length(data_bundle$response)
+        "data_bundle$response must be NULL or a character vector, got " %+%
+          typeof(data_bundle$response)
       )
     )
   }
-  if (is.na(data_bundle$response) || data_bundle$response == "") {
+  if (
+    !is.null(data_bundle$response) &&
+      (length(data_bundle$response) < 1 ||
+        anyNA(data_bundle$response) ||
+        any(data_bundle$response == ""))
+  ) {
     stop(bayesim_data_error(
-      "data_bundle$response cannot be NA or empty string"
+      "data_bundle$response cannot contain NA or empty strings"
     ))
   }
-  if (!(data_bundle$response %in% names(data_bundle$train))) {
+
+  if (
+    !is.null(data_bundle$response) &&
+      is.data.frame(data_bundle$train) &&
+      length(data_bundle$response) == 1 &&
+      !(data_bundle$response %in% names(data_bundle$train))
+  ) {
     stop(
       bayesim_data_error(
         "data_bundle$response '" %+%
@@ -136,17 +131,21 @@ validate_data_bundle <- function(data_bundle) {
       )
     )
   }
-  if (!is.null(data_bundle$test)) {
-    if (!(data_bundle$response %in% names(data_bundle$test))) {
-      stop(
-        bayesim_data_error(
-          "data_bundle$response '" %+%
-            data_bundle$response %+%
-            "' not found in test columns: " %+%
-            paste(names(data_bundle$test), collapse = ", ")
-        )
+  if (
+    !is.null(data_bundle$test) &&
+      !is.null(data_bundle$response) &&
+      is.data.frame(data_bundle$test) &&
+      length(data_bundle$response) == 1 &&
+      !(data_bundle$response %in% names(data_bundle$test))
+  ) {
+    stop(
+      bayesim_data_error(
+        "data_bundle$response '" %+%
+          data_bundle$response %+%
+          "' not found in test columns: " %+%
+          paste(names(data_bundle$test), collapse = ", ")
       )
-    }
+    )
   }
 
   # Validate true_params
@@ -207,7 +206,7 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
   if (
-    any(is.na(data_bundle$vars_of_interest)) ||
+    anyNA(data_bundle$vars_of_interest) ||
       any(data_bundle$vars_of_interest == "")
   ) {
     stop(bayesim_data_error(
@@ -240,58 +239,57 @@ validate_data_bundle <- function(data_bundle) {
     stop(bayesim_data_error(msg))
   }
 
-  # Validate references
-  if (is.null(data_bundle$references)) {
-    stop(bayesim_data_error(
-      "data_bundle$references is required and cannot be NULL"
-    ))
-  }
-  if (!is.numeric(data_bundle$references)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$references must be a numeric vector, got " %+%
-          typeof(data_bundle$references)
+  # Validate references (optional)
+  if (!is.null(data_bundle$references)) {
+    if (!is.numeric(data_bundle$references)) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$references must be a numeric vector, got " %+%
+            typeof(data_bundle$references)
+        )
       )
-    )
-  }
-  if (is.null(names(data_bundle$references))) {
-    stop(bayesim_data_error("data_bundle$references must have names"))
-  }
-  if (anyDuplicated(names(data_bundle$references)) > 0) {
-    dup_names <- names(data_bundle$references)[duplicated(names(
-      data_bundle$references
-    ))]
-    stop(
-      bayesim_data_error(
-        "data_bundle$references has duplicate names: " %+%
-          paste(unique(dup_names), collapse = ", ")
+    }
+    if (is.null(names(data_bundle$references))) {
+      stop(bayesim_data_error("data_bundle$references must have names"))
+    }
+    if (anyDuplicated(names(data_bundle$references)) > 0) {
+      dup_names <- names(data_bundle$references)[duplicated(names(
+        data_bundle$references
+      ))]
+      stop(
+        bayesim_data_error(
+          "data_bundle$references has duplicate names: " %+%
+            paste(unique(dup_names), collapse = ", ")
+        )
       )
-    )
-  }
+    }
 
-  # Validate references names match vars_of_interest
-  if (!setequal(names(data_bundle$references), data_bundle$vars_of_interest)) {
-    in_refs_not_vars <- setdiff(
-      names(data_bundle$references),
-      data_bundle$vars_of_interest
-    )
-    in_vars_not_refs <- setdiff(
-      data_bundle$vars_of_interest,
-      names(data_bundle$references)
-    )
-    msg <- "data_bundle: names(references) must exactly match vars_of_interest. "
-    if (length(in_refs_not_vars) > 0) {
-      msg <- msg %+%
-        "In references but not vars_of_interest: " %+%
-        paste(in_refs_not_vars, collapse = ", ") %+%
-        ". "
+    # Validate references names match vars_of_interest if both are present
+    if (
+      !setequal(names(data_bundle$references), data_bundle$vars_of_interest)
+    ) {
+      in_refs_not_vars <- setdiff(
+        names(data_bundle$references),
+        data_bundle$vars_of_interest
+      )
+      in_vars_not_refs <- setdiff(
+        data_bundle$vars_of_interest,
+        names(data_bundle$references)
+      )
+      msg <- "data_bundle: names(references) must exactly match vars_of_interest. "
+      if (length(in_refs_not_vars) > 0) {
+        msg <- msg %+%
+          "In references but not vars_of_interest: " %+%
+          paste(in_refs_not_vars, collapse = ", ") %+%
+          ". "
+      }
+      if (length(in_vars_not_refs) > 0) {
+        msg <- msg %+%
+          "In vars_of_interest but not references: " %+%
+          paste(in_vars_not_refs, collapse = ", ")
+      }
+      stop(bayesim_data_error(msg))
     }
-    if (length(in_vars_not_refs) > 0) {
-      msg <- msg %+%
-        "In vars_of_interest but not references: " %+%
-        paste(in_vars_not_refs, collapse = ", ")
-    }
-    stop(bayesim_data_error(msg))
   }
 
   # Validate meta (optional)
@@ -709,20 +707,16 @@ validate_simulation_config <- function(config) {
     )
   }
 
-  # Validate data_grid has at least one row
-  if (is.null(config@data_grid) || nrow(config@data_grid) < 1) {
-    stop(
-      bayesim_config_error(
-        "config@data_grid must have at least 1 row"
-      )
-    )
-  }
+  has_task_grid <- !is.null(config@task_grid) && nrow(config@task_grid) > 0
+  has_crossed_grids <- !is.null(config@data_grid) &&
+    nrow(config@data_grid) > 0 &&
+    !is.null(config@fit_grid) &&
+    nrow(config@fit_grid) > 0
 
-  # Validate fit_grid has at least one row
-  if (is.null(config@fit_grid) || nrow(config@fit_grid) < 1) {
+  if (!has_task_grid && !has_crossed_grids) {
     stop(
       bayesim_config_error(
-        "config@fit_grid must have at least 1 row"
+        "config must include task_grid or both data_grid and fit_grid"
       )
     )
   }

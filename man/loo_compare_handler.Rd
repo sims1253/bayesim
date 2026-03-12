@@ -2,17 +2,24 @@
 % Please edit documentation in R/loo_handler.R
 \name{loo_compare_handler}
 \alias{loo_compare_handler}
-\title{Title}
+\title{Compare LOO objects}
 \usage{
 loo_compare_handler(loo_object_matrix, predictive_metrics)
 }
 \arguments{
-\item{predictive_metrics}{}
+\item{loo_object_matrix}{List of LOO objects}
+
+\item{predictive_metrics}{Character vector of metrics to compare}
+}
+\value{
+A data frame with delta and se_delta for each metric
 }
 \description{
-Title
+Compare LOO objects
 }
 \examples{
 \dontrun{
+# Requires brms package and fitted models
+loo_compare_handler(loo_objects, metrics)
 }
 }

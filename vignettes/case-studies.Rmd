@@ -1,0 +1,616 @@
+---
+title: "Case Studies: Simulation-Based Research with bayesim"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Case Studies: Simulation-Based Research with bayesim}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+```{r setup}
+library(bayesim)
+library(dplyr)
+library(ggplot2)
+```
+
+## Introduction
+
+This vignette demonstrates two case studies from the simulation-based Bayesian model validation literature:
+
+1. **Prediction vs Explanation** (arXiv:2210.06927): When does good predictive performance imply good parameter recovery?
+
+2. **Primed Priors** (arXiv:2408.06504): Using calibration data to generate realistic simulation scenarios without hand-specifying priors.
+
+::: {.callout-warning}
+All code chunks that require `brms` and Stan use `eval=FALSE`. To run these examples, you need:
+
+- `brms` package installed
+- `cmdstanr` or `rstan` as the Stan backend  
+- A working C++ toolchain
+:::
+
+---
+
+## Case Study 1: Prediction as a Proxy for Explanation
+
+### Background
+
+The paper (arXiv:2210.06927) investigates when predictive performance (PP) can serve as a reliable proxy for parameter recoverability (PR) in Bayesian GLMs. The key question: if a model predicts well, can we trust its parameter estimates?
+
+### The Causal Structure
+
+We work with a fixed causal directed acyclic graph (DAG):
+
+```
+    z3
+     |
+     v
+     x -----> y
+     ^        ^
+     |        |
+    z1       z2
+     |        |
+     +--------+
+     
+     x -----> z4 <----- y
+```
+
+**Variable roles:**
+
+| Variable | Role | Relationships |
+|----------|------|---------------|
+| `x` | Treatment | `x → y` (causal effect of interest) |
+| `y` | Outcome | Target of prediction |
+| `z1` | Fork/Confounder | `z1 → x` and `z1 → y` |
+| `z2` | Ancestor of y only | `z2 → y` |
+| `z3` | Ancestor of x only | `z3 → x` |
+| `z4` | Collider | `x → z4 ← y` (NOT adjusted for) |
+
+The target parameter is `b_x`: the causal effect of `x` on `y`. The correct adjustment set is `{z1, z2}` (not `z3` or `z4`).
+
+### Data Generator with Varying Likelihood/Link
+
+The generator preserves the DAG structure while varying the outcome distribution:
+
+```{r case1-data-generator}
+generate_case1_data <- function(data_spec, seed, task_ctx) {
+  # Use a shared seed so all models fit to the same dataset
+  # within a replicate see identical data
+  shared_seed <- as.integer(
+    data_spec$base_seed + 100000L * task_ctx$data_idx + task_ctx$rep_idx
+  )
+  set.seed(shared_seed)
+
+  n <- data_spec$n
+
+  # --- Generate covariates following the DAG ---
+  z1 <- rnorm(n)                    # Confounder
+  z2 <- rnorm(n)                    # Ancestor of y only
+  z3 <- rnorm(n)                    # Ancestor of x only
+  
+  # x depends on z1 and z3 (not z2)
+  x <- 0.7 * z1 + 0.8 * z3 + rnorm(n, sd = 0.6)
+
+  # Linear predictor for y (correct adjustment: z1, z2)
+  b0  <- data_spec$b0
+  bx  <- data_spec$bx   # True causal effect
+  bz1 <- data_spec$bz1
+  bz2 <- data_spec$bz2
+  eta <- b0 + bx * x + bz1 * z1 + bz2 * z2
+
+  # --- Generate outcome from selected DGP ---
+  if (identical(data_spec$dgp_family, "gaussian")) {
+    sigma <- data_spec$sigma
+    y <- rnorm(n, mean = eta, sd = sigma)
+    extra_true <- c(sigma = sigma)
+    
+  } else if (identical(data_spec$dgp_family, "gamma")) {
+    shape <- data_spec$shape
+    mu <- exp(eta)  # log link
+    y <- rgamma(n, shape = shape, rate = shape / mu)
+    extra_true <- c(shape = shape)
+    
+  } else if (identical(data_spec$dgp_family, "beta")) {
+    phi <- data_spec$phi
+    mu <- plogis(eta)  # logit link
+    mu <- pmin(pmax(mu, 1e-4), 1 - 1e-4)  # Bound away from 0,1
+    y <- rbeta(n, shape1 = mu * phi, shape2 = (1 - mu) * phi)
+    extra_true <- c(phi = phi)
+    
+  } else {
+    stop("Unsupported dgp_family: ", data_spec$dgp_family)
+  }
+
+  # Collider (generated for completeness, NOT used in fitting)
+  z4 <- 0.6 * x + 0.6 * y + rnorm(n, sd = 0.4)
+
+  true_params <- c(
+    b_Intercept = b0,
+    b_x = bx,
+    b_z1 = bz1,
+    b_z2 = bz2,
+    extra_true
+  )
+
+  list(
+    train = data.frame(y = y, x = x, z1 = z1, z2 = z2, z3 = z3, z4 = z4),
+    test = NULL,
+    response = "y",
+    true_params = true_params,
+    vars_of_interest = names(true_params),
+    references = setNames(rep(0, length(true_params)), names(true_params)),
+    meta = list(
+      dgp_family = data_spec$dgp_family,
+      dag = "z3->x->y; z1->x; z1->y; z2->y; x->z4<-y"
+    )
+  )
+}
+```
+
+### Fit Grid: Multiple Families on Same Data
+
+We fit three different models to each dataset, all with the same formula but different likelihoods:
+
+```{r case1-fit-grid, eval=FALSE}
+library(brms)
+
+fit_grid_case1 <- tibble::tibble(
+  model_id = c("gaussian", "gamma", "beta"),
+  formula = list(
+    bf(y ~ x + z1 + z2),
+    bf(y ~ x + z1 + z2),
+    bf(y ~ x + z1 + z2)
+  ),
+  family = list(
+    gaussian(),
+    Gamma(link = "log"),
+    Beta()
+  )
+)
+```
+
+### Custom Metrics for PP and PR
+
+We define two custom metrics:
+
+- **PP (Predictive Performance)**: LOO-ELPD from leave-one-out cross-validation
+- **PR (Parameter Recovery)**: Absolute error in recovering `b_x`, the true causal effect
+
+```{r case1-metrics}
+# PP: LOO-ELPD metric (needs LOO computation in context)
+LooElpdMetric <- S7::new_class(
+  "LooElpdMetric",
+  parent = Metric,
+  properties = list(
+    name = S7::new_property(S7::class_character, default = "loo_elpd"),
+    needs = S7::new_property(S7::class_character, default = "loo"),
+    required = S7::new_property(S7::class_logical, default = FALSE)
+  )
+)
+
+S7::method(compute, LooElpdMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+  if (is.null(context$loo)) {
+    return(list(elpd = NA_real_, elpd_se = NA_real_, p_loo = NA_real_))
+  }
+  list(
+    elpd = context$loo$elpd,
+    elpd_se = context$loo$elpd_se,
+    p_loo = context$loo$p_loo
+  )
+}
+
+# PR: Recovery of the causal effect b_x
+BxRecoveryMetric <- S7::new_class(
+  "BxRecoveryMetric",
+  parent = Metric,
+  properties = list(
+    name = S7::new_property(S7::class_character, default = "bx_recovery"),
+    needs = S7::new_property(S7::class_character, default = character()),
+    required = S7::new_property(S7::class_logical, default = FALSE)
+  )
+)
+
+S7::method(compute, BxRecoveryMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+  if (is.null(fit_result$draws) || !("b_x" %in% colnames(fit_result$draws))) {
+    return(list(abs_error = NA_real_, sq_error = NA_real_, bias = NA_real_))
+  }
+
+  est <- mean(fit_result$draws[, "b_x"])
+  truth <- unname(data_bundle$true_params[["b_x"]])
+
+  list(
+    abs_error = abs(est - truth),
+    sq_error = (est - truth)^2,
+    bias = est - truth
+  )
+}
+```
+
+### Simulation Configuration
+
+Small-scale illustration with 3 DGP families × 3 fit models × 8 replicates:
+
+```{r case1-config, eval=FALSE}
+config_case1 <- simulation_config(
+  data_grid = data.frame(
+    n = 120,
+    dgp_family = c("gaussian", "gamma", "beta"),
+    b0 = c(0.4, 0.2, -0.2),
+    bx = c(0.6, 0.5, 0.8),
+    bz1 = 0.3,
+    bz2 = 0.4,
+    sigma = 0.7,
+    shape = 8,
+    phi = 25,
+    base_seed = 42L,
+    stringsAsFactors = FALSE
+  ),
+  fit_grid = fit_grid_case1,
+  data_generator = generate_case1_data,
+  fitter = BrmsFitter(
+    backend = "cmdstanr",
+    chains = 2L,
+    iter = 1000L,
+    warmup = 500L,
+    refresh = 0L
+  ),
+  metrics = list(
+    LooElpdMetric(),
+    BxRecoveryMetric(),
+    coverage_metric(),
+    rmse_metric()
+  ),
+  n_replicates = 8L,
+  seed = 101L
+)
+
+result_case1 <- run_simulation(config_case1, progress = TRUE)
+```
+
+### Analysis: When Do PP and PR Agree?
+
+The key analysis compares whether the model with best PP also has best PR:
+
+```{r case1-analysis, eval=FALSE}
+# Extract summary and identify replicates
+summary_case1 <- result_case1$summary |>
+  mutate(
+    dgp = paste0("DGP: ", data_dgp_family),
+    rep_id = as.integer(gsub(".*_r(\\d+)", "\\1", task_id))
+  )
+
+# For each DGP and replicate, find PP winner and PR winner
+agreement_tbl <- summary_case1 |>
+  group_by(dgp, rep_id) |>
+  summarise(
+    winner_pp = fit_model_id[which.max(loo_elpd__elpd)],
+    winner_pr = fit_model_id[which.min(bx_recovery__abs_error)],
+    agree = winner_pp == winner_pr,
+    .groups = "drop"
+  )
+
+# Agreement rate by DGP
+agreement_tbl |>
+  group_by(dgp) |>
+  summarise(
+    agreement_rate = mean(agree, na.rm = TRUE),
+    n_replicates = n(),
+    .groups = "drop"
+  )
+```
+
+### Visualization
+
+```{r case1-plot, fig.width=9, fig.height=5, eval=FALSE}
+summary_case1 |>
+  ggplot(aes(
+    x = loo_elpd__elpd,
+    y = bx_recovery__abs_error,
+    color = fit_model_id
+  )) +
+  geom_point(alpha = 0.7, size = 2) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.8, alpha = 0.5) +
+  facet_wrap(~ dgp, scales = "free") +
+  labs(
+    title = "Predictive Performance vs Parameter Recovery",
+    subtitle = "Each point is one model fit; lower right is ideal",
+    x = "LOO-ELPD (higher = better prediction)",
+    y = "|Error in b_x| (lower = better recovery)",
+    color = "Fit Model"
+  ) +
+  scale_color_brewer(palette = "Set1") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+```
+
+**Expected pattern:** When the fitted model matches the data-generating family, PP and PR tend to agree. Misspecification (e.g., fitting gamma to gaussian data) can decouple them—good PP but poor PR, or vice versa.
+
+---
+
+## Case Study 2: Primed Priors for Simulation-Based Calibration
+
+### Background
+
+Simulation-based calibration (SBC) requires specifying priors that define the "true" parameter values. The paper (arXiv:2408.06504) proposes **primed priors**: use a calibration dataset to learn a realistic prior distribution, then sample from the posterior to generate simulation scenarios.
+
+This avoids hand-specifying priors while ensuring simulation parameters are realistic for your application domain.
+
+### The Pattern
+
+The primed prior workflow:
+
+1. **Calibration Data**: A real dataset representative of your application
+2. **Prime**: Fit the model to a subset of calibration data
+3. **Draw**: Sample one parameter set from the posterior
+4. **Simulate**: Generate new outcome data from posterior predictive
+5. **True params**: The drawn parameters become the "ground truth" for SBC
+
+### Primed Prior Generator
+
+This generator implements the primed prior pattern:
+
+```{r case2-primed-generator, eval=FALSE}
+library(brms)
+library(posterior)
+
+make_primed_prior_generator <- function(
+    calibration_data,
+    model_formula,
+    model_family,
+    calibration_n = 20L,
+    model_priors = NULL
+) {
+  # Cache for the priming fit (fitted once, reused across replicates)
+  cache <- new.env(parent = emptyenv())
+
+  function(data_spec, seed, task_ctx) {
+    # --- Step 1: Prime once (cached) ---
+    if (is.null(cache$priming_fit)) {
+      set.seed(data_spec$prime_seed)
+
+      # Sample subset of calibration data
+      cal_idx <- sample(seq_len(nrow(calibration_data)), calibration_n)
+      cal_subset <- calibration_data[cal_idx, , drop = FALSE]
+
+      # Fit model to calibration data (this "primes" the prior)
+      cache$priming_fit <- brms::brm(
+        formula = model_formula,
+        family = model_family,
+        data = cal_subset,
+        prior = model_priors %||% c(
+          prior(normal(0, 5), class = "b"),
+          prior(normal(0, 5), class = "Intercept")
+        ),
+        chains = 2,
+        iter = 1000,
+        warmup = 500,
+        refresh = 0,
+        seed = data_spec$prime_seed
+      )
+
+      cache$draws_df <- posterior::as_draws_df(cache$priming_fit)
+    }
+
+    # --- Step 2: Build covariates for new simulated dataset ---
+    # Note: seed is a scalar task seed.
+    # The simulation engine also restores the task RNG stream before each call,
+    # so the RNG is already in the correct state for this task.
+    n <- data_spec$n
+    new_idx <- sample(seq_len(nrow(calibration_data)), n, replace = TRUE)
+
+    # Extract covariate columns (everything except response)
+    resp_var <- all.vars(model_formula[[2]])[1]
+    cov_cols <- setdiff(names(calibration_data), resp_var)
+    new_covariates <- calibration_data[new_idx, cov_cols, drop = FALSE]
+
+    # --- Step 3: Draw one parameter set from primed posterior ---
+    draw_idx <- sample(seq_len(nrow(cache$draws_df)), 1)
+    draw_params <- cache$draws_df[draw_idx, , drop = FALSE]
+
+    # --- Step 4: Simulate new outcome from posterior predictive ---
+    y_sim <- as.integer(
+      brms::posterior_predict(
+        cache$priming_fit,
+        newdata = new_covariates,
+        draw_ids = draw_idx
+      )[1, ]
+    )
+
+    # --- Step 5: Extract true params from the draw ---
+    param_cols <- intersect(
+      c("b_Intercept", paste0("b_", cov_cols), "shape", "phi", "sigma"),
+      colnames(cache$draws_df)
+    )
+    true_params <- as.numeric(draw_params[1, param_cols])
+    names(true_params) <- param_cols
+
+    # Assemble training data
+    train_data <- cbind(
+      setNames(data.frame(y_sim), resp_var),
+      new_covariates
+    )
+
+    list(
+      train = train_data,
+      test = NULL,
+      response = resp_var,
+      true_params = true_params,
+      vars_of_interest = names(true_params),
+      references = setNames(rep(0, length(true_params)), names(true_params)),
+      meta = list(
+        primed = TRUE,
+        calibration_n = calibration_n,
+        draw_idx = draw_idx
+      )
+    )
+  }
+}
+```
+
+### Example: Count Data with Negative Binomial
+
+Using the `epilepsy` dataset from `brms` as calibration data:
+
+```{r case2-calibration-data, eval=FALSE}
+# Use brms epilepsy data as calibration source
+calibration_data <- brms::epilepsy |>
+  select(count, Base, Age) |>
+  mutate(
+    count = as.integer(count),
+    Base = scale(Base)[, 1],
+    Age = scale(Age)[, 1]
+  )
+
+# Create the primed generator
+primed_generator <- make_primed_prior_generator(
+  calibration_data = calibration_data,
+  model_formula = bf(count ~ Base + Age),
+  model_family = negbinomial(link = "log"),
+  calibration_n = 25L
+)
+```
+
+### Simulation Configuration
+
+Compare negative binomial vs Poisson (overdispersion misspecification):
+
+```{r case2-config, eval=FALSE}
+fit_grid_case2 <- tibble::tibble(
+  model_id = c("negbinomial", "poisson"),
+  formula = list(
+    bf(count ~ Base + Age),
+    bf(count ~ Base + Age)
+  ),
+  family = list(
+    negbinomial(link = "log"),
+    poisson(link = "log")
+  )
+)
+
+config_case2 <- simulation_config(
+  data_grid = data.frame(
+    n = c(40, 80),
+    prime_seed = 2024L
+  ),
+  fit_grid = fit_grid_case2,
+  data_generator = primed_generator,
+  fitter = BrmsFitter(
+    backend = "cmdstanr",
+    chains = 2L,
+    iter = 1000L,
+    warmup = 500L,
+    refresh = 0L
+  ),
+  metrics = list(
+    LooElpdMetric(),
+    coverage_metric(prob = 0.95),
+    posterior_mean_metric(),
+    rmse_metric()
+  ),
+  n_replicates = 6L,
+  seed = 77L
+)
+
+result_case2 <- run_simulation(config_case2, progress = TRUE)
+```
+
+### Why Primed Priors Enable SBC
+
+Traditional SBC requires:
+
+1. Hand-specify prior distributions
+2. Sample "true" parameters from prior
+3. Simulate data given parameters
+4. Fit model and check coverage
+
+**The challenge:** Hand-specified priors may be unrealistic for your application, leading to simulation scenarios that don't reflect real-world performance.
+
+**Primed priors solution:** The calibration dataset defines what "realistic" means for your domain. The priming fit learns posterior distributions that are:
+- Data-informed (from calibration data)
+- Realistic for the model family
+- Properly correlated across parameters
+
+Each simulated dataset carries the parameter values used to generate it (`true_params`), enabling coverage checks.
+
+### Post-Run Analysis
+
+```{r case2-analysis, eval=FALSE}
+# Summary by model and sample size
+result_case2$summary |>
+  group_by(fit_model_id, data_n) |>
+  summarise(
+    mean_elpd = mean(loo_elpd__elpd, na.rm = TRUE),
+    mean_coverage = mean(coverage__mean, na.rm = TRUE),
+    mean_rmse = mean(rmse__value, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Coverage by parameter
+result_case2$summary |>
+  select(fit_model_id, data_n, starts_with("coverage__")) |>
+  pivot_longer(
+    cols = starts_with("coverage__"),
+    names_to = "param",
+    values_to = "coverage"
+  ) |>
+  filter(!is.na(coverage)) |>
+  group_by(fit_model_id, param) |>
+  summarise(mean_coverage = mean(coverage), .groups = "drop") |>
+  ggplot(aes(x = param, y = mean_coverage, fill = fit_model_id)) +
+  geom_col(position = "dodge") +
+  geom_hline(yintercept = 0.95, linetype = "dashed", color = "red") +
+  labs(
+    title = "Coverage by Parameter and Model",
+    x = "Parameter",
+    y = "Mean Coverage",
+    fill = "Model"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+---
+
+## Implementation Notes
+
+### For CRAN Compliance
+
+All `brms`-dependent chunks have `eval=FALSE` because:
+
+1. `brms` has heavy dependencies (Stan, C++ toolchain)
+2. Vignette builds must work on CRAN machines without these
+3. Users can copy-paste code to run locally
+
+### Design Patterns Used
+
+1. **Shared seeds in Case Study 1**: Ensures all models fit to the same dataset within a replicate for fair comparison
+
+2. **Closure caching in Case Study 2**: The priming fit is cached inside the generator closure, computed once and reused
+
+3. **Metric composition**: Custom `LooElpdMetric` and `BxRecoveryMetric` alongside built-in `coverage_metric()`, `rmse_metric()`
+
+### Scaling Up
+
+For a full research study, increase:
+
+- `n_replicates`: 100-1000 for stable estimates
+- `chains`: 4 for better MCMC diagnostics
+- `iter` / `warmup`: 2000/1000 for more precise posteriors
+- `data_grid` conditions: more sample sizes, effect sizes, etc.
+
+---
+
+## References
+
+1. **Prediction vs Explanation**: Lundberg, I., et al. (2022). "Prediction can be safely used as a proxy for explanation in causally consistent Bayesian generalized linear models." arXiv:2210.06927
+
+2. **Primed Priors**: Schürmann, C., et al. (2024). "Primed priors for simulation-based validation of Bayesian models." arXiv:2408.06504

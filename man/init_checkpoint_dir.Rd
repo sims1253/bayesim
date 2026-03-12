@@ -4,7 +4,12 @@
 \alias{init_checkpoint_dir}
 \title{Initialize checkpoint directory}
 \usage{
-init_checkpoint_dir(result_path, config_fingerprint)
+init_checkpoint_dir(
+  result_path,
+  config_fingerprint,
+  config_spec = NULL,
+  checkpoint_format = "rds"
+)
 }
 \arguments{
 \item{result_path}{Character string giving the base path for results.
@@ -13,6 +18,11 @@ If NULL, the function returns NULL immediately (no checkpointing).}
 \item{config_fingerprint}{Character string containing a hash of the
 configuration. This is stored in the manifest for validation during
 resume operations.}
+
+\item{config_spec}{Optional normalized configuration spec to persist in the
+run manifest for future rehydration.}
+
+\item{checkpoint_format}{Character scalar naming the checkpoint storage format.}
 }
 \value{
 Invisible path to the result directory, or NULL if result_path is NULL.
@@ -26,9 +36,9 @@ and initial latest pointer.
 The directory structure created is:
 \preformatted{
 result_path/
-├── run_manifest.json    # run-level metadata and schema versions
-├── latest.json          # pointer to latest valid checkpoint ID
-└── checkpoints/         # directory for checkpoint snapshots
++-- run_manifest.json    # run-level metadata and schema versions
++-- latest.json          # pointer to latest valid checkpoint ID
++-- checkpoints/         # directory for checkpoint snapshots
 }
 
 The run manifest contains:

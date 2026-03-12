@@ -14,7 +14,7 @@
 setup_global_rng <- function(seed) {
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
-  invisible(.Random.seed)
+  invisible(get(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
 }
 
 #' Set RNG state for a task
@@ -66,5 +66,5 @@ advance_rng_stream <- function(rng_stream, n = 1L) {
   for (i in seq_len(n)) {
     runif(1)
   }
-  .Random.seed
+  get(".Random.seed", inherits = FALSE)
 }

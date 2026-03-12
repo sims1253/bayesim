@@ -7,6 +7,7 @@
 new_simulation_result(
   config_fingerprint = character(1),
   task_results = list(),
+  task_grid = NULL,
   summary = NULL,
   timing = list(total = 0),
   errors = NULL,
@@ -17,6 +18,8 @@ new_simulation_result(
 \item{config_fingerprint}{Character hash uniquely identifying the configuration}
 
 \item{task_results}{List of \code{bayesim_task_result} objects}
+
+\item{task_grid}{Tibble with task grid information (task_id, data_idx, fit_idx, rep_idx, status)}
 
 \item{summary}{Tibble with one row per task, columns for metrics and diagnostics}
 
@@ -58,6 +61,13 @@ task1 <- new_task_result(
 result <- new_simulation_result(
   config_fingerprint = "abc123",
   task_results = list(task1),
+  task_grid = tibble::tibble(
+    task_id = "task_001",
+    data_idx = 1L,
+    fit_idx = 1L,
+    rep_idx = 1L,
+    status = "success"
+  ),
   summary = tibble::tibble(task_id = "task_001", rmse = 0.05),
   timing = list(total = 10.0, by_phase = list(setup = 2.0, fit = 8.0)),
   errors = tibble::tibble(task_id = character(), error_message = character()),

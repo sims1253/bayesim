@@ -13,7 +13,7 @@ prior.}
 \item{stan_pars}{A named list which contains a backend field.}
 }
 \value{
-A list of
+A named list of precompiled fit objects keyed by fit configuration.
 }
 \description{
 This is mainly used to save on constant recompilation times.

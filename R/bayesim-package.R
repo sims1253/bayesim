@@ -1,7 +1,15 @@
+#' bayesim: Simulation Framework for Bayesian Modeling
+#'
+#' bayesim provides a simulation framework for Bayesian modeling studies with
+#' reproducible execution, checkpoint/resume support, and memory-bounded task
+#' processing.
+#'
 #' @keywords internal
 #' @import rlang
 #' @importFrom cli cli_abort cli_warn cli_inform
 #' @importFrom lifecycle deprecated
+#' @seealso [simulation_config()], [run_simulation()], [resume_simulation()],
+#'   [Fitter], [Metric]
 "_PACKAGE"
 
 ## usethis namespace: start
@@ -28,33 +36,3 @@ RUN_SCHEMA_VERSION <- "1.0.0"
 #'
 #' @keywords internal
 RESULT_SCHEMA_VERSION <- "1.0.0"
-
-#' Simulation Framework for Bayesian Modeling
-#'
-#' @description
-#' bayesim provides a modern simulation framework for Bayesian modeling studies.
-#' It offers extensible tools for running complex simulation studies with
-#' deterministic reproducibility, checkpoint/resume capabilities, and
-#' memory-bounded execution.
-#'
-#' @details
-#' Key features:
-#' \itemize{
-#'   \item Extensible S7-based interfaces for custom fitters and metrics
-#'   \item Deterministic reproducibility across sequential/parallel/resume modes
-#'   \item File-based checkpoint and resume with atomic writes
-#'   \item Memory-bounded execution with configurable artifact retention
-#' }
-#'
-#' @seealso
-#' Useful links:
-#' \itemize{
-#'   \item [simulation_config()] - Configure simulation runs
-#'   \item [run_simulation()] - Execute simulation
-#'   \item [Fitter] - Interface for model fitters
-#'   \item [Metric] - Interface for metrics
-#' }
-#'
-#' @docType package
-#' @name bayesim-package
-NULL

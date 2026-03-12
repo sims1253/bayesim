@@ -1,5 +1,8 @@
 #' @title RMSE Metric
 #' @description Root Mean Square Error between predictions and true values.
+#' @param name Character string naming the metric. Defaults to "rmse".
+#' @param needs Character vector of required capabilities. Defaults to "predictions".
+#' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
 #' @export
 RmseMetric <- S7::new_class(
   "RmseMetric",
@@ -10,6 +13,24 @@ RmseMetric <- S7::new_class(
     required = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
+
+#' @rdname RmseMetric
+#' @description `rmse_metric()` is a constructor function that creates an RmseMetric
+#'   instance with appropriate defaults. Use this constructor to work around S7's
+#'   property default inheritance issue.
+#' @param name Character string naming the metric. Defaults to "rmse".
+#' @return An RmseMetric object.
+#' @export
+#' @examples
+#' rmse_metric()
+#' rmse_metric(name = "my_rmse")
+rmse_metric <- function(name = "rmse") {
+  RmseMetric(
+    name = name,
+    needs = "predictions",
+    required = FALSE
+  )
+}
 
 S7::method(compute, RmseMetric) <- function(
   metric,
@@ -34,6 +55,12 @@ S7::method(compute, RmseMetric) <- function(
 
 #' @title Bias Metric
 #' @description Mean bias of predictions.
+#'
+#' @param name Character string naming the metric. Defaults to "bias".
+#' @param needs Character vector of required capabilities. Defaults to "predictions".
+#' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
+#'
+#' @return A BiasMetric object.
 #' @export
 BiasMetric <- S7::new_class(
   "BiasMetric",
@@ -44,6 +71,24 @@ BiasMetric <- S7::new_class(
     required = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
+
+#' @rdname BiasMetric
+#' @description `bias_metric()` is a constructor function that creates a BiasMetric
+#'   instance with appropriate defaults. Use this constructor to work around S7's
+#'   property default inheritance issue.
+#' @param name Character string naming the metric. Defaults to "bias".
+#' @return A BiasMetric object.
+#' @export
+#' @examples
+#' bias_metric()
+#' bias_metric(name = "my_bias")
+bias_metric <- function(name = "bias") {
+  BiasMetric(
+    name = name,
+    needs = "predictions",
+    required = FALSE
+  )
+}
 
 S7::method(compute, BiasMetric) <- function(
   metric,
@@ -67,6 +112,10 @@ S7::method(compute, BiasMetric) <- function(
 
 #' @title Coverage Metric
 #' @description Coverage of true parameter values within credible intervals.
+#' @param name Character string naming the metric. Defaults to "coverage".
+#' @param needs Character vector of required capabilities. Defaults to empty character vector.
+#' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
+#' @param prob Numeric probability for the credible interval width. Defaults to 0.95.
 #' @export
 CoverageMetric <- S7::new_class(
   "CoverageMetric",
@@ -78,6 +127,26 @@ CoverageMetric <- S7::new_class(
     prob = S7::new_property(S7::class_numeric, default = 0.95)
   )
 )
+
+#' @rdname CoverageMetric
+#' @description `coverage_metric()` is a constructor function that creates a CoverageMetric
+#'   instance with appropriate defaults. Use this constructor to work around S7's
+#'   property default inheritance issue.
+#' @param name Character string naming the metric. Defaults to "coverage".
+#' @param prob Numeric probability for the credible interval width. Defaults to 0.95.
+#' @return A CoverageMetric object.
+#' @export
+#' @examples
+#' coverage_metric()
+#' coverage_metric(prob = 0.90)
+coverage_metric <- function(name = "coverage", prob = 0.95) {
+  CoverageMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    prob = prob
+  )
+}
 
 S7::method(compute, CoverageMetric) <- function(
   metric,
@@ -114,6 +183,9 @@ S7::method(compute, CoverageMetric) <- function(
 
 #' @title Posterior Mean Metric
 #' @description Posterior mean estimates for parameters.
+#' @param name Character string naming the metric. Defaults to "posterior_mean".
+#' @param needs Character vector of required capabilities. Defaults to empty character vector.
+#' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
 #' @export
 PosteriorMeanMetric <- S7::new_class(
   "PosteriorMeanMetric",
@@ -124,6 +196,24 @@ PosteriorMeanMetric <- S7::new_class(
     required = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
+
+#' @rdname PosteriorMeanMetric
+#' @description `posterior_mean_metric()` is a constructor function that creates a
+#'   PosteriorMeanMetric instance with appropriate defaults. Use this constructor to
+#'   work around S7's property default inheritance issue.
+#' @param name Character string naming the metric. Defaults to "posterior_mean".
+#' @return A PosteriorMeanMetric object.
+#' @export
+#' @examples
+#' posterior_mean_metric()
+#' posterior_mean_metric(name = "my_posterior_mean")
+posterior_mean_metric <- function(name = "posterior_mean") {
+  PosteriorMeanMetric(
+    name = name,
+    needs = character(),
+    required = FALSE
+  )
+}
 
 S7::method(compute, PosteriorMeanMetric) <- function(
   metric,
@@ -148,11 +238,8 @@ S7::method(compute, PosteriorMeanMetric) <- function(
 #'
 #' @keywords internal
 register_built_in_metrics <- function() {
-  register_metric(RmseMetric(name = "rmse"), overwrite = TRUE)
-  register_metric(BiasMetric(name = "bias"), overwrite = TRUE)
-  register_metric(CoverageMetric(name = "coverage"), overwrite = TRUE)
-  register_metric(
-    PosteriorMeanMetric(name = "posterior_mean"),
-    overwrite = TRUE
-  )
+  register_metric(rmse_metric(), overwrite = TRUE)
+  register_metric(bias_metric(), overwrite = TRUE)
+  register_metric(coverage_metric(), overwrite = TRUE)
+  register_metric(posterior_mean_metric(), overwrite = TRUE)
 }

@@ -16,8 +16,8 @@ Combined data frame with unique task_id values.
 }
 \description{
 Combines results from a resumed run with new results from continued
-execution. Deduplicates by task_id using last-write-wins semantics
-(new results take precedence over prior results).
+execution. Duplicate task rows must be identical or an integrity error
+is raised.
 }
 \details{
 If both inputs are NULL or empty, returns NULL. If only one input

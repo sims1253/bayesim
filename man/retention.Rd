@@ -2,7 +2,6 @@
 % Please edit documentation in R/retention.R
 \docType{package}
 \name{retention}
-\alias{bayesim}
 \alias{retention}
 \title{Memory Management and Retention Policies}
 \description{

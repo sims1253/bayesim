@@ -1,4 +1,22 @@
-# bayesim (development version)
+# bayesim 1.0.1
+
+This release finalizes the rewrite follow-up work around the new simulation API,
+resume/checkpoint behavior, and package documentation.
+
+## Changes
+
+* Standardized the public workflow around `simulation_config()`,
+  `run_simulation()`, and `resume_simulation()`.
+* Added support for explicit `task_grid`, `chunk_size`, conditional retention,
+  manifest-based resume, stricter duplicate-check handling, and future-based
+  batch execution.
+* Switched the default `BrmsFitter()` backend to `"cmdstanr"`.
+* Kept `checkpoint_format = "rds"` as the supported checkpoint backend and
+  made unsupported `"parquet"` requests fail fast.
+* Externalized large metric payloads into artifacts to avoid excessively wide
+  summary tables.
+* Updated README, vignettes, roxygen docs, man pages, and NAMESPACE to match
+  the rewritten API and current package behavior.
 
 # bayesim 1.0.0
 

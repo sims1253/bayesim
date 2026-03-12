@@ -1,12 +1,26 @@
-#' Title
+#' Lookup default priors for a model family
 #'
-#' @param family
+#' @param family A string specifying the model family (e.g., "gaussian", "student_t")
 #'
-#' @return
+#' @return A list of brms prior objects for the specified family
 #' @export
 #'
-#' @examples
 prior_lookup <- function(family) {
+  aux_params <- tryCatch(
+    bayesfam::aux_family_parameters_lookup(family),
+    error = function(e) {
+      # Fallback to common auxiliary parameters
+      switch(
+        family,
+        "gaussian" = "sigma",
+        "student_t" = c("sigma", "nu"),
+        "gamma" = "shape",
+        "beta" = c("phi", "beta"),
+        character(0)
+      )
+    }
+  )
+
   switch(
     family,
     "frechet" = c(
@@ -16,7 +30,7 @@ prior_lookup <- function(family) {
     c(
       brms::set_prior("", class = "Intercept"),
       lapply(
-        bayesfam::aux_family_parameters_lookup(family),
+        aux_params,
         function(x) brms::set_prior("", class = x)
       )
     )
@@ -26,7 +40,8 @@ prior_lookup <- function(family) {
 #' Generate lookup keys for fit configurations to retrieve prefit objects
 #' matching said config.
 #'
-#' @param fit_conf
+#' @param fit_conf A list containing fit configuration with elements:
+#'   fit_family, fit_link, formula, and prior
 #'
 #' @return A hash generated from the fit configuration
 #' @export
@@ -40,14 +55,12 @@ prior_lookup <- function(family) {
 #'   )
 #' )
 fit_conf_key <- function(fit_conf) {
-  return(
-    rlang::hash(
-      list(
-        fit_conf$fit_family,
-        fit_conf$fit_link,
-        fit_conf$formula,
-        fit_conf$prior
-      )
+  rlang::hash(
+    list(
+      fit_conf$fit_family,
+      fit_conf$fit_link,
+      fit_conf$formula,
+      fit_conf$prior
     )
   )
 }

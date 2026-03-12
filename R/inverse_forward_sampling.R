@@ -4,40 +4,46 @@
 #' @param i The index of a single posterior draw to simulate a dataset for.
 #'  The index is passed to [posterior_predict()]'s "draw_ids"
 #'  argument.
-#' @param newdata A dataframe that is passed to posterior predict.
-#' @param ... Potential additional arguments.
+#' @param n Number of observations to simulate.
+#' @param ... Potential additional arguments passed to [brms::posterior_predict()].
 #'
 #' @return A data.frame containing n observations for each variable in the fit.
-#' @export forward_sampling forward_sampling.list
+#' @export
 #'
-#'
+#' @examples
+#' \dontrun{
+#' fit <- brms::brm(y ~ x, data = data.frame(y = rnorm(10), x = rnorm(10)))
+#' forward_sampling(fit, i = 1, n = 100)
+#' }
 forward_sampling <- function(fit, i, n, ...) {
   UseMethod("forward_sampling")
 }
 
-#'
-forward_sampling.list <- function(x, i, n, ...) {
-  if (any(lapply(x, bayeshear::post_warmup_samples) < i) | i <= 0) {
-    stop("You tried to use a non-existent posterior sample.")
+#' @rdname forward_sampling
+#' @exportS3Method
+forward_sampling.list <- function(fit, i, n, ...) {
+  n_samples <- vapply(fit, brms::ndraws, integer(1))
+  if (i <= 0 || any(n_samples < i)) {
+    cli::cli_abort("You tried to use a non-existent posterior sample.")
   }
 
   resp_list <- list()
   var_list <- list()
 
-  for (index in seq_along(x)) {
-    fit <- x[[index]]
-    if (is(fit$formula, "brmsformula")) {
-      resp_list[[fit$formula$resp]] <- index
-      var_list[[fit$formula$resp]] <- all.vars(fit$formula$formula)[-1]
-    } else if (is(fit$formula, "mvbrmsformula")) {
-      for (formula in fit$formula$forms) {
+  for (index in seq_along(fit)) {
+    model <- fit[[index]]
+    if (is(model$formula, "brmsformula")) {
+      resp_list[[model$formula$resp]] <- index
+      var_list[[model$formula$resp]] <- all.vars(model$formula$formula)[-1]
+    } else if (is(model$formula, "mvbrmsformula")) {
+      for (formula in model$formula$forms) {
         resp_list[[formula$resp]] <- index
         var_list[[formula$resp]] <- all.vars(formula$formula)[-1]
       }
     } else {
-      stop(
+      cli::cli_abort(
         "Unsupported model type detected!
-           Please use brmsfit or stanfit objects."
+         Please use brmsfit objects."
       )
     }
   }
@@ -55,22 +61,22 @@ forward_sampling.list <- function(x, i, n, ...) {
       if (length(intersect(missing_responses, var_list[[response]])) == 0) {
         df[response] <- as.vector(
           brms::posterior_predict(
-            x[[resp_list[[response]]]],
+            fit[[resp_list[[response]]]],
             newdata = df[var_list[[response]]],
             resp = response,
             draw_ids = i,
             ...
           )
         )
-        missing_responses <- missing_responses[!(missing_responses == response)]
+        missing_responses <- missing_responses[missing_responses != response]
         success <- TRUE
       }
     }
     if (!success) {
-      stop("Unsolvable variable dependencies detected.")
+      cli::cli_abort("Unsolvable variable dependencies detected.")
     }
   }
-  return(df)
+  df
 }
 
 #' Full forward sampling of a the response of brms fit, including multivariate models.
@@ -88,7 +94,6 @@ forward_sampling.list <- function(x, i, n, ...) {
 #'
 #' @keywords internal
 #' @examples # Pending
-#' @export
 brms_full_ppred <- function(
   fit,
   newdata = NULL,
@@ -104,7 +109,7 @@ brms_full_ppred <- function(
   n <- nrow(newdata)
   # 2.3. if no draws set, range from 1 to all iters (check draws < iters)
   if (is.null(draws)) {
-    draws <- seq_len(sum(fit$fit@sim$n_save))
+    draws <- seq_len(brms::ndraws(fit))
   }
   # 2.4. create list to hold data
   pp_data <- list()
@@ -133,11 +138,24 @@ brms_full_ppred <- function(
   pp_data
 }
 
+#' Determine depth of nodes in dependency graph
+#'
+#' @param adj_matrix Adjacency matrix representing variable dependencies
+#' @return List of nodes grouped by their depth in the dependency graph
+#' @keywords internal
 nodes_by_depth <- function(adj_matrix) {
   depth_list <- list()
   var_names <- rownames(adj_matrix)
+  n_vars <- length(var_names)
+  iteration <- 0
   while (nrow(adj_matrix)) {
-    pos <- which(apply(adj_matrix, 1, sum) == 0)
+    iteration <- iteration + 1
+    if (iteration > n_vars) {
+      cli::cli_abort(
+        "Cycle detected in variable dependencies. Cannot determine response sequence."
+      )
+    }
+    pos <- which(rowSums(adj_matrix) == 0)
     depth_list <- c(depth_list, list(var_names[pos]))
 
     var_names <- var_names[-pos]
@@ -147,6 +165,7 @@ nodes_by_depth <- function(adj_matrix) {
 }
 
 #' Determine the response sequence of brms model
+#'
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -155,6 +174,7 @@ brms_response_sequence <- function(x) {
   UseMethod("brms_response_sequence")
 }
 
+#' @rdname brms_response_sequence
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -164,6 +184,7 @@ brms_response_sequence.brmsfit <- function(x) {
   brms_response_sequence(x$formula)
 }
 
+#' @rdname brms_response_sequence
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -178,6 +199,7 @@ brms_response_sequence.bform <- function(x) {
   nodes_by_depth(adjacency)
 }
 
+#' @rdname brms_response_sequence
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -185,9 +207,10 @@ brms_response_sequence.bform <- function(x) {
 #' @export
 brms_response_sequence.mvbrmsterms <- function(x) {
   names(x$terms) <- NULL
-  sapply(x$terms, brms_response_sequence)
+  lapply(x$terms, brms_response_sequence)
 }
 
+#' @rdname brms_response_sequence
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -199,6 +222,7 @@ brms_response_sequence.brmsterms <- function(x) {
   vars
 }
 
+#' @rdname brms_response_sequence
 #' @source This function is taken from the SBC package
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
@@ -209,17 +233,51 @@ brms_response_sequence.btl <- function(x) {
 }
 
 
+#' Adjust gamma for simultaneous confidence intervals
+#'
+#' Adjusts the coverage parameter to find simultaneous confidence intervals
+#' for the ECDF of samples from the uniform distribution, as described in
+#' Modrak et al. (2023).
+#'
+#' @param N Length of samples (chains).
+#' @param L Number of samples (chains).
+#' @param K Number of equally spaced evaluation points, i.e. the right ends
+#'   of the partition intervals. Defaults to N.
+#' @param conf_level Confidence level for the intervals. Default is 0.95.
+#'
+#' @return The adjusted gamma value for computing confidence bands.
+#'
+#' @details
+#' This function is used in Simulation-Based Calibration (SBC) to compute
+#' confidence bands for rank statistics. It supports both single-chain (L=1)
+#' and multi-chain analyses.
+#'
+#' @references
+#' Modrak, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
+#' Kateřina Faltejsková, Andrew Gelman, and Aki Vehtari.
+#' "Simulation-Based Calibration Checking for Bayesian Computation:
+#' The Choice of Test Quantities Shapes Sensitivity." arXiv, June 15, 2023.
+#' https://doi.org/10.48550/arXiv.2211.02383.
+#'
+#' @source This function is adapted from the SBC package
+#'   (https://github.com/hyunjimoon/SBC).
+#'
 #' @export
-#' @param N - length of samples (chains).
-#' @param L - number of samples (chains).
-#' @param K - number of equally spaced evaluation points, i.e. the right ends of the
-#' partition intervals.
+#'
+#' @examples
+#' \dontrun{
+#' # Single chain
+#' gamma <- adjust_gamma(N = 1000, L = 1)
+#'
+#' # Multiple chains
+#' gamma <- adjust_gamma(N = 250, L = 4)
+#' }
 adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
   if (any(c(K, N, L) < 1)) {
-    abort("Parameters 'N', 'L' and 'K' must be positive integers.")
+    cli::cli_abort("Parameters 'N', 'L' and 'K' must be positive integers.")
   }
   if (conf_level >= 1 || conf_level <= 0) {
-    abort("Value of 'conf_level' must be in (0,1).")
+    cli::cli_abort("Value of 'conf_level' must be in (0,1).")
   }
   if (L == 1) {
     gamma <- adjust_gamma_optimize(N, K, conf_level)
@@ -274,6 +332,19 @@ adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
 # K - number of equally spaced evaluation points, i.e. the right ends of the
 # partition intervals.
 # M - number of simulations used to determine the 'conf_level' middle quantile.
+
+#' Scale uniform samples to scaled ranks
+#'
+#' Transforms uniform samples into scaled ranks for ECDF analysis.
+#' For a matrix of samples, computes ranks within each column (chain).
+#'
+#' @param x A matrix of uniform samples with N rows and L columns (L chains)
+#' @return A matrix of scaled ranks in the range 0 to 1
+#' @keywords internal
+u_scale <- function(x) {
+  apply(x, 2, function(col) rank(col, ties.method = "average") / length(col))
+}
+
 adjust_gamma_simulate <- function(N, L, K, conf_level = 0.95, M = 5000) {
   gamma <- numeric(M)
   z <- (1:(K - 1)) / K
@@ -346,18 +417,18 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 
 #'  Quantifies deviation from uniformity by the likelihood of observing the
 #'  most extreme point on the empirical CDF of the given rank distribution
-#'  according to [1] (equation 7).
+#'  according to Modrak et al. (2023, equation 7).
 #'
-#'  [1] Modrák, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
+#'  Modrak, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
 #'  Kateřina Faltejsková, Andrew Gelman, and Aki Vehtari.
-#'  “Simulation-Based Calibration Checking for Bayesian Computation:
-#'  The Choice of Test Quantities Shapes Sensitivity.” arXiv, June 15, 2023.
+#'  "Simulation-Based Calibration Checking for Bayesian Computation:
+#'  The Choice of Test Quantities Shapes Sensitivity." arXiv, June 15, 2023.
 #'  https://doi.org/10.48550/arXiv.2211.02383.
 #'
 #' @param ranks Rank distribution
 #' @param post_warmup_draws Number of posterior draws that were used to
 #'  calculate the rank distribution.
-#' @param log True of the result should be on the log scale.
+#' @param log TRUE if the result should be on the log scale.
 #'
 #' @return Measure quantifying deviation from uniformity. This value can
 #'  be compared to the distribution of gamma expected under uniformity
@@ -365,8 +436,11 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 #' @export
 #'
 #' @examples
+#' # Compute gamma discrepancy for a sample of ranks
+#' ranks <- sample(1:1000, 100, replace = TRUE)
+#' gamma_discrepancy(ranks, post_warmup_draws = 1000)
 gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
-  if (any(is.na(ranks))) {
+  if (anyNA(ranks)) {
     return(NA)
   }
   # observed count of ranks smaller than i
@@ -381,8 +455,8 @@ gamma_discrepancy <- function(ranks, post_warmup_draws, log = FALSE) {
   x2 <- 1 - pbinom(q = R_i - 1, size = length(ranks), prob = z_i)
 
   if (log) {
-    return(log(2 * min(x1, x2, na.rm = TRUE)))
+    log(2 * min(x1, x2, na.rm = TRUE))
   } else {
-    return(2 * min(x1, x2, na.rm = TRUE))
+    2 * min(x1, x2, na.rm = TRUE)
   }
 }

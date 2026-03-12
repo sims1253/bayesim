@@ -9,7 +9,7 @@ BrmsFitter(
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,
-  backend = "rstan",
+  backend = "cmdstanr",
   chains = 4L,
   iter = 2000L,
   warmup = 1000L,
@@ -18,6 +18,34 @@ BrmsFitter(
   silent = 2L,
   cores = 1L
 )
+}
+\arguments{
+\item{name}{Character string identifying the fitter (inherited from Fitter)}
+
+\item{supports_predictions}{Logical indicating if predictions are supported (inherited)}
+
+\item{supports_log_lik}{Logical indicating if log-likelihood is supported (inherited)}
+
+\item{supports_loo}{Logical indicating if LOO-CV is supported (inherited)}
+
+\item{backend}{Character string for Stan backend ("cmdstanr" or "rstan")}
+
+\item{chains}{Integer number of MCMC chains}
+
+\item{iter}{Integer total iterations per chain}
+
+\item{warmup}{Integer warmup iterations per chain}
+
+\item{thin}{Integer thinning interval}
+
+\item{refresh}{Integer refresh rate for progress output}
+
+\item{silent}{Integer verbosity level (0, 1, or 2)}
+
+\item{cores}{Integer number of cores for parallel processing}
+}
+\value{
+An S7 BrmsFitter object
 }
 \description{
 Fitter implementation for brms models.

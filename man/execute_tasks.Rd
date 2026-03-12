@@ -15,7 +15,8 @@ execute_tasks(
   progress,
   result_path = NULL,
   config_fingerprint = NULL,
-  checkpoint_every = 50L
+  checkpoint_every = 50L,
+  chunk_size = NULL
 )
 }
 \arguments{
@@ -40,6 +41,9 @@ execute_tasks(
 \item{config_fingerprint}{Character; configuration fingerprint for validation}
 
 \item{checkpoint_every}{Integer; write checkpoint every N completed tasks}
+
+\item{chunk_size}{Integer; maximum task results to keep in memory before
+forcing a checkpoint write and clearing memory (default: same as checkpoint_every)}
 }
 \value{
 A list with task_results and task_grid

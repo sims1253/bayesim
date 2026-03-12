@@ -39,12 +39,105 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
 
   # Precompute streams for all tasks
   streams <- vector("list", n_tasks)
+  seed <- .Random.seed
   for (i in seq_len(n_tasks)) {
-    streams[[i]] <- .Random.seed
-    runif(1) # Advance the stream
+    streams[[i]] <- seed
+    seed <- parallel::nextRNGStream(seed)
   }
 
   streams
+}
+
+task_id_widths <- function(data_idx, fit_idx, rep_idx) {
+  list(
+    data = max(3L, nchar(as.character(max(data_idx, na.rm = TRUE)))),
+    fit = max(3L, nchar(as.character(max(fit_idx, na.rm = TRUE)))),
+    rep = max(5L, nchar(as.character(max(rep_idx, na.rm = TRUE))))
+  )
+}
+
+make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
+  if (is.null(widths)) {
+    widths <- task_id_widths(data_idx, fit_idx, rep_idx)
+  }
+
+  sprintf(
+    paste0(
+      "d%0",
+      widths$data,
+      "d_f%0",
+      widths$fit,
+      "d_r%0",
+      widths$rep,
+      "d"
+    ),
+    data_idx,
+    fit_idx,
+    rep_idx
+  )
+}
+
+canonicalize_task_grid <- function(task_grid, config) {
+  grid <- tibble::as_tibble(task_grid)
+
+  if (!"rep_idx" %in% names(grid)) {
+    grid$rep_idx <- rep.int(1L, nrow(grid))
+  }
+  grid$rep_idx <- as.integer(grid$rep_idx)
+
+  has_explicit_specs <- all(c("data_spec", "fit_spec") %in% names(grid))
+
+  if (has_explicit_specs) {
+    if (!is.list(grid$data_spec) || !is.list(grid$fit_spec)) {
+      cli::cli_abort(
+        "task_grid$data_spec and task_grid$fit_spec must be list-columns"
+      )
+    }
+
+    if (!"data_idx" %in% names(grid)) {
+      grid$data_idx <- seq_len(nrow(grid))
+    }
+    if (!"fit_idx" %in% names(grid)) {
+      grid$fit_idx <- rep.int(1L, nrow(grid))
+    }
+  } else {
+    if (!all(c("data_idx", "fit_idx") %in% names(grid))) {
+      cli::cli_abort("task_grid must contain data_idx and fit_idx columns")
+    }
+
+    grid$data_idx <- as.integer(grid$data_idx)
+    grid$fit_idx <- as.integer(grid$fit_idx)
+
+    if (anyNA(grid$data_idx) || any(grid$data_idx < 1L)) {
+      cli::cli_abort("task_grid$data_idx must contain positive integers")
+    }
+    if (anyNA(grid$fit_idx) || any(grid$fit_idx < 1L)) {
+      cli::cli_abort("task_grid$fit_idx must contain positive integers")
+    }
+
+    if (is.null(config@data_grid) || is.null(config@fit_grid)) {
+      cli::cli_abort(
+        paste(
+          "task_grid with data_idx/fit_idx requires data_grid and fit_grid in the configuration"
+        )
+      )
+    }
+  }
+
+  grid <- grid[order(grid$data_idx, grid$fit_idx, grid$rep_idx), , drop = FALSE]
+  rownames(grid) <- NULL
+
+  widths <- task_id_widths(grid$data_idx, grid$fit_idx, grid$rep_idx)
+  grid$task_id <- make_task_id(
+    grid$data_idx,
+    grid$fit_idx,
+    grid$rep_idx,
+    widths
+  )
+  grid$rng_seed <- I(create_task_rng_streams(config@seed, nrow(grid)))
+  grid$status <- "pending"
+
+  tibble::as_tibble(grid)
 }
 
 #' Create Task Grid from Configuration
@@ -83,6 +176,10 @@ create_task_grid <- function(config) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
+  if (!is.null(config@task_grid)) {
+    return(canonicalize_task_grid(config@task_grid, config))
+  }
+
   n_data <- nrow(config@data_grid)
   n_fit <- nrow(config@fit_grid)
   n_rep <- config@n_replicates
@@ -103,12 +200,12 @@ create_task_grid <- function(config) {
   # Reset row names after sorting
   rownames(grid) <- NULL
 
-  # Create task IDs
-  grid$task_id <- sprintf(
-    "d%03d_f%03d_r%05d",
+  widths <- task_id_widths(grid$data_idx, grid$fit_idx, grid$rep_idx)
+  grid$task_id <- make_task_id(
     grid$data_idx,
     grid$fit_idx,
-    grid$rep_idx
+    grid$rep_idx,
+    widths
   )
 
   # Precompute RNG streams
@@ -161,8 +258,16 @@ get_task_spec <- function(task_grid, task_id, config) {
     data_idx = row$data_idx[[1]],
     fit_idx = row$fit_idx[[1]],
     rep_idx = row$rep_idx[[1]],
-    data_spec = as.list(config@data_grid[row$data_idx[[1]], , drop = FALSE]),
-    fit_spec = as.list(config@fit_grid[row$fit_idx[[1]], , drop = FALSE]),
+    data_spec = if ("data_spec" %in% names(row)) {
+      row$data_spec[[1]]
+    } else {
+      as.list(config@data_grid[row$data_idx[[1]], , drop = FALSE])
+    },
+    fit_spec = if ("fit_spec" %in% names(row)) {
+      row$fit_spec[[1]]
+    } else {
+      as.list(config@fit_grid[row$fit_idx[[1]], , drop = FALSE])
+    },
     task_ctx = list(
       task_id = task_id,
       data_idx = row$data_idx[[1]],
@@ -245,7 +350,7 @@ update_task_status <- function(task_grid, task_id, status) {
 #'
 #' @keywords internal
 validate_task_id <- function(task_id) {
-  grepl("^d[0-9]{3}_f[0-9]{3}_r[0-9]{5}$", task_id)
+  grepl("^d[0-9]+_f[0-9]+_r[0-9]+$", task_id)
 }
 
 #' Parse Task ID Components

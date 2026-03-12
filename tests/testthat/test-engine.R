@@ -148,6 +148,17 @@ describe("RNG Management", {
 
       expect_identical(streams1, streams2)
     })
+
+    it("advances using independent L'Ecuyer streams", {
+      RNGkind("L'Ecuyer-CMRG")
+      set.seed(42)
+      seed <- .Random.seed
+
+      streams <- create_task_rng_streams(42, 3)
+
+      expect_identical(streams[[1]], seed)
+      expect_identical(streams[[2]], parallel::nextRNGStream(seed))
+    })
   })
 
   describe("set_task_rng()", {
@@ -614,231 +625,56 @@ describe("Task Grid", {
 
 
 # =============================================================================
-# 3. Metric Registry (from metric-registry.R)
+# 3. Metric Resolution
 # =============================================================================
 
-describe("Metric Registry", {
-  # Clean up registry before each test
-  cleanup_registry <- function() {
-    metrics <- list_metrics()
-    for (m in metrics) {
-      tryCatch(
-        unregister_metric(m),
-        error = function(e) NULL
-      )
-    }
-  }
-
-  describe("register_metric()", {
-    cleanup_registry()
-
-    it("adds metric to registry", {
-      metric <- create_test_metric(name = "test_metric_1")
-
-      register_metric(metric)
-
-      expect_true("test_metric_1" %in% list_metrics())
-
-      # Cleanup
-      unregister_metric("test_metric_1")
-    })
-
-    it("errors if metric is not an S7 Metric object", {
-      expect_error(
-        register_metric(list(name = "not_a_metric")),
-        "must be an S7 object"
-      )
-    })
-
-    it("errors if metric has no name", {
-      NoNameMetric <- S7::new_class(
-        "NoNameMetric",
-        parent = Metric,
-        properties = list(
-          name = S7::new_property(S7::class_character)
-        )
-      )
-      S7::method(compute, NoNameMetric) <- function(
-        metric,
-        fit_result,
-        data_bundle,
-        context,
-        task_ctx
-      ) {
-        list(value = 1)
-      }
-      metric <- NoNameMetric(name = "")
-
-      expect_error(
-        register_metric(metric),
-        "non-empty name"
-      )
-    })
-
-    it("errors on duplicate registration without overwrite", {
-      metric1 <- create_test_metric(name = "duplicate_test")
-      metric2 <- create_test_metric(name = "duplicate_test")
-
-      register_metric(metric1)
-
-      expect_error(
-        register_metric(metric2),
-        "already registered"
-      )
-
-      # Cleanup
-      unregister_metric("duplicate_test")
-    })
-
-    it("allows overwrite with overwrite = TRUE", {
-      metric1 <- create_test_metric(name = "overwrite_test")
-      metric2 <- create_test_metric(name = "overwrite_test")
-
-      register_metric(metric1)
-      expect_silent(register_metric(metric2, overwrite = TRUE))
-
-      retrieved <- get_metric("overwrite_test")
-      expect_s7_object(retrieved)
-
-      # Cleanup
-      unregister_metric("overwrite_test")
+describe("Metric Resolution", {
+  describe("built-in metric constructors", {
+    it("return S7 Metric objects", {
+      expect_s7_object(rmse_metric())
+      expect_s7_object(bias_metric())
+      expect_s7_object(coverage_metric())
+      expect_s7_object(posterior_mean_metric())
     })
   })
 
-  describe("get_metric()", {
-    it("retrieves registered metrics", {
-      metric <- create_test_metric(name = "get_test")
-      register_metric(metric)
-
-      retrieved <- get_metric("get_test")
-
-      expect_s7_object(retrieved)
-      expect_equal(retrieved@name, "get_test")
-
-      # Cleanup
-      unregister_metric("get_test")
-    })
-
-    it("returns NULL for non-existent metrics", {
-      expect_null(get_metric("nonexistent_metric_xyz"))
-    })
-
-    it("errors if name is not a single character string", {
-      expect_error(get_metric(123))
-      expect_error(get_metric(c("a", "b")))
-    })
-  })
-
-  describe("list_metrics()", {
-    it("returns all registered metric names", {
-      # Clean first
-      cleanup_registry()
-
-      m1 <- create_test_metric(name = "list_test_1")
-      m2 <- create_test_metric(name = "list_test_2")
-      m3 <- create_test_metric(name = "list_test_3")
-
-      register_metric(m1)
-      register_metric(m2)
-      register_metric(m3)
-
-      names <- list_metrics()
-
-      expect_true("list_test_1" %in% names)
-      expect_true("list_test_2" %in% names)
-      expect_true("list_test_3" %in% names)
-
-      # Cleanup
-      cleanup_registry()
-    })
-
-    it("returns character vector", {
-      result <- list_metrics()
-      expect_true(is.character(result))
-    })
-  })
-
-  describe("unregister_metric()", {
-    it("removes metrics from registry", {
-      metric <- create_test_metric(name = "unregister_test")
-      register_metric(metric)
-
-      expect_true("unregister_test" %in% list_metrics())
-
-      unregister_metric("unregister_test")
-
-      expect_false("unregister_test" %in% list_metrics())
-    })
-
-    it("produces warnings if metric not registered", {
-      # The function warns then rm() also warns
-      expect_warning(
-        unregister_metric("nonexistent_for_unregister")
-      )
-    })
-
-    it("errors if name is not a single character string", {
-      expect_error(unregister_metric(123))
-    })
-  })
-
-  describe("resolve_metrics_from_registry()", {
-    it("works with character input", {
-      m1 <- create_test_metric(name = "resolve_test_1")
-      m2 <- create_test_metric(name = "resolve_test_2")
-      register_metric(m1)
-      register_metric(m2)
-
-      resolved <- resolve_metrics_from_registry(c(
-        "resolve_test_1",
-        "resolve_test_2"
-      ))
+  describe("resolve_metrics()", {
+    it("accepts a single Metric object", {
+      metric <- create_test_metric(name = "resolve_single")
+      resolved <- resolve_metrics(metric)
 
       expect_true(is.list(resolved))
-      expect_equal(length(resolved), 2)
-      expect_s7_object(resolved[[1]])
-      expect_s7_object(resolved[[2]])
-
-      # Cleanup
-      unregister_metric("resolve_test_1")
-      unregister_metric("resolve_test_2")
+      expect_equal(length(resolved), 1)
+      expect_equal(resolved[[1]]@name, "resolve_single")
     })
 
-    it("errors for unknown metric names", {
-      expect_error(
-        resolve_metrics_from_registry("unknown_metric_xyz"),
-        "not found in registry"
+    it("accepts a list of Metric objects", {
+      metrics_list <- list(
+        create_test_metric(name = "resolve_list_1"),
+        create_test_metric(name = "resolve_list_2")
       )
-    })
 
-    it("works with list input of Metric objects", {
-      m1 <- create_test_metric(name = "resolve_list_test")
-      metrics_list <- list(m1)
-
-      resolved <- resolve_metrics_from_registry(metrics_list)
+      resolved <- resolve_metrics(metrics_list)
 
       expect_identical(resolved, metrics_list)
     })
 
-    it("errors if list contains non-Metric objects", {
-      bad_list <- list("not a metric")
-
+    it("rejects character metric names", {
       expect_error(
-        resolve_metrics_from_registry(bad_list),
+        resolve_metrics(c("rmse", "bias")),
+        "metrics must be Metric objects"
+      )
+    })
+
+    it("rejects invalid list contents", {
+      expect_error(
+        resolve_metrics(list("not a metric")),
         "is not an S7 Metric object"
       )
     })
 
     it("returns empty list for NULL input", {
-      result <- resolve_metrics_from_registry(NULL)
-      expect_equal(result, list())
-    })
-
-    it("errors for invalid input types", {
-      expect_error(
-        resolve_metrics_from_registry(123),
-        "must be a character vector or list"
-      )
+      expect_equal(resolve_metrics(NULL), list())
     })
   })
 })
@@ -965,7 +801,7 @@ describe("Worker", {
 
       expect_equal(result$status, "failed")
       expect_true(is.list(result$error))
-      expect_true("message" %in% names(result$error))
+      expect_true("error_message" %in% names(result$error))
     })
 
     it("with failing fitter returns failed status", {
@@ -995,7 +831,7 @@ describe("Worker", {
       result <- run_task(task, config_spec, fitter, list())
 
       expect_equal(result$status, "failed")
-      expect_true(grepl("Fitting failed", result$error$message))
+      expect_true(grepl("Fitting failed", result$error$error_message, fixed = TRUE))
     })
 
     it("sets RNG state for reproducibility", {
@@ -1032,6 +868,97 @@ describe("Worker", {
       run_task(task, config_spec, MockFitter(), list())
 
       expect_equal(received_ctx$task_id, "d001_f001_r00001")
+    })
+
+    it("passes a scalar task seed to generators and fitters", {
+      task <- create_test_task(seed = 321)
+      received_seed <- NULL
+      fitter_seed <- NULL
+
+      config_spec <- list(
+        data_generator = function(data_spec, seed, task_ctx) {
+          received_seed <<- seed
+          list(
+            train = data.frame(y = 1:10, x = 1:10),
+            test = NULL,
+            response = "y",
+            true_params = c(beta = 1.0),
+            vars_of_interest = "beta",
+            references = c(beta = 0)
+          )
+        }
+      )
+
+      SeedCapturingFitter <- S7::new_class(
+        "SeedCapturingFitter",
+        parent = Fitter,
+        properties = list(
+          name = S7::new_property(S7::class_character, default = "seed_capture")
+        )
+      )
+      S7::method(fit, SeedCapturingFitter) <- function(
+        fitter,
+        data_bundle,
+        fit_spec,
+        seed,
+        task_ctx
+      ) {
+        fitter_seed <<- seed
+        new_fit_result(
+          success = TRUE,
+          diagnostics = list(),
+          timing = list(total = 0.1, warmup = 0, sample = 0)
+        )
+      }
+
+      result <- run_task(task, config_spec, SeedCapturingFitter(), list())
+
+      expect_equal(result$status, "success")
+      expect_true(is.integer(received_seed))
+      expect_equal(length(received_seed), 1)
+      expect_identical(received_seed, fitter_seed)
+    })
+
+    it("externalizes high-cardinality metric vectors when result_path is available", {
+      task <- create_test_task(seed = 321)
+      result_path <- withr::local_tempdir()
+      config_spec <- list(
+        data_generator = function(data_spec, seed, task_ctx) {
+          list(
+            train = data.frame(y = 1:10, x = 1:10),
+            test = NULL,
+            response = "y",
+            true_params = c(beta = 1.0),
+            vars_of_interest = "beta",
+            references = c(beta = 0)
+          )
+        },
+        result_path = result_path
+      )
+
+      long_metric <- create_test_metric(
+        name = "long_metric",
+        compute_fn = function(
+          metric,
+          fit_result,
+          data_bundle,
+          context,
+          task_ctx
+        ) {
+          values <- stats::setNames(
+            as.double(seq_len(100)),
+            paste0("p", seq_len(100))
+          )
+          list(curve = values)
+        }
+      )
+
+      result <- run_task(task, config_spec, MockFitter(), list(long_metric))
+
+      expect_equal(result$status, "success")
+      expect_true(isTRUE(result$metrics$long_metric__curve__externalized))
+      expect_true(file.exists(result$metrics$long_metric__curve__artifact_path))
+      expect_equal(result$metrics$long_metric__curve__n_values, 100)
     })
   })
 
@@ -1121,7 +1048,11 @@ describe("Worker", {
         needs = "predictions"
       ))
 
-      context <- build_metric_context(fit_result, fitter, data_bundle, metrics)
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(fit_result, fitter, data_bundle, metrics),
+        "Metric requires predictions but fitter does not support them"
+      )
 
       # Should not have predictions since fitter doesn't support it
       expect_false("predictions" %in% names(context))
@@ -1488,6 +1419,124 @@ describe("run_simulation()", {
       # which are not controlled by the progress parameter
       # Use suppressMessages() to test that no unexpected output occurs
       expect_silent(suppressMessages(run_simulation(config, progress = FALSE)))
+    })
+  })
+
+  describe("resume API", {
+    it("accepts resume mode strings", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      config <- create_sim_config(n_replicates = 1L)
+      result <- run_simulation(config, resume = "never", progress = FALSE)
+
+      expect_s3_class(result, "bayesim_simulation_result")
+    })
+
+    it("resume_simulation() resumes from an existing result path when config is supplied", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      result_path <- file.path(withr::local_tempdir(), "resume-results")
+      config <- create_sim_config(n_replicates = 1L)
+      config@result_path <- result_path
+
+      first <- run_simulation(config, resume = "never", progress = FALSE)
+      resumed <- resume_simulation(
+        result_path,
+        config = config,
+        progress = FALSE
+      )
+
+      expect_s3_class(first, "bayesim_simulation_result")
+      expect_s3_class(resumed, "bayesim_simulation_result")
+      expect_equal(nrow(first$summary), nrow(resumed$summary))
+    })
+
+    it("resume_simulation() can rehydrate manifest-stored package components", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      result_path <- file.path(
+        withr::local_tempdir(),
+        "manifest-resume-results"
+      )
+      config <- simulation_config(
+        data_grid = data.frame(n = c(10, 20), beta = c(1, 2)),
+        fit_grid = data.frame(model = "baseline"),
+        data_generator = bayesim:::bayesim_example_data_generator,
+        fitter = MockFitter(),
+        metrics = list(rmse_metric()),
+        n_replicates = 1L,
+        seed = 42L,
+        result_path = result_path
+      )
+
+      first <- run_simulation(config, resume = "never", progress = FALSE)
+      resumed <- resume_simulation(result_path, progress = FALSE)
+
+      expect_s3_class(first, "bayesim_simulation_result")
+      expect_s3_class(resumed, "bayesim_simulation_result")
+      expect_equal(nrow(resumed$summary), nrow(first$summary))
+    })
+
+    it("produces matching summaries under sequential and multisession future plans", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      old_plan <- future::plan()
+      on.exit(future::plan(old_plan), add = TRUE)
+
+      config <- simulation_config(
+        data_grid = data.frame(n = c(50, 100), beta = c(1, 2)),
+        fit_grid = data.frame(model = "baseline"),
+        data_generator = bayesim:::bayesim_example_data_generator,
+        fitter = MockFitter(),
+        metrics = list(rmse_metric()),
+        n_replicates = 2L,
+        seed = 42L
+      )
+
+      future::plan(future::sequential)
+      seq_result <- run_simulation(config, resume = "never", progress = FALSE)
+
+      future::plan(future::multisession, workers = 2)
+      par_result <- run_simulation(config, resume = "never", progress = FALSE)
+
+      normalize_summary <- function(x) {
+        x <- x[order(x$task_id), , drop = FALSE]
+        x$timing_total <- NULL
+        x
+      }
+
+      expect_equal(
+        normalize_summary(seq_result$summary),
+        normalize_summary(par_result$summary)
+      )
+    })
+
+    it("fails fast when checkpoint_format = 'parquet' is requested", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      config <- create_sim_config(n_replicates = 1L)
+      config@checkpoint_format <- "parquet"
+      config@result_path <- file.path(withr::local_tempdir(), "parquet-results")
+
+      expect_error(
+        run_simulation(config, progress = FALSE),
+        "Checkpoint format 'parquet' is not implemented yet"
+      )
     })
   })
 })

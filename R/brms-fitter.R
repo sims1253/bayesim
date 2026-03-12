@@ -1,13 +1,27 @@
 #' @title Brms Fitter
 #' @description Fitter implementation for brms models.
 #'
+#' @param name Character string identifying the fitter (inherited from Fitter)
+#' @param supports_predictions Logical indicating if predictions are supported (inherited)
+#' @param supports_log_lik Logical indicating if log-likelihood is supported (inherited)
+#' @param supports_loo Logical indicating if LOO-CV is supported (inherited)
+#' @param backend Character string for Stan backend ("cmdstanr" or "rstan")
+#' @param chains Integer number of MCMC chains
+#' @param iter Integer total iterations per chain
+#' @param warmup Integer warmup iterations per chain
+#' @param thin Integer thinning interval
+#' @param refresh Integer refresh rate for progress output
+#' @param silent Integer verbosity level (0, 1, or 2)
+#' @param cores Integer number of cores for parallel processing
+#'
+#' @return An S7 BrmsFitter object
 #' @export
 BrmsFitter <- S7::new_class(
   "BrmsFitter",
   parent = Fitter,
   properties = list(
     # brms-specific properties only (name, supports_* are inherited from Fitter)
-    backend = S7::new_property(S7::class_character, default = "rstan"),
+    backend = S7::new_property(S7::class_character, default = "cmdstanr"),
     chains = S7::new_property(S7::class_integer, default = 4L),
     iter = S7::new_property(S7::class_integer, default = 2000L),
     warmup = S7::new_property(S7::class_integer, default = 1000L),
@@ -89,7 +103,8 @@ S7::method(fit, BrmsFitter) <- function(
             (timer$elapsed() / fitter@iter)
         ),
         warnings = warnings,
-        error = NULL
+        error = NULL,
+        data_bundle = data_bundle
       )
     },
     error = function(e) {
@@ -200,17 +215,33 @@ S7::method(diagnostics, BrmsFitter) <- function(fitter, fit_result) {
 extract_brms_diagnostics <- function(fit) {
   summary <- summary(fit)
 
-  # Rhat and ESS
-  rhat_values <- summary$fixed[, "Rhat"]
-  ess_bulk_values <- summary$fixed[, "Bulk_ESS"]
-  ess_tail_values <- summary$fixed[, "Tail_ESS"]
+  # Rhat and ESS - handle models without fixed effects
+  if (!is.null(summary$fixed) && nrow(summary$fixed) > 0) {
+    rhat_values <- summary$fixed[, "Rhat"]
+    ess_bulk_values <- summary$fixed[, "Bulk_ESS"]
+    ess_tail_values <- summary$fixed[, "Tail_ESS"]
+  } else {
+    rhat_values <- NA_real_
+    ess_bulk_values <- NA_real_
+    ess_tail_values <- NA_real_
+  }
 
   # Divergences
   sampler_diag <- brms::nuts_params(fit)
   divergent <- sum(sampler_diag$value[sampler_diag$Parameter == "divergent__"])
-  max_treedepth <- sum(
-    sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >=
-      brms::control_args(fit)$max_treedepth
+
+  # max_treedepth - try to get from fit, default to 10
+  max_treedepth <- tryCatch(
+    {
+      # Try to access control_args from brms namespace
+      control_args_fn <- get("control_args", envir = asNamespace("brms"))
+      td <- control_args_fn(fit)$max_treedepth
+      if (is.null(td)) {
+        td <- 10
+      } # default
+      sum(sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >= td)
+    },
+    error = function(e) NA_integer_
   )
 
   list(

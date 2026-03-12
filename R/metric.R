@@ -3,22 +3,18 @@
 #'   Metrics compute summary statistics or diagnostic values from fitted model
 #'   results and data bundles.
 #'
-#' @name Metric-class
-#' @return An S7 class object representing a Metric.
+#' @param name Character identifier for the metric. Used as a prefix when
+#'   flattening metric output to column names.
+#' @param needs Character vector of required capabilities from the fitter.
+#'   Common values include "predictions", "log_lik", "loo". The metric
+#'   will only receive these values in the context if the fitter provides
+#'   them.
+#' @param required Logical indicating whether metric failure causes task
+#'   failure. If TRUE, an error in computing this metric will propagate and
+#'   fail the entire task. If FALSE (default), metric failure results in
+#'   NA values being recorded.
 #'
-#' @section Properties:
-#' \describe{
-#'   \item{name}{Character identifier for the metric. Used as a prefix when
-#'     flattening metric output to column names.}
-#'   \item{needs}{Character vector of required capabilities from the fitter.
-#'     Common values include "predictions", "log_lik", "loo". The metric
-#'     will only receive these values in the context if the fitter provides
-#'     them.}
-#'   \item{required}{Logical indicating whether metric failure causes task
-#'     failure. If TRUE, an error in computing this metric will propagate and
-#'     fail the entire task. If FALSE (default), metric failure results in
-#'     NA values being recorded.}
-#' }
+#' @return An S7 class object representing a Metric.
 #'
 #' @section Methods:
 #' The `compute()` S7 generic must be implemented by subclasses.

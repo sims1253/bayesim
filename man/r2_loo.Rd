@@ -7,17 +7,26 @@
 r2_loo(fit, psis_object = NULL, yrep = NULL, return_object = FALSE, ...)
 }
 \arguments{
-\item{fit}{brms fit to calculate rmse for}
+\item{fit}{brms fit to calculate R² for}
 
-\item{...}{}
+\item{psis_object}{PSIS object for weights (optional)}
+
+\item{yrep}{Posterior predictive samples (optional)}
+
+\item{return_object}{If TRUE, return a custom_loo_object}
+
+\item{...}{Additional arguments}
 }
 \value{
-\code{custom_loo_object} object with R² acting as elpd.
+\code{custom_loo_object} object with R² acting as elpd, or a list with r2_loo and se_r2_loo.
 }
 \description{
 Calculate PSIS-loo R² for a given brms fit
 }
 \examples{
 \dontrun{
+# Requires brms package
+fit <- brms::brm(y ~ x, data = mydata)
+r2_loo(fit)
 }
 }

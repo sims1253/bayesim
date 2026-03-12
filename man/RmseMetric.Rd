@@ -2,10 +2,31 @@
 % Please edit documentation in R/metrics-built-in.R
 \name{RmseMetric}
 \alias{RmseMetric}
+\alias{rmse_metric}
 \title{RMSE Metric}
 \usage{
 RmseMetric(name = character(0), needs = character(0), required = FALSE)
+
+rmse_metric(name = "rmse")
+}
+\arguments{
+\item{name}{Character string naming the metric. Defaults to "rmse".}
+
+\item{needs}{Character vector of required capabilities. Defaults to "predictions".}
+
+\item{required}{Logical indicating if metric failure causes task failure. Defaults to FALSE.}
+}
+\value{
+An RmseMetric object.
 }
 \description{
 Root Mean Square Error between predictions and true values.
+
+\code{rmse_metric()} is a constructor function that creates an RmseMetric
+instance with appropriate defaults. Use this constructor to work around S7's
+property default inheritance issue.
+}
+\examples{
+rmse_metric()
+rmse_metric(name = "my_rmse")
 }

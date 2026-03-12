@@ -22,6 +22,30 @@ metric_lookup(
 }
 \arguments{
 \item{metric}{A string that identifies a supported metric}
+
+\item{fit}{A brms fit object}
+
+\item{draws}{Posterior draws object}
+
+\item{testing_data}{Data used for testing/out-of-sample evaluation}
+
+\item{vars_of_interest}{Variables to compute metrics for}
+
+\item{references}{Reference values for computing distance metrics}
+
+\item{threshold}{Threshold for diagnostic checks (default: 0.7)}
+
+\item{psis_object}{PSIS-LOO object for importance sampling}
+
+\item{ppred}{Posterior predictive samples matrix}
+
+\item{quantiles}{Quantiles to compute for summaries}
+
+\item{data_gen_output}{Output from data generation process}
+
+\item{fit_conf}{Fit configuration list}
+
+\item{...}{Additional arguments passed to metric functions}
 }
 \value{
 The function corresponding to the identifier string.

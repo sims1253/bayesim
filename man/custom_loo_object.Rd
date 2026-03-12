@@ -2,24 +2,29 @@
 % Please edit documentation in R/loo_handler.R
 \name{custom_loo_object}
 \alias{custom_loo_object}
-\title{Builds a loo object that contains any pointwise criterion, acting as elpd
-for compatibility.}
+\title{Custom LOO object builder}
 \usage{
 custom_loo_object(pointwise_criterion, psis_object = NULL)
 }
 \arguments{
 \item{pointwise_criterion}{vector of criterion values for each observation}
 
-\item{psis_object}{\code{brms:::.psis} object for psis diagnostics}
+\item{psis_object}{PSIS object for psis diagnostics}
 }
 \value{
 a loo object, containing a criterion, disguised as elpd
 }
 \description{
+Builds a loo object that contains any pointwise criterion, acting as elpd
+for compatibility.
+}
+\details{
 LOO currently has hardcoded expectations of elpd as part of loo objects
 so to use loo objects, we have to disguise other criterions as elpd.
 }
 \examples{
 \dontrun{
+# Create a custom loo object from pointwise criterion values
+custom_loo_object(c(-1.2, -0.8, -1.5))
 }
 }

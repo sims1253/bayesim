@@ -4,14 +4,12 @@
 \alias{run_simulation}
 \title{Run a Simulation Study}
 \usage{
-run_simulation(config, resume = FALSE, force_restart = FALSE, progress = TRUE)
+run_simulation(config, resume = c("auto", "never", "must"), progress = TRUE)
 }
 \arguments{
 \item{config}{A SimulationConfig S7 object}
 
-\item{resume}{Logical; if TRUE, attempt to resume from checkpoint}
-
-\item{force_restart}{Logical; if TRUE, ignore existing checkpoint and restart}
+\item{resume}{Character strategy: "auto", "never", or "must"}
 
 \item{progress}{Logical; if TRUE, show progress bar}
 }
@@ -28,7 +26,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = "baseline"),
   data_generator = my_data_gen,
   fitter = my_fitter,
-  metrics = c("rmse", "bias"),
+  metrics = list(rmse_metric(), bias_metric()),
   n_replicates = 100L,
   seed = 42L
 )

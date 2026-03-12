@@ -93,6 +93,7 @@ validate_bayesim_fit_result <- function(x) {
 #' @param timing List containing total, warmup, and sample timing in seconds
 #' @param warnings Character vector of warning messages captured during fitting
 #' @param error A condition object if the fit failed, NULL otherwise
+#' @param data_bundle Optional list containing the training/test data used for fitting
 #'
 #' @return A validated `bayesim_fit_result` object
 #'
@@ -133,7 +134,8 @@ new_fit_result <- function(
   diagnostics = list(),
   timing = list(total = 0, warmup = 0, sample = 0),
   warnings = character(),
-  error = NULL
+  error = NULL,
+  data_bundle = NULL
 ) {
   # Ensure warnings is character vector
   if (is.null(warnings)) {
@@ -167,7 +169,8 @@ new_fit_result <- function(
       diagnostics = diagnostics,
       timing = timing,
       warnings = warnings,
-      error = error
+      error = error,
+      data_bundle = data_bundle
     ),
     class = "bayesim_fit_result"
   )
@@ -387,6 +390,13 @@ validate_bayesim_simulation_result <- function(x) {
     }
   }
 
+  # Validate task_grid is a tibble/data.frame if present
+  if (!is.null(x$task_grid)) {
+    if (!is.data.frame(x$task_grid)) {
+      stop("task_grid must be NULL or a data.frame/tibble", call. = FALSE)
+    }
+  }
+
   # Validate summary is a tibble/data.frame
   if (!is.data.frame(x$summary)) {
     stop("summary must be a data.frame or tibble", call. = FALSE)
@@ -424,6 +434,7 @@ validate_bayesim_simulation_result <- function(x) {
 #'
 #' @param config_fingerprint Character hash uniquely identifying the configuration
 #' @param task_results List of `bayesim_task_result` objects
+#' @param task_grid Tibble with task grid information (task_id, data_idx, fit_idx, rep_idx, status)
 #' @param summary Tibble with one row per task, columns for metrics and diagnostics
 #' @param timing List containing total, by_phase, and other timing breakdowns
 #' @param errors Tibble of failed tasks with error details
@@ -456,6 +467,13 @@ validate_bayesim_simulation_result <- function(x) {
 #' result <- new_simulation_result(
 #'   config_fingerprint = "abc123",
 #'   task_results = list(task1),
+#'   task_grid = tibble::tibble(
+#'     task_id = "task_001",
+#'     data_idx = 1L,
+#'     fit_idx = 1L,
+#'     rep_idx = 1L,
+#'     status = "success"
+#'   ),
 #'   summary = tibble::tibble(task_id = "task_001", rmse = 0.05),
 #'   timing = list(total = 10.0, by_phase = list(setup = 2.0, fit = 8.0)),
 #'   errors = tibble::tibble(task_id = character(), error_message = character()),
@@ -464,6 +482,7 @@ validate_bayesim_simulation_result <- function(x) {
 new_simulation_result <- function(
   config_fingerprint = character(1),
   task_results = list(),
+  task_grid = NULL,
   summary = NULL,
   timing = list(total = 0),
   errors = NULL,
@@ -496,6 +515,7 @@ new_simulation_result <- function(
     list(
       config_fingerprint = config_fingerprint,
       task_results = task_results,
+      task_grid = task_grid,
       summary = summary,
       timing = timing,
       errors = errors,
@@ -583,6 +603,15 @@ print.bayesim_simulation_result <- function(x, ...) {
   cat("    - Success:", n_success, "\n")
   cat("    - Failed:", n_failed, "\n")
   cat("    - Skipped:", n_skipped, "\n")
+  if (!is.null(x$task_grid) && nrow(x$task_grid) > 0) {
+    cat(
+      "  Task grid:",
+      nrow(x$task_grid),
+      "rows x",
+      ncol(x$task_grid),
+      "cols\n"
+    )
+  }
   cat("  Total time:", round(x$timing$total, 2), "s\n")
   if (!is.null(x$checkpoint_path)) {
     cat("  Checkpoint:", x$checkpoint_path, "\n")

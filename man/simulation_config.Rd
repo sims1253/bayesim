@@ -5,15 +5,19 @@
 \title{Create a Simulation Configuration}
 \usage{
 simulation_config(
-  data_grid,
-  fit_grid,
+  data_grid = NULL,
+  fit_grid = NULL,
+  task_grid = NULL,
   data_generator,
   fitter = NULL,
   metrics = NULL,
   n_replicates = 1L,
   seed,
   result_path = NULL,
+  checkpoint_format = c("rds", "parquet"),
   checkpoint_every = 50L,
+  chunk_size = NULL,
+  max_in_memory = NULL,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf
 )
@@ -30,8 +34,7 @@ Generates data for a single replicate given a data specification row.}
 
 \item{fitter}{An S7 Fitter object that handles model fitting.}
 
-\item{metrics}{A character vector of metric names or a list of Metric objects.
-Character names are resolved via the metric registry.}
+\item{metrics}{A list of Metric objects.}
 
 \item{n_replicates}{Positive integer. Number of replicates per data/fit combination.}
 
@@ -39,7 +42,15 @@ Character names are resolved via the metric registry.}
 
 \item{result_path}{NULL or character path. If provided, results are saved here.}
 
+\item{checkpoint_format}{Character scalar. Checkpoint storage format.
+Currently only \code{"rds"} is implemented for checkpoint persistence.}
+
 \item{checkpoint_every}{Positive integer. Save progress every N tasks.}
+
+\item{chunk_size}{Positive integer. Maximum number of task results to keep
+in memory before forcing a checkpoint write. Defaults to \code{checkpoint_every}.}
+
+\item{max_in_memory}{Deprecated alias for \code{chunk_size}.}
 
 \item{retain}{Character vector. What to retain in results. Must be subset of
 \code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.}
@@ -61,9 +72,10 @@ config <- simulation_config(
   fit_grid = data.frame(model = c("baseline", "full")),
   data_generator = my_data_gen,
   fitter = my_fitter,
-  metrics = c("rmse", "bias"),
+  metrics = list(rmse_metric(), bias_metric()),
   n_replicates = 100L,
-  seed = 42L
+  seed = 42L,
+  checkpoint_format = "rds"
 )
 }
 }

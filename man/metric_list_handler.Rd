@@ -11,6 +11,12 @@ metric_list_handler(fit, metrics, data_gen_output, fit_conf, ...)
 
 \item{metrics}{A vector of metric identifiers. See details for supported
 identifiers.}
+
+\item{data_gen_output}{Output from data generation containing true parameters}
+
+\item{fit_conf}{Model configuration list or data.frame row}
+
+\item{...}{Additional arguments passed to metric calculation functions}
 }
 \value{
 A named list containing all requested metrics' results.
@@ -22,36 +28,42 @@ individually, as some variables can be reused instead of being calculated
 multiple times.
 }
 \details{
-Currently, the following identifiers are supported. See linked
-functions for required additional arguments:
+Currently, the following identifiers are supported:
 \itemize{
-\item "bias": \code{\link[=posterior_bias]{posterior_bias()}}
-\item "divergents": \code{\link[=divergents]{divergents()}}
-\item "ess": \code{\link[=ess]{ess()}}
-\item "elpd_loo": \code{\link[=elpd_loo]{elpd_loo()}}
-\item "elpd_newdata": \code{\link[=elpd_newdata]{elpd_newdata()}}
-\item "epred": \code{\link[=epred]{epred()}}
-\item "mae_s": \code{\link{}}
-\item "p_mean": \code{\link[=p_mean]{p_mean()}}
-\item "p_sd": \code{\link[=p_sd]{p_sd()}}
-\item "pareto_k": \code{\link{}}
-\item "pos_prob": \code{\link{}}
-\item "ppred": \code{\link{}}
-\item "pq": \code{\link{}}
-\item "q_true": \code{\link{}}
-\item "r2_loo": \code{\link{}}
-\item "r2_newdata": \code{\link{}}
-\item "residuals": \code{\link{}}
-\item "rhat": \code{\link{}}
-\item "rmse_loo": \code{\link{}}
-\item "rmse_newdata": \code{\link{}}
-\item "rmse_s": \code{\link{}}
-\item "rstar": \code{\link{}}
-\item "time_sampling": \code{\link{}}
-\item "time_total": \code{\link{}}
-\item "time_warmup": \code{\link{}}
-\item "y": \code{\link{}}
+\item "bias": posterior bias
+\item "divergents": number of divergent transitions
+\item "ess": effective sample size
+\item "elpd_loo": ELPD-LOO
+\item "elpd_newdata": ELPD on new data
+\item "epred": expected predictions
+\item "mae_s": mean absolute error scaled
+\item "p_mean": posterior mean
+\item "p_sd": posterior standard deviation
+\item "pareto_k": Pareto k diagnostic values
+\item "pos_prob": posterior probability of positive values
+\item "ppred": posterior predictions
+\item "pq": posterior quantiles
+\item "q_true": true quantiles
+\item "r2_loo": LOO R-squared
+\item "r2_newdata": R-squared on new data
+\item "residuals": model residuals
+\item "rhat": R-hat diagnostic
+\item "rmse_loo": LOO root mean square error
+\item "rmse_newdata": RMSE on new data
+\item "rmse_s": scaled RMSE
+\item "rstar": R* diagnostic
+\item "time_sampling": sampling time
+\item "time_total": total time
+\item "time_warmup": warmup time
+\item "y": observed values
 }
 
 Note,that not all identifiers are supported for each input class.
+}
+\examples{
+\dontrun{
+# Requires brms package and a fitted model
+fit <- brms::brm(y ~ x, data = mydata)
+metric_list_handler(fit, c("elpd_loo", "rhat"), data_gen_output, fit_conf)
+}
 }

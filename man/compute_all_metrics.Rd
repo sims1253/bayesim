@@ -4,7 +4,14 @@
 \alias{compute_all_metrics}
 \title{Compute all metrics for a task}
 \usage{
-compute_all_metrics(fit_result, data_bundle, context, metrics, task_ctx)
+compute_all_metrics(
+  fit_result,
+  data_bundle,
+  context,
+  metrics,
+  task_ctx,
+  result_path = NULL
+)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object from a successful fit}

@@ -101,7 +101,7 @@ result <- run_task(
 if (result$status == "success") {
   print(result$metrics)
 } else {
-  print(result$error$message)
+print(result$error$error_message)
 }
 }
 }

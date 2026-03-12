@@ -16,6 +16,9 @@ Windows}
 
 \item{outfile}{Path where the cluster log is written to in debug mode.}
 }
+\value{
+A parallel cluster object registered with doParallel.
+}
 \description{
 Convenience Function to set up a cluster used for multiprocessing
 }

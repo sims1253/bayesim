@@ -2,7 +2,7 @@
 % Please edit documentation in R/fitter.R
 \name{MockFitter}
 \alias{MockFitter}
-\title{Mock Fitter for Testing}
+\title{Mock Fitter for Testing (Internal)}
 \usage{
 MockFitter(
   name = "mock",
@@ -17,10 +17,18 @@ MockFitter(
 An S7 class object representing a MockFitter
 }
 \description{
-A simple implementation of the Fitter class for testing purposes.
+A simple implementation of the Fitter class for \strong{testing purposes only}.
 This fitter returns predetermined values and does not perform actual
 Bayesian inference.
+
+\strong{WARNING}: MockFitter ignores the \code{fit_spec} model specification.
+Do NOT use for scientific simulation studies comparing different models.
+For real inference, use \link{BrmsFitter} or create a custom fitter.
+
+For a lightweight no-Stan alternative, see the \code{LinearFitter} example
+in \code{vignette("custom-fitters")}.
 }
 \seealso{
-\link{Fitter} for the abstract base class
+\link{Fitter} for the abstract base class, \link{BrmsFitter} for real inference
 }
+\keyword{internal}

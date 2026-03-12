@@ -216,8 +216,8 @@ make_timer <- function() {
 #'
 #' @return A named list with elements:
 #'   \itemize{
-#'     \item `class` - The class of the error
-#'     \item `message` - The error message
+#'     \item `error_class` - The class of the error
+#'     \item `error_message` - The error message
 #'     \item `call` - The call that caused the error (if available)
 #'     \item `traceback` - Trimmed traceback (limited to 20 frames)
 #'   }
@@ -252,8 +252,8 @@ capture_error_info <- function(e) {
   )
 
   list(
-    class = paste(class(e), collapse = ", "),
-    message = conditionMessage(e),
+    error_class = paste(class(e), collapse = ", "),
+    error_message = conditionMessage(e),
     call = error_call,
     traceback = tb_str
   )

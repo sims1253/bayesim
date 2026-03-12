@@ -8,7 +8,8 @@ matching said config.}
 fit_conf_key(fit_conf)
 }
 \arguments{
-\item{fit_conf}{}
+\item{fit_conf}{A list containing fit configuration with elements:
+fit_family, fit_link, formula, and prior}
 }
 \value{
 A hash generated from the fit configuration

@@ -2,14 +2,27 @@
 % Please edit documentation in R/loo_handler.R
 \name{r2}
 \alias{r2}
-\title{Title}
+\title{Calculate pointwise R-squared}
 \usage{
 r2(y, yrep, weights = NULL)
 }
+\arguments{
+\item{y}{Vector of observed values}
+
+\item{yrep}{Matrix of predicted values (draws x observations)}
+
+\item{weights}{PSIS weights (optional)}
+}
+\value{
+Pointwise R-squared values
+}
 \description{
-Title
+Calculate pointwise R-squared
 }
 \examples{
 \dontrun{
+y <- c(1, 2, 3)
+yrep <- matrix(rnorm(300), nrow = 100, ncol = 3)
+r2(y, yrep)
 }
 }

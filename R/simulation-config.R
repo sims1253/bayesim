@@ -1,6 +1,6 @@
 #' @keywords internal
 #' @importFrom S7 new_class new_property class_character class_function
-#' @importFrom S7 class_numeric class_logical S7_validator
+#' @importFrom S7 class_numeric class_logical
 NULL
 
 # Valid retain options
@@ -14,23 +14,81 @@ VALID_RETAIN_OPTIONS <- c(
   "warnings"
 )
 
+VALID_RETENTION_CONTEXTS <- c("success", "warning", "error")
+VALID_CHECKPOINT_FORMATS <- c("rds", "parquet")
+
+validate_resolved_retention_spec <- function(value) {
+  if (!is.list(value)) {
+    return("retain must resolve to a named list")
+  }
+
+  missing_names <- setdiff(VALID_RETENTION_CONTEXTS, names(value))
+  if (length(missing_names) > 0) {
+    return(
+      paste0(
+        "retain is missing contexts: ",
+        paste(missing_names, collapse = ", ")
+      )
+    )
+  }
+
+  invalid_names <- setdiff(names(value), VALID_RETENTION_CONTEXTS)
+  if (length(invalid_names) > 0) {
+    return(
+      paste0(
+        "retain contains invalid contexts: ",
+        paste(invalid_names, collapse = ", ")
+      )
+    )
+  }
+
+  for (context in VALID_RETENTION_CONTEXTS) {
+    opts <- value[[context]]
+    if (!is.character(opts)) {
+      return(sprintf("retain$%s must be a character vector", context))
+    }
+
+    invalid_opts <- setdiff(opts, VALID_RETAIN_OPTIONS)
+    if (length(invalid_opts) > 0) {
+      return(
+        paste0(
+          "retain$",
+          context,
+          " contains invalid options: ",
+          paste(invalid_opts, collapse = ", ")
+        )
+      )
+    }
+  }
+
+  TRUE
+}
+
 # S7 class definition for SimulationConfig
 SimulationConfig <- S7::new_class(
   name = "SimulationConfig",
   properties = list(
     data_grid = S7::new_property(
-      class = S7::class_data.frame,
+      class = S7::new_union(S7::class_data.frame, NULL),
       validator = function(value) {
-        if (nrow(value) < 1) {
+        if (!is.null(value) && nrow(value) < 1) {
           "data_grid must have at least 1 row"
         }
       }
     ),
     fit_grid = S7::new_property(
-      class = S7::class_data.frame,
+      class = S7::new_union(S7::class_data.frame, NULL),
       validator = function(value) {
-        if (nrow(value) < 1) {
+        if (!is.null(value) && nrow(value) < 1) {
           "fit_grid must have at least 1 row"
+        }
+      }
+    ),
+    task_grid = S7::new_property(
+      class = S7::new_union(S7::class_data.frame, NULL),
+      validator = function(value) {
+        if (!is.null(value) && nrow(value) < 1) {
+          "task_grid must have at least 1 row"
         }
       }
     ),
@@ -92,17 +150,42 @@ SimulationConfig <- S7::new_class(
         }
       }
     ),
-    retain = S7::new_property(
+    checkpoint_format = S7::new_property(
       class = S7::class_character,
       validator = function(value) {
-        invalid <- setdiff(value, VALID_RETAIN_OPTIONS)
-        if (length(invalid) > 0) {
+        if (length(value) != 1 || is.na(value)) {
+          "checkpoint_format must be a single character string"
+        }
+        if (!value %in% VALID_CHECKPOINT_FORMATS) {
           paste0(
-            "retain contains invalid options: ",
-            paste(invalid, collapse = ", "),
-            ". Valid options: ",
-            paste(VALID_RETAIN_OPTIONS, collapse = ", ")
+            "checkpoint_format must be one of: ",
+            paste(VALID_CHECKPOINT_FORMATS, collapse = ", ")
           )
+        }
+      }
+    ),
+    chunk_size = S7::new_property(
+      class = S7::class_integer,
+      validator = function(value) {
+        if (length(value) != 1 || is.na(value) || value < 1) {
+          "chunk_size must be a positive integer"
+        }
+      }
+    ),
+    max_in_memory = S7::new_property(
+      class = S7::class_integer,
+      validator = function(value) {
+        if (length(value) != 1 || is.na(value) || value < 1) {
+          "max_in_memory must be a positive integer"
+        }
+      }
+    ),
+    retain = S7::new_property(
+      class = S7::class_list,
+      validator = function(value) {
+        msg <- validate_resolved_retention_spec(value)
+        if (!isTRUE(msg)) {
+          msg
         }
       }
     ),
@@ -132,12 +215,16 @@ SimulationConfig <- S7::new_class(
 #' @param data_generator A function with signature `(data_spec, seed, task_ctx) -> data_bundle`.
 #'   Generates data for a single replicate given a data specification row.
 #' @param fitter An S7 Fitter object that handles model fitting.
-#' @param metrics A character vector of metric names or a list of Metric objects.
-#'   Character names are resolved via the metric registry.
+#' @param metrics A list of Metric objects.
 #' @param n_replicates Positive integer. Number of replicates per data/fit combination.
 #' @param seed Integer. Base seed for reproducible random number generation.
 #' @param result_path NULL or character path. If provided, results are saved here.
+#' @param checkpoint_format Character scalar. Checkpoint storage format.
+#'   Currently only `"rds"` is implemented for checkpoint persistence.
 #' @param checkpoint_every Positive integer. Save progress every N tasks.
+#' @param chunk_size Positive integer. Maximum number of task results to keep
+#'   in memory before forcing a checkpoint write. Defaults to `checkpoint_every`.
+#' @param max_in_memory Deprecated alias for `chunk_size`.
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
 #' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no limit.
@@ -153,38 +240,68 @@ SimulationConfig <- S7::new_class(
 #'   fit_grid = data.frame(model = c("baseline", "full")),
 #'   data_generator = my_data_gen,
 #'   fitter = my_fitter,
-#'   metrics = c("rmse", "bias"),
+#'   metrics = list(rmse_metric(), bias_metric()),
 #'   n_replicates = 100L,
-#'   seed = 42L
+#'   seed = 42L,
+#'   checkpoint_format = "rds"
 #' )
 #' }
 simulation_config <- function(
-  data_grid,
-  fit_grid,
+  data_grid = NULL,
+  fit_grid = NULL,
+  task_grid = NULL,
   data_generator,
   fitter = NULL,
   metrics = NULL,
   n_replicates = 1L,
   seed,
   result_path = NULL,
+  checkpoint_format = c("rds", "parquet"),
   checkpoint_every = 50L,
+  chunk_size = NULL,
+  max_in_memory = NULL,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf
 ) {
-  # Validate data_grid
-  if (!is.data.frame(data_grid)) {
-    cli::cli_abort("data_grid must be a data.frame")
-  }
-  if (nrow(data_grid) < 1) {
-    cli::cli_abort("data_grid must have at least 1 row")
+  if (!is.null(task_grid)) {
+    if (!is.data.frame(task_grid)) {
+      cli::cli_abort("task_grid must be a data.frame")
+    }
+    if (nrow(task_grid) < 1) {
+      cli::cli_abort("task_grid must have at least 1 row")
+    }
+
+    has_explicit_specs <- all(c("data_spec", "fit_spec") %in% names(task_grid))
+    has_index_specs <- all(c("data_idx", "fit_idx") %in% names(task_grid))
+
+    if (!has_explicit_specs && !has_index_specs) {
+      cli::cli_abort(
+        paste(
+          "task_grid must contain either list-columns data_spec/fit_spec or index columns data_idx/fit_idx"
+        )
+      )
+    }
   }
 
-  # Validate fit_grid
-  if (!is.data.frame(fit_grid)) {
-    cli::cli_abort("fit_grid must be a data.frame")
-  }
-  if (nrow(fit_grid) < 1) {
-    cli::cli_abort("fit_grid must have at least 1 row")
+  if (
+    is.null(task_grid) || !all(c("data_spec", "fit_spec") %in% names(task_grid))
+  ) {
+    if (!is.data.frame(data_grid)) {
+      cli::cli_abort("data_grid must be a data.frame")
+    }
+    if (nrow(data_grid) < 1) {
+      cli::cli_abort("data_grid must have at least 1 row")
+    }
+
+    if (!is.data.frame(fit_grid)) {
+      cli::cli_abort("fit_grid must be a data.frame")
+    }
+    if (nrow(fit_grid) < 1) {
+      cli::cli_abort("fit_grid must have at least 1 row")
+    }
+  } else {
+    data_grid <- if (is.null(data_grid)) NULL else data_grid
+    fit_grid <- if (is.null(fit_grid)) NULL else fit_grid
   }
 
   # Validate data_generator
@@ -234,6 +351,8 @@ simulation_config <- function(
     }
   }
 
+  checkpoint_format <- match.arg(checkpoint_format, VALID_CHECKPOINT_FORMATS)
+
   # Validate checkpoint_every
   checkpoint_every <- as.integer(checkpoint_every)
   if (
@@ -244,15 +363,35 @@ simulation_config <- function(
     cli::cli_abort("checkpoint_every must be a positive integer >= 1")
   }
 
-  # Validate retain
-  invalid_retain <- setdiff(retain, VALID_RETAIN_OPTIONS)
-  if (length(invalid_retain) > 0) {
-    cli::cli_abort(c(
-      "retain contains invalid options: {invalid_retain}",
-      "Valid options: {VALID_RETAIN_OPTIONS}"
-    ))
+  provided_max_in_memory <- !is.null(max_in_memory)
+
+  if (!is.null(chunk_size) && !is.null(max_in_memory)) {
+    cli::cli_abort("Use either chunk_size or max_in_memory, not both")
   }
-  retain <- match.arg(retain, VALID_RETAIN_OPTIONS, several.ok = TRUE)
+
+  if (is.null(chunk_size)) {
+    chunk_size <- max_in_memory
+  }
+  if (is.null(chunk_size)) {
+    chunk_size <- checkpoint_every
+  }
+
+  chunk_size <- as.integer(chunk_size)
+  if (
+    length(chunk_size) != 1 ||
+      is.na(chunk_size) ||
+      chunk_size < 1
+  ) {
+    cli::cli_abort(
+      if (provided_max_in_memory) {
+        "max_in_memory must be a positive integer >= 1"
+      } else {
+        "chunk_size must be a positive integer >= 1"
+      }
+    )
+  }
+
+  retain <- resolve_retention_spec(retain)
 
   # Validate max_errors
   if (length(max_errors) != 1 || is.na(max_errors)) {
@@ -266,6 +405,7 @@ simulation_config <- function(
   SimulationConfig(
     data_grid = data_grid,
     fit_grid = fit_grid,
+    task_grid = task_grid,
     data_generator = data_generator,
     fitter = fitter,
     metrics = resolved_metrics,
@@ -273,6 +413,9 @@ simulation_config <- function(
     seed = seed,
     result_path = result_path,
     checkpoint_every = checkpoint_every,
+    checkpoint_format = checkpoint_format,
+    chunk_size = chunk_size,
+    max_in_memory = chunk_size,
     retain = retain,
     max_errors = max_errors
   )
@@ -291,28 +434,36 @@ simulation_config <- function(
 #' @keywords internal
 resolve_metrics <- function(metrics) {
   if (is.null(metrics)) {
-    return(NULL)
+    return(list())
+  }
+
+  if (S7::S7_inherits(metrics, Metric)) {
+    return(list(metrics))
   }
 
   if (is.character(metrics)) {
-    # Look up metric names in registry (to be implemented with metric registry)
-    # For now, convert to list of character strings as placeholders
-    # This will be updated when the Metric class and registry are available
-    resolved <- lapply(metrics, function(name) {
-      # Placeholder: return a list with the name
-      # When Metric class exists: metric_registry_get(name)
-      list(name = name)
-    })
-    return(resolved)
+    cli::cli_abort(
+      paste(
+        "metrics must be Metric objects, not character names.",
+        "Use metric constructors such as list(rmse_metric(), bias_metric())."
+      )
+    )
   }
 
-  if (is.list(metrics)) {
-    # Already a list, validate each element
-    # When Metric class exists: check each element is Metric
-    return(metrics)
+  if (!is.list(metrics)) {
+    cli::cli_abort(
+      "metrics must be NULL, a Metric object, or a list of Metric objects"
+    )
   }
 
-  cli::cli_abort("metrics must be a character vector or list of Metric objects")
+  for (i in seq_along(metrics)) {
+    metric <- metrics[[i]]
+    if (!S7::S7_inherits(metric, Metric)) {
+      cli::cli_abort("metrics[[{i}]] is not an S7 Metric object")
+    }
+  }
+
+  metrics
 }
 
 #' Convert SimulationConfig to Plain List for Hashing
@@ -343,13 +494,15 @@ as_config_spec <- function(config) {
   spec <- list(
     data_grid = config@data_grid,
     fit_grid = config@fit_grid,
-    data_generator_signature = capture_function_signature(
+    task_grid = config@task_grid,
+    data_generator_spec = capture_function_signature(
       config@data_generator
     ),
     fitter_spec = capture_fitter_spec(config@fitter),
     metrics_spec = capture_metrics_spec(config@metrics),
     n_replicates = config@n_replicates,
     seed = config@seed,
+    checkpoint_format = config@checkpoint_format,
     retain = config@retain,
     max_errors = config@max_errors
   )
@@ -373,10 +526,45 @@ capture_function_signature <- function(fn) {
 
   tryCatch(
     {
+      env <- environment(fn)
+      env_name <- if (is.null(env)) "" else environmentName(env)
+      reference <- NULL
+
+      namespace_name <- NULL
+      if (grepl("^namespace:", env_name)) {
+        namespace_name <- sub("^namespace:", "", env_name)
+      } else if (nzchar(env_name) && env_name %in% loadedNamespaces()) {
+        namespace_name <- env_name
+      }
+
+      if (!is.null(namespace_name)) {
+        ns <- namespace_name
+        ns_env <- asNamespace(ns)
+        candidates <- ls(ns_env, all.names = TRUE)
+        matches <- candidates[vapply(
+          candidates,
+          function(name) {
+            identical(get(name, envir = ns_env), fn)
+          },
+          logical(1)
+        )]
+
+        if (length(matches) == 1) {
+          reference <- list(
+            package = ns,
+            name = matches[[1]],
+            version = as.character(getNamespaceVersion(ns))
+          )
+        }
+      }
+
       args <- formals(fn)
       body_hash <- digest::digest(capture.output(print(body(fn))))
 
       list(
+        rehydratable = !is.null(reference),
+        reference = reference,
+        environment = env_name,
         args = names(args),
         body_hash = body_hash
       )
@@ -402,24 +590,15 @@ capture_fitter_spec <- function(fitter) {
   }
 
   if (S7::S7_inherits(fitter)) {
-    # Extract plain properties only - never digest the S7 object directly
-    spec <- list(
+    attrs <- attributes(fitter)
+    props <- attrs[setdiff(names(attrs), c("class", "S7_class"))]
+
+    return(list(
       class = class(fitter)[1],
-      name = tryCatch(fitter@name, error = function(e) NA_character_)
-    )
-
-    # Add fitter-specific properties if available
-    if (!is.null(fitter@supports_predictions)) {
-      spec$supports_predictions <- fitter@supports_predictions
-    }
-    if (!is.null(fitter@supports_log_lik)) {
-      spec$supports_log_lik <- fitter@supports_log_lik
-    }
-    if (!is.null(fitter@supports_loo)) {
-      spec$supports_loo <- fitter@supports_loo
-    }
-
-    return(spec)
+      package_version = namespaced_object_version(class(fitter)[1]),
+      properties = props,
+      rehydratable = grepl("::", class(fitter)[1], fixed = TRUE)
+    ))
   }
 
   NA
@@ -436,25 +615,21 @@ capture_fitter_spec <- function(fitter) {
 #' @keywords internal
 capture_metrics_spec <- function(metrics) {
   if (is.null(metrics)) {
-    return(NA)
+    return(list())
   }
 
   specs <- lapply(metrics, function(m) {
     if (S7::S7_inherits(m)) {
-      # Extract plain properties only
+      attrs <- attributes(m)
+      props <- attrs[setdiff(names(attrs), c("class", "S7_class"))]
+
       list(
         class = class(m)[1],
-        name = tryCatch(m@name, error = function(e) NA_character_),
-        needs = tryCatch(as.character(m@needs), error = function(e) {
-          character()
-        }),
-        required = tryCatch(isTRUE(m@required), error = function(e) FALSE)
+        package_version = namespaced_object_version(class(m)[1]),
+        properties = props,
+        rehydratable = grepl("::", class(m)[1], fixed = TRUE)
       )
-    } else if (is.list(m) && !is.null(m$name)) {
-      # Plain list metric spec
-      m$name
     } else {
-      # Unknown type - don't digest, return NA
       NA_character_
     }
   })
@@ -576,5 +751,74 @@ get_total_tasks <- function(config) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
+  if (!is.null(config@task_grid)) {
+    return(nrow(config@task_grid))
+  }
+
   nrow(config@data_grid) * nrow(config@fit_grid) * config@n_replicates
+}
+
+resolve_retention_spec <- function(retain) {
+  validate_retention_value <- function(value, label = "retain") {
+    if (
+      is.character(value) &&
+        length(value) == 1 &&
+        value %in% names(RETENTION_PROFILES)
+    ) {
+      return(resolve_retention(value))
+    }
+
+    invalid <- setdiff(value, VALID_RETAIN_OPTIONS)
+    if (length(invalid) > 0) {
+      cli::cli_abort("{label} contains invalid options: {invalid}")
+    }
+
+    unique(c("metrics", intersect(value, VALID_RETAIN_OPTIONS)))
+  }
+
+  if (is.character(retain)) {
+    opts <- validate_retention_value(retain)
+    return(list(success = opts, warning = opts, error = opts))
+  }
+
+  if (!is.list(retain)) {
+    cli::cli_abort(
+      paste(
+        "retain must be a character vector/profile or a named list with any of success, warning, error"
+      )
+    )
+  }
+
+  invalid_names <- setdiff(names(retain), VALID_RETENTION_CONTEXTS)
+  if (length(invalid_names) > 0) {
+    cli::cli_abort("retain contains invalid contexts: {invalid_names}")
+  }
+
+  base <- if ("success" %in% names(retain)) {
+    retain[["success"]]
+  } else {
+    c("metrics", "diagnostics")
+  }
+
+  success <- validate_retention_value(base, "retain$success")
+  warning <- validate_retention_value(
+    retain[["warning"]] %||% base,
+    "retain$warning"
+  )
+  error <- validate_retention_value(retain[["error"]] %||% base, "retain$error")
+
+  list(success = success, warning = warning, error = error)
+}
+
+namespaced_object_version <- function(class_name) {
+  if (!is.character(class_name) || length(class_name) != 1) {
+    return(NULL)
+  }
+
+  parts <- strsplit(class_name, "::", fixed = TRUE)[[1]]
+  if (length(parts) != 2) {
+    return(NULL)
+  }
+
+  as.character(getNamespaceVersion(parts[[1]]))
 }

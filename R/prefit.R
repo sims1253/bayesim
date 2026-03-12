@@ -1,25 +1,56 @@
-#' Title
+#' Create a precompiled brms model object
 #'
-#' @param family_list
+#' Creates a brmsfit object with compiled Stan code that can be efficiently
+#' updated with new data during simulation runs, avoiding recompilation.
 #'
-#' @return
+#' @param fit_conf A list or data.frame row containing model configuration:
+#'   \itemize{
+#'     \item fit_family: The model family (e.g., "gaussian", "student_t")
+#'     \item fit_link: The link function (e.g., "identity", "log")
+#'     \item formula: The model formula as a character string
+#'     \item prior: (optional) Prior specifications
+#'   }
+#' @param stan_pars A list containing Stan parameters, must include:
+#'   \itemize{
+#'     \item backend: Stan backend ("cmdstanr" or "rstan")
+#'   }
+#'
+#' @return A brmsfit object with compiled Stan code (chains = 0)
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' fit_conf <- list(
+#'   fit_family = "gaussian",
+#'   fit_link = "identity",
+#'   formula = "y ~ x"
+#' )
+#' stan_pars <- list(backend = "cmdstanr")
+#' prefit <- get_prefit(fit_conf, stan_pars)
+#' }
 get_prefit <- function(fit_conf, stan_pars) {
-  family <- bayesfam::brms_family_lookup(
-    fit_conf$fit_family,
-    fit_conf$fit_link
+  family <- tryCatch(
+    bayesfam::brms_family_lookup(fit_conf$fit_family, fit_conf$fit_link),
+    error = function(e) {
+      # Fallback to brms family lookup if bayesfam is not available
+      brms::brmsfamily(fit_conf$fit_family, fit_conf$fit_link)
+    }
   )
   if (is.null(fit_conf$prior)) {
     fit_conf$prior <- prior_lookup(fit_conf$fit_family)
   }
   formula <- brms::brmsformula(fit_conf$formula)
-  data <- do.call(
-    bayesfam::rng_lookup(fit_conf$fit_family),
-    list(
-      n = length(all.vars(formula$formula))
-    )
+  data <- tryCatch(
+    do.call(
+      bayesfam::rng_lookup(fit_conf$fit_family),
+      list(n = length(all.vars(formula$formula)))
+    ),
+    error = function(e) {
+      # Fallback: generate simple data
+      n_vars <- length(all.vars(formula$formula))
+      set.seed(12345)
+      as.data.frame(matrix(rnorm(n_vars * 10), ncol = n_vars))
+    }
   )
   names(data) <- all.vars(formula$formula)
   prefit <- brms::brm(
@@ -34,7 +65,7 @@ get_prefit <- function(fit_conf, stan_pars) {
     prior = fit_conf$prior,
     init = 0.1
   )
-  return(prefit)
+  prefit
 }
 
 
@@ -46,10 +77,8 @@ get_prefit <- function(fit_conf, stan_pars) {
 #'                          prior.
 #' @param stan_pars A named list which contains a backend field.
 #'
-#' @return A list of
+#' @return A named list of precompiled fit objects keyed by fit configuration.
 #' @export
-#'
-#' @examples
 build_prefit_list <- function(fit_configuration, stan_pars) {
   if (is.null(fit_configuration$prior)) {
     prefit_configurations <- unique(
@@ -77,5 +106,5 @@ build_prefit_list <- function(fit_configuration, stan_pars) {
     )
   }
 
-  return(prefit_list)
+  prefit_list
 }

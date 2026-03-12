@@ -50,6 +50,9 @@ RESULT_SCHEMA_VERSION <- 1L
 #' @param config_fingerprint Character string containing a hash of the
 #'   configuration. This is stored in the manifest for validation during
 #'   resume operations.
+#' @param config_spec Optional normalized configuration spec to persist in the
+#'   run manifest for future rehydration.
+#' @param checkpoint_format Character scalar naming the checkpoint storage format.
 #'
 #' @return Invisible path to the result directory, or NULL if result_path is NULL.
 #'
@@ -57,9 +60,9 @@ RESULT_SCHEMA_VERSION <- 1L
 #' The directory structure created is:
 #' \preformatted{
 #' result_path/
-#' ├── run_manifest.json    # run-level metadata and schema versions
-#' ├── latest.json          # pointer to latest valid checkpoint ID
-#' └── checkpoints/         # directory for checkpoint snapshots
+#' +-- run_manifest.json    # run-level metadata and schema versions
+#' +-- latest.json          # pointer to latest valid checkpoint ID
+#' +-- checkpoints/         # directory for checkpoint snapshots
 #' }
 #'
 #' The run manifest contains:
@@ -80,10 +83,17 @@ RESULT_SCHEMA_VERSION <- 1L
 #'   config_fingerprint = "abc123hash"
 #' )
 #' }
-init_checkpoint_dir <- function(result_path, config_fingerprint) {
+init_checkpoint_dir <- function(
+  result_path,
+  config_fingerprint,
+  config_spec = NULL,
+  checkpoint_format = "rds"
+) {
   if (is.null(result_path)) {
     return(NULL)
   }
+
+  assert_supported_checkpoint_format(checkpoint_format)
 
   # Create base directory
   dir.create(result_path, recursive = TRUE, showWarnings = FALSE)
@@ -100,6 +110,8 @@ init_checkpoint_dir <- function(result_path, config_fingerprint) {
     run_schema_version = RUN_SCHEMA_VERSION,
     result_schema_version = RESULT_SCHEMA_VERSION,
     config_fingerprint = config_fingerprint,
+    config_spec = config_spec,
+    checkpoint_format = checkpoint_format,
     created = as.character(Sys.time())
   )
   write_json_atomic(manifest, file.path(result_path, "run_manifest.json"))
@@ -171,6 +183,7 @@ get_next_checkpoint_id <- function(result_path) {
 #'   results from completed tasks.
 #' @param config_fingerprint Character string containing a hash of the
 #'   configuration for validation purposes.
+#' @param checkpoint_format Character scalar naming the checkpoint storage format.
 #'
 #' @return Invisible checkpoint ID (integer), or NULL if result_path is NULL.
 #'
@@ -178,11 +191,11 @@ get_next_checkpoint_id <- function(result_path) {
 #' The checkpoint directory structure is:
 #' \preformatted{
 #' checkpoints/
-#' └── cp_000001/
-#'     ├── meta.json         # checkpoint metadata
-#'     ├── ledger.rds        # task grid with status
-#'     ├── results.rds       # metrics + diagnostics per task
-#'     └── checksums.json    # file integrity checksums
+#' +-- cp_000001/
+#'     +-- meta.json         # checkpoint metadata
+#'     +-- ledger.rds        # task grid with status
+#'     +-- results.rds       # metrics + diagnostics per task
+#'     +-- checksums.json    # file integrity checksums
 #' }
 #'
 #' Atomic write protocol:
@@ -215,11 +228,14 @@ write_checkpoint <- function(
   result_path,
   task_grid,
   task_results,
-  config_fingerprint
+  config_fingerprint,
+  checkpoint_format = "rds"
 ) {
   if (is.null(result_path)) {
     return(invisible(NULL))
   }
+
+  assert_supported_checkpoint_format(checkpoint_format)
 
   # Get next checkpoint ID and create directory names
   checkpoint_id <- get_next_checkpoint_id(result_path)
@@ -250,16 +266,34 @@ write_checkpoint <- function(
       )
       write_json_atomic(meta, file.path(tmp_dir, "meta.json"))
 
+      ledger_path <- checkpoint_data_path(tmp_dir, "ledger", checkpoint_format)
+      results_path <- checkpoint_data_path(
+        tmp_dir,
+        "results",
+        checkpoint_format
+      )
+
       # Write ledger (task grid)
-      write_rds_atomic(task_grid, file.path(tmp_dir, "ledger.rds"))
+      write_checkpoint_object(task_grid, ledger_path, checkpoint_format)
 
       # Convert and write results
       results_df <- results_to_dataframe(task_results)
-      write_rds_atomic(results_df, file.path(tmp_dir, "results.rds"))
+
+      prior_checkpoint <- read_checkpoint(result_path)
+      if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
+        prior_only <- prior_checkpoint$results_df[
+          !prior_checkpoint$results_df$task_id %in% results_df$task_id,
+          ,
+          drop = FALSE
+        ]
+        results_df <- rbind(prior_only, results_df)
+      }
+
+      write_checkpoint_object(results_df, results_path, checkpoint_format)
 
       # Read-back validation
       test_grid <- tryCatch(
-        readRDS(file.path(tmp_dir, "ledger.rds")),
+        read_checkpoint_object(ledger_path, checkpoint_format),
         error = function(e) NULL
       )
       if (is.null(test_grid)) {
@@ -269,7 +303,7 @@ write_checkpoint <- function(
       }
 
       test_results <- tryCatch(
-        readRDS(file.path(tmp_dir, "results.rds")),
+        read_checkpoint_object(results_path, checkpoint_format),
         error = function(e) NULL
       )
       if (is.null(test_results)) {
@@ -279,7 +313,14 @@ write_checkpoint <- function(
       }
 
       # Write checksums for integrity verification
-      write_checksums(tmp_dir, c("meta.json", "ledger.rds", "results.rds"))
+      write_checksums(
+        tmp_dir,
+        c(
+          "meta.json",
+          basename(ledger_path),
+          basename(results_path)
+        )
+      )
 
       # Validate the temporary checkpoint
       if (!verify_checksums(tmp_dir)) {
@@ -382,7 +423,7 @@ read_checkpoint <- function(result_path, checkpoint_id = NULL) {
     latest <- jsonlite::read_json(latest_path)
     checkpoint_id <- latest$checkpoint_id
 
-    if (is.null(checkpoint_id)) {
+    if (is.null(checkpoint_id) || length(checkpoint_id) == 0) {
       return(NULL)
     }
   }
@@ -401,10 +442,20 @@ read_checkpoint <- function(result_path, checkpoint_id = NULL) {
     return(NULL)
   }
 
+  manifest <- read_run_manifest(result_path)
+  checkpoint_format <- manifest$checkpoint_format %||% "rds"
+  assert_supported_checkpoint_format(checkpoint_format)
+
   # Read checkpoint files
   meta <- jsonlite::read_json(file.path(checkpoint_dir, "meta.json"))
-  task_grid <- readRDS(file.path(checkpoint_dir, "ledger.rds"))
-  results_df <- readRDS(file.path(checkpoint_dir, "results.rds"))
+  task_grid <- read_checkpoint_object(
+    checkpoint_data_path(checkpoint_dir, "ledger", checkpoint_format),
+    checkpoint_format
+  )
+  results_df <- read_checkpoint_object(
+    checkpoint_data_path(checkpoint_dir, "results", checkpoint_format),
+    checkpoint_format
+  )
 
   list(
     checkpoint_id = checkpoint_id,
@@ -482,22 +533,29 @@ validate_checkpoint_fingerprint <- function(checkpoint, config_fingerprint) {
 #' # Returns: c(1L, 2L, 3L, 5L, 10L)
 #' }
 list_checkpoints <- function(result_path) {
-  checkpoints_dir <- file.path(result_path, "checkpoints")
+  checkpoint_dir <- file.path(result_path, "checkpoints")
 
-  if (!dir.exists(checkpoints_dir)) {
+  if (!dir.exists(checkpoint_dir)) {
     return(integer(0))
   }
 
-  existing <- list.dirs(checkpoints_dir, recursive = FALSE, full.names = FALSE)
+  dirs <- list.dirs(checkpoint_dir, recursive = FALSE, full.names = FALSE)
 
-  if (length(existing) == 0) {
+  # Filter to only valid checkpoint directories (cp_XXXXXX format)
+  # This excludes .tmp, etc.
+  valid_dirs <- dirs[grepl("^cp_[0-9]{6}$", dirs)]
+
+  if (length(valid_dirs) == 0) {
     return(integer(0))
   }
 
   # Extract numeric IDs and sort
-  ids <- as.integer(gsub("^cp_", "", existing))
-  ids <- ids[!is.na(ids)]
-  sort(ids)
+  checkpoint_ids <- as.integer(gsub("^cp_", "", valid_dirs))
+
+  # Remove NAs from coercion
+  checkpoint_ids <- checkpoint_ids[!is.na(checkpoint_ids)]
+
+  sort(checkpoint_ids)
 }
 
 # =============================================================================
@@ -667,8 +725,9 @@ results_to_dataframe <- function(task_results) {
     return(data.frame(task_id = character(), status = character()))
   }
 
-  # Combine all rows
-  do.call(rbind, rows)
+  # Use dplyr::bind_rows() which handles different columns gracefully
+  # by filling missing columns with NA
+  dplyr::bind_rows(rows)
 }
 
 # =============================================================================
@@ -705,6 +764,65 @@ read_run_manifest <- function(result_path) {
   }
 
   jsonlite::read_json(manifest_path)
+}
+
+checkpoint_data_path <- function(directory, stem, checkpoint_format = "rds") {
+  ext <- switch(
+    checkpoint_format,
+    rds = ".rds",
+    parquet = ".parquet",
+    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+  )
+
+  file.path(directory, paste0(stem, ext))
+}
+
+write_checkpoint_object <- function(x, path, checkpoint_format = "rds") {
+  switch(
+    checkpoint_format,
+    rds = write_rds_atomic(x, path),
+    parquet = cli::cli_abort(
+      c(
+        "Checkpoint format 'parquet' is not implemented yet",
+        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
+      )
+    ),
+    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+  )
+}
+
+read_checkpoint_object <- function(path, checkpoint_format = "rds") {
+  switch(
+    checkpoint_format,
+    rds = readRDS(path),
+    parquet = cli::cli_abort(
+      c(
+        "Checkpoint format 'parquet' is not implemented yet",
+        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
+      )
+    ),
+    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+  )
+}
+
+assert_supported_checkpoint_format <- function(checkpoint_format) {
+  if (
+    !identical(checkpoint_format, "rds") &&
+      !identical(checkpoint_format, "parquet")
+  ) {
+    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+  }
+
+  if (identical(checkpoint_format, "parquet")) {
+    cli::cli_abort(
+      c(
+        "Checkpoint format 'parquet' is not implemented yet",
+        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
+      )
+    )
+  }
+
+  invisible(checkpoint_format)
 }
 
 # =============================================================================
@@ -758,7 +876,7 @@ validate_schema_compatibility <- function(manifest) {
 #' that are no longer needed. It always keeps the latest checkpoint and
 #' any checkpoints that are more recent than the keep_n threshold.
 #'
-#' @keywords internal
+#' @export
 clean_old_checkpoints <- function(result_path, keep_n = 5) {
   if (is.null(result_path)) {
     return(invisible(0))

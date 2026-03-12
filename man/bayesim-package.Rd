@@ -2,33 +2,17 @@
 % Please edit documentation in R/bayesim-package.R
 \docType{package}
 \name{bayesim-package}
+\alias{bayesim}
 \alias{bayesim-package}
 \title{bayesim: Simulation Framework for Bayesian Modeling}
 \description{
-A modern simulation framework for Bayesian modeling studies. Provides extensible tools for running complex simulation studies with deterministic reproducibility, checkpoint/resume capabilities, and memory-bounded execution. Users can extend with custom fitters, metrics, and data generators.
-
-bayesim provides a modern simulation framework for Bayesian modeling studies.
-It offers extensible tools for running complex simulation studies with
-deterministic reproducibility, checkpoint/resume capabilities, and
-memory-bounded execution.
-}
-\details{
-Key features:
-\itemize{
-\item Extensible S7-based interfaces for custom fitters and metrics
-\item Deterministic reproducibility across sequential/parallel/resume modes
-\item File-based checkpoint and resume with atomic writes
-\item Memory-bounded execution with configurable artifact retention
-}
+bayesim provides a simulation framework for Bayesian modeling studies with
+reproducible execution, checkpoint/resume support, and memory-bounded task
+processing.
 }
 \seealso{
-Useful links:
-\itemize{
-\item \code{\link[=simulation_config]{simulation_config()}} - Configure simulation runs
-\item \code{\link[=run_simulation]{run_simulation()}} - Execute simulation
-\item \link{Fitter} - Interface for model fitters
-\item \link{Metric} - Interface for metrics
-}
+\code{\link[=simulation_config]{simulation_config()}}, \code{\link[=run_simulation]{run_simulation()}}, \code{\link[=resume_simulation]{resume_simulation()}},
+\link{Fitter}, \link{Metric}
 }
 \author{
 \strong{Maintainer}: Maximilian Scholz \email{research.scholz@mailbox.org}

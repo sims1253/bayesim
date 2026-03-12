@@ -3,222 +3,133 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 [![R-CMD-check](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml)
 [![Tests](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml)
-[![Codecov test
-coverage](https://codecov.io/gh/sims1253/bayesim/graph/badge.svg)](https://app.codecov.io/gh/sims1253/bayesim)
+[![Codecov test coverage](https://codecov.io/gh/sims1253/bayesim/graph/badge.svg)](https://app.codecov.io/gh/sims1253/bayesim)
 [![GH-Pages](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml)
-[![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 
-A simulation framework for Bayesian models based on [brms](https://github.com/paul-buerkner/brms/).
+`bayesim` is a simulation framework for reproducible Bayesian modeling studies.
 
-The main function is `full_simulation` with the main arguments being `data_gen_confs`, `data_gen_fun`, `fit_confs` and `metrics`.
-Bayesim will generate datasets by passing `data_gen_confs` rows to `data_gen_fun` and fit each model defined by `fit_confs` on each generated dataset. It then calculates all of the defined `metrics` for each model. This is, as of now, done in a fully crossed fashion.
+The current user-facing workflow is:
 
-## Define Data Simulation
+1. Build a `SimulationConfig` with `simulation_config()`
+2. Run it with `run_simulation()`
+3. Resume interrupted runs with `run_simulation(..., resume = "auto" | "must")` or `resume_simulation()`
 
-Data simulation consists of two parts. A `data_gen_fun` function and a `data_gen_confs` dataframe. Bayesim will feed each row of `data_gen_confs` into `data_gen_fun` to generate each individual dataset.
+## Core ideas
 
-The only strictly necessary columns in `data_gen_confs` are:
+- Deterministic task planning from a single study seed
+- Checkpoint/resume for long-running studies
+- Memory-bounded execution via `chunk_size`
+- S7 fitters and metrics for extensibility
+- Explicit Metric objects instead of string metric names
 
-- `dataset_N`, the number of datasets that should be simulated per configuration. This is what Bayesim parallelize over.
+## Minimal example
 
-- `id`, a unique identifier string that is used to save the results per configuration row.
+```r
+library(bayesim)
 
-- `vars_of_interest`, if you want metrics calculated for individual parameters. It should be a list of variable names used in `data_gen_fun`.
+data_gen <- function(data_spec, seed, task_ctx) {
+  n <- data_spec$n
+  x <- rnorm(n)
+  y <- data_spec$intercept + data_spec$slope * x + rnorm(n, sd = data_spec$sigma)
 
-`data_gen_fun` should output a named list that contains the following parts:
-
-- `dataset`, a dataframe that is fed into `brms::brm`
-
-- `testing_data`, a dataframe that is used as `newdata` argument for certain out-of-sample metrics.
-
-- `data_gen_output`, a named list that contains all other information that you want to export from the data generating function. This should usually include all the input arguments (see example for how to get those easily), and a `references` list, that contains the reference values for all `vars_of_interest` variables (again, see the example for how to easily get those).
- An example is presented below:
-
-```{r}
-constant_linpred_dgp <- function(data_N,
-                                 data_link,
-                                 data_family,
-                                 seed = NULL,
-                                 testing_data = TRUE,
-                                 vars_of_interest = list("mu"),
-                                 mean = 0,
-                                 ...) {
-  arguments <- as.list(c(as.list(environment()), list(...)))
-  arguments$seed <- NULL
-
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-
-  if (testing_data) {
-    data_gen_size <- data_N * 2
-  } else {
-    data_gen_size <- data_N
-  }
-  dataset <- data.frame()
-  mu = rnorm(n = 1, mean = x, sd = 1)
-  y = rnorm(n = data_gen_size, mean = mu, sd = 1)
-
-  # This creates a list of values for each of the vars_of_interest. 
-  arguments$references <- lapply(
-    unlist(vars_of_interest),
-    function(x) get(x)
+  list(
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
+    true_params = c(
+      intercept = data_spec$intercept,
+      slope = data_spec$slope,
+      sigma = data_spec$sigma
+    ),
+    vars_of_interest = c("intercept", "slope", "sigma"),
+    references = c(intercept = 0, slope = 0, sigma = 1),
+    meta = list()
   )
-
-  data_gen_output <- list()
-   # Anything in addition to the function arguments you want to save about
-   # the data generation process ie. If you are resampling the number
-   # of invalid samples.
-  )
-  data_gen_output <- c(data_gen_output, arguments)
-
-  if (testing_data) {
-    return(
-      list(
-        dataset = list(y = dataset[1:data_N, ]),
-        testing_data = list(y = dataset[(data_N + 1):data_gen_size, ]),
-        data_gen_output = data_gen_output
-      )
-    )
-  } else {
-    return(
-      list(
-        dataset = dataset,
-        testing_data = NULL,
-        data_gen_output = data_gen_output
-      )
-    )
-  }
 }
 
+config <- simulation_config(
+  data_grid = data.frame(
+    n = c(100, 500),
+    intercept = 1,
+    slope = 2,
+    sigma = 1
+  ),
+  fit_grid = data.frame(model = "baseline"),
+  data_generator = data_gen,
+  fitter = MockFitter(),
+  metrics = list(rmse_metric(), bias_metric()),
+  n_replicates = 10L,
+  seed = 42L
+)
+
+result <- run_simulation(config, progress = FALSE)
+head(result$summary)
 ```
 
-## Define Fit Configurations
+`data_generator()` receives a scalar `seed` and a `task_ctx`. The engine also restores the task RNG state before each call, so repeated full, resumed, and parallel runs stay aligned.
 
-Fit configurations currently are dataframes with the following columns:
+## Checkpointing and resume
 
-- `fit_family`, see [brms_family_lookup](R/ll_lookup.R#L10) for supported families.
+Use `result_path` plus `checkpoint_every` to make runs resumable:
 
-- `fit_link`, see [link_lookup](R/ll_lookup.R#L70) for supported families.
+```r
+config <- simulation_config(
+  data_grid = data.frame(n = c(100, 500)),
+  fit_grid = data.frame(model = "baseline"),
+  data_generator = data_gen,
+  fitter = MockFitter(),
+  metrics = list(rmse_metric()),
+  n_replicates = 100L,
+  seed = 42L,
+  result_path = "results/demo-study",
+  checkpoint_every = 25L,
+  chunk_size = 25L
+)
 
-- `formula`, a string that allows conversion via `brms::brmsformula`
+run_simulation(config, resume = "auto")
+resume_simulation("results/demo-study")
+```
 
-- `prior`, gets passed to `brms::brm` directly.
+- `checkpoint_format = "rds"` is the supported checkpoint backend
+- `checkpoint_format = "parquet"` is reserved but not implemented yet
+- `chunk_size` controls how many task results are retained before a flush/checkpoint cycle
+- `max_in_memory` still works as a compatibility alias for `chunk_size`
 
-## Define Metrics
+## Metrics
 
-Metrics are defined via a list of string identifiers. The supported metrics are:
+Pass Metric objects, not strings:
 
-### Variable summaries
+```r
+metrics = list(
+  rmse_metric(),
+  bias_metric(),
+  coverage_metric()
+)
+```
 
-`"v_mean"`
-`"v_sd"`
-`"v_median"`
-`"v_mad"`
-`"v_pos_prob"`
-`"v_quantiles"`
-`"v_bias"`
-`"v_rmse"`
-`"v_mae"`
-`"v_mse"`
-`"v_true_percentile"`
+Custom metrics should subclass `Metric` and supply a stable `name`.
 
-### Global MCMC Diagnostics
+## Fitters
 
-`"divergent_transitions_rel"`
-`"divergent_transitions_abs"`
-`"rstar"`
-`"bad_pareto_ks"`
-`"pareto_k_values"`
-`"time_per_sample"`
+`bayesim` ships with `MockFitter()` for fast examples and `BrmsFitter()` for `brms` workflows. The default `brms` backend is `"cmdstanr"`.
 
-### Variable MCMC Diagnostics
+## Large studies
 
-`"rhat"`
-`"ess_bulk"`
-`"ess_tail"`
+For larger simulations:
 
-### Predictive Metrics
+- set `result_path`
+- choose `checkpoint_every`
+- set `chunk_size` to cap in-memory task results
+- use a minimal retention profile when heavy artifacts are unnecessary
 
-`"elpd_loo"`
-`"elpd_loo_pointwise"`
-`"elpd_loo_pointwise_summary"`
-`"elpd_test"`
-`"elpd_test_pointwise_summary"`
-`"rmse_loo"`
-`"rmse_loo_pointwise"`
-`"rmse_loo_pointwise_summary"`
-`"rmse_test"`
-`"rmse_test_pointwise_summary"`
-`"r2_loo"`
-`"r2_loo_pointwise"`
-`"r2_loo_pointwise_summary"`
-`"r2_test"`
-`"r2_test_pointwise_summary"`
+High-cardinality metric payloads are written to artifact files instead of expanding the main summary table indefinitely.
 
-### Posterior sample based metrics
+## Vignettes
 
-`"log_lik_pointwise"`
-`"log_lik_summary"`
-`"ppred_summary_y_scaled"`
-`"ppred_pointwise"`
-`"residuals"`
-`"posterior_linpred"`
-`"posterior_linpred_transformed"`
-
-### Observations
-
-`"y_pointwise"`
-`"y_pointwise_z_scaled"`
-`"y_summaries"`
-
-### Data
-
-`"data_gen"`
-
-### Fits
-
-`"fit_gen"`
-
-Or see [metric_lookup](R/metric_lookup.R#L11) for all currently implemented metrics.
-
-## Additional Arguments
-
-`seed`, sets a seed that will result in the rest of the simulation happening deterministically, conditional on the seed. Allows for reproduction of individual results or the entire simulation run later on.
-
-### Output
-
-- `result_path = "./"`, The path where the result .RDS files should be saved.
-
-- `debug = FALSE`, `TRUE` will save all intermediate results as .RDS files in the `result_path` directory to support debugging.
-
-### Stan Options
-
-`stan_pars` should be a named list that contains the following arguments:
-
-- `warmup`, directly passed to `brms::brm`
-
-- `iter`, directly passed to `brms::brm`
-
-- `chains`, directly passed to `brms::brm`
-
-- `init`, directly passed to `brms::brm`
-
-- `backend = "rstan"`, directly passed to `brms::brm` We recommend rstan due to instabilities of cmdstanr on clusters.
-
-- `cmdstan_path`, useful when working with cmdstan on a computing cluster where cmdstan might not be installed in the default location. Use the path to the main directory, eg `"~/.cmdstan/cmdstan-2.29.2"`.
-
-- `cmdstan_write_path`, directory for cmdstan to write compiled model files to. This should not be a temporary directory as those might get cleaned up during the simulation run.
-
-### Using multiple Cores
-
-- `ncores_simulation = 1`, If set to more than `1`, Bayesim will parallelize across datasets within each row of `data_gen_confs` using the specified number of processes.
-
-- `cluster_type = "PSOCK"`, Defines the type of cluster used by the `parallel` package. Windows requires `PSOCK` however 'FORK` can save quite some time due to the repeated cluster setup times.
-
-## Related Work
-
-Bayesim has been used in the following projects:
-
-- [Prediction can be safely used as a proxy for explanation in causally consistent Bayesian generalized linear models](https://arxiv.org/abs/2210.06927) [![DOI](https://zenodo.org/badge/453991253.svg)](https://zenodo.org/badge/latestdoi/453991253)
+- `vignette("getting-started")`
+- `vignette("simulation-study")`
+- `vignette("reproducibility")`
+- `vignette("memory-management")`
+- `vignette("custom-fitters")`
+- `vignette("case-studies")`

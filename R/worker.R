@@ -5,6 +5,9 @@
 #' @keywords internal
 NULL
 
+MAX_INLINE_METRIC_VECTOR_LENGTH <- 50L
+MAX_INLINE_METRIC_BYTES <- 64 * 1024
+
 # =============================================================================
 # Safe Task Wrapper
 # =============================================================================
@@ -153,7 +156,7 @@ run_task_safe <- function(
 #' if (result$status == "success") {
 #'   print(result$metrics)
 #' } else {
-#'   print(result$error$message)
+#' print(result$error$error_message)
 #' }
 #' }
 run_task <- function(
@@ -168,14 +171,16 @@ run_task <- function(
 
   # Set RNG for this task
   set_task_rng(task$rng_seed)
+  task_seed <- derive_task_seed(task$rng_seed)
+  task_ctx <- c(task$task_ctx, list(seed = task_seed))
 
   # Step 1: Generate data
   data_result <- tryCatch(
     {
       data_bundle <- config_spec$data_generator(
         task$data_spec,
-        task$rng_seed,
-        task$task_ctx
+        task_seed,
+        task_ctx
       )
       validate_data_bundle(data_bundle)
       list(success = TRUE, data_bundle = data_bundle)
@@ -207,7 +212,7 @@ run_task <- function(
   # Step 2: Fit model
   fit_result <- tryCatch(
     {
-      fit(fitter, data_bundle, task$fit_spec, task$rng_seed, task$task_ctx)
+      fit(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
     },
     error = function(e) {
       # Normalize to bayesim_fit_error if not already a bayesim error
@@ -236,7 +241,13 @@ run_task <- function(
   }
 
   # Step 3: Build context for metrics (predictions, log_lik, loo)
-  context <- build_metric_context(fit_result, fitter, data_bundle, metrics)
+  context <- build_metric_context(
+    fit_result,
+    fitter,
+    data_bundle,
+    metrics,
+    task_seed
+  )
 
   # Step 4: Compute metrics
   metrics_result <- compute_all_metrics(
@@ -244,15 +255,21 @@ run_task <- function(
     data_bundle,
     context,
     metrics,
-    task$task_ctx
+    task_ctx,
+    result_path = config_spec$result_path
   )
 
   timer$stop()
 
-  # Apply retention policy
-  fit_result <- apply_retention(fit_result, data_bundle, retain)
+  task_retain <- retention_for_task_result(
+    retain,
+    "success",
+    c(fit_result$warnings, metrics_result$warnings)
+  )
 
-  new_task_result(
+  fit_result <- apply_retention(fit_result, data_bundle, task_retain)
+
+  task_result <- new_task_result(
     task_id = task$task_id,
     status = "success",
     metrics = metrics_result$metrics,
@@ -261,6 +278,8 @@ run_task <- function(
     warnings = c(fit_result$warnings, metrics_result$warnings),
     error = NULL
   )
+
+  apply_task_retention(task_result, fit_result, data_bundle, task_retain)
 }
 
 # =============================================================================
@@ -292,7 +311,13 @@ run_task <- function(
 #' in NULL values for that context element.
 #'
 #' @keywords internal
-build_metric_context <- function(fit_result, fitter, data_bundle, metrics) {
+build_metric_context <- function(
+  fit_result,
+  fitter,
+  data_bundle,
+  metrics,
+  seed = NULL
+) {
   context <- list()
 
   # Determine what's needed
@@ -300,9 +325,22 @@ build_metric_context <- function(fit_result, fitter, data_bundle, metrics) {
     if (S7::S7_inherits(m)) m@needs else character()
   })))
 
+  # Warn if metrics need features the fitter doesn't support
+  if ("predictions" %in% all_needs && !fitter@supports_predictions) {
+    cli::cli_warn(
+      "Metric requires predictions but fitter does not support them"
+    )
+  }
+  if ("log_lik" %in% all_needs && !fitter@supports_log_lik) {
+    cli::cli_warn("Metric requires log_lik but fitter does not support it")
+  }
+  if ("loo" %in% all_needs && !fitter@supports_loo) {
+    cli::cli_warn("Metric requires loo but fitter does not support it")
+  }
+
   if ("predictions" %in% all_needs && fitter@supports_predictions) {
     context$predictions <- tryCatch(
-      predict_fit(fitter, fit_result),
+      predict_fit(fitter, fit_result, seed = seed),
       error = function(e) NULL
     )
   }
@@ -357,7 +395,8 @@ compute_all_metrics <- function(
   data_bundle,
   context,
   metrics,
-  task_ctx
+  task_ctx,
+  result_path = NULL
 ) {
   results <- list()
   warnings <- character()
@@ -389,12 +428,19 @@ compute_all_metrics <- function(
 
     # Flatten and add to results
     if (!is.null(metric_result)) {
-      flattened <- flatten_metric_output(metric_result, metric_name)
+      processed <- process_metric_output(
+        output = metric_result,
+        metric_name = metric_name,
+        task_ctx = task_ctx,
+        result_path = result_path
+      )
+      flattened <- processed$values
+      warnings <- c(warnings, processed$warnings)
       results <- c(results, flattened)
     }
   }
 
-  list(metrics = results, warnings = warnings)
+  list(metrics = results, warnings = unique(warnings))
 }
 
 #' Apply retention policy to fit result
@@ -431,6 +477,96 @@ apply_retention <- function(fit_result, data_bundle, retain) {
   if (!"diagnostics" %in% retain) {
     fit_result$diagnostics <- NULL
   }
+  # Remove data_bundle if not explicitly retained
+  if (!"data" %in% retain) {
+    fit_result$data_bundle <- NULL
+  }
 
   fit_result
+}
+
+derive_task_seed <- function(rng_seed) {
+  if (is.null(rng_seed) || length(rng_seed) < 2) {
+    return(1L)
+  }
+
+  as.integer((abs(as.double(rng_seed[[2]])) %% (.Machine$integer.max - 1)) + 1)
+}
+
+process_metric_output <- function(
+  output,
+  metric_name,
+  task_ctx,
+  result_path = NULL
+) {
+  validate_metric_output(output, metric_name)
+
+  values <- list()
+  warnings <- character()
+
+  for (field_name in names(output)) {
+    value <- output[[field_name]]
+
+    if (should_externalize_metric_value(value, result_path)) {
+      pointer <- externalize_metric_value(
+        value = value,
+        metric_name = metric_name,
+        field_name = field_name,
+        task_ctx = task_ctx,
+        result_path = result_path
+      )
+
+      prefix <- paste0(metric_name, "__", field_name)
+      values[[paste0(prefix, "__externalized")]] <- TRUE
+      values[[paste0(prefix, "__artifact_path")]] <- pointer$path
+      values[[paste0(prefix, "__artifact_hash")]] <- pointer$hash
+      values[[paste0(prefix, "__artifact_size")]] <- pointer$size
+      values[[paste0(prefix, "__n_values")]] <- length(value)
+      warnings <- c(
+        warnings,
+        sprintf(
+          "Externalized high-cardinality metric '%s__%s' for task '%s'",
+          metric_name,
+          field_name,
+          task_ctx$task_id %||% "unknown"
+        )
+      )
+    } else {
+      inline_output <- list(value)
+      names(inline_output) <- field_name
+      values <- c(values, flatten_metric_output(inline_output, metric_name))
+    }
+  }
+
+  list(values = values, warnings = unique(warnings))
+}
+
+should_externalize_metric_value <- function(value, result_path = NULL) {
+  if (is.null(result_path) || length(result_path) == 0) {
+    return(FALSE)
+  }
+
+  is_named_numeric_vector <- is.double(value) &&
+    length(value) > 1 &&
+    !is.null(names(value)) &&
+    all(names(value) != "" & !is.na(names(value)))
+
+  if (!is_named_numeric_vector) {
+    return(FALSE)
+  }
+
+  length(value) > MAX_INLINE_METRIC_VECTOR_LENGTH ||
+    estimate_size(value) > MAX_INLINE_METRIC_BYTES
+}
+
+externalize_metric_value <- function(
+  value,
+  metric_name,
+  field_name,
+  task_ctx,
+  result_path
+) {
+  artifacts_dir <- file.path(result_path, "artifacts", "metrics")
+  artifact_name <- paste(metric_name, field_name, sep = "__")
+  externalize_artifact(value, artifacts_dir, task_ctx$task_id, artifact_name)
 }

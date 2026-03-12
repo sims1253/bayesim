@@ -2,13 +2,16 @@
 % Please edit documentation in R/ll_lookup.R
 \name{prior_lookup}
 \alias{prior_lookup}
-\title{Title}
+\title{Lookup default priors for a model family}
 \usage{
 prior_lookup(family)
 }
 \arguments{
-\item{family}{}
+\item{family}{A string specifying the model family (e.g., "gaussian", "student_t")}
+}
+\value{
+A list of brms prior objects for the specified family
 }
 \description{
-Title
+Lookup default priors for a model family
 }

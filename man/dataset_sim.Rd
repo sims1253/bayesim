@@ -12,6 +12,7 @@ dataset_sim(
   seed,
   debug,
   result_path,
+  data_generator_fn = NULL,
   ...
 )
 }
@@ -30,6 +31,10 @@ dataset_sim(
 
 \item{result_path}{Path where debug files should be saved}
 
+\item{data_generator_fn}{A function with signature \verb{(config, seed) -> list}
+that generates data. The returned list must contain: \code{dataset},
+\code{sampling_loops}, \code{bad_samples}, \code{testing_data}, and \code{true_parameters}.}
+
 \item{...}{Additional arguments passed to metric calculation functions}
 }
 \value{
@@ -41,7 +46,7 @@ calculating metrics for each model fit.
 }
 \examples{
 \dontrun{
-# This function is typically called internally by dataset_conf_sim()
-# See full_simulation() examples for complete usage
+# This function is part of the legacy simulation pipeline.
+# New workflows should use simulation_config() + run_simulation().
 }
 }

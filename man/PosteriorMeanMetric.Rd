@@ -2,6 +2,7 @@
 % Please edit documentation in R/metrics-built-in.R
 \name{PosteriorMeanMetric}
 \alias{PosteriorMeanMetric}
+\alias{posterior_mean_metric}
 \title{Posterior Mean Metric}
 \usage{
 PosteriorMeanMetric(
@@ -9,7 +10,27 @@ PosteriorMeanMetric(
   needs = character(0),
   required = FALSE
 )
+
+posterior_mean_metric(name = "posterior_mean")
+}
+\arguments{
+\item{name}{Character string naming the metric. Defaults to "posterior_mean".}
+
+\item{needs}{Character vector of required capabilities. Defaults to empty character vector.}
+
+\item{required}{Logical indicating if metric failure causes task failure. Defaults to FALSE.}
+}
+\value{
+A PosteriorMeanMetric object.
 }
 \description{
 Posterior mean estimates for parameters.
+
+\code{posterior_mean_metric()} is a constructor function that creates a
+PosteriorMeanMetric instance with appropriate defaults. Use this constructor to
+work around S7's property default inheritance issue.
+}
+\examples{
+posterior_mean_metric()
+posterior_mean_metric(name = "my_posterior_mean")
 }

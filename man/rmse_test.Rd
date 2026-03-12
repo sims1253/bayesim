@@ -2,17 +2,27 @@
 % Please edit documentation in R/loo_handler.R
 \name{rmse_test}
 \alias{rmse_test}
-\title{Title}
+\title{Calculate RMSE on test data}
 \usage{
 rmse_test(fit, newdata, return_object = FALSE)
 }
 \arguments{
-\item{yrep}{}
+\item{fit}{A brmsfit object}
+
+\item{newdata}{Test data frame}
+
+\item{return_object}{If TRUE, return a custom_loo_object}
+}
+\value{
+A named list with rmse_test and se_rmse_test, or a custom_loo_object
 }
 \description{
-Title
+Calculate RMSE on test data
 }
 \examples{
 \dontrun{
+# Requires brms package
+fit <- brms::brm(y ~ x, data = train_data)
+rmse_test(fit, test_data)
 }
 }

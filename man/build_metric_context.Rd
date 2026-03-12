@@ -4,7 +4,7 @@
 \alias{build_metric_context}
 \title{Build context for metrics computation}
 \usage{
-build_metric_context(fit_result, fitter, data_bundle, metrics)
+build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object from a successful fit}

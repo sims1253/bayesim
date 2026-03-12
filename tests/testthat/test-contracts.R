@@ -1197,8 +1197,10 @@ describe("SimulationConfig", {
         n_replicates = 100L,
         seed = 42L,
         result_path = "/tmp/results",
+        checkpoint_format = "rds",
         checkpoint_every = 25L,
-        retain = c("metrics", "diagnostics"),
+        chunk_size = 10L,
+        retain = list(success = c("metrics", "diagnostics"), error = "debug"),
         max_errors = 10
       )
 
@@ -1207,7 +1209,27 @@ describe("SimulationConfig", {
       expect_equal(config@seed, 42L)
       expect_equal(config@result_path, "/tmp/results")
       expect_equal(config@checkpoint_every, 25L)
-      expect_equal(config@retain, c("metrics", "diagnostics"))
+      expect_equal(config@checkpoint_format, "rds")
+      expect_equal(config@chunk_size, 10L)
+      expect_equal(config@retain$success, c("metrics", "diagnostics"))
+      expect_true(all(c("metrics", "draws", "fit") %in% config@retain$error))
+    })
+
+    it("accepts explicit task_grid specifications", {
+      config <- simulation_config(
+        task_grid = tibble::tibble(
+          data_spec = list(list(n = 50), list(n = 100)),
+          fit_spec = list(list(model = "a"), list(model = "b")),
+          rep_idx = c(1L, 2L)
+        ),
+        data_generator = test_data_gen,
+        seed = 42L
+      )
+
+      expect_true(is_simulation_config(config))
+      expect_equal(nrow(config@task_grid), 2)
+      expect_null(config@data_grid)
+      expect_null(config@fit_grid)
     })
 
     it("validates data_grid is a data.frame", {
@@ -1243,6 +1265,17 @@ describe("SimulationConfig", {
           seed = 42L
         ),
         "fit_grid must be a data.frame"
+      )
+    })
+
+    it("validates task_grid structure when provided", {
+      expect_error(
+        simulation_config(
+          task_grid = data.frame(a = 1),
+          data_generator = test_data_gen,
+          seed = 42L
+        ),
+        "task_grid must contain either list-columns data_spec/fit_spec or index columns data_idx/fit_idx"
       )
     })
 
@@ -1347,6 +1380,32 @@ describe("SimulationConfig", {
       )
     })
 
+    it("validates checkpoint_format choices", {
+      expect_error(
+        simulation_config(
+          data_grid = data.frame(a = 1),
+          fit_grid = data.frame(a = 1),
+          data_generator = test_data_gen,
+          checkpoint_format = "csv",
+          seed = 42L
+        ),
+        "should be one of"
+      )
+    })
+
+    it("validates chunk_size is positive integer", {
+      expect_error(
+        simulation_config(
+          data_grid = data.frame(a = 1),
+          fit_grid = data.frame(a = 1),
+          data_generator = test_data_gen,
+          chunk_size = 0L,
+          seed = 42L
+        ),
+        "chunk_size must be a positive integer"
+      )
+    })
+
     it("validates retain contains valid options", {
       expect_error(
         simulation_config(
@@ -1357,6 +1416,19 @@ describe("SimulationConfig", {
           seed = 42L
         ),
         "retain contains invalid options"
+      )
+    })
+
+    it("rejects character metric names", {
+      expect_error(
+        simulation_config(
+          data_grid = data.frame(a = 1),
+          fit_grid = data.frame(a = 1),
+          data_generator = test_data_gen,
+          metrics = c("rmse", "bias"),
+          seed = 42L
+        ),
+        "metrics must be Metric objects"
       )
     })
 
@@ -1431,6 +1503,7 @@ describe("SimulationConfig", {
       expect_true(is.list(spec))
       expect_true("data_grid" %in% names(spec))
       expect_true("fit_grid" %in% names(spec))
+      expect_true("data_generator_spec" %in% names(spec))
       expect_true("n_replicates" %in% names(spec))
       expect_true("seed" %in% names(spec))
     })
@@ -1528,6 +1601,23 @@ describe("SimulationConfig", {
       )
 
       expect_equal(get_total_tasks(config), 1 * 1 * 50) # 50
+    })
+
+    it("calculates correctly for explicit task_grid", {
+      config <- simulation_config(
+        task_grid = tibble::tibble(
+          data_spec = list(list(n = 10), list(n = 20), list(n = 30)),
+          fit_spec = list(
+            list(model = "a"),
+            list(model = "a"),
+            list(model = "b")
+          )
+        ),
+        data_generator = test_data_gen,
+        seed = 42L
+      )
+
+      expect_equal(get_total_tasks(config), 3)
     })
 
     it("errors on non-SimulationConfig input", {
@@ -1634,11 +1724,11 @@ describe("Utility Functions", {
       info <- capture_error_info(err)
 
       expect_true(is.list(info))
-      expect_true("class" %in% names(info))
-      expect_true("message" %in% names(info))
+      expect_true("error_class" %in% names(info))
+      expect_true("error_message" %in% names(info))
       expect_true("call" %in% names(info))
       expect_true("traceback" %in% names(info))
-      expect_equal(info$message, "Test error message")
+      expect_equal(info$error_message, "Test error message")
     })
 
     it("captures error class", {
@@ -1648,14 +1738,14 @@ describe("Utility Functions", {
       )
 
       info <- capture_error_info(err)
-      expect_true(grepl("bayesim_config_error", info$class))
+      expect_true(grepl("bayesim_config_error", info$error_class, fixed = TRUE))
     })
 
     it("handles errors without call", {
       err <- simpleError("Error without call")
       info <- capture_error_info(err)
 
-      expect_equal(info$message, "Error without call")
+      expect_equal(info$error_message, "Error without call")
       expect_null(info$call)
     })
 

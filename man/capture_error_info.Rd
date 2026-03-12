@@ -12,8 +12,8 @@ capture_error_info(e)
 \value{
 A named list with elements:
 \itemize{
-\item \code{class} - The class of the error
-\item \code{message} - The error message
+\item \code{error_class} - The class of the error
+\item \code{error_message} - The error message
 \item \code{call} - The call that caused the error (if available)
 \item \code{traceback} - Trimmed traceback (limited to 20 frames)
 }

@@ -657,7 +657,11 @@ describe("Checkpoint Reading", {
         auto_unbox = TRUE
       )
 
-      result <- read_checkpoint(result_path, checkpoint_id = 1L)
+      result <- NULL
+      expect_warning(
+        result <- read_checkpoint(result_path, checkpoint_id = 1L),
+        "invalid checksums"
+      )
 
       expect_null(result)
     })
@@ -1016,7 +1020,11 @@ describe("Resume Logic", {
 
       create_test_latest_pointer(result_path, 3L)
 
-      result <- get_latest_valid_checkpoint(result_path)
+      result <- NULL
+      expect_warning(
+        result <- get_latest_valid_checkpoint(result_path),
+        "invalid checksums"
+      )
 
       expect_equal(result$checkpoint_id, 2L)
     })
@@ -1181,24 +1189,46 @@ describe("Resume Logic", {
   })
 
   describe("merge_results()", {
-    it("deduplicates by task_id keeping latest", {
+    it("accepts byte-identical duplicate rows", {
       old_results <- data.frame(
         task_id = c("t1", "t2"),
+        status = c("success", "success"),
         metric_rmse = c(0.05, 0.10),
         stringsAsFactors = FALSE
       )
 
       new_results <- data.frame(
         task_id = c("t2", "t3"),
-        metric_rmse = c(0.08, 0.15),
+        status = c("success", "success"),
+        metric_rmse = c(0.10, 0.15),
         stringsAsFactors = FALSE
       )
 
       result <- merge_results(old_results, new_results)
 
-      # t2 should come from new_results (0.08)
       expect_equal(nrow(result), 3)
-      expect_equal(result$metric_rmse[result$task_id == "t2"], 0.08)
+      expect_equal(result$metric_rmse[result$task_id == "t2"], 0.10)
+    })
+
+    it("errors on conflicting duplicate terminal rows", {
+      old_results <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("success", "success"),
+        metric_rmse = c(0.05, 0.10),
+        stringsAsFactors = FALSE
+      )
+
+      new_results <- data.frame(
+        task_id = c("t2", "t3"),
+        status = c("success", "success"),
+        metric_rmse = c(0.08, 0.15),
+        stringsAsFactors = FALSE
+      )
+
+      expect_error(
+        merge_results(old_results, new_results),
+        "Conflicting duplicate terminal rows"
+      )
     })
 
     it("preserves unique tasks from both sources", {
@@ -1510,7 +1540,11 @@ describe("Checkpoint Integration", {
       file.remove(meta_path)
 
       # get_latest_valid_checkpoint should return the previous valid one
-      valid_cp <- get_latest_valid_checkpoint(result_path)
+      valid_cp <- NULL
+      expect_warning(
+        valid_cp <- get_latest_valid_checkpoint(result_path),
+        "invalid checksums"
+      )
       expect_equal(valid_cp$checkpoint_id, 1L)
 
       # And we should be able to read it

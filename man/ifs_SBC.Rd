@@ -36,6 +36,14 @@ make sure resampling only uses valid samples. Increase in case of numerical inst
 
 \item{...}{further parameters. Currently only passed to ppred_data_gen.}
 }
+\value{
+A tibble with SBC summaries and diagnostics.
+}
 \description{
 Full inverse forward sampling supported SBC
+}
+\examples{
+\dontrun{
+# Requires SBC and brms packages
+}
 }

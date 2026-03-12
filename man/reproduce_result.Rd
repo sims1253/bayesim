@@ -5,13 +5,26 @@
 \title{This method will reproduce the exact dataset and fit corresponding to the
 supplied result dataframe row.}
 \usage{
-reproduce_result(result)
+reproduce_result(result, data_generator_fn = NULL)
 }
 \arguments{
-\item{result}{}
+\item{result}{A data.frame row containing simulation result metadata}
+
+\item{data_generator_fn}{A function with signature \verb{(config, seed) -> list}
+that generates data. The returned list must contain: \code{dataset},
+\code{sampling_loops}, \code{bad_samples}, \code{testing_data}, and \code{true_parameters}.}
+}
+\value{
+A list containing the fitted model, dataset, and metadata
 }
 \description{
 The code in this function is written so that all seeds are set at the right
 time and all following code after setting the seed replicates exactly as
 during the simulation.
+}
+\examples{
+\dontrun{
+# reproduce_result() requires a custom data_generator_fn
+# See package vignettes for complete usage examples
+}
 }

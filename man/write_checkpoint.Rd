@@ -4,7 +4,13 @@
 \alias{write_checkpoint}
 \title{Write checkpoint}
 \usage{
-write_checkpoint(result_path, task_grid, task_results, config_fingerprint)
+write_checkpoint(
+  result_path,
+  task_grid,
+  task_results,
+  config_fingerprint,
+  checkpoint_format = "rds"
+)
 }
 \arguments{
 \item{result_path}{Character string giving the base path for results.
@@ -19,6 +25,8 @@ results from completed tasks.}
 
 \item{config_fingerprint}{Character string containing a hash of the
 configuration for validation purposes.}
+
+\item{checkpoint_format}{Character scalar naming the checkpoint storage format.}
 }
 \value{
 Invisible checkpoint ID (integer), or NULL if result_path is NULL.
@@ -31,11 +39,11 @@ results. Uses a write-temp-then-rename protocol to ensure consistency.
 The checkpoint directory structure is:
 \preformatted{
 checkpoints/
-└── cp_000001/
-    ├── meta.json         # checkpoint metadata
-    ├── ledger.rds        # task grid with status
-    ├── results.rds       # metrics + diagnostics per task
-    └── checksums.json    # file integrity checksums
++-- cp_000001/
+    +-- meta.json         # checkpoint metadata
+    +-- ledger.rds        # task grid with status
+    +-- results.rds       # metrics + diagnostics per task
+    +-- checksums.json    # file integrity checksums
 }
 
 Atomic write protocol:

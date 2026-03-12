@@ -1,7 +1,7 @@
-# bayesim 1.0 Rewrite Plan (Final, Implementation-Ready)
+# bayesim 1.0 Rewrite Plan (Revised)
 
-**Version:** 2.0  
-**Status:** Approved blueprint for implementation  
+**Version:** 2.1  
+**Status:** Revised implementation blueprint  
 **Target:** CRAN-ready package with deterministic, resumable, memory-bounded simulation engine
 
 ---
@@ -10,21 +10,25 @@
 
 This rewrite keeps the architecture simple: **S7 only for extension contracts** (`SimulationConfig`, `Fitter`, `Metric`), **S3 for all runtime and persisted data**.
 
-The core engine must be deterministic across sequential/parallel/resume modes by assigning each task a precomputed L'Ecuyer RNG stream and never depending on scheduler order.
+The core engine must be deterministic across sequential/parallel/resume modes by assigning each task an independent precomputed L'Ecuyer stream, propagating explicit seeds into backend samplers, and never depending on scheduler order.
 
-Checkpointing should be append-safe, atomic, and restartable using a validated ledger + chunked result files with strict schema versioning.
+Checkpointing should be append-safe, atomic on the same filesystem, and restartable using a validated ledger + chunked result files with strict schema versioning.
+
+The plan must promise **reproducibility within documented backend/platform limits**, not unconditional bitwise equality across all Bayesian backends.
+
+The authoritative on-disk checkpoint format must not depend on an optional package; columnar backends are an optimization layer, not a correctness dependency.
 
 ---
 
 ## Action Plan
 
-1. Lock contracts first (interfaces, schemas, error classes, checkpoint format)
+1. Lock contracts first (interfaces, schemas, error classes, checkpoint/storage format, backend seed rules)
 2. Build deterministic task execution + ledger before implementing advanced metrics
-3. Add checkpoint/resume with corruption recovery and config fingerprint checks
-4. Implement retention/memory controls and chunked writes
-5. Finish with integration + stress tests (determinism, interruption, memory growth)
+3. Add checkpoint/resume with corruption recovery, duplicate detection, and config fingerprint checks
+4. Implement retention/memory controls and artifact externalization; benchmark optional columnar sinks against the core format
+5. Finish with integration + stress tests (determinism, interruption, memory growth, storage tradeoffs)
 
-**Effort estimate:** Medium (1-2d) for contract scaffolding; Large (3d+) for full production implementation with robust testing.
+**Effort estimate:** Medium (1-2d) for contract scaffolding; Large (1-2 weeks) for a full production implementation with robust testing, backend-specific hardening, and checkpoint recovery coverage.
 
 ---
 
@@ -40,6 +44,8 @@ Checkpointing should be append-safe, atomic, and restartable using a validated l
 - File-based checkpoint and resume
 - Memory-bounded execution with configurable artifact retention
 - Test strategy including stress and failure-injection tests
+- Backend-qualified reproducibility policy
+- Storage backend benchmark and decision for checkpoint/result persistence
 
 ### Out of Scope (for v1 rewrite)
 - Distributed cluster orchestration beyond `future`
@@ -73,34 +79,61 @@ Use S3 for:
 
 ```r
 # Main entry point
-run_simulation <- function(config, resume = FALSE, force_restart = FALSE, progress = TRUE) {}
+run_simulation <- function(config, resume = c("auto", "never", "must"), progress = TRUE) {}
+
+# Resume from an existing result directory
+resume_simulation <- function(result_path, config = NULL, progress = TRUE) {}
 
 # Config constructor
 simulation_config <- function(
-  data_grid,
-  fit_grid,
+  data_grid = NULL,
+  fit_grid = NULL,
+  task_grid = NULL,
   data_generator,      # function(data_spec, seed, task_ctx) -> data_bundle
   fitter,              # S7 Fitter instance
-  metrics,             # character vector or list of Metric objects
+  metrics,             # list of Metric objects
   n_replicates = 1L,
   seed,
   result_path = NULL,
+  checkpoint_format = c("rds", "parquet"),
   checkpoint_every = 50L,
+  chunk_size = NULL,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf
 ) {}
 
-# Registry
-register_metric <- function(metric, overwrite = FALSE) {}
-get_metric <- function(name) {}
-list_metrics <- function() {}
-unregister_metric <- function(name) {}
+# Built-in metric constructors
+rmse_metric <- function(...) {}
+bias_metric <- function(...) {}
+coverage_metric <- function(...) {}
+posterior_mean_metric <- function(...) {}
 ```
 
+### API policy
+- `run_simulation()` always starts from an explicit `SimulationConfig`; `resume = "auto"` resumes when compatible state already exists at `result_path`
+- `resume_simulation()` is the ergonomic restart path after an interrupted session
+- If the original run used only manifest-rehydratable components, `resume_simulation(result_path)` can resume from disk alone
+- If the original run used custom closures or non-rehydratable objects, `resume_simulation()` must require `config` and fail with a clear error otherwise
+- Built-in metrics are ordinary constructors, not names looked up from global package state
+- `task_grid` is an escape hatch for sparse or prefiltered task plans; if supplied, it bypasses automatic Cartesian crossing of `data_grid x fit_grid x n_replicates`
+
 ### Defaults
-- `retain = c("metrics", "diagnostics")`
+- `resume = "auto"`
+- `retain = c("metrics", "diagnostics")` as a shorthand for retaining the same artifacts for all task outcomes
+- `checkpoint_format = "rds"` for the authoritative resume/checkpoint path; `"parquet"` is optional and only enabled when a supported columnar backend is available
 - `checkpoint_every = 50L`
+- `chunk_size = checkpoint_every` unless overridden
 - `max_errors = Inf` (user can fail-fast by setting finite threshold)
+
+### Input rules
+- Exactly one of the following must be provided:
+  - `task_grid`
+  - both `data_grid` and `fit_grid`
+- If `task_grid` is omitted, the engine constructs the task plan as the Cartesian product of `data_grid`, `fit_grid`, and `n_replicates`
+- `metrics` must be a list of `Metric` objects; no exported global registry API
+- `retain` may be either:
+  - a character vector applied uniformly to all task outcomes, or
+  - a named list with any of `success`, `warning`, and `error` to enable conditional retention
 
 ---
 
@@ -113,25 +146,30 @@ unregister_metric <- function(name) {}
 data_generator <- function(data_spec, seed, task_ctx) {}
 ```
 
+#### Design note
+- Keep `data_generator` as a plain function in v1 for lightweight extension and serialization simplicity
+- If generator metadata/capability introspection becomes necessary, add an optional wrapper later rather than promoting generators to S7 prematurely
+
 #### Required return structure: `data_bundle`
 ```r
 list(
-  train = data.frame,                  # nrow >= 1
-  test = NULL | data.frame,            # optional; if not NULL must contain required columns
-  response = character(1),             # name of response column present in train/test
+  train = object,                      # required; structure is fitter-defined
+  test = NULL | object,                # optional; structure is fitter-defined
+  response = NULL | character,         # optional hint for standard supervised workflows
   true_params = named numeric,         # names exactly equal vars_of_interest
   vars_of_interest = character,        # non-empty unique
-  references = named numeric,          # names exactly equal vars_of_interest
+  references = NULL | named numeric,   # if supplied, names exactly equal vars_of_interest
   meta = named list()                  # optional scalar metadata only
 )
 ```
 
 #### Validation invariants
+- `train` exists and is non-NULL
 - `setequal(names(true_params), vars_of_interest)` is `TRUE`
-- `setequal(names(references), vars_of_interest)` is `TRUE`
-- `response %in% names(train)` and if `test != NULL`, `response %in% names(test)`
+- if `references != NULL`, `setequal(names(references), vars_of_interest)` is `TRUE`
+- if `response != NULL`, it is a non-empty character vector or scalar label understood by the fitter
 - No duplicate names in any named vector/list
-- No factor levels in `test` absent from `train` unless explicitly allowed by fitter
+- Structural validation of `train`/`test` is delegated to the fitter, because not all Bayesian workflows are univariate supervised `data.frame` problems
 
 ---
 
@@ -150,9 +188,9 @@ Fitter <- S7::new_class(
   methods = list(
     fit = function(data_bundle, fit_spec, seed, task_ctx) 
       S7::stop_method_not_implemented(),
-    extract_draws = function(fit_result, variables = NULL) 
+    extract_draws = function(fit_result, variables = NULL, draw_ids = NULL, ...) 
       S7::stop_method_not_implemented(),
-    predict = function(fit_result, newdata = NULL, seed = NULL) 
+    predict = function(fit_result, newdata = NULL, seed = NULL, ndraws = NULL, draw_ids = NULL, ...) 
       S7::stop_method_not_implemented(),
     log_lik = function(fit_result, newdata = NULL) 
       S7::stop_method_not_implemented(),
@@ -209,9 +247,10 @@ Metric <- S7::new_class(
 - Named list, non-empty names
 - Values must be one of:
   - scalar atomic (`logical`, `integer`, `double`, `character`)
-  - named numeric vector
+  - short fixed-width named numeric vector
 - No nested data frames/matrices in final metric output row
-- Engine flattens with prefix `<metric_name>__<field>`
+- Engine flattens only fixed-width outputs with prefix `<metric_name>__<field>`
+- Per-observation, per-draw, or high-cardinality per-parameter outputs must be written to an artifact file or a long-format side table, with the result row storing only a pointer/hash plus compact summaries
 
 ---
 
@@ -220,9 +259,16 @@ Metric <- S7::new_class(
 ### 5.1 Task identity and ordering
 Each task has deterministic key:
 ```r
-task_id = sprintf("d%03d_f%03d_r%05d", data_idx, fit_idx, rep_idx)
+task_id = sprintf(
+  paste0("d%0", data_width, "d_f%0", fit_width, "d_r%0", rep_width, "d"),
+  data_idx,
+  fit_idx,
+  rep_idx
+)
 ```
-The global task table is created once, sorted lexicographically by `task_id`, and persisted.
+The global task table is created once, sorted by integer task columns (`data_idx`, `fit_idx`, `rep_idx`), then persisted with a canonical string `task_id` derived from those columns.
+
+If `task_grid` is supplied by the user, canonicalize and persist it directly; otherwise build the task table from the Cartesian product of `data_grid`, `fit_grid`, and `n_replicates`.
 
 ### 5.2 RNG policy (mandatory)
 - Set RNG kind once at run start:
@@ -230,17 +276,20 @@ The global task table is created once, sorted lexicographically by `task_id`, an
 RNGkind("L'Ecuyer-CMRG")
 set.seed(config$seed)
 ```
-- Precompute one RNG stream per task (integer vector seed state)
+- Precompute one independent RNG stream per task using `parallel::nextRNGStream()` (not by consuming random draws)
 - Store `rng_seed` in task table
 - In worker, before any random call:
 ```r
 .Random.seed <- task$rng_seed
 ```
+- Pass explicit seeds through to backends that maintain their own RNG state (for example Stan/brms backends)
 - Use `future_lapply(..., future.seed = FALSE)` to avoid reseeding by backend
 - **Never derive randomness from wall time, PID, or worker index**
 
 ### 5.3 Determinism guarantees
-Same `config_fingerprint` + same package versions + same task table => identical outputs (bitwise equality for numeric paths that are deterministic in backend).
+Same `config_fingerprint` + same package versions + same backend + same task table + same thread settings => identical task assignment, seed assignment, and sorted result ordering.
+
+For numerically deterministic backends this should yield identical outputs; for backends with platform/thread/library variability, the guarantee is reproducibility within documented backend limits and tolerance-based equivalence where necessary.
 
 ---
 
@@ -281,11 +330,18 @@ result_path/
 └── checkpoints/
     └── cp_000001/
         ├── meta.json
-        ├── ledger.parquet
-        ├── results.parquet     # metrics + diagnostics, one row per terminal task
+        ├── ledger.rds          # authoritative checkpoint ledger
+        ├── results.rds         # authoritative terminal task rows
+        ├── result_chunks/      # optional columnar chunks for large runs
         ├── artifacts/          # optional task artifacts when retained
         └── checksums.json
 ```
+
+### 7.1a Storage backend policy
+- The authoritative v1 checkpoint/resume path is `RDS` + JSON because it is CRAN-safe, simple, and does not make core functionality depend on a suggested package
+- Optional columnar persistence/export may be added behind `checkpoint_format = "parquet"` after benchmarking
+- If a columnar backend is enabled, record the backend name and version in the manifest
+- Benchmark candidates may include `r-polars` and `arrow`, but neither should become a correctness dependency without clear wins in write throughput, read performance, file size, and installation/CRAN stability
 
 ### 7.2 Schema versions
 - `run_schema_version`: increments on any incompatible on-disk format change
@@ -293,29 +349,36 @@ result_path/
 - Resume only allowed when both versions are compatible
 
 ### 7.3 Atomic write protocol
-1. Write checkpoint to `cp_XXXXXX.tmp/`
+1. Write checkpoint to `cp_XXXXXX.tmp/` in the same parent directory as the target checkpoint
 2. Flush files and write checksums
 3. Validate tmp checkpoint (read-back + row-count + checksum)
-4. Rename tmp dir to final `cp_XXXXXX/` (single filesystem operation)
+4. Rename tmp dir to final `cp_XXXXXX/` (single filesystem operation on the same filesystem)
 5. Atomically replace `latest.json` by write-temp-then-rename
+
+If rename fails because the destination is on a different device or filesystem, abort with a checkpoint error by default; an explicit non-atomic fallback may be added later, but it must be opt-in and documented as weaker than the local-filesystem guarantee.
 
 ### 7.4 Config fingerprint
 Fingerprint is hash of normalized `config_spec` excluding runtime-only fields:
 
 **Excluded:** `result_path`, `checkpoint_every`, `progress`
 
-**Included:** data/fit grids, generator/fitter identifiers + versions, metrics, retention, seed, n_replicates
+**Included:** data/fit grids, generator/fitter identifiers + versions, metrics, retention, seed, n_replicates, checkpoint format, backend options, backend thread settings
 
-Resume requires exact match unless `force_restart = TRUE`.
+For custom functions/closures, fingerprint a normalized representation of the function body plus identifiable package/namespace provenance. If a function cannot be normalized safely (for example because it captures opaque environment state), resume must be rejected and the user must start a fresh run with `run_simulation(..., resume = "never")`.
+
+Manifest-only resume is allowed only when the fitter/data generator/metrics are rehydratable from the stored identifiers and versions; otherwise the user must supply `config` to `resume_simulation()`.
+
+Resume requires an exact compatible match; otherwise the user must start a fresh run with `run_simulation(..., resume = "never")`.
 
 ### 7.5 Resume algorithm
 1. Load `latest.json`; scan backward for most recent valid checkpoint
 2. Validate checkpoint integrity and fingerprint
-3. Rebuild full task table deterministically
-4. Mark tasks terminal from checkpoint ledger
-5. Execute only pending tasks
-6. Merge prior + new results by `task_id` (deduplicate by last-write-wins within same run_id)
-7. Write new checkpoint and final result object
+3. Rehydrate executable components from the manifest when possible; otherwise require user-supplied `config`
+4. Rebuild full task table deterministically
+5. Mark tasks terminal from checkpoint ledger
+6. Execute only pending tasks
+7. Merge prior + new results by `task_id`; treat unexpected duplicate terminal rows as an integrity error unless they are byte-identical or explicitly marked as a safe recovery rewrite
+8. Write new checkpoint and final result object
 
 ---
 
@@ -336,7 +399,7 @@ c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")
 - After each chunk:
   - Append checkpoint
   - Drop large intermediates
-  - Call `gc()` when retained bytes exceed threshold or every N chunks
+- Call `gc()` only on the controller process after chunk commit or under clear memory pressure; never inside the tight per-task worker loop
 - **Never keep all task-level fit objects in memory**
 - If `retain` includes large artifacts, write per-task artifact files and keep only path in result row
 
@@ -359,11 +422,14 @@ If serialized row size exceeds threshold (e.g. 5MB):
 - Same seed, sequential vs multisession => identical sorted results
 - Same seed, interrupted+resume vs single uninterrupted run => identical
 - Different seeds => at least one metric differs
+- Backend-seed propagation tests for Stan/brms adapters
 
 ### 9.3 Checkpoint tests
 - Atomicity under simulated crash during write (tmp dir remains, latest unchanged)
 - Corruption recovery (invalid latest checkpoint falls back to previous valid)
-- Fingerprint mismatch rejects resume unless `force_restart`
+- Fingerprint mismatch rejects resume and instructs the user to start a fresh run with `resume = "never"`
+- Duplicate terminal row detection fails loudly
+- Cross-filesystem checkpoint path is rejected with a clear error unless a weaker fallback mode is explicitly enabled
 
 ### 9.4 Stress/performance tests (skip on CRAN)
 - 10,000 lightweight tasks with mock fitter under `retain = "minimal"`
@@ -372,12 +438,24 @@ If serialized row size exceeds threshold (e.g. 5MB):
 - High error-rate scenario to confirm graceful degradation and `max_errors` handling
 
 ### 9.5 Compatibility tests
-- brms fitter (rstan/cmdstanr where available) on smoke-size workloads
+- brms fitter with `cmdstanr` as the default backend on smoke-size workloads
+- brms fitter with `rstan` as an optional/configurable backend where available
 - Custom fitter fixture not importing brms to verify backend-agnostic design
+
+### 9.6 Storage backend benchmarks
+- Benchmark authoritative `RDS` checkpoints against optional columnar sinks on representative workloads
+- Compare write time, resume latency, file size, dependency burden, and CRAN/platform reliability
+- Do not promote `parquet` to the default resume path unless it wins clearly enough to justify the extra dependency surface
 
 ---
 
 ## 10. Implementation Roadmap (Realistic)
+
+### Phase 0: Lock Persistence + Reproducibility Contract
+- Rewrite the reproducibility guarantee to be backend-qualified rather than universally bitwise
+- Lock the authoritative checkpoint format (`RDS` + JSON) and define the optional columnar benchmark track
+- Define fingerprint policy for custom closures and backend thread settings
+- **Deliverable:** Persistence/reproducibility decisions are explicit and testable
 
 ### Phase 1: Contracts and Skeleton (Day 1-2)
 - Implement S7 classes (`SimulationConfig`, `Fitter`, `Metric`)
@@ -386,7 +464,7 @@ If serialized row size exceeds threshold (e.g. 5MB):
 - **Deliverable:** Contract tests all passing
 
 ### Phase 2: Deterministic Engine Core (Day 3-4)
-- Build task table + RNG stream assignment
+- Build task table + RNG stream assignment with `parallel::nextRNGStream()`
 - Implement worker execution and metric evaluation with per-task error capture
 - **Deliverable:** Deterministic unit/integration tests passing sequentially
 
@@ -397,13 +475,18 @@ If serialized row size exceeds threshold (e.g. 5MB):
 
 ### Phase 4: Memory/Retention and Artifact Externalization (Day 7)
 - Implement retention profiles and row-size guardrail
-- Add chunked processing and periodic GC strategy
+- Add chunked processing and controller-side GC strategy
 - **Deliverable:** Stress test with bounded memory in CI-optional profile
 
 ### Phase 5: brms Adapter and Docs (Day 8-9)
-- Implement `BrmsFitter` using final interface
+- Implement `BrmsFitter` using final interface with `cmdstanr` as default backend and `rstan` as configurable alternative
 - Add vignettes for custom fitter/metric and reproducibility guarantees
 - **Deliverable:** End-to-end smoke run + documented extension examples
+
+### Phase 6: Optional Columnar Backend Benchmark
+- Benchmark `r-polars` and `arrow` against the baseline `RDS` checkpoint path
+- Promote a columnar backend only if it materially improves throughput/size without compromising portability or CRAN usability
+- **Deliverable:** Storage recommendation backed by numbers rather than preference
 
 ---
 
@@ -465,12 +548,30 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
   set.seed(global_seed)
   
   streams <- vector("list", n_tasks)
+  seed <- .Random.seed
   for (i in seq_len(n_tasks)) {
-    streams[[i]] <- .Random.seed
-    runif(1)  # advance stream
+    streams[[i]] <- seed
+    seed <- parallel::nextRNGStream(seed)
   }
   
   streams
+}
+```
+
+### Backend seed propagation
+```r
+prepare_backend_seed <- function(task_seed, backend = c("generic", "cmdstanr", "rstan")) {
+  backend <- match.arg(backend)
+  .Random.seed <- task_seed
+
+  if (backend == "generic") {
+    return(list(r_seed = task_seed))
+  }
+
+  list(
+    r_seed = task_seed,
+    backend_seed = as.integer(abs(task_seed[2]) %% .Machine$integer.max)
+  )
 }
 ```
 
@@ -482,6 +583,8 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
 - [ ] Contract, determinism, checkpoint, and stress tests pass in CI
 - [ ] Resume behavior verified after forced interruption
 - [ ] Custom fitter example works without brms dependency
+- [ ] Reproducibility guarantees are documented with backend/platform caveats instead of universal bitwise claims
+- [ ] Storage backend decision is benchmarked and justified
 - [ ] Documentation includes:
   - [ ] Contract reference
   - [ ] Reproducibility policy
@@ -494,11 +597,14 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
 
 | Risk | Mitigation |
 |------|------------|
-| Hidden nondeterminism from backend internals | Fixed RNG streams and deterministic task ordering |
+| Hidden nondeterminism from backend internals | Fixed RNG streams, explicit backend seeds, documented backend-qualified guarantees |
 | Checkpoint bloat from retained artifacts | Retention defaults and row-size externalization |
+| Wrong storage format choice for core persistence | Keep `RDS` authoritative first; benchmark columnar backends before promoting them |
 | Overly complex abstractions | Keep exactly one extension path (`Fitter` + `Metric`), avoid extra plugin layers |
 | Parallel serialization of fitter objects | Precompiled models are NOT serialized; workers compile locally or receive minimal specs |
-| Stan backend differences | Test both rstan and cmdstanr; document known differences |
+| Stan backend differences | Default brms to `cmdstanr`, support `rstan` as configurable, and test both where available |
+| Resume false-positives with custom closures | Normalize and fingerprint function bodies/env provenance; reject ambiguous resumes |
+| Cross-filesystem atomicity assumptions | Write temp dirs in-place and fail loudly when atomic rename cannot be guaranteed |
 
 ---
 
@@ -506,7 +612,7 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
 
 **Only add complexity if:**
 - Workloads exceed local filesystem limits (checkpoint size/time dominates runtime)
-- Then introduce optional partitioned result sinks (Arrow dataset or DB)
+- Then introduce optional partitioned result sinks (for example Parquet via `r-polars`/`arrow`, Arrow dataset, or DB)
 - **Do not add this until stress tests show current protocol is insufficient**
 
 ---

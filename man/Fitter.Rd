@@ -11,6 +11,15 @@ Fitter(
   supports_loo = TRUE
 )
 }
+\arguments{
+\item{name}{Character string identifying the fitter (e.g., "stan", "brms")}
+
+\item{supports_predictions}{Logical indicating if the fitter supports predictions}
+
+\item{supports_log_lik}{Logical indicating if the fitter supports log-likelihood computation}
+
+\item{supports_loo}{Logical indicating if the fitter supports LOO-CV}
+}
 \value{
 An S7 class object representing the abstract Fitter
 }
@@ -22,23 +31,13 @@ It provides a consistent API for fitting Bayesian models, extracting posterior
 draws, generating predictions, computing log-likelihoods, and performing
 model diagnostics.
 }
-\section{Properties}{
-
-\itemize{
-\item \code{name}: Character string identifying the fitter (e.g., "stan", "brms")
-\item \code{supports_predictions}: Logical indicating if the fitter supports predictions
-\item \code{supports_log_lik}: Logical indicating if the fitter supports log-likelihood computation
-\item \code{supports_loo}: Logical indicating if the fitter supports LOO-CV
-}
-}
-
 \section{Methods}{
 
 The following S7 generics must be implemented by subclasses:
 \describe{
 \item{\code{fit(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
-\item{\code{predict(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
+\item{\code{predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
 \item{\code{log_lik(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
 \item{\code{loo(fitter, fit_result)}}{LOO-CV computation}
 \item{\code{diagnostics(fitter, fit_result)}}{Extract fit diagnostics}

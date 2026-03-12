@@ -446,7 +446,7 @@ describe("MockFitter Contract Compliance", {
 
       param_names <- colnames(result$draws)
       expect_equal(length(param_names), ncol(result$draws))
-      expect_false(any(is.na(param_names)))
+      expect_false(anyNA(param_names))
       expect_false(any(param_names == ""))
     })
   })
@@ -490,18 +490,18 @@ describe("Serialization Safety", {
       result <- capture_fitter_spec(fitter)
 
       expect_true("class" %in% names(result))
-      expect_true("name" %in% names(result))
-      expect_true(grepl("MockFitter", result$class))
-      expect_equal(result$name, "mock")
+      expect_true("properties" %in% names(result))
+      expect_true(grepl("MockFitter", result$class, fixed = TRUE))
+      expect_equal(result$properties$name, "mock")
     })
 
     it("includes supports_* properties when available", {
       fitter <- MockFitter()
       result <- capture_fitter_spec(fitter)
 
-      expect_true("supports_predictions" %in% names(result))
-      expect_true("supports_log_lik" %in% names(result))
-      expect_true("supports_loo" %in% names(result))
+      expect_true("supports_predictions" %in% names(result$properties))
+      expect_true("supports_log_lik" %in% names(result$properties))
+      expect_true("supports_loo" %in% names(result$properties))
     })
 
     it("returns NA for non-S7 objects", {
@@ -511,15 +511,13 @@ describe("Serialization Safety", {
   })
 
   describe("capture_metrics_spec()", {
-    it("returns NA for NULL input", {
+    it("returns empty list for NULL input", {
       result <- capture_metrics_spec(NULL)
-      expect_true(is.na(result))
+      expect_equal(result, list())
     })
 
     it("never digests S7 objects - returns list of plain lists", {
-      # Create a mock Metric S7 object if available
-      # For now, test with a plain list metric spec
-      metrics <- list(list(name = "rmse"))
+      metrics <- list(rmse_metric())
       result <- capture_metrics_spec(metrics)
 
       # Result should be a list of lists
@@ -528,20 +526,19 @@ describe("Serialization Safety", {
 
       # Each element should also be plain
       for (elem in result) {
-        if (!is.na(elem)) {
-          expect_type(elem, "character") # plain list metric returns name string
-        }
+        expect_type(elem, "list")
+        expect_true("properties" %in% names(elem))
       }
     })
 
-    it("handles plain list metric specs", {
-      metrics <- list(list(name = "rmse"), list(name = "bias"))
+    it("captures S7 metric specs as plain metadata", {
+      metrics <- list(rmse_metric(), bias_metric())
       result <- capture_metrics_spec(metrics)
 
       expect_type(result, "list")
       expect_equal(length(result), 2)
-      expect_equal(result[[1]], "rmse")
-      expect_equal(result[[2]], "bias")
+      expect_equal(result[[1]]$properties$name, "rmse")
+      expect_equal(result[[2]]$properties$name, "bias")
     })
 
     it("handles unknown types gracefully with NA", {

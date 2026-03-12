@@ -4,15 +4,12 @@
 \alias{load_for_resume}
 \title{Load Run for Resume}
 \usage{
-load_for_resume(result_path, config, force_restart = FALSE)
+load_for_resume(result_path, config)
 }
 \arguments{
 \item{result_path}{Character; path to results directory containing checkpoints.}
 
 \item{config}{SimulationConfig; current configuration object.}
-
-\item{force_restart}{Logical; if TRUE, ignore fingerprint mismatch and
-restart anyway. Default is FALSE.}
 }
 \value{
 A list with elements:
@@ -31,7 +28,7 @@ The function performs the following validation steps:
 \enumerate{
 \item Reads and validates run_manifest.json
 \item Checks schema version compatibility
-\item Computes and compares configuration fingerprint (unless force_restart)
+\item Computes and compares configuration fingerprints
 \item Finds the most recent valid checkpoint
 \item Rebuilds task grid with status from checkpoint
 }
