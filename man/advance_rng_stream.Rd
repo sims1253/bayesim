@@ -32,3 +32,4 @@ streams <- create_task_rng_streams(42, 10)
 advanced <- advance_rng_stream(streams[[1]], n = 5)
 }
 }
+\keyword{internal}

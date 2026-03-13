@@ -19,6 +19,7 @@
 #'
 #' @return The function corresponding to the identifier string.
 #' @export
+#' @keywords internal
 #'
 metric_lookup <- function(
   metric,

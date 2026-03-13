@@ -53,3 +53,4 @@ checkpoint <- read_checkpoint("/path/to/results", checkpoint_id = 5)
 \seealso{
 \code{\link[=write_checkpoint]{write_checkpoint()}}, \code{\link[=list_checkpoints]{list_checkpoints()}}, \code{\link[=validate_checkpoint_fingerprint]{validate_checkpoint_fingerprint()}}
 }
+\keyword{internal}

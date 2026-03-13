@@ -67,3 +67,4 @@ fit <- brms::brm(y ~ x, data = mydata)
 metric_list_handler(fit, c("elpd_loo", "rhat"), data_gen_output, fit_conf)
 }
 }
+\keyword{internal}

@@ -23,3 +23,4 @@ The function writes to a \code{.tmp} suffix file first, then uses \code{file.ren
 to atomically move it to the target path. If the rename fails, a
 \code{bayesim_checkpoint_error} is thrown.
 }
+\keyword{internal}

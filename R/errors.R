@@ -25,6 +25,7 @@ bayesim_error <- function(message, call = NULL) {
 #'
 #' @param cond A condition object to test
 #' @return TRUE if the condition is a bayesim error, FALSE otherwise
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -52,6 +53,7 @@ is_bayesim_error <- function(cond) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_config_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_fatal_error()]
 bayesim_config_error <- function(message, call = NULL) {
@@ -71,6 +73,7 @@ bayesim_config_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_contract_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_fatal_error()]
 bayesim_contract_error <- function(message, call = NULL) {
@@ -90,6 +93,7 @@ bayesim_contract_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_checkpoint_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_fatal_error()]
 bayesim_checkpoint_error <- function(message, call = NULL) {
@@ -109,6 +113,7 @@ bayesim_checkpoint_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_internal_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_fatal_error()]
 bayesim_internal_error <- function(message, call = NULL) {
@@ -132,6 +137,7 @@ bayesim_internal_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_data_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_recoverable_error()]
 bayesim_data_error <- function(message, call = NULL) {
@@ -151,6 +157,7 @@ bayesim_data_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_fit_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_recoverable_error()]
 bayesim_fit_error <- function(message, call = NULL) {
@@ -170,6 +177,7 @@ bayesim_fit_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_metric_error",
 #'   "bayesim_error", "error", "condition")
+#' @keywords internal
 #' @export
 #' @seealso [is_recoverable_error()]
 bayesim_metric_error <- function(message, call = NULL) {
@@ -192,6 +200,7 @@ bayesim_metric_error <- function(message, call = NULL) {
 #'
 #' @param cond A condition object to test
 #' @return TRUE if the error is fatal, FALSE otherwise
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -221,6 +230,7 @@ is_fatal_error <- function(cond) {
 #'
 #' @param cond A condition object to test
 #' @return TRUE if the error is recoverable, FALSE otherwise
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{

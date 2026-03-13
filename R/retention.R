@@ -58,6 +58,7 @@ RETENTION_PROFILES <- list(
 #'
 #' @return Character vector of valid retention options
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -138,6 +139,7 @@ retention_for_task_result <- function(
 #'
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
+#' @keywords internal
 #' @export
 apply_fit_retention <- function(fit_result, retain) {
   if (!"fit" %in% retain) {
@@ -170,6 +172,7 @@ apply_fit_retention <- function(fit_result, retain) {
 #'
 #' @return Modified bayesim_task_result object with retained fields added
 #'
+#' @keywords internal
 #' @export
 apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
   # Add optional retained fields
@@ -199,6 +202,7 @@ apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
 #'
 #' @return Size in bytes as numeric
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -218,6 +222,7 @@ estimate_size <- function(x) {
 #'
 #' @return TRUE if the task_result exceeds the threshold, FALSE otherwise
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -251,6 +256,7 @@ exceeds_size_threshold <- function(
 #'     \item size: Size of the artifact in bytes
 #'   }
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [write_rds_atomic()], [compute_hash()]
@@ -300,6 +306,7 @@ externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
 #' summary dataframe construction, while heavy objects (fit, draws, data)
 #' can be loaded from checkpoint if needed for detailed analysis.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [execute_tasks()], [write_checkpoint()]

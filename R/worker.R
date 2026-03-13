@@ -28,6 +28,7 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #'   returns a failed task result with error information. Fatal errors are
 #'   re-thrown and will stop the simulation.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -130,6 +131,7 @@ run_task_safe <- function(
 #'   \item Fatal errors (config, contract) propagate and stop the simulation
 #' }
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples

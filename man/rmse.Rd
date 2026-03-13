@@ -26,3 +26,4 @@ yrep <- matrix(rnorm(300), nrow = 100, ncol = 3)
 rmse(y, yrep)
 }
 }
+\keyword{internal}

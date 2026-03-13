@@ -13,6 +13,7 @@ NULL
 #'
 #' @return TRUE if a valid run can be resumed, FALSE otherwise.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -74,6 +75,7 @@ can_resume <- function(result_path) {
 #' 4. Finds the most recent valid checkpoint
 #' 5. Rebuilds task grid with status from checkpoint
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -466,6 +468,7 @@ normalize_manifest_numeric <- function(x, default = NULL) {
 #'
 #' Returns NULL if no valid resume state exists.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples

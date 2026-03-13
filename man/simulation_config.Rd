@@ -29,6 +29,10 @@ Each row represents a distinct data configuration to simulate.}
 \item{fit_grid}{A data.frame with model fitting specifications.
 Each row represents a distinct model configuration to fit.}
 
+\item{task_grid}{Optional pre-computed task grid. If provided, overrides
+data_grid and fit_grid. Must contain either data_spec/fit_spec list-columns
+or data_idx/fit_idx index columns.}
+
 \item{data_generator}{A function with signature \verb{(data_spec, seed, task_ctx) -> data_bundle}.
 Generates data for a single replicate given a data specification row.}
 

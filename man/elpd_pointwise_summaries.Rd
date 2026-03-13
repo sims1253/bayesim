@@ -30,3 +30,4 @@ elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
 elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
 }
 }
+\keyword{internal}

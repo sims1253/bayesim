@@ -15,3 +15,4 @@ Named list of diagnostics
 \description{
 Extract brms diagnostics
 }
+\keyword{internal}

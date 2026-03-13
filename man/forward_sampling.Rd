@@ -32,3 +32,4 @@ fit <- brms::brm(y ~ x, data = data.frame(y = rnorm(10), x = rnorm(10)))
 forward_sampling(fit, i = 1, n = 100)
 }
 }
+\keyword{internal}

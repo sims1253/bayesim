@@ -15,3 +15,4 @@ A list of brms prior objects for the specified family
 \description{
 Lookup default priors for a model family
 }
+\keyword{internal}

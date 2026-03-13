@@ -14,6 +14,7 @@ NULL
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_fit_result"`, `FALSE` otherwise
+#' @keywords internal
 #' @export
 is_bayesim_fit_result <- function(x) {
   inherits(x, "bayesim_fit_result")
@@ -108,6 +109,7 @@ validate_bayesim_fit_result <- function(x) {
 #' - `timing$total` must be non-negative
 #' - If `draws` is not NULL, it must be a matrix with column names
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' # Successful fit
@@ -186,6 +188,7 @@ new_fit_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_task_result"`, `FALSE` otherwise
+#' @keywords internal
 #' @export
 is_bayesim_task_result <- function(x) {
   inherits(x, "bayesim_task_result")
@@ -283,6 +286,7 @@ validate_bayesim_task_result <- function(x) {
 #' - If `status` is "failed", `error` must not be NULL
 #' - `timing$total` must be non-negative
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' # Successful task
@@ -347,6 +351,7 @@ new_task_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_simulation_result"`, `FALSE` otherwise
+#' @keywords internal
 #' @export
 is_bayesim_simulation_result <- function(x) {
   inherits(x, "bayesim_simulation_result")
@@ -454,6 +459,7 @@ validate_bayesim_simulation_result <- function(x) {
 #' - `timing$total` must be non-negative
 #' - `checkpoint_path` must be NULL or a scalar character
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' # Create a simulation result

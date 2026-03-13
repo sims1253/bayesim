@@ -35,3 +35,4 @@ if (!is.null(summary)) {
 }
 }
 }
+\keyword{internal}

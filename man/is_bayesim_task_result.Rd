@@ -15,3 +15,4 @@ is_bayesim_task_result(x)
 \description{
 Check if object is a bayesim_task_result
 }
+\keyword{internal}

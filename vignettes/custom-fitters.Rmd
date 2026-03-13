@@ -16,14 +16,14 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-bayesim provides a flexible framework for Bayesian simulation studies through its extensible fitter interface. While the package includes built-in fitters like `MockFitter()` and `BrmsFitter()`, you may need to create custom fitters to:
+bayesim provides a framework for Bayesian simulation studies through its extensible fitter interface. The package includes built-in fitters like `MockFitter()` and `BrmsFitter()`, but you may need to create custom fitters to:
 
 - **Interface with different backends**: Connect to Stan via `cmdstanr`, or other probabilistic programming languages
 - **Implement custom models**: Fit specialized models not covered by existing fitters
 - **Add preprocessing**: Transform data or apply custom initialization strategies
 - **Control inference**: Implement custom sampling algorithms or diagnostics
 
-This vignette explains the fitter interface and walks through creating a complete, production-ready cmdstanr fitter from scratch.
+This vignette explains the fitter interface and demonstrates creating a cmdstanr fitter from scratch.
 
 # The Fitter Interface
 
@@ -108,17 +108,17 @@ Extract convergence and fit diagnostics.
 - `divergent`: Number of divergent transitions
 - `max_treedepth`: Number of max treedepth warnings
 
-# Production Example: cmdstanr Fitter with Configurable Priors {#cmdstanr-fitter}
+# Example: cmdstanr Fitter with Configurable Priors {#cmdstanr-fitter}
 
-This section demonstrates a complete, production-ready cmdstanr fitter for simple linear regression. The key innovation is that **the `fit_spec` controls model aspects**—in this case, the prior distributions. This allows you to run simulation studies comparing different prior specifications.
+This section demonstrates a cmdstanr fitter for simple linear regression. The design pattern is that **`fit_spec` controls model aspects**—in this case, the prior distributions. This allows you to run simulation studies comparing different prior specifications.
 
 ## Why cmdstanr?
 
-[cmdstanr](https://mc-stan.org/cmdstanr/) is the modern R interface to Stan:
+[cmdstanr](https://mc-stan.org/cmdstanr/) is the R interface to Stan:
 
 - **Direct Stan control**: Compile and run Stan models directly
-- **Faster**: Uses CmdStan, the command-line interface to Stan
-- **Modern**: Active development, better integration with the `posterior` package
+- **Fast**: Uses CmdStan, the command-line interface to Stan
+- **Active development**: Better integration with the `posterior` package
 - **Transparent**: Clear separation between model, data, and sampling
 
 ## The Stan Model
@@ -801,11 +801,11 @@ Creating custom fitters in bayesim involves:
 7. **Extracting real diagnostics** from the backend (R-hat, ESS, divergences)
 8. **Testing thoroughly** to ensure integration with the simulation framework
 
-The `CmdStanFitter` example in this vignette demonstrates all these patterns with production-quality code. By following these patterns, you can extend bayesim to work with any Bayesian modeling backend.
+The `CmdStanFitter` example in this vignette demonstrates all these patterns. By following these patterns, you can extend bayesim to work with any Bayesian modeling backend.
 
 # Appendix: LinearFitter (No External Dependencies)
 
-For users without Stan installed, here's a minimal `LinearFitter` that uses base R's `lm()`. This is **a better alternative than MockFitter** when you need a no-Stan fitter:
+For users without Stan installed, here's a `LinearFitter` that uses base R's `lm()`. This is **a better alternative than MockFitter** when you need a no-Stan fitter:
 
 - Unlike `MockFitter`, `LinearFitter` **respects your fit_spec** and performs actual statistical inference
 - Provides approximate Bayesian posterior draws using sampling distributions

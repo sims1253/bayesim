@@ -18,3 +18,4 @@ A named list of precompiled fit objects keyed by fit configuration.
 \description{
 This is mainly used to save on constant recompilation times.
 }
+\keyword{internal}

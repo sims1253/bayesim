@@ -3,6 +3,7 @@
 #' @param fit A brmsfit object
 #'
 #' @return A named list with p_loo, se_p_loo, elpd_loo, se_elpd_loo, looic, se_looic
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -35,6 +36,7 @@ elpd_loo_handler <- function(fit) {
 #'                otherwise, returns \code{elpd} summaries by
 #'                default.
 #' @return A named list of summaries.
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -90,6 +92,7 @@ elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
 #' @param predictive_metrics Character vector of metrics to compare
 #'
 #' @return A data frame with delta and se_delta for each metric
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -183,6 +186,7 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 #' @param psis_object PSIS object for psis diagnostics
 #'
 #' @return a loo object, containing a criterion, disguised as elpd
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -225,6 +229,7 @@ custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
 #' @param ... Additional arguments to be passed to update() in case of reloo
 #'
 #' @return `custom_loo_object` object with rmse acting as elpd, or a list with rmse_loo and se_rmse_loo.
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -279,6 +284,7 @@ rmse_loo <- function(
 #' @param return_object If TRUE, return a custom_loo_object
 #'
 #' @return A named list with rmse_test and se_rmse_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -312,6 +318,7 @@ rmse_test <- function(fit, newdata, return_object = FALSE) {
 #' @param weights PSIS weights (optional)
 #'
 #' @return rmse for the given y and yrep vectors
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -344,6 +351,7 @@ rmse <- function(y, yrep, weights = NULL) {
 #' @param return_object If TRUE, return a custom_loo_object
 #'
 #' @return A named list with elpd_test and se_elpd_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -372,6 +380,7 @@ elpd_test <- function(fit, newdata, return_object = FALSE) {
 #' @param weights PSIS weights (optional)
 #'
 #' @return Pointwise R-squared values
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -407,6 +416,7 @@ r2 <- function(y, yrep, weights = NULL) {
 #' @param ... Additional arguments
 #'
 #' @return `custom_loo_object` object with R² acting as elpd, or a list with r2_loo and se_r2_loo.
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -461,6 +471,7 @@ r2_loo <- function(
 #' @param return_object If TRUE, return a custom_loo_object
 #'
 #' @return A named list with r2_test and se_r2_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples

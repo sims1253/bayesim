@@ -31,3 +31,4 @@ object with a pointer containing metadata about the externalized file.
 \seealso{
 \code{\link[=write_rds_atomic]{write_rds_atomic()}}, \code{\link[=compute_hash]{compute_hash()}}
 }
+\keyword{internal}

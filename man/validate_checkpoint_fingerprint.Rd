@@ -39,3 +39,4 @@ if (validate_checkpoint_fingerprint(checkpoint, expected_fingerprint)) {
 \seealso{
 \code{\link[=read_checkpoint]{read_checkpoint()}}
 }
+\keyword{internal}

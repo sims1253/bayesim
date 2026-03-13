@@ -1,0 +1,178 @@
+# Package metadata
+url: https://sims1253.github.io/bayesim
+
+template:
+  bootstrap: 5
+
+# Development mode - release version 1.0.1 is on CRAN
+development:
+  mode: auto
+
+# Navbar configuration
+navbar:
+  structure:
+    left:
+      - home
+      - reference
+      - articles
+      - news
+    right:
+      - github
+
+  components:
+    home:
+      icon: fas fa-home fa-lg
+      href: index.html
+    reference:
+      text: Reference
+      href: reference/index.html
+    articles:
+      text: Articles
+      menu:
+        - text: Getting Started
+          href: articles/getting-started.html
+        - text: -------
+        - text: Simulation Studies
+          href: articles/simulation-study.html
+        - text: -------
+        - text: Custom Fitters
+          href: articles/custom-fitters.html
+        - text: -------
+        - text: Reproducibility
+          href: articles/reproducibility.html
+        - text: Memory Management
+          href: articles/memory-management.html
+        - text: -------
+        - text: Case Studies
+          href: articles/case-studies.html
+    news:
+      text: News
+      href: news/index.html
+    github:
+      icon: fab fa-github fa-lg
+      href: https://github.com/sims1253/bayesim
+
+# Reference organization by function purpose
+reference:
+  - title: Configuration
+    desc: >
+      Functions for configuring simulation studies
+    contents:
+      - simulation_config
+      - is_simulation_config
+      - validate_config_completeness
+      - get_total_tasks
+      - compute_config_fingerprint
+      - as_config_spec
+
+  - title: Running Simulations
+    desc: >
+      Functions for executing simulation studies
+    contents:
+      - run_simulation
+      - resume_simulation
+      - can_resume
+
+  - title: Fitters
+    desc: >
+      Classes for fitting Bayesian models
+    contents:
+      - Fitter
+      - BrmsFitter
+      - MockFitter
+      - fit
+      - extract_draws
+      - predict_fit
+      - log_lik
+      - loo
+      - diagnostics
+      - validate_fitter
+
+  - title: Metrics
+    desc: >
+      Classes and built-in metrics for computing simulation results
+    contents:
+      - Metric
+      - compute
+      - rmse_metric
+      - bias_metric
+      - coverage_metric
+      - posterior_mean_metric
+      - validate_metric_output
+      - flatten_metric_output
+
+  - title: Results
+    desc: >
+      Functions for working with simulation results
+    contents:
+      - is_bayesim_fit_result
+      - validate_bayesim_fit_result
+      - new_fit_result
+      - new_task_result
+      - new_simulation_result
+
+  - title: Checkpointing
+    desc: >
+      Functions for checkpoint and resume functionality
+    contents:
+      - init_checkpoint_dir
+      - write_checkpoint
+      - read_checkpoint
+      - get_resume_summary
+      - load_for_resume
+
+  - title: Retention
+    desc: >
+      Control what artifacts are retained in results
+    contents:
+      - resolve_retention
+      - RETENTION_PROFILES
+
+  - title: Utilities
+    desc: >
+      Helper functions and utilities
+    contents:
+      - "%||%"
+      - cluster_setup
+      - ifs_SBC
+
+# Articles organization
+articles:
+  - title: Getting Started
+    contents:
+      - getting-started
+
+  - title: Simulation Studies
+    contents:
+      - simulation-study
+
+  - title: Extending bayesim
+    contents:
+      - custom-fitters
+
+  - title: Advanced Topics
+    contents:
+      - reproducibility
+      - memory-management
+
+  - title: Case Studies
+    contents:
+      - case-studies
+
+# News configuration
+news:
+  cran_dates: true
+  releases:
+    - text: "Version 1.0.1"
+      href: https://cran.r-project.org/package=bayesim
+
+# Footer configuration
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+
+# Search configuration
+search:
+  exclude:
+    - news/index.html

@@ -22,6 +22,7 @@ NULL
 #' to atomically move it to the target path. If the rename fails, a
 #' `bayesim_checkpoint_error` is thrown.
 #'
+#' @keywords internal
 #' @export
 write_json_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
@@ -48,6 +49,7 @@ write_json_atomic <- function(x, path) {
 #'
 #' @return Invisible NULL. Called for side effect.
 #'
+#' @keywords internal
 #' @export
 write_rds_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
@@ -75,6 +77,7 @@ write_rds_atomic <- function(x, path) {
 #'
 #' @return Character string containing the hash value.
 #'
+#' @keywords internal
 #' @export
 compute_hash <- function(x) {
   digest::digest(x, algo = "xxhash64")
@@ -90,6 +93,7 @@ compute_hash <- function(x) {
 #'
 #' @return Character string containing the MD5 checksum.
 #'
+#' @keywords internal
 #' @export
 compute_file_checksum <- function(path) {
   digest::digest(file = path, algo = "md5")
@@ -105,6 +109,7 @@ compute_file_checksum <- function(path) {
 #'
 #' @return Invisible NULL. Called for side effect.
 #'
+#' @keywords internal
 #' @export
 write_checksums <- function(dir_path, files) {
   checksums <- list()
@@ -130,6 +135,7 @@ write_checksums <- function(dir_path, files) {
 #'
 #' @return Logical. TRUE if all checksums match, FALSE otherwise.
 #'
+#' @keywords internal
 #' @export
 verify_checksums <- function(dir_path) {
   checksums_path <- file.path(dir_path, "checksums.json")
@@ -171,6 +177,7 @@ verify_checksums <- function(dir_path) {
 #'   }
 #'
 #' @export
+#' @keywords internal
 #' @examples
 #' timer <- make_timer()
 #' timer$start()
@@ -222,6 +229,7 @@ make_timer <- function() {
 #'     \item `traceback` - Trimmed traceback (limited to 20 frames)
 #'   }
 #'
+#' @keywords internal
 #' @export
 capture_error_info <- function(e) {
   # Get traceback and trim it
@@ -273,6 +281,7 @@ capture_error_info <- function(e) {
 #' @return Character string in format "dXXX_fXXX_rXXXXX"
 #'
 #' @export
+#' @keywords internal
 #' @examples
 #' format_task_id(1, 2, 100)
 #' # Returns: "d001_f002_r00100"
@@ -321,6 +330,7 @@ parse_task_id <- function(task_id) {
 #' with the naming convention `prefix__vector_name__sub_name`.
 #'
 #' @export
+#' @keywords internal
 #' @examples
 #' x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
 #' flatten_with_prefix(x, "param")

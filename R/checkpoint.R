@@ -75,6 +75,7 @@ RESULT_SCHEMA_VERSION <- 1L
 #'
 #' @seealso [write_checkpoint()], [read_checkpoint()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -214,6 +215,7 @@ get_next_checkpoint_id <- function(result_path) {
 #'
 #' @seealso [read_checkpoint()], [init_checkpoint_dir()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -398,6 +400,7 @@ write_checkpoint <- function(
 #'
 #' @seealso [write_checkpoint()], [list_checkpoints()], [validate_checkpoint_fingerprint()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -489,6 +492,7 @@ read_checkpoint <- function(result_path, checkpoint_id = NULL) {
 #'
 #' @seealso [read_checkpoint()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -526,6 +530,7 @@ validate_checkpoint_fingerprint <- function(checkpoint, config_fingerprint) {
 #'
 #' @seealso [read_checkpoint()], [get_latest_valid_checkpoint()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -587,6 +592,7 @@ list_checkpoints <- function(result_path) {
 #'
 #' @seealso [read_checkpoint()], [list_checkpoints()]
 #'
+#' @keywords internal
 #' @export
 #' @examples
 #' \dontrun{
@@ -876,6 +882,7 @@ validate_schema_compatibility <- function(manifest) {
 #' that are no longer needed. It always keeps the latest checkpoint and
 #' any checkpoints that are more recent than the keep_n threshold.
 #'
+#' @keywords internal
 #' @export
 clean_old_checkpoints <- function(result_path, keep_n = 5) {
   if (is.null(result_path)) {

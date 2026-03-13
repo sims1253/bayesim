@@ -33,3 +33,4 @@ https://doi.org/10.48550/arXiv.2211.02383.
 ranks <- sample(1:1000, 100, replace = TRUE)
 gamma_discrepancy(ranks, post_warmup_draws = 1000)
 }
+\keyword{internal}

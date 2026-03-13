@@ -15,3 +15,4 @@ Character string containing the MD5 checksum.
 \description{
 Computes an MD5 checksum for a file. Useful for verifying file integrity.
 }
+\keyword{internal}

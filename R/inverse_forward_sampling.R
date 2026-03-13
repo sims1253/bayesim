@@ -8,6 +8,7 @@
 #' @param ... Potential additional arguments passed to [brms::posterior_predict()].
 #'
 #' @return A data.frame containing n observations for each variable in the fit.
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -179,6 +180,7 @@ brms_response_sequence <- function(x) {
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
 #' @method brms_response_sequence brmsfit
+#' @keywords internal
 #' @export
 brms_response_sequence.brmsfit <- function(x) {
   brms_response_sequence(x$formula)
@@ -189,6 +191,7 @@ brms_response_sequence.brmsfit <- function(x) {
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
 #' @method brms_response_sequence bform
+#' @keywords internal
 #' @export
 brms_response_sequence.bform <- function(x) {
   term_list <- brms_response_sequence(brms::brmsterms(x))
@@ -204,6 +207,7 @@ brms_response_sequence.bform <- function(x) {
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
 #' @method brms_response_sequence mvbrmsterms
+#' @keywords internal
 #' @export
 brms_response_sequence.mvbrmsterms <- function(x) {
   names(x$terms) <- NULL
@@ -215,6 +219,7 @@ brms_response_sequence.mvbrmsterms <- function(x) {
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
 #' @method brms_response_sequence brmsterms
+#' @keywords internal
 #' @export
 brms_response_sequence.brmsterms <- function(x) {
   vars <- list(unique(unlist(lapply(x$dpars, brms_response_sequence))))
@@ -227,6 +232,7 @@ brms_response_sequence.brmsterms <- function(x) {
 #'   (https://github.com/hyunjimoon/SBC) and only here to ensure stability, as
 #'   it is not exported in SBC.
 #' @method brms_response_sequence btl
+#' @keywords internal
 #' @export
 brms_response_sequence.btl <- function(x) {
   c("1", all.vars(x$formula))
@@ -262,6 +268,7 @@ brms_response_sequence.btl <- function(x) {
 #' @source This function is adapted from the SBC package
 #'   (https://github.com/hyunjimoon/SBC).
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -433,6 +440,7 @@ alpha_quantile <- function(gamma, alpha, tol = 0.001) {
 #' @return Measure quantifying deviation from uniformity. This value can
 #'  be compared to the distribution of gamma expected under uniformity
 #'  calculated by validation.gamma_null_distribution.
+#' @keywords internal
 #' @export
 #'
 #' @examples

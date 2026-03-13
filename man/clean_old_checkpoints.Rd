@@ -23,3 +23,4 @@ This function can be used to manage disk space by removing old checkpoints
 that are no longer needed. It always keeps the latest checkpoint and
 any checkpoints that are more recent than the keep_n threshold.
 }
+\keyword{internal}

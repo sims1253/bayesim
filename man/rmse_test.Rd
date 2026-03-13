@@ -26,3 +26,4 @@ fit <- brms::brm(y ~ x, data = train_data)
 rmse_test(fit, test_data)
 }
 }
+\keyword{internal}

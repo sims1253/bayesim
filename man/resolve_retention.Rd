@@ -22,3 +22,4 @@ If explicit options are provided, validates them and returns only valid ones.
 resolve_retention("minimal")
 resolve_retention(c("metrics", "draws"))
 }
+\keyword{internal}

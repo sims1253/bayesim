@@ -15,3 +15,4 @@ is_bayesim_fit_result(x)
 \description{
 Check if object is a bayesim_fit_result
 }
+\keyword{internal}

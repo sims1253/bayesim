@@ -4,6 +4,7 @@
 #'
 #' @return A list of brms prior objects for the specified family
 #' @export
+#' @keywords internal
 #'
 prior_lookup <- function(family) {
   aux_params <- tryCatch(
@@ -45,6 +46,7 @@ prior_lookup <- function(family) {
 #'
 #' @return A hash generated from the fit configuration
 #' @export
+#' @keywords internal
 #'
 #' @examples
 #' fit_conf_key(

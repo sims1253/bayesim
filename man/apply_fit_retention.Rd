@@ -19,3 +19,4 @@ Removes fields from fit result based on retention policy to reduce
 memory footprint. This function modifies the fit_result in place
 by setting unwanted fields to NULL.
 }
+\keyword{internal}

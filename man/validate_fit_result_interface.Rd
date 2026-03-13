@@ -49,3 +49,4 @@ validate_fit_result_interface(result)
 \seealso{
 \code{\link[=validate_bayesim_fit_result]{validate_bayesim_fit_result()}}, \code{\link[=new_fit_result]{new_fit_result()}}
 }
+\keyword{internal}

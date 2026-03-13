@@ -8,6 +8,13 @@
 Functions for controlling which artifacts are retained in simulation
 results to manage memory usage during large-scale simulations.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/sims1253/bayesim}
+}
+
+}
 \author{
 \strong{Maintainer}: Maximilian Scholz \email{research.scholz@mailbox.org}
 

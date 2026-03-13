@@ -73,3 +73,4 @@ checkpoint_id <- write_checkpoint(
 \seealso{
 \code{\link[=read_checkpoint]{read_checkpoint()}}, \code{\link[=init_checkpoint_dir]{init_checkpoint_dir()}}
 }
+\keyword{internal}

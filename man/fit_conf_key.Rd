@@ -27,3 +27,4 @@ fit_conf_key(
   )
 )
 }
+\keyword{internal}

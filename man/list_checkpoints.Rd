@@ -30,3 +30,4 @@ checkpoint_ids <- list_checkpoints("/path/to/results")
 \seealso{
 \code{\link[=read_checkpoint]{read_checkpoint()}}, \code{\link[=get_latest_valid_checkpoint]{get_latest_valid_checkpoint()}}
 }
+\keyword{internal}

@@ -48,6 +48,7 @@
 #' Note,that not all identifiers are supported for each input class.
 #'
 #' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{

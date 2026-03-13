@@ -14,6 +14,7 @@
 #' @param ... Additional arguments passed to metric calculation functions
 #'
 #' @return A tibble containing calculated metrics for the fitted model
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -87,6 +88,7 @@ fit_sim <- function(
 #' @param ... Additional arguments passed to metric calculation functions
 #'
 #' @return A tibble containing simulation results for all models
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -199,6 +201,7 @@ dataset_sim <- function(
 #' @param ... Additional arguments passed to dataset_sim and metric calculation functions
 #'
 #' @return A tibble containing simulation results for all datasets and models
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -334,6 +337,7 @@ dataset_conf_sim <- function(
 #' @param ... Additional arguments passed to dataset_conf_sim and metric calculation functions
 #'
 #' @return A tibble containing all simulation results
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -442,6 +446,7 @@ full_simulation <- function(
 #'   `sampling_loops`, `bad_samples`, `testing_data`, and `true_parameters`.
 #'
 #' @return A list containing the fitted model, dataset, and metadata
+#' @keywords internal
 #' @export
 #'
 #' @examples

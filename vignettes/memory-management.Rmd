@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-Simulation studies in Bayesian modeling can quickly consume large amounts of memory. When running thousands of tasks, each producing posterior draws, fitted model objects, predictions, and diagnostics, the accumulated data can easily exhaust available RAM. This vignette explains how to use bayesim's retention system to control memory usage during large-scale simulations.
+Simulation studies in Bayesian modeling can consume large amounts of memory. When running thousands of tasks, each producing posterior draws, fitted model objects, predictions, and diagnostics, the accumulated data can exhaust available RAM. This vignette explains how to use bayesim's retention system to control memory usage during large-scale simulations.
 
 Consider a simulation with:
 - 50 data configurations
@@ -25,7 +25,7 @@ Consider a simulation with:
 - 4,000 posterior draws per fit
 - 50 parameters tracked
 
-This creates 25,000 tasks. If each fit object is 50 MB and each draws matrix is 20 MB, retaining everything would require over 1.7 TB of memory. Clearly, we need a way to retain only what's necessary.
+This creates 25,000 tasks. If each fit object is 50 MB and each draws matrix is 20 MB, retaining everything would require over 1.7 TB of memory. We need a way to retain only what is necessary.
 
 # The Retention System
 
@@ -345,7 +345,7 @@ When checkpointing is enabled, bayesim implements memory-bounded execution:
 3. After checkpointing, heavy objects in task results are cleared from memory while keeping lightweight summary data (metrics, diagnostics)
 4. Only pending tasks and lightweight summaries remain in memory
 
-This means memory usage stays bounded by `chunk_size` tasks, regardless of total study size.
+Memory usage stays bounded by `chunk_size` tasks, regardless of total study size.
 
 You can control the memory bound with the `chunk_size` parameter:
 
@@ -366,7 +366,7 @@ tight_memory_config <- simulation_config(
 )
 ```
 
-When `chunk_size` is smaller than `checkpoint_every`, the system will checkpoint early (at the `chunk_size` threshold) to free memory. When `chunk_size` is larger, checkpoints happen at `checkpoint_every` intervals as usual. `max_in_memory` remains available as a compatibility alias.
+When `chunk_size` is smaller than `checkpoint_every`, the system checkpoints early (at the `chunk_size` threshold) to free memory. When `chunk_size` is larger, checkpoints happen at `checkpoint_every` intervals as usual. `max_in_memory` remains available as a compatibility alias.
 
 ## Resuming Efficiently
 
@@ -633,10 +633,10 @@ This vignette covered bayesim's memory management system:
 
 5. **Monitoring tools** like `object.size()`, `estimate_size()`, and `gc()` help you understand and plan for memory needs
 
-Key recommendations:
+Recommendations:
 - Start with `"standard"` retention for development
-- Switch to `"minimal"` for production runs with many tasks
-- Always enable checkpointing for studies > 1000 tasks
+- Switch to `"minimal"` for runs with many tasks
+- Enable checkpointing for studies > 1000 tasks
 - Use `chunk_size` to control memory bounds independently from checkpoint frequency
 - Test with small runs to estimate memory needs before scaling up
 

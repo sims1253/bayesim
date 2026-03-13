@@ -18,3 +18,4 @@ Invisible NULL. Called for side effect.
 Writes an RDS file using an atomic write operation to prevent corruption
 from interrupted writes. Writes to a temporary file first, then renames.
 }
+\keyword{internal}

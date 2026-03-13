@@ -1,6 +1,7 @@
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
 Version: 1.0.1
+URL: https://github.com/sims1253/bayesim
 Authors@R: c(
     person("Maximilian", "Scholz", , "research.scholz@mailbox.org", 
            role = c("aut", "cre")),
@@ -76,6 +77,7 @@ Suggests:
     bayeshear,
     brms (>= 2.22.0),
     cmdstanr (>= 0.7.0),
+    future (>= 1.33.0),
     ggplot2,
     MASS,
     rstan (>= 2.32.0),
@@ -83,4 +85,9 @@ Suggests:
     testthat (>= 3.1.0),
     knitr,
     rmarkdown
+Remotes:
+    stan-dev/cmdstanr,
+    sims1253/bayesfam,
+    sims1253/bayeshear,
+    hyunjimoon/SBC
 VignetteBuilder: knitr

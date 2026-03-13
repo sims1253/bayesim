@@ -48,3 +48,4 @@ validate_simulation_config(config)
 \seealso{
 \code{\link[=simulation_config]{simulation_config()}}, \code{\link[=validate_fitter_interface]{validate_fitter_interface()}}, \code{\link[=validate_metric_interface]{validate_metric_interface()}}
 }
+\keyword{internal}

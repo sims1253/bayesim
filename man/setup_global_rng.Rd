@@ -19,3 +19,4 @@ Must be called once at simulation start.
 \examples{
 setup_global_rng(42)
 }
+\keyword{internal}

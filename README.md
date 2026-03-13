@@ -1,33 +1,37 @@
-# Bayesim
+# bayesim
 
+<!-- badges: start -->
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 [![R-CMD-check](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml)
 [![Tests](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml)
 [![Codecov test coverage](https://codecov.io/gh/sims1253/bayesim/graph/badge.svg)](https://app.codecov.io/gh/sims1253/bayesim)
 [![GH-Pages](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+<!-- badges: end -->
 
-`bayesim` is a simulation framework for reproducible Bayesian modeling studies.
+bayesim provides a simulation framework for reproducible Bayesian modeling studies. It handles task planning, checkpointing, and memory-bounded execution so you can focus on your research questions.
 
-The current user-facing workflow is:
+## Installation
 
-1. Build a `SimulationConfig` with `simulation_config()`
+You can install the development version of bayesim from GitHub:
+
+```r
+# install.packages("pak")
+pak::pak("sims1253/bayesim")
+```
+
+## Example
+
+The basic workflow has three steps:
+
+1. Create a simulation config with `simulation_config()`
 2. Run it with `run_simulation()`
-3. Resume interrupted runs with `run_simulation(..., resume = "auto" | "must")` or `resume_simulation()`
-
-## Core ideas
-
-- Deterministic task planning from a single study seed
-- Checkpoint/resume for long-running studies
-- Memory-bounded execution via `chunk_size`
-- S7 fitters and metrics for extensibility
-- Explicit Metric objects instead of string metric names
-
-## Minimal example
+3. Resume interrupted runs with `run_simulation(..., resume = "auto")` or `resume_simulation()`
 
 ```r
 library(bayesim)
 
+# Define a data generator
 data_gen <- function(data_spec, seed, task_ctx) {
   n <- data_spec$n
   x <- rnorm(n)
@@ -48,6 +52,7 @@ data_gen <- function(data_spec, seed, task_ctx) {
   )
 }
 
+# Create the config
 config <- simulation_config(
   data_grid = data.frame(
     n = c(100, 500),
@@ -63,15 +68,24 @@ config <- simulation_config(
   seed = 42L
 )
 
+# Run the simulation
 result <- run_simulation(config, progress = FALSE)
 head(result$summary)
 ```
 
-`data_generator()` receives a scalar `seed` and a `task_ctx`. The engine also restores the task RNG state before each call, so repeated full, resumed, and parallel runs stay aligned.
+The engine restores the task RNG state before each call, so repeated, resumed, and parallel runs produce identical results.
 
-## Checkpointing and resume
+## Features
 
-Use `result_path` plus `checkpoint_every` to make runs resumable:
+- **Deterministic task planning**: A single study seed determines all task seeds
+- **Checkpoint and resume**: Long-running studies can resume after interruption
+- **Memory-bounded execution**: `chunk_size` controls how many results stay in memory
+- **Extensible design**: S7 classes for fitters and metrics
+- **Explicit metrics**: Pass Metric objects instead of string names
+
+## Checkpointing
+
+Set `result_path` and `checkpoint_every` to make runs resumable:
 
 ```r
 config <- simulation_config(
@@ -88,44 +102,22 @@ config <- simulation_config(
 )
 
 run_simulation(config, resume = "auto")
-resume_simulation("results/demo-study")
 ```
 
-- `checkpoint_format = "rds"` is the supported checkpoint backend
-- `checkpoint_format = "parquet"` is reserved but not implemented yet
-- `chunk_size` controls how many task results are retained before a flush/checkpoint cycle
-- `max_in_memory` still works as a compatibility alias for `chunk_size`
-
-## Metrics
-
-Pass Metric objects, not strings:
-
-```r
-metrics = list(
-  rmse_metric(),
-  bias_metric(),
-  coverage_metric()
-)
-```
-
-Custom metrics should subclass `Metric` and supply a stable `name`.
+Use `resume_simulation("results/demo-study")` to resume from an existing checkpoint.
 
 ## Fitters
 
-`bayesim` ships with `MockFitter()` for fast examples and `BrmsFitter()` for `brms` workflows. The default `brms` backend is `"cmdstanr"`.
+bayesim includes:
 
-## Large studies
+- `MockFitter()` for testing and examples
+- `BrmsFitter()` for brms workflows (default backend: "cmdstanr")
 
-For larger simulations:
+Custom fitters should subclass the `Fitter` S7 class.
 
-- set `result_path`
-- choose `checkpoint_every`
-- set `chunk_size` to cap in-memory task results
-- use a minimal retention profile when heavy artifacts are unnecessary
+## Documentation
 
-High-cardinality metric payloads are written to artifact files instead of expanding the main summary table indefinitely.
-
-## Vignettes
+See the vignettes for detailed guides:
 
 - `vignette("getting-started")`
 - `vignette("simulation-study")`
@@ -133,3 +125,7 @@ High-cardinality metric payloads are written to artifact files instead of expand
 - `vignette("memory-management")`
 - `vignette("custom-fitters")`
 - `vignette("case-studies")`
+
+## Getting help
+
+If you encounter a bug or have a feature request, please file an issue on [GitHub](https://github.com/sims1253/bayesim/issues).

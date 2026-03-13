@@ -46,3 +46,4 @@ checkpoint <- get_latest_valid_checkpoint(
 \seealso{
 \code{\link[=read_checkpoint]{read_checkpoint()}}, \code{\link[=list_checkpoints]{list_checkpoints()}}
 }
+\keyword{internal}

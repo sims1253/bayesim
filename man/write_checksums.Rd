@@ -18,3 +18,4 @@ Invisible NULL. Called for side effect.
 Computes checksums for specified files in a directory and writes them
 to a checksums.json file.
 }
+\keyword{internal}

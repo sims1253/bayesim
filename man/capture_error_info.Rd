@@ -22,3 +22,4 @@ A named list with elements:
 Captures detailed information about an error condition, including
 class, message, call, and a trimmed traceback.
 }
+\keyword{internal}

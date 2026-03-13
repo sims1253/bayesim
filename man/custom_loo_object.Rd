@@ -28,3 +28,4 @@ so to use loo objects, we have to disguise other criterions as elpd.
 custom_loo_object(c(-1.2, -0.8, -1.5))
 }
 }
+\keyword{internal}

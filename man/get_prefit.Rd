@@ -38,3 +38,4 @@ stan_pars <- list(backend = "cmdstanr")
 prefit <- get_prefit(fit_conf, stan_pars)
 }
 }
+\keyword{internal}

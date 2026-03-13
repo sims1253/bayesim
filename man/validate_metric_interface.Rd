@@ -52,3 +52,4 @@ validate_metric_interface(my_metric)
 \seealso{
 \link{Metric}, \code{\link[=validate_metric_output]{validate_metric_output()}}
 }
+\keyword{internal}

@@ -55,10 +55,6 @@ run_simulation <- function(
   config_spec$data_generator <- config@data_generator
   config_spec$result_path <- config@result_path
   config_spec$package_name <- utils::packageName()
-  config_spec$package_path <- getNamespaceInfo(
-    asNamespace(utils::packageName()),
-    "path"
-  )
 
   # Compute config fingerprint for checkpoint validation
   config_fingerprint <- compute_config_fingerprint(config)
@@ -243,39 +239,7 @@ execute_tasks <- function(
         batch_tasks,
         function(task) {
           package_name <- config_spec$package_name %||% "bayesim"
-          package_path <- config_spec$package_path %||% NULL
-          loaded <- package_name %in% loadedNamespaces()
-          current_path <- if (loaded) {
-            getNamespaceInfo(asNamespace(package_name), "path")
-          } else {
-            NULL
-          }
-
-          if (
-            !loaded ||
-              (!is.null(package_path) &&
-                !identical(
-                  normalizePath(current_path),
-                  normalizePath(package_path)
-                ))
-          ) {
-            if (
-              !is.null(package_path) &&
-                requireNamespace("pkgload", quietly = TRUE) &&
-                file.exists(file.path(package_path, "DESCRIPTION"))
-            ) {
-              pkgload::load_all(
-                package_path,
-                export_all = FALSE,
-                helpers = FALSE,
-                quiet = TRUE
-              )
-            } else {
-              loadNamespace(package_name)
-            }
-          }
-
-          ns <- asNamespace(package_name)
+          ns <- loadNamespace(package_name)
           get("run_task_safe", envir = ns)(
             task = task,
             config_spec = config_spec,

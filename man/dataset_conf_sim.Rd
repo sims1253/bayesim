@@ -54,3 +54,4 @@ configuration and fits all specified models to each dataset.
 # New workflows should use simulation_config() + run_simulation().
 }
 }
+\keyword{internal}

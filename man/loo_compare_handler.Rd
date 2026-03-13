@@ -23,3 +23,4 @@ Compare LOO objects
 loo_compare_handler(loo_objects, metrics)
 }
 }
+\keyword{internal}

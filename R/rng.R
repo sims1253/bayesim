@@ -7,6 +7,7 @@
 #'
 #' @return The initial `.Random.seed` state (invisibly)
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -26,6 +27,7 @@ setup_global_rng <- function(seed) {
 #'
 #' @return NULL (invisibly). Side effect: sets `.Random.seed` in global environment.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -54,6 +56,7 @@ set_task_rng <- function(rng_stream) {
 #' - It creates a local copy of the RNG state, advances it, and returns the new state
 #' - The caller is responsible for setting the returned state if needed
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples

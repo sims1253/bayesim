@@ -22,15 +22,15 @@ library(ggplot2)
 
 ## Introduction
 
-Simulation studies are essential for understanding how statistical models perform under controlled conditions. By systematically varying data characteristics and measuring estimation accuracy, we can identify scenarios where models excel or struggle. This vignette demonstrates how to conduct a realistic simulation study using bayesim 1.0.
+Simulation studies help us understand how statistical models perform under controlled conditions. By systematically varying data characteristics and measuring estimation accuracy, we identify scenarios where models excel or struggle. This vignette demonstrates how to conduct a simulation study using bayesim.
 
-The goal of this example is to assess how sample size and noise level affect the accuracy of parameter estimation in a simple linear regression model. We will generate synthetic data with known parameters, fit models to each dataset, and compute metrics that quantify estimation quality. This pattern generalizes to more complex models and study designs.
+This example assesses how sample size and noise level affect parameter estimation accuracy in a simple linear regression model. We generate synthetic data with known parameters, fit models to each dataset, and compute metrics that quantify estimation quality. This pattern applies to more complex models and study designs.
 
-bayesim provides a structured framework for such studies. The key components are: (1) a data generator function that creates synthetic datasets, (2) a configuration object that defines the simulation grid and settings, and (3) a runner that executes the study with deterministic reproducibility. This vignette walks through each component in detail.
+bayesim provides a structured framework for such studies with three components: (1) a data generator function that creates synthetic datasets, (2) a configuration object that defines the simulation grid and settings, and (3) a runner that executes the study with deterministic reproducibility.
 
 ## Study Design
 
-Our hypothetical study examines two factors that commonly affect model performance:
+This study examines two factors that affect model performance:
 
 1. **Sample size (n)**: We test n = 50, 100, 200, and 500 observations. Larger samples should yield more precise estimates.
 2. **Noise level (sigma)**: We test sigma = 0.5, 1, and 2. Higher noise makes estimation more challenging.
@@ -40,7 +40,7 @@ The full factorial design yields 4 × 3 = 12 data generation conditions. For eac
 We assess performance using four metrics:
 
 - **RMSE**: Root mean square error of predictions
-- **Bias**: Mean bias of predictions  
+- **Bias**: Mean bias of predictions
 - **Coverage**: Whether true parameters fall within 95% credible intervals
 - **Posterior Mean**: Estimated parameter values for tracking estimation accuracy
 
@@ -118,9 +118,9 @@ config <- simulation_config(
 )
 ```
 
-Note that we use `MockFitter()` here for illustration purposes. In a real study with actual Bayesian models, you would use `BrmsFitter()` or a custom fitter that interfaces with your modeling backend. The MockFitter simulates realistic output structure without requiring brms or Stan to be installed, making this vignette self-contained and fast to run.
+We use `MockFitter()` here for illustration. For actual Bayesian models, use `BrmsFitter()` or a custom fitter that interfaces with your modeling backend. The MockFitter simulates realistic output structure without requiring brms or Stan to be installed, making this vignette self-contained and fast to run.
 
-The `data_grid` specifies all combinations of sample size and noise level. The `fit_grid` contains a single model specification since we are comparing data conditions rather than model variants. The metrics list includes objects (not character strings) that define what to compute for each simulation replicate. Built-in metric constructors like `rmse_metric()` have default names; custom metrics require an explicit `name` argument.
+The `data_grid` specifies all combinations of sample size and noise level. The `fit_grid` contains a single model specification since we compare data conditions rather than model variants. The metrics list includes objects (not character strings) that define what to compute for each simulation replicate. Built-in metric constructors like `rmse_metric()` have default names; custom metrics require an explicit `name` argument.
 
 ## Running the Simulation
 
@@ -130,7 +130,7 @@ Execute the simulation with progress display:
 result <- run_simulation(config, progress = TRUE)
 ```
 
-The progress bar shows completion status and elapsed time. With 240 tasks and the MockFitter, this completes quickly. Real studies with brms models may take minutes to hours depending on data size and model complexity.
+The progress bar shows completion status and elapsed time. With 240 tasks and the MockFitter, this completes quickly. Studies with brms models may take minutes to hours depending on data size and model complexity.
 
 ## Results Analysis
 
@@ -296,7 +296,7 @@ This vignette demonstrated a complete simulation study workflow:
 
 5. **Showed checkpointing** for long-running studies that need interruption tolerance.
 
-Key takeaways for conducting your own simulation studies:
+Key points for conducting your own simulation studies:
 
 - Use `MockFitter()` for rapid prototyping and testing; switch to `BrmsFitter()` or custom fitters for real inference
 - Structure data generators to return complete data bundles with `true_params` for coverage calculations

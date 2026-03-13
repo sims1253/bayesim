@@ -44,7 +44,7 @@ All code chunks that require `brms` and Stan use `eval=FALSE`. To run these exam
 
 ### Background
 
-The paper (arXiv:2210.06927) investigates when predictive performance (PP) can serve as a reliable proxy for parameter recoverability (PR) in Bayesian GLMs. The key question: if a model predicts well, can we trust its parameter estimates?
+The paper (arXiv:2210.06927) investigates when predictive performance (PP) can serve as a proxy for parameter recoverability (PR) in Bayesian GLMs. The question: if a model predicts well, can we trust its parameter estimates?
 
 ### The Causal Structure
 
@@ -532,7 +532,7 @@ Traditional SBC requires:
 3. Simulate data given parameters
 4. Fit model and check coverage
 
-**The challenge:** Hand-specified priors may be unrealistic for your application, leading to simulation scenarios that don't reflect real-world performance.
+**The challenge:** Hand-specified priors may be unrealistic for your application, leading to simulation scenarios that do not reflect real-world performance.
 
 **Primed priors solution:** The calibration dataset defines what "realistic" means for your domain. The priming fit learns posterior distributions that are:
 - Data-informed (from calibration data)

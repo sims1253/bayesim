@@ -22,3 +22,4 @@ streams <- create_task_rng_streams(42, 10)
 set_task_rng(streams[[1]])
 }
 }
+\keyword{internal}

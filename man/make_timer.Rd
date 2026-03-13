@@ -25,3 +25,4 @@ Sys.sleep(0.1)
 timer$stop()
 timer$elapsed()
 }
+\keyword{internal}

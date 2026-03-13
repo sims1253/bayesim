@@ -21,3 +21,4 @@ pending <- get_pending_tasks(task_grid)
 nrow(pending)  # Number of remaining tasks
 }
 }
+\keyword{internal}

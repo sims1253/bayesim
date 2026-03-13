@@ -16,3 +16,4 @@ Logical. TRUE if all checksums match, FALSE otherwise.
 Reads the checksums.json file and verifies all files match their recorded
 checksums.
 }
+\keyword{internal}

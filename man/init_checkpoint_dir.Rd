@@ -60,3 +60,4 @@ result_path <- init_checkpoint_dir(
 \seealso{
 \code{\link[=write_checkpoint]{write_checkpoint()}}, \code{\link[=read_checkpoint]{read_checkpoint()}}
 }
+\keyword{internal}

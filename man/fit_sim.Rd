@@ -48,3 +48,4 @@ and calculates specified metrics on the fitted model.
 # New workflows should use simulation_config() + run_simulation().
 }
 }
+\keyword{internal}

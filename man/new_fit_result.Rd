@@ -70,3 +70,4 @@ result <- new_fit_result(
   timing = list(total = 2.0, warmup = 2.0, sample = 0)
 )
 }
+\keyword{internal}

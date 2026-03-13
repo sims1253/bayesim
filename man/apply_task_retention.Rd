@@ -22,3 +22,4 @@ Modified bayesim_task_result object with retained fields added
 Adds optional retained fields from the fit result and data bundle
 to the task result based on the retention policy.
 }
+\keyword{internal}

@@ -66,3 +66,4 @@ result <- new_task_result(
   timing = list(total = 2.0)
 )
 }
+\keyword{internal}

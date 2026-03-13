@@ -212,6 +212,7 @@ S7::method(diagnostics, BrmsFitter) <- function(fitter, fit_result) {
 #' @param fit brms fit object
 #'
 #' @return Named list of diagnostics
+#' @keywords internal
 extract_brms_diagnostics <- function(fit) {
   summary <- summary(fit)
 

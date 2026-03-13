@@ -155,6 +155,7 @@ canonicalize_task_grid <- function(task_grid, config) {
 #'   - `rng_seed`: List column containing precomputed RNG stream for each task
 #'   - `status`: Character status, initialized to "pending"
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -237,6 +238,7 @@ create_task_grid <- function(config) {
 #'   - `task_ctx`: Named list with task_id, data_idx, fit_idx, rep_idx
 #'   - `rng_seed`: Integer vector RNG state for this task
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -288,6 +290,7 @@ get_task_spec <- function(task_grid, task_id, config) {
 #'
 #' @return A filtered task grid tibble.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -307,6 +310,7 @@ filter_tasks_by_status <- function(task_grid, status) {
 #'
 #' @return A task grid tibble containing only tasks with status "pending".
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -329,6 +333,7 @@ get_pending_tasks <- function(task_grid) {
 #'
 #' @return A modified task grid tibble with the updated status.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -362,6 +367,7 @@ validate_task_id <- function(task_id) {
 #' @return Named integer vector with elements data_idx, fit_idx, rep_idx,
 #'   or NULL if the task_id format is invalid.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -393,6 +399,7 @@ parse_task_id <- function(task_id) {
 #'
 #' @return Named integer vector with counts for each status.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples

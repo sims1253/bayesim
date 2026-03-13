@@ -46,3 +46,4 @@ validate_fitter_interface(mock_fitter)
 \seealso{
 \link{Fitter}, \link{MockFitter}
 }
+\keyword{internal}

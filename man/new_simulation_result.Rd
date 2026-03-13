@@ -74,3 +74,4 @@ result <- new_simulation_result(
   checkpoint_path = "/path/to/checkpoint.rds"
 )
 }
+\keyword{internal}

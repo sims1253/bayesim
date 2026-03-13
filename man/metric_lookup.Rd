@@ -54,3 +54,4 @@ The function corresponding to the identifier string.
 This function is mostly a helper function that maps identifier strings to
 metrics for convenient use in some contexts.
 }
+\keyword{internal}

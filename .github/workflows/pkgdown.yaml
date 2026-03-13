@@ -45,23 +45,6 @@ jobs:
           cmdstanr::install_cmdstan(cores = parallel::detectCores())
         shell: Rscript {0}
 
-      - name: Create _pkgdown.yml
-        if: github.event.action != 'closed'
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            cat << EOF > _pkgdown.yml
-          url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/branch/${{ github.head_ref }}
-          template:
-            bootstrap: 5
-          EOF
-          else
-            cat << EOF > _pkgdown.yml
-          url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
-          template:
-            bootstrap: 5
-          EOF
-          fi
-
       - name: Build site (main branch)
         if: github.event_name != 'pull_request'
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
@@ -69,6 +52,8 @@ jobs:
 
       - name: Build site (PR branch)
         if: github.event_name == 'pull_request' && github.event.action != 'closed'
+        env:
+          PKGDOWN_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/branch/${{ github.head_ref }}
         run: pkgdown::build_site(new_process = FALSE, install = FALSE)
         shell: Rscript {0}
 

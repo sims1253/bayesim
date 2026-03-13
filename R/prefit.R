@@ -16,6 +16,7 @@
 #'   }
 #'
 #' @return A brmsfit object with compiled Stan code (chains = 0)
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -78,6 +79,7 @@ get_prefit <- function(fit_conf, stan_pars) {
 #' @param stan_pars A named list which contains a backend field.
 #'
 #' @return A named list of precompiled fit objects keyed by fit configuration.
+#' @keywords internal
 #' @export
 build_prefit_list <- function(fit_configuration, stan_pars) {
   if (is.null(fit_configuration$prior)) {

@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-bayesim is a modern simulation framework for Bayesian modeling studies. It provides:
+bayesim is a simulation framework for Bayesian modeling studies. It provides:
 
 - **Reproducible execution** across sequential, parallel, and resumed runs
 - **Checkpoint/resume** capabilities for long-running simulations

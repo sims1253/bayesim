@@ -30,3 +30,4 @@ fit <- brms::brm(y ~ x, data = mydata)
 rmse_loo(fit)
 }
 }
+\keyword{internal}

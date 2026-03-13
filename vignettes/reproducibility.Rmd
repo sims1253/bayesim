@@ -15,11 +15,11 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-Reproducibility is a cornerstone of rigorous scientific research. In simulation studies, reproducibility means that running the same simulation with the same inputs should produce identical results---every time, on any machine, regardless of interruptions or execution mode.
+Reproducibility is a requirement for rigorous scientific research. In simulation studies, reproducibility means that running the same simulation with the same inputs should produce identical results---every time, on any machine, regardless of interruptions or execution mode.
 
-bayesim is designed from the ground up with deterministic reproducibility as a core guarantee. This vignette explains:
+bayesim provides deterministic reproducibility as a core guarantee. This vignette explains:
 
-- **Why** reproducibility matters in Bayesian simulation studies
+- **Why** reproducibility matters
 - **How** bayesim ensures reproducibility through careful RNG management
 - **What** is and isn't guaranteed to be deterministic
 - **Best practices** for ensuring your simulations remain reproducible
@@ -28,25 +28,25 @@ bayesim is designed from the ground up with deterministic reproducibility as a c
 
 Simulation studies are experiments, and like any experiment, they must be reproducible to be scientifically valid:
 
-1. **Verification**: Others (and future you) must be able to verify your results
+1. **Verification**: Others (and future you) can verify your results
 2. **Debugging**: Deterministic behavior makes it possible to reproduce and fix bugs
 3. **Collaboration**: Team members can share and build upon each other's work
 4. **Publication**: Reviewers and readers can replicate your findings
 5. **Longevity**: Results remain valid even as hardware and software evolve
 
-Without reproducibility, simulation results are essentially unverifiable claims.
+Without reproducibility, simulation results are unverifiable claims.
 
 # How bayesim Ensures Reproducibility
 
-bayesim achieves reproducibility through four key mechanisms:
+bayesim achieves reproducibility through four mechanisms:
 
 ## 1. L'Ecuyer-CMRG RNG for Parallel-Safe Streams
 
 bayesim uses the **L'Ecuyer-CMRG** (Combined Multiple Recursive Generator) random number generator instead of R's default Mersenne-Twister. This choice is deliberate:
 
 - **Multiple independent streams**: L'Ecuyer-CMRG can generate multiple independent RNG streams from a single seed
-- **Reproducible parallel execution**: Each task gets its own stream, ensuring results don't depend on execution order
-- **Long period**: The generator has an extremely long period, preventing overlap between streams
+- **Reproducible parallel execution**: Each task gets its own stream, ensuring results do not depend on execution order
+- **Long period**: The generator has a long period, preventing overlap between streams
 
 ```{r rng-setup}
 library(bayesim)
@@ -72,12 +72,12 @@ streams <- bayesim:::create_task_rng_streams(42, 5)
 str(streams[[1]])
 
 # These streams are independent---advancing one doesn't affect others
-# This is crucial for reproducibility regardless of execution order
+# This is important for reproducibility regardless of execution order
 ```
 
 Each task receives its own stream via the `rng_seed` column in the task grid. A scalar task seed is also derived from that stream and passed into the data generator and fitter context. This means:
 
-- Task execution order doesn't matter---each task uses its pre-assigned stream
+- Task execution order does not matter—each task uses its pre-assigned stream
 - Parallel execution produces identical results to sequential execution
 - Resuming from a checkpoint produces identical results to an uninterrupted run
 
@@ -199,24 +199,24 @@ The resume mechanism:
 
 ## Different Machines and Operating Systems
 
-Simulations are expected to be reproducible across different machines and operating systems **as long as**:
+Simulations are reproducible across different machines and operating systems **when**:
 
 - The R version matches (see below for details)
 - The bayesim version matches
 - All package dependencies match
 - The configuration and seed are identical
 
-This makes it possible to:
+This allows you to:
 
 - Start a simulation on your laptop and resume on a cluster
 - Share results with collaborators who use different operating systems
 - Archive simulations for long-term reproducibility
 
-# What IS Deterministic
+# What Is Deterministic
 
 bayesim guarantees the following are reproducible within a matched software/backend environment:
 
-## Same Seed → Same Results
+## Same Seed Produces Same Results
 
 Given identical configuration and seed, you get identical results:
 
@@ -454,7 +454,7 @@ renv::snapshot()
 renv::restore()
 ```
 
-The `renv.lock` file ensures collaborators and future-you install identical package versions. This is essential for long-term reproducibility of simulation results.
+The `renv.lock` file ensures collaborators and future-you install identical package versions. This is necessary for long-term reproducibility of simulation results.
 
 ### rv and Containers: Full Environment Capture
 
@@ -607,7 +607,7 @@ bayesim provides strong determinism guarantees for simulation studies:
 | Across R versions | ❌ Not guaranteed |
 | Across package versions | ❌ Not guaranteed |
 
-By following the best practices outlined in this vignette---always setting a seed, version controlling your configuration, using checkpointing, recording your computational environment, and using environment management tools---you can ensure that your simulation studies remain reproducible and scientifically valid.
+By following the best practices outlined in this vignette—always setting a seed, version controlling your configuration, using checkpointing, recording your computational environment, and using environment management tools—you ensure that your simulation studies remain reproducible and scientifically valid.
 
 For more information, see:
 

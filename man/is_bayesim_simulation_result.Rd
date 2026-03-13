@@ -15,3 +15,4 @@ is_bayesim_simulation_result(x)
 \description{
 Check if object is a bayesim_simulation_result
 }
+\keyword{internal}

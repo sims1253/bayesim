@@ -52,6 +52,7 @@ NULL
 #' @section Errors:
 #' Throws a `bayesim_data_error` condition if validation fails.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @examples
@@ -366,6 +367,7 @@ validate_data_bundle <- function(data_bundle) {
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [validate_bayesim_fit_result()], [new_fit_result()]
@@ -430,6 +432,7 @@ validate_fit_result_interface <- function(fit_result) {
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [Fitter], [MockFitter]
@@ -492,6 +495,7 @@ validate_fitter_interface <- function(fitter) {
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [Metric], [validate_metric_output()]
@@ -597,6 +601,7 @@ validate_metric_interface <- function(metric) {
 #' @section Errors:
 #' Throws a `bayesim_config_error` condition if validation fails.
 #'
+#' @keywords internal
 #' @export
 #'
 #' @seealso [simulation_config()], [validate_fitter_interface()], [validate_metric_interface()]

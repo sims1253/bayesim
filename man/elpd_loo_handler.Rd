@@ -22,3 +22,4 @@ fit <- brms::brm(y ~ x, data = mydata)
 elpd_loo_handler(fit)
 }
 }
+\keyword{internal}
