@@ -1,7 +1,8 @@
-#' Fit a single model in a simulation study
+#' Fit a single model in a simulation study (DEPRECATED)
 #'
-#' This function fits a Bayesian model using a precompiled brms model object
-#' and calculates specified metrics on the fitted model.
+#' @description
+#' `r lifecycle::deprecated("fit_sim()")`
+#' This function is deprecated. New workflows should use `simulation_config()` + `run_simulation()`.
 #'
 #' @param prefit A precompiled brms model object from \code{\link{get_prefit}}
 #' @param dataset A data.frame containing the data to fit the model to
@@ -19,8 +20,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' # This function is part of the legacy simulation pipeline.
-#' # New workflows should use simulation_config() + run_simulation().
+#' # This function is deprecated. Use simulation_config() + run_simulation() instead.
 #' }
 fit_sim <- function(
   prefit,
@@ -70,10 +70,11 @@ fit_sim <- function(
   all_metric_results
 }
 
-#' Run simulation for a single dataset configuration
+#' Run simulation for a single dataset configuration (DEPRECATED)
 #'
-#' This function generates a single dataset and fits all specified models to it,
-#' calculating metrics for each model fit.
+#' @description
+#' `r lifecycle::deprecated("dataset_sim()")`
+#' This function is deprecated. New workflows should use `simulation_config()` + `run_simulation()`.
 #'
 #' @param data_gen_conf A list containing data generation configuration parameters
 #' @param fit_confs A data.frame containing model fitting configurations
@@ -93,8 +94,7 @@ fit_sim <- function(
 #'
 #' @examples
 #' \dontrun{
-#' # This function is part of the legacy simulation pipeline.
-#' # New workflows should use simulation_config() + run_simulation().
+#' # This function is deprecated. Use simulation_config() + run_simulation() instead.
 #' }
 dataset_sim <- function(
   data_gen_conf,
@@ -183,10 +183,11 @@ dataset_sim <- function(
 }
 
 
-#' Run simulation for a single data generation configuration
+#' Run simulation for a single data generation configuration (DEPRECATED)
 #'
-#' This function generates multiple datasets according to the data generation
-#' configuration and fits all specified models to each dataset.
+#' @description
+#' `r lifecycle::deprecated("dataset_conf_sim()")`
+#' This function is deprecated. New workflows should use `simulation_config()` + `run_simulation()`.
 #'
 #' @param data_gen_conf A list containing data generation configuration parameters
 #' @param fit_confs A data.frame containing model fitting configurations
@@ -206,8 +207,7 @@ dataset_sim <- function(
 #'
 #' @examples
 #' \dontrun{
-#' # This function is part of the legacy simulation pipeline.
-#' # New workflows should use simulation_config() + run_simulation().
+#' # This function is deprecated. Use simulation_config() + run_simulation() instead.
 #' }
 dataset_conf_sim <- function(
   data_gen_conf,
@@ -309,7 +309,11 @@ dataset_conf_sim <- function(
 }
 
 
-#' Run a full simulation study
+#' Run a full simulation study (DEPRECATED)
+#'
+#' @description
+#' `r lifecycle::deprecated("full_simulation()")`
+#' This function is deprecated. New workflows should use `simulation_config()` + `run_simulation()`.
 #'
 #' Legacy interface for older bayesim simulation studies.
 #'
@@ -342,6 +346,7 @@ dataset_conf_sim <- function(
 #'
 #' @examples
 #' \dontrun{
+#' # This function is deprecated. Use simulation_config() + run_simulation() instead.
 #' # Define data generation configurations
 #' data_gen_confs <- data.frame(
 #'   id = c("config1", "config2"),

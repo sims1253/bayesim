@@ -56,31 +56,31 @@ metric_lookup <- function(
         switch(
           metric,
           # Variable summaries
-          "v_mean" = padd_variable_summay(
+          "v_mean" = padd_variable_summary(
             draws,
             vars_of_interest,
             mean,
             metric
           ),
-          "v_sd" = padd_variable_summay(
+          "v_sd" = padd_variable_summary(
             draws,
             vars_of_interest,
             sd,
             metric
           ),
-          "v_median" = padd_variable_summay(
+          "v_median" = padd_variable_summary(
             draws,
             vars_of_interest,
             median,
             metric
           ),
-          "v_mad" = padd_variable_summay(
+          "v_mad" = padd_variable_summary(
             draws,
             vars_of_interest,
             mad,
             metric
           ),
-          "v_pos_prob" = padd_variable_summay(
+          "v_pos_prob" = padd_variable_summary(
             draws,
             vars_of_interest,
             function(x) {
@@ -375,7 +375,7 @@ metric_lookup <- function(
   )
 }
 
-padd_variable_summay <- function(draws, variables, metric, name) {
+padd_variable_summary <- function(draws, variables, metric, name) {
   tmp <- tryCatch(
     as.list(bayeshear::variable_summary(draws, variables, metric)),
     error = function(e) {

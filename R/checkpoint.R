@@ -19,21 +19,8 @@ NULL
 #' @keywords internal
 NULL
 
-#' Run schema version
-#'
-#' Increments on any incompatible on-disk format change to the run-level
-#' structure (directory layout, manifest format, etc.).
-#'
-#' @keywords internal
-RUN_SCHEMA_VERSION <- 1L
-
-#' Result schema version
-#'
-#' Increments on result-column contract changes (e.g., changes to the
-#' structure of results.parquet/rds files).
-#'
-#' @keywords internal
-RESULT_SCHEMA_VERSION <- 1L
+# Schema versions are defined in bayesim-package.R
+# These are imported via NAMESPACE
 
 # =============================================================================
 # Checkpoint Directory Initialization

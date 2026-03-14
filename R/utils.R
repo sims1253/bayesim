@@ -289,28 +289,6 @@ format_task_id <- function(data_idx, fit_idx, rep_idx) {
   sprintf("d%03d_f%03d_r%05d", data_idx, fit_idx, rep_idx)
 }
 
-#' Parse task ID to indices
-#'
-#' Parses a task ID string back into its component indices.
-#'
-#' @param task_id Character string in format "dXXX_fXXX_rXXXXX"
-#'
-#' @return Named list with elements `data_idx`, `fit_idx`, and `rep_idx`.
-#'
-#' @export
-#' @examples
-#' parse_task_id("d001_f002_r00100")
-#' # Returns: list(data_idx = 1, fit_idx = 2, rep_idx = 100)
-parse_task_id <- function(task_id) {
-  parts <- strsplit(task_id, "_")[[1]]
-
-  list(
-    data_idx = as.integer(sub("^d", "", parts[1])),
-    fit_idx = as.integer(sub("^f", "", parts[2])),
-    rep_idx = as.integer(sub("^r", "", parts[3]))
-  )
-}
-
 # Flatten Nested List -----------------------------------------------------
 
 #' Flatten a nested list with prefix

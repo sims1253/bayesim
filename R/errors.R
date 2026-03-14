@@ -123,6 +123,25 @@ bayesim_internal_error <- function(message, call = NULL) {
   )
 }
 
+#' Validation error (Fatal)
+#'
+#' @description
+#' Raised when input validation fails. This is a fatal error that stops
+#' the entire simulation run.
+#'
+#' @inheritParams bayesim_error
+#' @return An error condition object with class c("bayesim_validation_error",
+#'   "bayesim_contract_error", "bayesim_error", "error", "condition")
+#' @keywords internal
+#' @export
+#' @seealso [is_fatal_error()]
+bayesim_validation_error <- function(message, call = NULL) {
+  structure(
+    list(message = message, call = call),
+    class = c("bayesim_validation_error", "bayesim_contract_error", "bayesim_error", "error", "condition")
+  )
+}
+
 # ============================================================================
 # RECOVERABLE ERRORS - Task-level, can continue with other tasks
 # ============================================================================
