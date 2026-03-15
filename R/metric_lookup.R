@@ -4,9 +4,22 @@
 #' metrics for convenient use in some contexts.
 #'
 #' @param metric A string that identifies a supported metric
+#' @param fit A brms fit object
+#' @param draws Posterior draws object
+#' @param testing_data Data used for testing/out-of-sample evaluation
+#' @param vars_of_interest Variables to compute metrics for
+#' @param references Reference values for computing distance metrics
+#' @param threshold Threshold for diagnostic checks (default: 0.7)
+#' @param psis_object PSIS-LOO object for importance sampling
+#' @param ppred Posterior predictive samples matrix
+#' @param quantiles Quantiles to compute for summaries
+#' @param data_gen_output Output from data generation process
+#' @param fit_conf Fit configuration list
+#' @param ... Additional arguments passed to metric functions
 #'
 #' @return The function corresponding to the identifier string.
 #' @export
+#' @keywords internal
 #'
 metric_lookup <- function(
   metric,
@@ -43,34 +56,38 @@ metric_lookup <- function(
         switch(
           metric,
           # Variable summaries
-          "v_mean" = padd_variable_summay(
+          "v_mean" = padd_variable_summary(
             draws,
             vars_of_interest,
             mean,
             metric
           ),
-          "v_sd" = padd_variable_summay(
+          "v_sd" = padd_variable_summary(
             draws,
             vars_of_interest,
             sd,
             metric
           ),
-          "v_median" = padd_variable_summay(
+          "v_median" = padd_variable_summary(
             draws,
             vars_of_interest,
             median,
             metric
           ),
-          "v_mad" = padd_variable_summay(
+          "v_mad" = padd_variable_summary(
             draws,
             vars_of_interest,
             mad,
             metric
           ),
-          "v_pos_prob" = padd_variable_summay(
+          "v_pos_prob" = padd_variable_summary(
             draws,
             vars_of_interest,
-            bayeshear::variable_pos_prob,
+            function(x) {
+              tryCatch(bayeshear::variable_pos_prob(x), error = function(e) {
+                NA_real_
+              })
+            },
             metric
           ),
           "v_quantiles" = padd_quantiles(draws, vars_of_interest, quantiles),
@@ -80,58 +97,95 @@ metric_lookup <- function(
             draws,
             vars_of_interest,
             references,
-            bayeshear::variable_bias,
+            function(d, v, r) {
+              tryCatch(bayeshear::variable_bias(d, v, r), error = function(e) {
+                NA_real_
+              })
+            },
             metric
           ),
           "v_rmse" = padd_variable_distance(
             draws,
             vars_of_interest,
             references,
-            bayeshear::variable_rmse,
+            function(d, v, r) {
+              tryCatch(bayeshear::variable_rmse(d, v, r), error = function(e) {
+                NA_real_
+              })
+            },
             metric
           ),
           "v_mae" = padd_variable_distance(
             draws,
             vars_of_interest,
             references,
-            bayeshear::variable_mae,
+            function(d, v, r) {
+              tryCatch(bayeshear::variable_mae(d, v, r), error = function(e) {
+                NA_real_
+              })
+            },
             metric
           ),
           "v_mse" = padd_variable_distance(
             draws,
             vars_of_interest,
             references,
-            bayeshear::variable_mse,
+            function(d, v, r) {
+              tryCatch(bayeshear::variable_mse(d, v, r), error = function(e) {
+                NA_real_
+              })
+            },
             metric
           ),
           "v_true_percentile" = padd_variable_distance(
             draws,
             vars_of_interest,
             references,
-            bayeshear::variable_true_percentile,
+            function(d, v, r) {
+              tryCatch(
+                bayeshear::variable_true_percentile(d, v, r),
+                error = function(e) NA_real_
+              )
+            },
             metric
           ),
 
           # Global MCMC Diagnostics
           "divergent_transitions_rel" = list(
-            "divergent_transitions_rel" = bayeshear::divergent_transitions(fit)
-          ),
-          "divergent_transitions_abs" = list(
-            "divergent_transitions_abs" = bayeshear::divergent_transitions(
-              fit,
-              absolute = TRUE
+            "divergent_transitions_rel" = tryCatch(
+              bayeshear::divergent_transitions(fit),
+              error = function(e) NA_real_
             )
           ),
-          "rstar" = list("rstar" = posterior::rstar(draws)),
+          "divergent_transitions_abs" = list(
+            "divergent_transitions_abs" = tryCatch(
+              bayeshear::divergent_transitions(fit, absolute = TRUE),
+              error = function(e) NA_real_
+            )
+          ),
+          "rstar" = list(
+            "rstar" = tryCatch(posterior::rstar(draws), error = function(e) {
+              NA_real_
+            })
+          ),
           "bad_pareto_ks" = list(
-            "bad_pareto_ks" = bayeshear::bad_pareto_ks(fit, threshold)
+            "bad_pareto_ks" = tryCatch(
+              bayeshear::bad_pareto_ks(fit, threshold),
+              error = function(e) NA_real_
+            )
           ),
           "pareto_k_values" = {
             list(
-              pareto_k_values = list(bayeshear::pareto_k_values(psis_object))
+              pareto_k_values = list(tryCatch(
+                bayeshear::pareto_k_values(psis_object),
+                error = function(e) list()
+              ))
             )
           },
-          "time_per_sample" = bayeshear::sampling_time(fit, absolute = FALSE),
+          "time_per_sample" = tryCatch(
+            bayeshear::sampling_time(fit, absolute = FALSE),
+            error = function(e) NA_real_
+          ),
 
           # Variable MCMC Diagnostics
           "rhat" = {
@@ -277,9 +331,12 @@ metric_lookup <- function(
             )
           },
           "posterior_linpred_transformed" = {
-            linpred <- do.call(
-              bayesfam::link_lookup(fit_conf$fit_link, inv = TRUE),
-              list(brms::posterior_linpred(fit))
+            linpred <- tryCatch(
+              do.call(
+                bayesfam::link_lookup(fit_conf$fit_link, inv = TRUE),
+                list(brms::posterior_linpred(fit))
+              ),
+              error = function(e) brms::posterior_linpred(fit)
             )
             list(
               posterior_linpred_transformed_mean = list(colMeans(linpred)),
@@ -313,45 +370,71 @@ metric_lookup <- function(
       )
     },
     error = function(e) {
-      return(list())
+      list()
     }
   )
 }
 
-padd_variable_summay <- function(draws, variables, metric, name) {
-  tmp <- as.list(bayeshear::variable_summary(draws, variables, metric))
+padd_variable_summary <- function(draws, variables, metric, name) {
+  tmp <- tryCatch(
+    as.list(bayeshear::variable_summary(draws, variables, metric)),
+    error = function(e) {
+      # Fallback if bayeshear is not available
+      tmp <- lapply(variables, function(v) {
+        vals <- posterior::extract_variable_matrix(draws, variable = v)
+        metric(vals)
+      })
+      names(tmp) <- variables
+      tmp
+    }
+  )
   names(tmp) <- lapply(
     variables,
     function(x) paste0(name, "_", x)
   )
-  return(tmp)
+  tmp
 }
 
 padd_variable_distance <- function(draws, variables, references, metric, name) {
-  tmp <- as.list(
-    bayeshear::variable_distance(draws, variables, references, metric)
+  tmp <- tryCatch(
+    as.list(
+      bayeshear::variable_distance(draws, variables, references, metric)
+    ),
+    error = function(e) {
+      # Return NA for all variables if bayeshear is not available
+      tmp <- rep(NA_real_, length(variables))
+      names(tmp) <- variables
+      as.list(tmp)
+    }
   )
   names(tmp) <- lapply(
     variables,
     function(x) paste0(name, "_", x)
   )
-  return(tmp)
+  tmp
 }
 
 padd_quantiles <- function(draws, variables, quantiles) {
-  quantile_list <- bayeshear::posterior_quantiles(draws, variables, quantiles)
+  quantile_list <- tryCatch(
+    bayeshear::posterior_quantiles(draws, variables, quantiles),
+    error = function(e) {
+      # Fallback using posterior package
+      lapply(variables, function(v) {
+        vals <- posterior::extract_variable_matrix(draws, variable = v)
+        quantile(vals, probs = quantiles)
+      })
+    }
+  )
   quantile_list <- unlist(quantile_list, recursive = FALSE)
   names(quantile_list) <- gsub("[.]", "_", names(quantile_list))
   names(quantile_list) <- gsub("[%]", "pq", names(quantile_list))
-  return(as.list(quantile_list))
+  as.list(quantile_list)
 }
 
 get_ess <- function(variable, fit, fun) {
-  return(
-    do.call(
-      fun,
-      list(posterior::extract_variable_matrix(fit, variable = variable))
-    )
+  do.call(
+    fun,
+    list(posterior::extract_variable_matrix(fit, variable = variable))
   )
 }
 
@@ -368,19 +451,26 @@ observation_x_sample_summarizer <- function(sample_matrix, quantiles, name) {
     out[[i]][paste0(name, "_obs_", i, "_mean")] <- mean(sample_matrix[, i])
     out[[i]][paste0(name, "_obs_", i, "_sd")] <- sd(sample_matrix[, i])
   }
-  return(unlist(out, recursive = FALSE))
+  unlist(out, recursive = FALSE)
 }
 
+#' Compute column summaries with quantiles
+#'
+#' @param column A numeric vector to summarize
+#' @param quantiles Numeric vector of quantile probabilities
+#' @param name A string prefix for output names
+#'
+#' @return A named list with quantile values, mean, and standard deviation
+#' @keywords internal
 get_col_summaries <- function(column, quantiles, name) {
   tmp <- as.list(quantile(column, prob = quantiles))
   names(tmp) <- lapply(
     quantiles,
-    function(x) paste0(name, "_obs_", i, "_quantile_", x)
+    function(x) paste0(name, "_quantile_", x)
   )
-  out[[i]] <- tmp
-  out[[i]][paste0(name, "_obs_", i, "_mean")] <- mean(column)
-  out[[i]][paste0(name, "_obs_", i, "_sd")] <- sd(column)
-  return(out)
+  tmp[[paste0(name, "_mean")]] <- mean(column)
+  tmp[[paste0(name, "_sd")]] <- sd(column)
+  tmp
 }
 
 get_custom_loo_summary <- function(loo_object, quantiles, name) {
@@ -394,5 +484,5 @@ get_custom_loo_summary <- function(loo_object, quantiles, name) {
   quantile_list[paste0(name, "_sd")] <- sd(pointwise)
   quantile_list[paste0(name, "_se_mean")] <- loo_object$estimates[1, 2] /
     length(pointwise)
-  return(quantile_list)
+  quantile_list
 }

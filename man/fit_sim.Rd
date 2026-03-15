@@ -44,7 +44,8 @@ and calculates specified metrics on the fitted model.
 }
 \examples{
 \dontrun{
-# This function is typically called internally by full_simulation()
-# See full_simulation() examples for complete usage
+# This function is part of the legacy simulation pipeline.
+# New workflows should use simulation_config() + run_simulation().
 }
 }
+\keyword{internal}

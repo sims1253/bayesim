@@ -11,10 +11,13 @@
 #' make sure resampling only uses valid samples. Increase in case of numerical instability.
 #' @param ... further parameters. Currently only passed to ppred_data_gen.
 #'
-#' @return
+#' @return A tibble with SBC summaries and diagnostics.
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires SBC and brms packages
+#' }
 ifs_SBC <- function(
   fit,
   n_sims,
@@ -26,6 +29,12 @@ ifs_SBC <- function(
   post_warmup_samples = 1000,
   ...
 ) {
+  # Default chunk size if SBC is not available
+  default_chunk_size_fn <- tryCatch(
+    SBC::default_chunk_size,
+    error = function(e) function(n) max(1, floor(n / 100))
+  )
+
   model_parameters <- c(posterior::variables(fit), "loglik")
   model_parameters <- model_parameters[
     !model_parameters %in%
@@ -42,7 +51,7 @@ ifs_SBC <- function(
   colnames(ranks) <- model_parameters
 
   # prepare draw indices
-  index_list <- sample(1:ndraws(fit), size = ndraws(fit), replace = FALSE)
+  index_list <- sample.int(brms::ndraws(fit), size = brms::ndraws(fit), replace = FALSE)
 
   results <- future.apply::future_lapply(
     index_list[1:n_sims],
@@ -56,18 +65,13 @@ ifs_SBC <- function(
     post_warmup_samples = post_warmup_samples,
     ...,
     future.seed = TRUE,
-    future.chunk.size = floor(SBC::default_chunk_size(n_sims)),
+    future.chunk.size = floor(default_chunk_size_fn(n_sims)),
     future.packages = c("bayesim")
   )
 
-  if (
-    length(
-      bad_indices <- which(
-        sapply(results, function(x) any(is.na(x)))
-      )
-    ) >
-      (n_sims / (post_warmup_samples / n_sims))
-  ) {
+  bad_indices <- which(vapply(results, function(x) anyNA(x), logical(1)))
+
+  if (length(bad_indices) > (n_sims / (post_warmup_samples / n_sims))) {
     warning(
       "Rate of numerical instability is too high and likely won't be able
          to be resolved via resampling."
@@ -77,14 +81,7 @@ ifs_SBC <- function(
   # If we want to resample, we do so until we are out of the posterior samples.
   if (!truncate) {
     i <- n_sims
-    while (
-      length(
-        bad_indices <- which(
-          sapply(results, function(x) any(is.na(x)))
-        )
-      ) >
-        0
-    ) {
+    while (length(bad_indices) > 0) {
       if (i + length(bad_indices) > post_warmup_samples) {
         warning(
           "Resampling ran out of samples which indicates a high degree of
@@ -106,12 +103,12 @@ ifs_SBC <- function(
           post_warmup_samples = post_warmup_samples,
           ...,
           future.seed = TRUE,
-          future.chunk.size = floor(SBC::default_chunk_size(n_sims)),
+          future.chunk.size = floor(default_chunk_size_fn(n_sims)),
           future.packages = c("bayesim")
         )
         results <- results[
           !which(
-            sapply(results, function(x) any(is.na(x)))
+            sapply(results, function(x) anyNA(x))
           )
         ]
         break # there is proably a cleaner way to do this...
@@ -128,11 +125,13 @@ ifs_SBC <- function(
           post_warmup_samples = post_warmup_samples,
           ...,
           future.seed = TRUE,
-          future.chunk.size = floor(SBC::default_chunk_size(n_sims)),
+          future.chunk.size = floor(default_chunk_size_fn(n_sims)),
           future.packages = c("bayesim")
         )
         i <- i + length(bad_indices)
       }
+
+      bad_indices <- which(vapply(results, function(x) anyNA(x), logical(1)))
     }
   }
   # resample until we found enough working cases or ran out of samples
@@ -141,10 +140,14 @@ ifs_SBC <- function(
   for (i in seq_along(results)) {
     ranks[i, ] <- results[[i]]
   }
-  ranks_df <- ranks %>%
-    dplyr::mutate(sim_id = seq_len(dplyr::n())) %>%
-    tidyr::pivot_longer(c(-sim_id), names_to = "variable", values_to = "rank")
-  return(list("ranks_df" = ranks_df, diagnostics = list("resample" = i)))
+  ranks_df <- ranks |>
+    dplyr::mutate(sim_id = seq_len(dplyr::n())) |>
+    tidyr::pivot_longer(
+      cols = -dplyr::all_of("sim_id"),
+      names_to = "variable",
+      values_to = "rank"
+    )
+  list("ranks_df" = ranks_df, diagnostics = list("resample" = i))
 }
 
 sbc_sim <- function(
@@ -198,7 +201,7 @@ sbc_sim <- function(
       tmp <- numeric(length = length(model_parameters))
       tmp <- sapply(tmp, function(x) NA)
       names(tmp) <- model_parameters
-      return(tmp)
+      tmp
     }
   } else {
     # Trunkates the responses to the given boundaries.
@@ -238,7 +241,7 @@ sbc_sim <- function(
     iter = 2 * post_warmup_samples,
     sample_prior = "no" # this is important so we don't accidentally only sample the prior
   )
-  fit_pars <- as.data.frame(as_draws_matrix(sbc_fit))
+  fit_pars <- as.data.frame(posterior::as_draws_matrix(sbc_fit))
   fit_pars <- fit_pars[!names(fit_pars) %in% c("lprior", "lp__")]
   fit_ll <- rowSums(log_lik(sbc_fit, gen_dataset))
 
@@ -258,5 +261,5 @@ sbc_sim <- function(
     tmp[[name]] <- sum(fit_pars[[name]] < true_pars[[name]])
   }
   tmp[["loglik"]] <- sum(fit_ll < true_ll)
-  return(tmp)
+  tmp
 }

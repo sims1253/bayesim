@@ -6,10 +6,8 @@
 #' @param debug TRUE if the cluster log should be written to file
 #' @param outfile Path where the cluster log is written to in debug mode.
 #'
-#' @return
+#' @return A parallel cluster object registered with doParallel.
 #' @export
-#'
-#' @examples
 cluster_setup <- function(
   ncores = 2,
   cluster_type = "FORK",

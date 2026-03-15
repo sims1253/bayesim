@@ -9,9 +9,9 @@ rmse(y, yrep, weights = NULL)
 \arguments{
 \item{y}{Vector of observed values}
 
-\item{yrep}{Vector of predicted Values}
+\item{yrep}{Matrix of predicted values (draws x observations)}
 
-\item{weights}{PSIS weights}
+\item{weights}{PSIS weights (optional)}
 }
 \value{
 rmse for the given y and yrep vectors
@@ -19,3 +19,11 @@ rmse for the given y and yrep vectors
 \description{
 If psis-weights are supplied, the corresponding psis-rmse is returned.
 }
+\examples{
+\dontrun{
+y <- c(1, 2, 3)
+yrep <- matrix(rnorm(300), nrow = 100, ncol = 3)
+rmse(y, yrep)
+}
+}
+\keyword{internal}

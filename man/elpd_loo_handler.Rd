@@ -2,13 +2,24 @@
 % Please edit documentation in R/loo_handler.R
 \name{elpd_loo_handler}
 \alias{elpd_loo_handler}
-\title{Title}
+\title{Extract ELPD-LOO from a brms fit}
 \usage{
 elpd_loo_handler(fit)
 }
 \arguments{
-\item{fit}{}
+\item{fit}{A brmsfit object}
+}
+\value{
+A named list with p_loo, se_p_loo, elpd_loo, se_elpd_loo, looic, se_looic
 }
 \description{
-Title
+Extract ELPD-LOO from a brms fit
 }
+\examples{
+\dontrun{
+# Requires brms package and a fitted model
+fit <- brms::brm(y ~ x, data = mydata)
+elpd_loo_handler(fit)
+}
+}
+\keyword{internal}

@@ -1,22 +1,26 @@
-#' Title
+#' Extract ELPD-LOO from a brms fit
 #'
-#' @param fit
+#' @param fit A brmsfit object
 #'
-#' @return
+#' @return A named list with p_loo, se_p_loo, elpd_loo, se_elpd_loo, looic, se_looic
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package and a fitted model
+#' fit <- brms::brm(y ~ x, data = mydata)
+#' elpd_loo_handler(fit)
+#' }
 elpd_loo_handler <- function(fit) {
   loo_object <- brms::loo(fit)
-  return(
-    list(
-      "p_loo" = loo_object$estimates[2, 1],
-      "se_p_loo" = loo_object$estimates[2, 2],
-      "elpd_loo" = loo_object$estimates[1, 1],
-      "se_elpd_loo" = loo_object$estimates[1, 2],
-      "looic" = loo_object$estimates[3, 1],
-      "se_looic" = loo_object$estimates[3, 2]
-    )
+  list(
+    "p_loo" = loo_object$estimates[2, 1],
+    "se_p_loo" = loo_object$estimates[2, 2],
+    "elpd_loo" = loo_object$estimates[1, 1],
+    "se_elpd_loo" = loo_object$estimates[1, 2],
+    "looic" = loo_object$estimates[3, 1],
+    "se_looic" = loo_object$estimates[3, 2]
   )
 }
 
@@ -29,15 +33,18 @@ elpd_loo_handler <- function(fit) {
 #' @param fit A brmsfit object.
 #' @param quantiles A vector of quantiles of interest.
 #' @param newdata If supplied, returns the summaries for [elpd_test()]
-#'                otherwise, returns [brms::elpd()] summaries by
+#'                otherwise, returns \code{elpd} summaries by
 #'                default.
 #' @return A named list of summaries.
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' fit <- brms::brm(y ~ 1, data = list(rnorm(1000)))
 #' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
 #' elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
+#' }
 elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
   if (is.null(newdata)) {
     loo_object <- brms::loo(fit)
@@ -58,10 +65,10 @@ elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
     out <- c(elpd_quantiles, p_loo_quantiles)
     out$elpd_loo_mean <- mean(elpd_pointwise)
     out$elpd_loo_sd <- sd(elpd_pointwise)
-    out$p_loo_mean <- sd(p_loo_pointwise)
+    out$p_loo_mean <- mean(p_loo_pointwise)
     out$p_loo_sd <- sd(p_loo_pointwise)
     out$elpd_loo_se_mean <- mean(loo_object$pointwise[, 2])
-    return(out)
+    out
   } else {
     loo_object <- elpd_test(fit, newdata, TRUE)
 
@@ -75,26 +82,28 @@ elpd_pointwise_summaries <- function(fit, quantiles, newdata = NULL) {
     out$elpd_test_mean <- mean(elpd_pointwise)
     out$elpd_test_sd <- sd(elpd_pointwise)
     out$elpd_test_se_mean <- loo_object$estimates[1, 2] / length(elpd_pointwise)
-    return(out)
+    out
   }
 }
 
-#' Title
+#' Compare LOO objects
 #'
-#' @param loo_object_matrix
-#' @param predictive_metrics
+#' @param loo_object_matrix List of LOO objects
+#' @param predictive_metrics Character vector of metrics to compare
 #'
-#' @return
+#' @return A data frame with delta and se_delta for each metric
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package and fitted models
+#' loo_compare_handler(loo_objects, metrics)
+#' }
 loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
   compare_metrics <- substr(
     predictive_metrics[
-      grep(
-        "_compare",
-        predictive_metrics
-      )
+      grep("_compare", predictive_metrics, fixed = TRUE)
     ],
     1,
     nchar(predictive_metrics[1]) - 8
@@ -113,7 +122,7 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
   valid_entries <- c()
   for (i in seq_along(loo_object_matrix)) {
     if (
-      !is.null(loo_object_matrix[[i]]) &
+      !is.null(loo_object_matrix[[i]]) &&
         !any(sapply(loo_object_matrix[[i]], is.null))
     ) {
       valid_entries <- c(valid_entries, i)
@@ -147,8 +156,8 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 
       for (i in seq_along(index)) {
         if (
-          any(sapply(loo_object_matrix[[i]], is.null)) |
-            is.null(loo_object_matrix[[i]])
+          is.null(loo_object_matrix[[i]]) ||
+            any(sapply(loo_object_matrix[[i]], is.null))
         ) {
           deltas[[i]] <- NA
           errors[[i]] <- NA
@@ -161,10 +170,12 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
       final_result[paste0(metric, "_se_delta")] <- errors
     }
   }
-  return(final_result)
+  final_result
 }
 
 
+#' Custom LOO object builder
+#'
 #' Builds a loo object that contains any pointwise criterion, acting as elpd
 #' for compatibility.
 #'
@@ -172,12 +183,17 @@ loo_compare_handler <- function(loo_object_matrix, predictive_metrics) {
 #' so to use loo objects, we have to disguise other criterions as elpd.
 #'
 #' @param pointwise_criterion vector of criterion values for each observation
-#' @param psis_object `brms:::.psis` object for psis diagnostics
+#' @param psis_object PSIS object for psis diagnostics
 #'
 #' @return a loo object, containing a criterion, disguised as elpd
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Create a custom loo object from pointwise criterion values
+#' custom_loo_object(c(-1.2, -0.8, -1.5))
+#' }
 custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
   loo_object <- list()
   criterion <- sum(pointwise_criterion)
@@ -195,23 +211,33 @@ custom_loo_object <- function(pointwise_criterion, psis_object = NULL) {
   }
 
   attr(loo_object, "model_name") <- NULL
-  attr(loo_object, "dims") <- dim(psis_object)
+  if (!is.null(psis_object)) {
+    attr(loo_object, "dims") <- dim(psis_object)
+  }
   attr(loo_object, "class") <-
     c("psis_loo", "importance_sampling_loo", "loo")
 
-  return(loo_object)
+  loo_object
 }
 
 #' Calculate PSIS-loo rmse for a given brms fit
 #'
+#' @param fit brms fit to calculate RMSE for
+#' @param psis_object PSIS object for weights (optional)
+#' @param return_object If TRUE, return a custom_loo_object
+#' @param yrep Posterior predictive samples (optional)
 #' @param ... Additional arguments to be passed to update() in case of reloo
-#' @param fit
-#' @param psis_object
 #'
-#' @return `custom_loo_object` object with rmse acting as elpd.
+#' @return `custom_loo_object` object with rmse acting as elpd, or a list with rmse_loo and se_rmse_loo.
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package
+#' fit <- brms::brm(y ~ x, data = mydata)
+#' rmse_loo(fit)
+#' }
 rmse_loo <- function(
   fit,
   psis_object = NULL,
@@ -220,51 +246,65 @@ rmse_loo <- function(
   ...
 ) {
   if (is.null(psis_object)) {
-    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+    psis_object <- tryCatch(
+      get(".psis", envir = asNamespace("brms"))(
+        fit,
+        newdata = fit$data,
+        resp = NULL
+      ),
+      error = function(e) NULL
+    )
   }
   if (is.null(yrep)) {
     yrep <- brms::posterior_predict(fit, fit$data)
   }
-  pointwise_rmse <- rmse(
-    y = brms::get_y(fit),
-    yrep = yrep,
-    weights = exp(psis_object$log_weights)
-  )
-  if (return_object) {
-    return(custom_loo_object(pointwise_criterion = pointwise_rmse))
+  if (is.null(psis_object)) {
+    list("rmse_loo" = NA_real_, "se_rmse_loo" = NA_real_)
   } else {
-    return(
+    pointwise_rmse <- rmse(
+      y = brms::get_y(fit),
+      yrep = yrep,
+      weights = exp(psis_object$log_weights)
+    )
+    if (return_object) {
+      custom_loo_object(pointwise_criterion = pointwise_rmse)
+    } else {
       list(
         "rmse_loo" = sum(pointwise_rmse),
         "se_rmse_loo" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
       )
-    )
+    }
   }
 }
 
-#' Title
+#' Calculate RMSE on test data
 #'
-#' @param y
-#' @param yrep
+#' @param fit A brmsfit object
+#' @param newdata Test data frame
+#' @param return_object If TRUE, return a custom_loo_object
 #'
-#' @return
+#' @return A named list with rmse_test and se_rmse_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package
+#' fit <- brms::brm(y ~ x, data = train_data)
+#' rmse_test(fit, test_data)
+#' }
 rmse_test <- function(fit, newdata, return_object = FALSE) {
   pointwise_rmse <- rmse(
-    y = y <- newdata$y,
+    y = newdata$y,
     yrep = brms::posterior_predict(fit, newdata = newdata)
   )
 
   if (return_object) {
-    return(custom_loo_object(pointwise_criterion = pointwise_rmse))
+    custom_loo_object(pointwise_criterion = pointwise_rmse)
   } else {
-    return(
-      list(
-        "rmse_test" = sum(pointwise_rmse),
-        "se_rmse_test" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
-      )
+    list(
+      "rmse_test" = sum(pointwise_rmse),
+      "se_rmse_test" = sqrt(length(pointwise_rmse) * var(pointwise_rmse))
     )
   }
 }
@@ -274,60 +314,81 @@ rmse_test <- function(fit, newdata, return_object = FALSE) {
 #' If psis-weights are supplied, the corresponding psis-rmse is returned.
 #'
 #' @param y Vector of observed values
-#' @param yrep Vector of predicted Values
-#' @param weights PSIS weights
+#' @param yrep Matrix of predicted values (draws x observations)
+#' @param weights PSIS weights (optional)
 #'
 #' @return rmse for the given y and yrep vectors
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' y <- c(1, 2, 3)
+#' yrep <- matrix(rnorm(300), nrow = 100, ncol = 3)
+#' rmse(y, yrep)
+#' }
 rmse <- function(y, yrep, weights = NULL) {
   y_matrix <- matrix(
     y,
-    nrow <- nrow(yrep),
-    ncol <- ncol(yrep),
-    byrow <- TRUE
+    nrow = nrow(yrep),
+    ncol = ncol(yrep),
+    byrow = TRUE
   )
   if (is.null(weights)) {
-    return(sqrt(colMeans(((y_matrix - yrep)^2))))
+    sqrt(colMeans(((y_matrix - yrep)^2)))
   } else {
-    return(sqrt(
+    sqrt(
       colSums(weights * ((y_matrix - yrep)^2)) /
         colSums(weights)
-    ))
-  }
-}
-
-#' Title
-#'
-#' @param fit
-#' @param newdata
-#'
-#' @return
-#' @export
-#'
-#' @examples
-elpd_test <- function(fit, newdata, return_object = FALSE) {
-  ll <- brms::log_lik(fit, newdata = newdata)
-  elpd <- matrixStats::colLogSumExps(ll) - log(nrow(ll))
-  if (return_object) {
-    return(custom_loo_object(pointwise_criterion = elpd))
-  } else {
-    return(
-      list(
-        "elpd_test" = sum(elpd),
-        "se_elpd_test" = sqrt(length(elpd) * var(elpd))
-      )
     )
   }
 }
 
-#' Title
+#' Compute ELPD on test data
 #'
-#' @return
+#' @param fit A brmsfit object
+#' @param newdata Test data frame
+#' @param return_object If TRUE, return a custom_loo_object
+#'
+#' @return A named list with elpd_test and se_elpd_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package
+#' fit <- brms::brm(y ~ x, data = train_data)
+#' elpd_test(fit, test_data)
+#' }
+elpd_test <- function(fit, newdata, return_object = FALSE) {
+  ll <- brms::log_lik(fit, newdata = newdata)
+  elpd <- matrixStats::colLogSumExps(ll) - log(nrow(ll))
+  if (return_object) {
+    custom_loo_object(pointwise_criterion = elpd)
+  } else {
+    list(
+      "elpd_test" = sum(elpd),
+      "se_elpd_test" = sqrt(length(elpd) * var(elpd))
+    )
+  }
+}
+
+#' Calculate pointwise R-squared
+#'
+#' @param y Vector of observed values
+#' @param yrep Matrix of predicted values (draws x observations)
+#' @param weights PSIS weights (optional)
+#'
+#' @return Pointwise R-squared values
+#' @keywords internal
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' y <- c(1, 2, 3)
+#' yrep <- matrix(rnorm(300), nrow = 100, ncol = 3)
+#' r2(y, yrep)
+#' }
 r2 <- function(y, yrep, weights = NULL) {
   ss_y <- sum((y - mean(y))^2)
   pointwise_loo_r2 <- vector(mode = "numeric", length = length(y))
@@ -343,19 +404,27 @@ r2 <- function(y, yrep, weights = NULL) {
       pointwise_loo_r2[[n]] <- 1 / length(y) - ss_e / ss_y
     }
   }
-  return(pointwise_loo_r2)
+  pointwise_loo_r2
 }
 
 #' Calculate PSIS-loo R² for a given brms fit
 #'
-#' @param fit brms fit to calculate rmse for
-#' @param psis_object
-#' @param ...
+#' @param fit brms fit to calculate R² for
+#' @param psis_object PSIS object for weights (optional)
+#' @param yrep Posterior predictive samples (optional)
+#' @param return_object If TRUE, return a custom_loo_object
+#' @param ... Additional arguments
 #'
-#' @return `custom_loo_object` object with R² acting as elpd.
+#' @return `custom_loo_object` object with R² acting as elpd, or a list with r2_loo and se_r2_loo.
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package
+#' fit <- brms::brm(y ~ x, data = mydata)
+#' r2_loo(fit)
+#' }
 r2_loo <- function(
   fit,
   psis_object = NULL,
@@ -364,51 +433,65 @@ r2_loo <- function(
   ...
 ) {
   if (is.null(psis_object)) {
-    psis_object <- brms:::.psis(fit, newdata = fit$data, resp = NULL)
+    psis_object <- tryCatch(
+      get(".psis", envir = asNamespace("brms"))(
+        fit,
+        newdata = fit$data,
+        resp = NULL
+      ),
+      error = function(e) NULL
+    )
   }
   if (is.null(yrep)) {
     yrep <- brms::posterior_predict(fit, fit$data)
   }
-  pointwise_loo_r2 <- r2(
-    y = brms::get_y(fit),
-    yrep = yrep,
-    weights = exp(psis_object$log_weights)
-  )
-  if (return_object) {
-    return(custom_loo_object(pointwise_criterion = pointwise_loo_r2))
+  if (is.null(psis_object)) {
+    list("r2_loo" = NA_real_, "se_r2_loo" = NA_real_)
   } else {
-    return(
+    pointwise_loo_r2 <- r2(
+      y = brms::get_y(fit),
+      yrep = yrep,
+      weights = exp(psis_object$log_weights)
+    )
+    if (return_object) {
+      custom_loo_object(pointwise_criterion = pointwise_loo_r2)
+    } else {
       list(
         "r2_loo" = sum(pointwise_loo_r2),
         "se_r2_loo" = sqrt(length(pointwise_loo_r2) * var(pointwise_loo_r2))
       )
-    )
+    }
   }
 }
 
-#' Title
+#' Calculate R² on test data
 #'
-#' @param fit
-#' @param newdata
+#' @param fit A brmsfit object
+#' @param newdata Test data frame
+#' @param return_object If TRUE, return a custom_loo_object
 #'
-#' @return
+#' @return A named list with r2_test and se_r2_test, or a custom_loo_object
+#' @keywords internal
 #' @export
 #'
 #' @examples
+#' \dontrun{
+#' # Requires brms package
+#' fit <- brms::brm(y ~ x, data = train_data)
+#' r2_test(fit, test_data)
+#' }
 r2_test <- function(fit, newdata, return_object = FALSE) {
   pointwise_r2 <- r2(
-    y = y <- newdata$y,
+    y = newdata$y,
     yrep = brms::posterior_predict(fit, newdata = newdata)
   )
 
   if (return_object) {
-    return(custom_loo_object(pointwise_criterion = pointwise_r2))
+    custom_loo_object(pointwise_criterion = pointwise_r2)
   } else {
-    return(
-      list(
-        "r2_test" = sum(pointwise_r2),
-        "se_r2_test" = sqrt(length(pointwise_r2) * var(pointwise_r2))
-      )
+    list(
+      "r2_test" = sum(pointwise_r2),
+      "se_r2_test" = sqrt(length(pointwise_r2) * var(pointwise_r2))
     )
   }
 }

@@ -1,46 +1,93 @@
-Type: Package
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
-Version: 0.34.1.9000
-Date: 2022-11-10
+Version: 1.0.1
+URL: https://github.com/sims1253/bayesim
 Authors@R: c(
-    person("Maximilian", "Scholz", , "research.scholz@mailbox.org", role = c("aut", "cre")),
-    person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", role = "aut")
+    person("Maximilian", "Scholz", , "research.scholz@mailbox.org", 
+           role = c("aut", "cre")),
+    person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", 
+           role = "aut")
   )
-Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
-Description: A comprehensive simulation framework for Bayesian modeling studies.
-    Provides tools for running complex simulation studies with brms models,
-    including parallel processing, comprehensive metrics calculation, and
-    advanced analyses like Simulation-Based Calibration (SBC). Supports
-    custom data generation processes and extensible metric systems.
+Description: A modern simulation framework for Bayesian modeling studies.
+    Provides extensible tools for running complex simulation studies with
+    deterministic reproducibility, checkpoint/resume capabilities, and 
+    memory-bounded execution. Users can extend with custom fitters, metrics,
+    and data generators.
 License: GPL (>= 3)
+Config/testthat/edition: 3
+Encoding: UTF-8
+Depends: 
+    R (>= 4.1.0)
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Collate: 
+    'bayesim-package.R'
+    'zzz.R'
+    'errors.R'
+    'utils.R'
+    'results.R'
+    'fitter.R'
+    'metric.R'
+    'simulation-config.R'
+    'example-data-generator.R'
+    'contracts.R'
+    'rng.R'
+    'task-grid.R'
+    'worker.R'
+    'metric-registry.R'
+    'simulate.R'
+    'checkpoint.R'
+    'resume.R'
+    'retention.R'
+    'brms-fitter.R'
+    'metrics-built-in.R'
+    'global_imports.R'
+    'simulation_building_blocks.R'
+    'simulation.R'
+    'prefit.R'
+    'parallel_helpers.R'
+    'metric_lookup.R'
+    'metric_list_handler.R'
+    'loo_handler.R'
+    'll_lookup.R'
+    'inverse_forward_sampling.R'
+    'ifs_sbc.R'
 Imports:
-    bayesfam (>= 0.2.1),
-    bayeshear (>= 0.3.0.9000),
-    brms (>= 2.18.1),
-    cli,
-    dplyr,
-    future.apply,
-    glue,
-    lifecycle,
-    matrixStats,
-    posterior (>= 1.3.1),
-    rlang,
-    rstan,
+    S7,
+    cli (>= 3.6.0),
+    digest (>= 0.6.30),
+    doParallel (>= 1.0.17),
+    dplyr (>= 1.1.0),
+    foreach (>= 1.5.2),
+    future.apply (>= 1.11.0),
+    jsonlite (>= 1.8.0),
+    lifecycle (>= 1.0.3),
+    matrixStats (>= 1.0.0),
+    methods,
+    posterior (>= 1.4.0),
+    rlang (>= 1.1.0),
     stats,
-    withr
+    tibble (>= 3.2.0),
+    tidyr (>= 1.3.0),
+    utils,
+    withr (>= 2.5.0)
 Suggests:
-    cmdstanr (>= 0.5.3),
-    doParallel,
-    foreach,
-    parallel
+    arrow (>= 14.0.0),
+    bayesfam,
+    bayeshear,
+    brms (>= 2.22.0),
+    cmdstanr (>= 0.7.0),
+    future (>= 1.33.0),
+    ggplot2,
+    MASS,
+    rstan (>= 2.32.0),
+    SBC,
+    testthat (>= 3.1.0),
+    knitr,
+    rmarkdown
 Remotes:
+    stan-dev/cmdstanr,
     sims1253/bayesfam,
     sims1253/bayeshear,
-    stan-dev/cmdstanr
-Config/testthat/edition: 3
-Config/testthat/parallel: true
-Encoding: UTF-8
-LazyData: true
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+    hyunjimoon/SBC
+VignetteBuilder: knitr

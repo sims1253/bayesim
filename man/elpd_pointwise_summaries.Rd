@@ -12,7 +12,7 @@ elpd_pointwise_summaries(fit, quantiles, newdata = NULL)
 \item{quantiles}{A vector of quantiles of interest.}
 
 \item{newdata}{If supplied, returns the summaries for \code{\link[=elpd_test]{elpd_test()}}
-otherwise, returns \code{\link[brms:elpd]{brms::elpd()}} summaries by
+otherwise, returns \code{elpd} summaries by
 default.}
 }
 \value{
@@ -24,7 +24,10 @@ estimates instead of just the main estimates.
 The returned summaries are all sample size independent.
 }
 \examples{
+\dontrun{
 fit <- brms::brm(y ~ 1, data = list(rnorm(1000)))
 elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9))
 elpd_pointwise_summaries(fit, seq(0.1, 0.9, length.out = 9), rnorm(1000))
 }
+}
+\keyword{internal}

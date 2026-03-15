@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation.R
 \name{dataset_conf_sim}
 \alias{dataset_conf_sim}
-\title{Title}
+\title{Run simulation for a single data generation configuration}
 \usage{
 dataset_conf_sim(
   data_gen_conf,
@@ -19,8 +19,39 @@ dataset_conf_sim(
 )
 }
 \arguments{
-\item{debug}{}
+\item{data_gen_conf}{A list containing data generation configuration parameters}
+
+\item{fit_confs}{A data.frame containing model fitting configurations}
+
+\item{prefits}{A list of precompiled brms model objects}
+
+\item{seed}{Random seed for reproducible data generation}
+
+\item{result_path}{Path where results and debug files should be saved}
+
+\item{stan_pars}{A list containing Stan/brms fitting parameters (backend, chains, iter, warmup, etc.)}
+
+\item{ncores}{Number of cores to use for parallel processing}
+
+\item{cluster_type}{Type of cluster for parallel processing (e.g., "PSOCK")}
+
+\item{debug}{Logical; if TRUE, saves intermediate results for debugging}
+
+\item{global_seed}{Global seed for the entire simulation run}
+
+\item{...}{Additional arguments passed to dataset_sim and metric calculation functions}
+}
+\value{
+A tibble containing simulation results for all datasets and models
 }
 \description{
-Title
+This function generates multiple datasets according to the data generation
+configuration and fits all specified models to each dataset.
 }
+\examples{
+\dontrun{
+# This function is part of the legacy simulation pipeline.
+# New workflows should use simulation_config() + run_simulation().
+}
+}
+\keyword{internal}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulation.R
 \name{full_simulation}
 \alias{full_simulation}
-\title{Title}
+\title{Run a full simulation study}
 \usage{
 full_simulation(
   data_gen_confs,
@@ -17,8 +17,77 @@ full_simulation(
 )
 }
 \arguments{
-\item{debug}{}
+\item{data_gen_confs}{A data.frame where each row specifies a data generation configuration}
+
+\item{fit_confs}{A data.frame where each row specifies a model fitting configuration}
+
+\item{ncores_simulation}{Number of cores to use for parallel dataset simulation}
+
+\item{cluster_type}{Type of cluster for parallel processing (e.g., "PSOCK", "FORK")}
+
+\item{stan_pars}{A list containing Stan/brms fitting parameters:
+\itemize{
+\item backend: Stan backend ("cmdstanr" or "rstan")
+\item chains: Number of MCMC chains
+\item iter: Number of iterations per chain
+\item warmup: Number of warmup iterations
+\item init: Initial values for MCMC
+\item cmdstan_path: Path to CmdStan (if using cmdstanr backend)
+\item cmdstan_write_path: Path for CmdStan output files
+}}
+
+\item{seed}{Random seed for reproducible simulation}
+
+\item{result_path}{Path where results should be saved (as RDS files)}
+
+\item{debug}{Logical; if TRUE, enables verbose output and saves intermediate results}
+
+\item{...}{Additional arguments passed to dataset_conf_sim and metric calculation functions}
+}
+\value{
+A tibble containing all simulation results
 }
 \description{
-Title
+Legacy interface for older bayesim simulation studies.
 }
+\details{
+New code should prefer \code{simulation_config()}, \code{run_simulation()}, and
+\code{resume_simulation()}. This wrapper is retained for compatibility with the
+pre-rewrite API.
+}
+\examples{
+\dontrun{
+# Define data generation configurations
+data_gen_confs <- data.frame(
+  id = c("config1", "config2"),
+  data_N = c(100, 100),
+  dataset_N = c(10, 10)
+)
+
+# Define model fitting configurations
+fit_confs <- data.frame(
+  fit_family = c("gaussian", "student_t"),
+  fit_link = c("identity", "identity"),
+  formula = c("y ~ x", "y ~ x")
+)
+
+# Set Stan parameters
+stan_pars <- list(
+  backend = "cmdstanr",
+  chains = 4,
+  iter = 2000,
+  warmup = 1000,
+  init = 0.1
+)
+
+# Run simulation
+results <- full_simulation(
+  data_gen_confs = data_gen_confs,
+  fit_confs = fit_confs,
+  stan_pars = stan_pars,
+  ncores_simulation = 4,
+  seed = 12345
+)
+}
+}
+\keyword{internal}
