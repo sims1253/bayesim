@@ -25,3 +25,7 @@ create_task_rng_streams(global_seed, n_tasks)
 
 A list of length `n_tasks`, where each element is an integer vector
 representing the `.Random.seed` state for that task.
+
+## Note
+
+This function is exported for advanced/internal use.

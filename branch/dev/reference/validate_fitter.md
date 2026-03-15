@@ -27,7 +27,8 @@ validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
 
 ## Value
 
-TRUE if valid, otherwise raises an error with details about what failed
+The validated fitter object (invisibly) if valid, otherwise raises an
+error with details about what failed
 
 ## Details
 

@@ -2,9 +2,7 @@
 
 Mean bias of predictions.
 
-`bias_metric()` is a constructor function that creates a BiasMetric
-instance with appropriate defaults. Use this constructor to work around
-S7's property default inheritance issue.
+Constructor for BiasMetric.
 
 ## Usage
 
@@ -34,18 +32,3 @@ bias_metric(name = "bias")
 A BiasMetric object.
 
 A BiasMetric object.
-
-## Examples
-
-``` r
-bias_metric()
-#> <bayesim::BiasMetric>
-#>  @ name    : chr "bias"
-#>  @ needs   : chr "predictions"
-#>  @ required: logi FALSE
-bias_metric(name = "my_bias")
-#> <bayesim::BiasMetric>
-#>  @ name    : chr "my_bias"
-#>  @ needs   : chr "predictions"
-#>  @ required: logi FALSE
-```

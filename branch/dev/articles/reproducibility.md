@@ -350,9 +350,9 @@ result2 <- run_simulation(config, progress = FALSE)
 timing1 <- result1$timing$total
 timing2 <- result2$timing$total
 cat("Run 1:", timing1, "seconds\n")
-#> Run 1: 0.04225206 seconds
+#> Run 1: 0.036376 seconds
 cat("Run 2:", timing2, "seconds\n")
-#> Run 2: 0.04180932 seconds
+#> Run 2: 0.03517056 seconds
 ```
 
 This is expected and doesn’t affect the scientific validity of results.
@@ -492,7 +492,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] future_1.69.0 bayesim_1.0.1
+#> [1] future_1.70.0 bayesim_1.0.1
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.1         cli_3.6.5           knitr_1.51         

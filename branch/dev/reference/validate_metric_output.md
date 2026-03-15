@@ -22,7 +22,7 @@ validate_metric_output(output, metric_name)
 
 ## Value
 
-Invisible NULL if validation passes. Otherwise, an error is raised.
+Invisible `output` if validation passes. Otherwise, an error is raised.
 
 ## Validation Rules
 
