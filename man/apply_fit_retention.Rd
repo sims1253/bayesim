@@ -11,8 +11,7 @@ apply_fit_retention(fit_result, retain, data_bundle = NULL)
 
 \item{retain}{Character vector of retention options specifying what to keep}
 
-\item{data_bundle}{Optional data bundle; if provided and "data" not in retain,
-removes data_bundle from fit_result}
+\item{data_bundle}{Ignored. Retained for backward compatibility.}
 }
 \value{
 Modified bayesim_fit_result object with non-retained fields removed

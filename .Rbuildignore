@@ -7,3 +7,5 @@
 ^REWRITE_PLAN\.md$
 ^\.github$
 ^\.lintr$
+^\.desloppify$
+^\.factory$

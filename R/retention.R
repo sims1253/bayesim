@@ -136,6 +136,12 @@ resolve_retention_spec <- function(retain) {
     )
   }
 
+  if (length(retain) > 0 && is.null(names(retain))) {
+    cli::cli_abort(
+      "retain must be a named list when passed as a list; got unnamed list"
+    )
+  }
+
   invalid_names <- setdiff(names(retain), RETENTION_CONTEXTS)
   if (length(invalid_names) > 0) {
     cli::cli_abort("retain contains invalid contexts: {invalid_names}")
@@ -259,8 +265,7 @@ retention_for_task_result <- function(
 #'
 #' @param fit_result A bayesim_fit_result object
 #' @param retain Character vector of retention options specifying what to keep
-#' @param data_bundle Optional data bundle; if provided and "data" not in retain,
-#'   removes data_bundle from fit_result
+#' @param data_bundle Ignored. Retained for backward compatibility.
 #'
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
@@ -279,7 +284,7 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   if (!"warnings" %in% retain) {
     fit_result$warnings <- character()
   }
-  if (!is.null(data_bundle) && !"data" %in% retain) {
+  if (!"data" %in% retain) {
     fit_result$data_bundle <- NULL
   }
 
