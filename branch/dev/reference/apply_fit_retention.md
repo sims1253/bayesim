@@ -21,8 +21,7 @@ apply_fit_retention(fit_result, retain, data_bundle = NULL)
 
 - data_bundle:
 
-  Optional data bundle; if provided and "data" not in retain, removes
-  data_bundle from fit_result
+  Ignored. Retained for backward compatibility.
 
 ## Value
 

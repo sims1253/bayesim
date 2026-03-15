@@ -350,9 +350,9 @@ result2 <- run_simulation(config, progress = FALSE)
 timing1 <- result1$timing$total
 timing2 <- result2$timing$total
 cat("Run 1:", timing1, "seconds\n")
-#> Run 1: 0.036376 seconds
+#> Run 1: 0.03624535 seconds
 cat("Run 2:", timing2, "seconds\n")
-#> Run 2: 0.03517056 seconds
+#> Run 2: 0.03530145 seconds
 ```
 
 This is expected and doesn’t affect the scientific validity of results.

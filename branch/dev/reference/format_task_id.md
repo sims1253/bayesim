@@ -2,8 +2,9 @@
 
 **\[deprecated\]**
 
-Use `make_task_id()` instead, which auto-calculates field widths from
-the grid dimensions.
+Use
+[`make_task_id()`](https://sims1253.github.io/bayesim/reference/make_task_id.md)
+instead, which auto-calculates field widths from the grid dimensions.
 
 ## Usage
 

@@ -28,5 +28,5 @@ timer$start()
 Sys.sleep(0.1)
 timer$stop()
 timer$elapsed()
-#> [1] 0.1011713
+#> [1] 0.1011245
 ```
