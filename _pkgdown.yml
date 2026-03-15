@@ -133,8 +133,7 @@ reference:
       Helper functions and utilities
     contents:
       - "%||%"
-      - cluster_setup
-      - ifs_SBC
+      - resolve_retention
 
 # Articles organization
 articles:

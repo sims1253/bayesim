@@ -18,9 +18,10 @@ Advanced RNG state (integer vector)
 Advances the RNG state by n steps and returns the new state.
 }
 \details{
-This function temporarily sets \code{.Random.seed} in the calling environment
+This function temporarily sets \code{.Random.seed} in \code{.GlobalEnv}
 to advance the stream, then returns the new state. It does NOT permanently
-modify the global \code{.Random.seed}. The caller is responsible for applying
+modify the global \code{.Random.seed} (unless it did not exist before, in which
+case it is removed after use). The caller is responsible for applying
 the returned state if needed (e.g., via \code{set_task_rng()}).
 }
 \examples{

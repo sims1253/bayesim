@@ -16,6 +16,8 @@ NULL
 #'
 #' @keywords internal
 #' @export
+#'
+#' @note This function is exported for advanced/internal use.
 create_task_rng_streams <- function(global_seed, n_tasks) {
   # Store current RNG state to restore later
   old_kind <- RNGkind()[1]

@@ -50,9 +50,10 @@ set_task_rng <- function(rng_stream) {
 #' @return Advanced RNG state (integer vector)
 #'
 #' @details
-#' This function temporarily sets `.Random.seed` in the calling environment
+#' This function temporarily sets `.Random.seed` in `.GlobalEnv`
 #' to advance the stream, then returns the new state. It does NOT permanently
-#' modify the global `.Random.seed`. The caller is responsible for applying
+#' modify the global `.Random.seed` (unless it did not exist before, in which
+#' case it is removed after use). The caller is responsible for applying
 #' the returned state if needed (e.g., via `set_task_rng()`).
 #'
 #' @keywords internal
@@ -65,8 +66,14 @@ set_task_rng <- function(rng_stream) {
 #' }
 advance_rng_stream <- function(rng_stream, n = 1L) {
   old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  seed_existed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+
   on.exit(
-    assign(".Random.seed", old_seed, envir = .GlobalEnv, inherits = FALSE),
+    if (seed_existed) {
+      assign(".Random.seed", old_seed, envir = .GlobalEnv, inherits = FALSE)
+    } else {
+      rm(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+    },
     add = TRUE
   )
   assign(".Random.seed", rng_stream, envir = .GlobalEnv, inherits = FALSE)

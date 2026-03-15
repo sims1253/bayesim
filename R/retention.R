@@ -286,7 +286,10 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   fit_result
 }
 
-## Task Result Retention -------------------------------------------------------#' Apply retention policy to task result
+## Task Result Retention
+# -----------------------------------------------------------------------
+
+#' Apply retention policy to task result
 #'
 #' Adds optional retained fields from the fit result and data bundle
 #' to the task result based on the retention policy.

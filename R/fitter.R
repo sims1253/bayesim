@@ -576,7 +576,7 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #'   verify that methods work correctly end-to-end
 #' @param verbose Logical, if TRUE print progress messages during validation
 #'
-#' @return TRUE if valid, otherwise raises an error with details about what failed
+#' @return The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
 #'
 #' @details
 #' The validation performs the following checks:

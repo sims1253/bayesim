@@ -20,4 +20,7 @@ Precomputes deterministic RNG streams for each task using L'Ecuyer-CMRG.
 Each task receives its own independent RNG stream, ensuring reproducibility
 regardless of execution order (sequential, parallel, or resumed).
 }
+\note{
+This function is exported for advanced/internal use.
+}
 \keyword{internal}

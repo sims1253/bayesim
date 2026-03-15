@@ -366,7 +366,11 @@ flatten_with_prefix <- function(x, prefix) {
     if (is.numeric(value) && length(value) > 1 && !is.null(names(value))) {
       # Flatten named numeric vector
       for (sub_name in names(value)) {
-        new_name <- paste0(prefix, "__", name, "__", sub_name)
+        new_name <- if (prefix == "") {
+          paste0(name, "__", sub_name)
+        } else {
+          paste0(prefix, "__", name, "__", sub_name)
+        }
         result[[new_name]] <- value[[sub_name]]
       }
     } else {

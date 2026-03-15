@@ -160,7 +160,7 @@ S7::method(compute, CoverageMetric) <- function(
 
     ci <- quantile(draws[, var], c(lower_q, upper_q))
     as.numeric(true_params[var] >= ci[1] && true_params[var] <= ci[2])
-  })
+  }, FUN.VALUE = numeric(1), USE.NAMES = TRUE)
 
   list(
     mean = mean(coverage, na.rm = TRUE),

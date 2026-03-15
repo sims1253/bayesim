@@ -1,7 +1,8 @@
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
 Version: 1.0.1
-URL: https://github.com/sims1253/bayesim
+URL: https://sims1253.github.io/bayesim, https://github.com/sims1253/bayesim
+BugReports: https://github.com/sims1253/bayesim/issues
 Authors@R: c(
     person("Maximilian", "Scholz", , "research.scholz@mailbox.org", 
            role = c("aut", "cre")),
