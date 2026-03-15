@@ -7,21 +7,41 @@ simulation API, resume/checkpoint behavior, and package documentation.
 
 ### Changes
 
+- Removed legacy code that was superseded by the 1.0 rewrite:
+  `simulation.R`, `inverse_forward_sampling.R`, `loo_handler.R`,
+  `metric_list_handler.R`, `metric_lookup.R`, `ifs_sbc.R`,
+  `ll_lookup.R`, `prefit.R`, `parallel_helpers.R`, and
+  `simulation_building_blocks.R`.
+
+- Removed corresponding man pages for all deleted functions.
+
+- Simplified contracts, checkpoint, retention, worker, and simulation
+  config code to eliminate dead paths and tighten validation.
+
+- Updated NAMESPACE and DESCRIPTION to reflect the reduced API surface.
+
+- Code quality improvements from desloppify review.
+
 - Standardized the public workflow around
   [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md),
   [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md),
   and
   [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md).
+
 - Added support for explicit `task_grid`, `chunk_size`, conditional
   retention, manifest-based resume, stricter duplicate-check handling,
   and future-based batch execution.
+
 - Switched the default
   [`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
   backend to `"cmdstanr"`.
+
 - Kept `checkpoint_format = "rds"` as the supported checkpoint backend
   and made unsupported `"parquet"` requests fail fast.
+
 - Externalized large metric payloads into artifacts to avoid excessively
   wide summary tables.
+
 - Updated README, vignettes, roxygen docs, man pages, and NAMESPACE to
   match the rewritten API and current package behavior.
 

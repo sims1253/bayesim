@@ -49,12 +49,17 @@
 <p>This release finalizes the rewrite follow-up work around the new simulation API, resume/checkpoint behavior, and package documentation.</p>
 <div class="section level3">
 <h3 id="changes-1-0-1">Changes<a class="anchor" aria-label="anchor" href="#changes-1-0-1"></a></h3>
-<ul><li>Standardized the public workflow around <code><a href="../reference/simulation_config.html">simulation_config()</a></code>, <code><a href="../reference/run_simulation.html">run_simulation()</a></code>, and <code><a href="../reference/resume_simulation.html">resume_simulation()</a></code>.</li>
-<li>Added support for explicit <code>task_grid</code>, <code>chunk_size</code>, conditional retention, manifest-based resume, stricter duplicate-check handling, and future-based batch execution.</li>
-<li>Switched the default <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> backend to <code>"cmdstanr"</code>.</li>
-<li>Kept <code>checkpoint_format = "rds"</code> as the supported checkpoint backend and made unsupported <code>"parquet"</code> requests fail fast.</li>
-<li>Externalized large metric payloads into artifacts to avoid excessively wide summary tables.</li>
-<li>Updated README, vignettes, roxygen docs, man pages, and NAMESPACE to match the rewritten API and current package behavior.</li>
+<ul><li><p>Removed legacy code that was superseded by the 1.0 rewrite: <code>simulation.R</code>, <code>inverse_forward_sampling.R</code>, <code>loo_handler.R</code>, <code>metric_list_handler.R</code>, <code>metric_lookup.R</code>, <code>ifs_sbc.R</code>, <code>ll_lookup.R</code>, <code>prefit.R</code>, <code>parallel_helpers.R</code>, and <code>simulation_building_blocks.R</code>.</p></li>
+<li><p>Removed corresponding man pages for all deleted functions.</p></li>
+<li><p>Simplified contracts, checkpoint, retention, worker, and simulation config code to eliminate dead paths and tighten validation.</p></li>
+<li><p>Updated NAMESPACE and DESCRIPTION to reflect the reduced API surface.</p></li>
+<li><p>Code quality improvements from desloppify review.</p></li>
+<li><p>Standardized the public workflow around <code><a href="../reference/simulation_config.html">simulation_config()</a></code>, <code><a href="../reference/run_simulation.html">run_simulation()</a></code>, and <code><a href="../reference/resume_simulation.html">resume_simulation()</a></code>.</p></li>
+<li><p>Added support for explicit <code>task_grid</code>, <code>chunk_size</code>, conditional retention, manifest-based resume, stricter duplicate-check handling, and future-based batch execution.</p></li>
+<li><p>Switched the default <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> backend to <code>"cmdstanr"</code>.</p></li>
+<li><p>Kept <code>checkpoint_format = "rds"</code> as the supported checkpoint backend and made unsupported <code>"parquet"</code> requests fail fast.</p></li>
+<li><p>Externalized large metric payloads into artifacts to avoid excessively wide summary tables.</p></li>
+<li><p>Updated README, vignettes, roxygen docs, man pages, and NAMESPACE to match the rewritten API and current package behavior.</p></li>
 </ul></div>
 </div>
     <div class="section level2">

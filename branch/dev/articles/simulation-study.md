@@ -546,7 +546,7 @@ print(result)
 #>     - Failed: 0 
 #>     - Skipped: 0 
 #>   Task grid: 240 rows x 6 cols
-#>   Total time: 3.67 s
+#>   Total time: 3.66 s
 ```
 
 ### Summary Tibble
@@ -586,12 +586,12 @@ head(result$summary)
 #> 5              1.161367     1.01      400      350         0             0
 #> 6              1.165993     1.01      400      350         0             0
 #>   timing_total rep_idx data_n data_intercept data_slope data_sigma
-#> 1  0.039304972       1     50              1          2        0.5
-#> 2  0.057936668       2     50              1          2        0.5
-#> 3  0.004229069       3     50              1          2        0.5
-#> 4  0.004020691       4     50              1          2        0.5
-#> 5  0.004265070       5     50              1          2        0.5
-#> 6  0.004542589       6     50              1          2        0.5
+#> 1  0.038996220       1     50              1          2        0.5
+#> 2  0.058805227       2     50              1          2        0.5
+#> 3  0.004263401       3     50              1          2        0.5
+#> 4  0.004126549       4     50              1          2        0.5
+#> 5  0.004354000       5     50              1          2        0.5
+#> 6  0.004319906       6     50              1          2        0.5
 #>           fit_model
 #> 1 linear_regression
 #> 2 linear_regression

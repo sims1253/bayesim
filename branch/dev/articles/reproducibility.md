@@ -350,9 +350,9 @@ result2 <- run_simulation(config, progress = FALSE)
 timing1 <- result1$timing$total
 timing2 <- result2$timing$total
 cat("Run 1:", timing1, "seconds\n")
-#> Run 1: 0.04481959 seconds
+#> Run 1: 0.04225206 seconds
 cat("Run 2:", timing2, "seconds\n")
-#> Run 2: 0.04402995 seconds
+#> Run 2: 0.04180932 seconds
 ```
 
 This is expected and doesn’t affect the scientific validity of results.
@@ -507,7 +507,7 @@ sessionInfo()
 #> [28] systemfonts_1.3.2   digest_0.6.39       R6_2.6.1           
 #> [31] tidyselect_1.2.1    parallelly_1.46.1   pillar_1.11.1      
 #> [34] parallel_4.5.3      magrittr_2.0.4      bslib_0.10.0       
-#> [37] tools_4.5.3         withr_3.0.2         globals_0.19.0     
+#> [37] tools_4.5.3         withr_3.0.2         globals_0.19.1     
 #> [40] pkgdown_2.2.0       cachem_1.1.0        desc_1.4.3
 ```
 
