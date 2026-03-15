@@ -315,7 +315,6 @@ capture_error_info <- function(e) {
 #' @return Character string in format "dXXX_fXXX_rXXXXX"
 #'
 #' @export
-#' @keywords internal
 #' @examples
 #' format_task_id(1, 2, 100)
 #' # Returns: "d001_f002_r00100"

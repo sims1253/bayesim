@@ -68,7 +68,7 @@ task_id_widths <- function(data_idx, fit_idx, rep_idx) {
 #' @param widths Optional list with data, fit, rep widths. Auto-computed if NULL.
 #'
 #' @return Character string task ID.
-#' @keywords internal
+#' @export
 make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
   if (is.null(widths)) {
     widths <- task_id_widths(data_idx, fit_idx, rep_idx)
