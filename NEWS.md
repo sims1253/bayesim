@@ -5,6 +5,16 @@ resume/checkpoint behavior, and package documentation.
 
 ## Changes
 
+* Removed legacy code that was superseded by the 1.0 rewrite:
+  `simulation.R`, `inverse_forward_sampling.R`, `loo_handler.R`,
+  `metric_list_handler.R`, `metric_lookup.R`, `ifs_sbc.R`, `ll_lookup.R`,
+  `prefit.R`, `parallel_helpers.R`, and `simulation_building_blocks.R`.
+* Removed corresponding man pages for all deleted functions.
+* Simplified contracts, checkpoint, retention, worker, and simulation config
+  code to eliminate dead paths and tighten validation.
+* Updated NAMESPACE and DESCRIPTION to reflect the reduced API surface.
+* Code quality improvements from desloppify review.
+
 * Standardized the public workflow around `simulation_config()`,
   `run_simulation()`, and `resume_simulation()`.
 * Added support for explicit `task_grid`, `chunk_size`, conditional retention,
