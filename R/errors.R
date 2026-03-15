@@ -138,7 +138,13 @@ bayesim_internal_error <- function(message, call = NULL) {
 bayesim_validation_error <- function(message, call = NULL) {
   structure(
     list(message = message, call = call),
-    class = c("bayesim_validation_error", "bayesim_contract_error", "bayesim_error", "error", "condition")
+    class = c(
+      "bayesim_validation_error",
+      "bayesim_contract_error",
+      "bayesim_error",
+      "error",
+      "condition"
+    )
   )
 }
 

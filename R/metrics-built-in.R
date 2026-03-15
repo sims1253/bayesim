@@ -15,15 +15,12 @@ RmseMetric <- S7::new_class(
 )
 
 #' @rdname RmseMetric
-#' @description `rmse_metric()` is a constructor function that creates an RmseMetric
-#'   instance with appropriate defaults. Use this constructor to work around S7's
-#'   property default inheritance issue.
+#' @description Constructor for RmseMetric.
 #' @param name Character string naming the metric. Defaults to "rmse".
 #' @return An RmseMetric object.
 #' @export
 #' @examples
 #' rmse_metric()
-#' rmse_metric(name = "my_rmse")
 rmse_metric <- function(name = "rmse") {
   RmseMetric(
     name = name,
@@ -73,15 +70,10 @@ BiasMetric <- S7::new_class(
 )
 
 #' @rdname BiasMetric
-#' @description `bias_metric()` is a constructor function that creates a BiasMetric
-#'   instance with appropriate defaults. Use this constructor to work around S7's
-#'   property default inheritance issue.
+#' @description Constructor for BiasMetric.
 #' @param name Character string naming the metric. Defaults to "bias".
 #' @return A BiasMetric object.
 #' @export
-#' @examples
-#' bias_metric()
-#' bias_metric(name = "my_bias")
 bias_metric <- function(name = "bias") {
   BiasMetric(
     name = name,
@@ -129,16 +121,11 @@ CoverageMetric <- S7::new_class(
 )
 
 #' @rdname CoverageMetric
-#' @description `coverage_metric()` is a constructor function that creates a CoverageMetric
-#'   instance with appropriate defaults. Use this constructor to work around S7's
-#'   property default inheritance issue.
+#' @description Constructor for CoverageMetric.
 #' @param name Character string naming the metric. Defaults to "coverage".
 #' @param prob Numeric probability for the credible interval width. Defaults to 0.95.
 #' @return A CoverageMetric object.
 #' @export
-#' @examples
-#' coverage_metric()
-#' coverage_metric(prob = 0.90)
 coverage_metric <- function(name = "coverage", prob = 0.95) {
   CoverageMetric(
     name = name,
@@ -166,7 +153,7 @@ S7::method(compute, CoverageMetric) <- function(
   lower_q <- (1 - metric@prob) / 2
   upper_q <- 1 - lower_q
 
-  coverage <- sapply(vars_of_interest, function(var) {
+  coverage <- vapply(vars_of_interest, function(var) {
     if (!(var %in% colnames(draws)) || !(var %in% names(true_params))) {
       return(NA_real_)
     }
@@ -198,15 +185,10 @@ PosteriorMeanMetric <- S7::new_class(
 )
 
 #' @rdname PosteriorMeanMetric
-#' @description `posterior_mean_metric()` is a constructor function that creates a
-#'   PosteriorMeanMetric instance with appropriate defaults. Use this constructor to
-#'   work around S7's property default inheritance issue.
+#' @description Constructor for PosteriorMeanMetric.
 #' @param name Character string naming the metric. Defaults to "posterior_mean".
 #' @return A PosteriorMeanMetric object.
 #' @export
-#' @examples
-#' posterior_mean_metric()
-#' posterior_mean_metric(name = "my_posterior_mean")
 posterior_mean_metric <- function(name = "posterior_mean") {
   PosteriorMeanMetric(
     name = name,

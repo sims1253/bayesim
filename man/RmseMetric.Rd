@@ -22,11 +22,8 @@ An RmseMetric object.
 \description{
 Root Mean Square Error between predictions and true values.
 
-\code{rmse_metric()} is a constructor function that creates an RmseMetric
-instance with appropriate defaults. Use this constructor to work around S7's
-property default inheritance issue.
+Constructor for RmseMetric.
 }
 \examples{
 rmse_metric()
-rmse_metric(name = "my_rmse")
 }

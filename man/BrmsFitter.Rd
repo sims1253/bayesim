@@ -48,5 +48,6 @@ BrmsFitter(
 An S7 BrmsFitter object
 }
 \description{
-Fitter implementation for brms models.
+Fitter implementation for brms models. Extends the abstract Fitter class
+with brms-specific configuration properties.
 }

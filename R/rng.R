@@ -42,8 +42,7 @@ set_task_rng <- function(rng_stream) {
 
 #' Advance RNG stream
 #'
-#' Advances the RNG state by n steps without returning random values.
-#' Useful for skipping ahead in a stream.
+#' Advances the RNG state by n steps and returns the new state.
 #'
 #' @param rng_stream Integer vector RNG state
 #' @param n Number of steps to advance (default: 1)
@@ -51,10 +50,10 @@ set_task_rng <- function(rng_stream) {
 #' @return Advanced RNG state (integer vector)
 #'
 #' @details
-#' This is a **pure function** with no side effects:
-#' - It does NOT modify `.Random.seed` in the global environment
-#' - It creates a local copy of the RNG state, advances it, and returns the new state
-#' - The caller is responsible for setting the returned state if needed
+#' This function temporarily sets `.Random.seed` in the calling environment
+#' to advance the stream, then returns the new state. It does NOT permanently
+#' modify the global `.Random.seed`. The caller is responsible for applying
+#' the returned state if needed (e.g., via `set_task_rng()`).
 #'
 #' @keywords internal
 #' @export
@@ -65,9 +64,14 @@ set_task_rng <- function(rng_stream) {
 #' advanced <- advance_rng_stream(streams[[1]], n = 5)
 #' }
 advance_rng_stream <- function(rng_stream, n = 1L) {
-  .Random.seed <- rng_stream
+  old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  on.exit(
+    assign(".Random.seed", old_seed, envir = .GlobalEnv, inherits = FALSE),
+    add = TRUE
+  )
+  assign(".Random.seed", rng_stream, envir = .GlobalEnv, inherits = FALSE)
   for (i in seq_len(n)) {
     runif(1)
   }
-  get(".Random.seed", inherits = FALSE)
+  get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
 }

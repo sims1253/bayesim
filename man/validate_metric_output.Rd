@@ -12,7 +12,7 @@ validate_metric_output(output, metric_name)
 \item{metric_name}{Character string identifying the metric (for error messages).}
 }
 \value{
-Invisible NULL if validation passes. Otherwise, an error is raised.
+Invisible \code{output} if validation passes. Otherwise, an error is raised.
 }
 \description{
 Validates that metric output conforms to the expected schema.

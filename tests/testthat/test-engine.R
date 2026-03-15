@@ -831,7 +831,11 @@ describe("Worker", {
       result <- run_task(task, config_spec, fitter, list())
 
       expect_equal(result$status, "failed")
-      expect_true(grepl("Fitting failed", result$error$error_message, fixed = TRUE))
+      expect_true(grepl(
+        "Fitting failed",
+        result$error$error_message,
+        fixed = TRUE
+      ))
     })
 
     it("sets RNG state for reproducibility", {
@@ -1050,7 +1054,12 @@ describe("Worker", {
 
       context <- NULL
       expect_warning(
-        context <- build_metric_context(fit_result, fitter, data_bundle, metrics),
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          metrics
+        ),
         "Metric requires predictions but fitter does not support them"
       )
 
@@ -1159,7 +1168,7 @@ describe("Worker", {
     })
   })
 
-  describe("apply_retention()", {
+  describe("apply_fit_retention()", {
     it("removes correct fields", {
       draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
       colnames(draws) <- c("alpha", "beta")
@@ -1173,10 +1182,10 @@ describe("Worker", {
       data_bundle <- valid_data_bundle()
 
       # Default: remove fit and draws
-      result <- apply_retention(
+      result <- apply_fit_retention(
         fit_result,
-        data_bundle,
-        c("metrics", "diagnostics")
+        c("metrics", "diagnostics"),
+        data_bundle = data_bundle
       )
 
       expect_null(result$fit)
@@ -1192,7 +1201,11 @@ describe("Worker", {
       )
       data_bundle <- valid_data_bundle()
 
-      result <- apply_retention(fit_result, data_bundle, c("metrics", "fit"))
+      result <- apply_fit_retention(
+        fit_result,
+        c("metrics", "fit"),
+        data_bundle = data_bundle
+      )
 
       expect_true(is.list(result$fit))
     })
@@ -1207,7 +1220,11 @@ describe("Worker", {
       )
       data_bundle <- valid_data_bundle()
 
-      result <- apply_retention(fit_result, data_bundle, c("metrics", "draws"))
+      result <- apply_fit_retention(
+        fit_result,
+        c("metrics", "draws"),
+        data_bundle = data_bundle
+      )
 
       expect_true(is.matrix(result$draws))
     })
@@ -1219,10 +1236,10 @@ describe("Worker", {
       )
       data_bundle <- valid_data_bundle()
 
-      result <- apply_retention(
+      result <- apply_fit_retention(
         fit_result,
-        data_bundle,
-        c("metrics", "diagnostics")
+        c("metrics", "diagnostics"),
+        data_bundle = data_bundle
       )
 
       expect_true(is.list(result$diagnostics))
@@ -1235,7 +1252,11 @@ describe("Worker", {
       )
       data_bundle <- valid_data_bundle()
 
-      result <- apply_retention(fit_result, data_bundle, c("metrics"))
+      result <- apply_fit_retention(
+        fit_result,
+        c("metrics"),
+        data_bundle = data_bundle
+      )
 
       expect_null(result$diagnostics)
     })
@@ -1523,19 +1544,26 @@ describe("run_simulation()", {
       )
     })
 
-    it("fails fast when checkpoint_format = 'parquet' is requested", {
-      skip_if_not(
-        run_sim_exists(),
-        "run_simulation not available or is_simulation_config broken"
-      )
-
-      config <- create_sim_config(n_replicates = 1L)
-      config@checkpoint_format <- "parquet"
-      config@result_path <- file.path(withr::local_tempdir(), "parquet-results")
-
+    it("rejects parquet checkpoint_format at construction time", {
       expect_error(
-        run_simulation(config, progress = FALSE),
-        "Checkpoint format 'parquet' is not implemented yet"
+        simulation_config(
+          data_grid = data.frame(n = 50),
+          fit_grid = data.frame(model = "baseline"),
+          data_generator = function(data_spec, seed, task_ctx) {
+            list(
+              train = data.frame(y = rnorm(data_spec$n)),
+              test = NULL,
+              response = "y",
+              true_params = c(beta = 1),
+              vars_of_interest = "beta"
+            )
+          },
+          fitter = MockFitter(),
+          n_replicates = 1L,
+          seed = 42L,
+          checkpoint_format = "parquet"
+        ),
+        "rds"
       )
     })
   })

@@ -132,6 +132,7 @@ init_checkpoint_dir <- function(
 #' directories and returns the maximum ID + 1.
 #'
 #' @keywords internal
+#' @export
 get_next_checkpoint_id <- function(result_path) {
   checkpoints_dir <- file.path(result_path, "checkpoints")
 
@@ -525,6 +526,10 @@ validate_checkpoint_fingerprint <- function(checkpoint, config_fingerprint) {
 #' # Returns: c(1L, 2L, 3L, 5L, 10L)
 #' }
 list_checkpoints <- function(result_path) {
+  if (is.null(result_path)) {
+    return(integer(0))
+  }
+
   checkpoint_dir <- file.path(result_path, "checkpoints")
 
   if (!dir.exists(checkpoint_dir)) {
@@ -649,6 +654,7 @@ get_latest_valid_checkpoint <- function(
 #' columns. NULL task results are skipped.
 #'
 #' @keywords internal
+#' @export
 results_to_dataframe <- function(task_results) {
   if (is.null(task_results) || length(task_results) == 0) {
     return(data.frame(task_id = character(), status = character()))
@@ -665,36 +671,14 @@ results_to_dataframe <- function(task_results) {
       status = tr$status
     )
 
-    # Add metrics if present
+    # Add metrics if present (flattening named numeric vectors)
     if (!is.null(tr$metrics) && length(tr$metrics) > 0) {
-      # Flatten any nested named vectors in metrics
-      for (name in names(tr$metrics)) {
-        value <- tr$metrics[[name]]
-        if (is.numeric(value) && length(value) > 1 && !is.null(names(value))) {
-          # Flatten named numeric vector
-          for (sub_name in names(value)) {
-            row[[paste0(name, "__", sub_name)]] <- value[[sub_name]]
-          }
-        } else {
-          row[[name]] <- value
-        }
-      }
+      row <- c(row, flatten_with_prefix(tr$metrics, ""))
     }
 
-    # Add diagnostics if present
+    # Add diagnostics if present (flattening named numeric vectors)
     if (!is.null(tr$diagnostics) && length(tr$diagnostics) > 0) {
-      # Flatten any nested named vectors in diagnostics
-      for (name in names(tr$diagnostics)) {
-        value <- tr$diagnostics[[name]]
-        if (is.numeric(value) && length(value) > 1 && !is.null(names(value))) {
-          # Flatten named numeric vector
-          for (sub_name in names(value)) {
-            row[[paste0(name, "__", sub_name)]] <- value[[sub_name]]
-          }
-        } else {
-          row[[name]] <- value
-        }
-      }
+      row <- c(row, flatten_with_prefix(tr$diagnostics, ""))
     }
 
     # Add error info if present
@@ -712,7 +696,8 @@ results_to_dataframe <- function(task_results) {
   })
 
   # Remove NULL entries
-  rows <- rows[!sapply(rows, is.null)]
+  non_null <- vapply(rows, Negate(is.null), logical(1))
+  rows <- rows[non_null]
 
   if (length(rows) == 0) {
     return(data.frame(task_id = character(), status = character()))
@@ -760,59 +745,24 @@ read_run_manifest <- function(result_path) {
 }
 
 checkpoint_data_path <- function(directory, stem, checkpoint_format = "rds") {
-  ext <- switch(
-    checkpoint_format,
-    rds = ".rds",
-    parquet = ".parquet",
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
-  )
-
-  file.path(directory, paste0(stem, ext))
-}
-
-write_checkpoint_object <- function(x, path, checkpoint_format = "rds") {
-  switch(
-    checkpoint_format,
-    rds = write_rds_atomic(x, path),
-    parquet = cli::cli_abort(
-      c(
-        "Checkpoint format 'parquet' is not implemented yet",
-        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
-      )
-    ),
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
-  )
-}
-
-read_checkpoint_object <- function(path, checkpoint_format = "rds") {
-  switch(
-    checkpoint_format,
-    rds = readRDS(path),
-    parquet = cli::cli_abort(
-      c(
-        "Checkpoint format 'parquet' is not implemented yet",
-        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
-      )
-    ),
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
-  )
-}
-
-assert_supported_checkpoint_format <- function(checkpoint_format) {
-  if (
-    !identical(checkpoint_format, "rds") &&
-      !identical(checkpoint_format, "parquet")
-  ) {
+  if (!identical(checkpoint_format, "rds")) {
     cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
   }
 
-  if (identical(checkpoint_format, "parquet")) {
-    cli::cli_abort(
-      c(
-        "Checkpoint format 'parquet' is not implemented yet",
-        "i" = "Use checkpoint_format = 'rds' for checkpoint/resume runs."
-      )
-    )
+  file.path(directory, paste0(stem, ".rds"))
+}
+
+write_checkpoint_object <- function(x, path, checkpoint_format = "rds") {
+  write_rds_atomic(x, path)
+}
+
+read_checkpoint_object <- function(path, checkpoint_format = "rds") {
+  readRDS(path)
+}
+
+assert_supported_checkpoint_format <- function(checkpoint_format) {
+  if (!identical(checkpoint_format, "rds")) {
+    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
   }
 
   invisible(checkpoint_format)

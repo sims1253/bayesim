@@ -2,7 +2,8 @@
 % Please edit documentation in R/retention.R
 \name{apply_task_retention}
 \alias{apply_task_retention}
-\title{Apply retention policy to task result}
+\title{Adds optional retained fields from the fit result and data bundle
+to the task result based on the retention policy.}
 \usage{
 apply_task_retention(task_result, fit_result, data_bundle, retain)
 }

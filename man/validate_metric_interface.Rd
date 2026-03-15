@@ -2,7 +2,7 @@
 % Please edit documentation in R/contracts.R
 \name{validate_metric_interface}
 \alias{validate_metric_interface}
-\title{Validate Metric Interface}
+\title{Validate Metric Class and Name Property}
 \usage{
 validate_metric_interface(metric)
 }
@@ -13,42 +13,17 @@ validate_metric_interface(metric)
 The input \code{metric}, invisibly, if validation passes.
 }
 \description{
-Validates that a metric object conforms to the Metric S7 class interface.
-The metric must be an S7 object that inherits from the Metric class and
-implements the compute method.
-}
-\details{
-The metric must satisfy the following requirements:
-\itemize{
-\item Must be an S7 object (checked via S7::S7_inherits())
-\item Must inherit from the "Metric" class
-\item Must implement the \code{compute(fit_result, data_bundle, context, task_ctx)} method
-\item Must have a \code{name} property that is a non-empty character string
-}
+Validates that a metric object is an S7 instance of the Metric class
+with a valid \code{name} property. This is a lightweight check used internally
+by \code{\link[=validate_simulation_config]{validate_simulation_config()}}. Method existence is not checked because
+S7 dispatches via generics and the base class raises errors for unimplemented
+abstract methods.
 }
 \section{Errors}{
 
 Throws a \code{bayesim_contract_error} condition if validation fails.
 }
 
-\examples{
-\dontrun{
-# Create a custom metric using proper S7 syntax
-MyMetric <- S7::new_class(
-  "MyMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "my_metric")
-  )
-)
-# Register the compute method separately
-S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  list(value = 1.0)
-}
-my_metric <- MyMetric(name = "my_metric")
-validate_metric_interface(my_metric)
-}
-}
 \seealso{
 \link{Metric}, \code{\link[=validate_metric_output]{validate_metric_output()}}
 }

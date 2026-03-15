@@ -177,6 +177,7 @@ load_for_resume <- function(result_path, config) {
 #' reproducibility guarantees.
 #'
 #' @keywords internal
+#' @export
 merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
   # Start with fresh grid (has all tasks with pending status and rng_seed)
   # Update status for tasks that were terminal in checkpoint
@@ -227,6 +228,7 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
 #' prior_results that appear in new_results, then combines.
 #'
 #' @keywords internal
+#' @export
 merge_results <- function(prior_results, new_results) {
   # Handle empty/NULL cases
   if (is.null(prior_results) || nrow(prior_results) == 0) {

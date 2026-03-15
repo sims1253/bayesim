@@ -1,4 +1,5 @@
 #' @keywords internal
+#' @importFrom parallel nextRNGStream
 NULL
 
 #' Create Task RNG Streams
@@ -14,6 +15,7 @@ NULL
 #'   representing the `.Random.seed` state for that task.
 #'
 #' @keywords internal
+#' @export
 create_task_rng_streams <- function(global_seed, n_tasks) {
   # Store current RNG state to restore later
   old_kind <- RNGkind()[1]

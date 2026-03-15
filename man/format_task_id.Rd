@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{format_task_id}
 \alias{format_task_id}
-\title{Format task ID from indices}
+\title{Format task ID from indices (deprecated)}
 \usage{
 format_task_id(data_idx, fit_idx, rep_idx)
 }
@@ -17,8 +17,10 @@ format_task_id(data_idx, fit_idx, rep_idx)
 Character string in format "dXXX_fXXX_rXXXXX"
 }
 \description{
-Creates a standardized task ID string from data, fit, and replication
-indices.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#deprecated}{\figure{lifecycle-deprecated.svg}{options: alt='[Deprecated]'}}}{\strong{[Deprecated]}}
+
+Use \code{\link[=make_task_id]{make_task_id()}} instead, which auto-calculates field widths
+from the grid dimensions.
 }
 \examples{
 format_task_id(1, 2, 100)

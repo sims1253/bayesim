@@ -15,16 +15,13 @@ advance_rng_stream(rng_stream, n = 1L)
 Advanced RNG state (integer vector)
 }
 \description{
-Advances the RNG state by n steps without returning random values.
-Useful for skipping ahead in a stream.
+Advances the RNG state by n steps and returns the new state.
 }
 \details{
-This is a \strong{pure function} with no side effects:
-\itemize{
-\item It does NOT modify \code{.Random.seed} in the global environment
-\item It creates a local copy of the RNG state, advances it, and returns the new state
-\item The caller is responsible for setting the returned state if needed
-}
+This function temporarily sets \code{.Random.seed} in the calling environment
+to advance the stream, then returns the new state. It does NOT permanently
+modify the global \code{.Random.seed}. The caller is responsible for applying
+the returned state if needed (e.g., via \code{set_task_rng()}).
 }
 \examples{
 \dontrun{

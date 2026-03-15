@@ -972,23 +972,5 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
   }
 
   msg("Validation passed!")
-  invisible(TRUE)
+  invisible(fitter)
 }
-
-
-#' Null coalescing operator
-#'
-#' Returns `x` if not NULL, otherwise `y`.
-#'
-#' @param x Value to check
-#' @param y Default value if x is NULL
-#'
-#' @return `x` if not NULL, otherwise `y`
-#'
-#' @name null-coalescing
-#' @export
-#'
-#' @examples
-#' NULL %||% "default"  # returns "default"
-#' "value" %||% "default"  # returns "value"
-`%||%` <- function(x, y) if (is.null(x)) y else x

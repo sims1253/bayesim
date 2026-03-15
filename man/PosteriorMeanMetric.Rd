@@ -26,11 +26,5 @@ A PosteriorMeanMetric object.
 \description{
 Posterior mean estimates for parameters.
 
-\code{posterior_mean_metric()} is a constructor function that creates a
-PosteriorMeanMetric instance with appropriate defaults. Use this constructor to
-work around S7's property default inheritance issue.
-}
-\examples{
-posterior_mean_metric()
-posterior_mean_metric(name = "my_posterior_mean")
+Constructor for PosteriorMeanMetric.
 }
