@@ -1,8 +1,14 @@
 pandoc: 3.1.11
-pkgdown: 2.1.3
+pkgdown: 2.2.0
 pkgdown_sha: ~
-articles: {}
-last_built: 2025-07-19T17:39Z
+articles:
+  case-studies: case-studies.html
+  custom-fitters: custom-fitters.html
+  getting-started: getting-started.html
+  memory-management: memory-management.html
+  reproducibility: reproducibility.html
+  simulation-study: simulation-study.html
+last_built: 2026-03-15T15:46Z
 urls:
   reference: https://sims1253.github.io/bayesim/reference
   article: https://sims1253.github.io/bayesim/articles

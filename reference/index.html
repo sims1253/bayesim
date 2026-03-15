@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.34.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -15,9 +15,23 @@
     </button>
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
-      <ul class="navbar-nav me-auto"><li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-      </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
- <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json"></form></li>
+      <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../index.html"><span class="fa fas fa-home fa-lg"></span></a></li>
+<li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
+    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+  </ul></li>
+<li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
+      </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/sims1253/bayesim"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -30,174 +44,374 @@
     </div>
 
     <div class="section level2">
-      <h2 id="all-functions">All functions<a class="anchor" aria-label="anchor" href="#all-functions"></a></h2>
+      <h2 id="configuration">Configuration<a class="anchor" aria-label="anchor" href="#configuration"></a></h2>
 
+      <div class="section-desc"><p>Functions for configuring simulation studies</p></div>
 
-
-
-    </div><div class="section level2">
+      <dl></dl></div><div class="section level2">
 
 
 
 
       <dl><dt>
 
-          <code><a href="build_prefit_list.html">build_prefit_list()</a></code>
+          <code><a href="simulation_config.html">simulation_config()</a></code>
 
         </dt>
-        <dd>Prepare a list of brmsfit objects to update during repeated simulations</dd>
-      </dl><dl><dt>
+        <dd>Create a Simulation Configuration</dd>
+
+        <dt>
+
+          <code><a href="is_simulation_config.html">is_simulation_config()</a></code>
+
+        </dt>
+        <dd>Check if Object is a SimulationConfig</dd>
+
+        <dt>
+
+          <code><a href="validate_config_completeness.html">validate_config_completeness()</a></code>
+
+        </dt>
+        <dd>Validate SimulationConfig Completeness</dd>
+
+        <dt>
+
+          <code><a href="get_total_tasks.html">get_total_tasks()</a></code>
+
+        </dt>
+        <dd>Get Total Number of Tasks in Configuration</dd>
+
+        <dt>
+
+          <code><a href="compute_config_fingerprint.html">compute_config_fingerprint()</a></code>
+
+        </dt>
+        <dd>Compute Configuration Fingerprint</dd>
+
+        <dt>
+
+          <code><a href="as_config_spec.html">as_config_spec()</a></code>
+
+        </dt>
+        <dd>Convert SimulationConfig to Plain List for Hashing</dd>
+      </dl></div><div class="section level2">
+      <h2 id="running-simulations">Running Simulations<a class="anchor" aria-label="anchor" href="#running-simulations"></a></h2>
+
+      <div class="section-desc"><p>Functions for executing simulation studies</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="run_simulation.html">run_simulation()</a></code>
+
+        </dt>
+        <dd>Run a Simulation Study</dd>
+
+        <dt>
+
+          <code><a href="resume_simulation.html">resume_simulation()</a></code>
+
+        </dt>
+        <dd>Resume a simulation from an existing result directory</dd>
+
+        <dt>
+
+          <code><a href="can_resume.html">can_resume()</a></code>
+
+        </dt>
+        <dd>Check if Resumable Run Exists</dd>
+      </dl></div><div class="section level2">
+      <h2 id="fitters">Fitters<a class="anchor" aria-label="anchor" href="#fitters"></a></h2>
+
+      <div class="section-desc"><p>Classes for fitting Bayesian models</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="Fitter.html">Fitter()</a></code>
+
+        </dt>
+        <dd>Abstract Fitter Class</dd>
+
+        <dt>
+
+          <code><a href="BrmsFitter.html">BrmsFitter()</a></code>
+
+        </dt>
+        <dd>Brms Fitter</dd>
+
+        <dt>
+
+          <code><a href="MockFitter.html">MockFitter()</a></code>
+
+        </dt>
+        <dd>Mock Fitter for Testing (Internal)</dd>
+
+        <dt>
+
+          <code><a href="fit.html">fit()</a></code>
+
+        </dt>
+        <dd>Fit a Bayesian Model</dd>
+
+        <dt>
+
+          <code><a href="extract_draws.html">extract_draws()</a></code>
+
+        </dt>
+        <dd>Extract Posterior Draws</dd>
+
+        <dt>
+
+          <code><a href="predict_fit.html">predict_fit()</a></code>
+
+        </dt>
+        <dd>Generate Predictions</dd>
+
+        <dt>
+
+          <code><a href="log_lik.html">log_lik()</a></code>
+
+        </dt>
+        <dd>Compute Pointwise Log-Likelihood</dd>
+
+        <dt>
+
+          <code><a href="loo.html">loo()</a></code>
+
+        </dt>
+        <dd>Compute LOO-CV</dd>
+
+        <dt>
+
+          <code><a href="diagnostics.html">diagnostics()</a></code>
+
+        </dt>
+        <dd>Extract Fit Diagnostics</dd>
+
+        <dt>
+
+          <code><a href="validate_fitter.html">validate_fitter()</a></code>
+
+        </dt>
+        <dd>Validate a Fitter Object</dd>
+      </dl></div><div class="section level2">
+      <h2 id="metrics">Metrics<a class="anchor" aria-label="anchor" href="#metrics"></a></h2>
+
+      <div class="section-desc"><p>Classes and built-in metrics for computing simulation results</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="Metric.html">Metric()</a></code>
+
+        </dt>
+        <dd>Metric Abstract Class</dd>
+
+        <dt>
+
+          <code><a href="compute.html">compute()</a></code>
+
+        </dt>
+        <dd>Compute Metric Values</dd>
+
+        <dt>
+
+          <code><a href="RmseMetric.html">RmseMetric()</a></code> <code><a href="RmseMetric.html">rmse_metric()</a></code>
+
+        </dt>
+        <dd>RMSE Metric</dd>
+
+        <dt>
+
+          <code><a href="BiasMetric.html">BiasMetric()</a></code> <code><a href="BiasMetric.html">bias_metric()</a></code>
+
+        </dt>
+        <dd>Bias Metric</dd>
+
+        <dt>
+
+          <code><a href="CoverageMetric.html">CoverageMetric()</a></code> <code><a href="CoverageMetric.html">coverage_metric()</a></code>
+
+        </dt>
+        <dd>Coverage Metric</dd>
+
+        <dt>
+
+          <code><a href="PosteriorMeanMetric.html">PosteriorMeanMetric()</a></code> <code><a href="PosteriorMeanMetric.html">posterior_mean_metric()</a></code>
+
+        </dt>
+        <dd>Posterior Mean Metric</dd>
+
+        <dt>
+
+          <code><a href="validate_metric_output.html">validate_metric_output()</a></code>
+
+        </dt>
+        <dd>Validate Metric Output</dd>
+
+        <dt>
+
+          <code><a href="flatten_metric_output.html">flatten_metric_output()</a></code>
+
+        </dt>
+        <dd>Flatten Metric Output</dd>
+      </dl></div><div class="section level2">
+      <h2 id="results">Results<a class="anchor" aria-label="anchor" href="#results"></a></h2>
+
+      <div class="section-desc"><p>Functions for working with simulation results</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="is_bayesim_fit_result.html">is_bayesim_fit_result()</a></code>
+
+        </dt>
+        <dd>Check if object is a bayesim_fit_result</dd>
+
+        <dt>
+
+          <code><a href="validate_bayesim_fit_result.html">validate_bayesim_fit_result()</a></code>
+
+        </dt>
+        <dd>Validate a bayesim_fit_result object</dd>
+
+        <dt>
+
+          <code><a href="new_fit_result.html">new_fit_result()</a></code>
+
+        </dt>
+        <dd>Create a new bayesim_fit_result object</dd>
+
+        <dt>
+
+          <code><a href="new_task_result.html">new_task_result()</a></code>
+
+        </dt>
+        <dd>Create a new bayesim_task_result object</dd>
+
+        <dt>
+
+          <code><a href="new_simulation_result.html">new_simulation_result()</a></code>
+
+        </dt>
+        <dd>Create a new bayesim_simulation_result object</dd>
+      </dl></div><div class="section level2">
+      <h2 id="checkpointing">Checkpointing<a class="anchor" aria-label="anchor" href="#checkpointing"></a></h2>
+
+      <div class="section-desc"><p>Functions for checkpoint and resume functionality</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="init_checkpoint_dir.html">init_checkpoint_dir()</a></code>
+
+        </dt>
+        <dd>Initialize checkpoint directory</dd>
+
+        <dt>
+
+          <code><a href="write_checkpoint.html">write_checkpoint()</a></code>
+
+        </dt>
+        <dd>Write checkpoint</dd>
+
+        <dt>
+
+          <code><a href="read_checkpoint.html">read_checkpoint()</a></code>
+
+        </dt>
+        <dd>Read checkpoint</dd>
+
+        <dt>
+
+          <code><a href="get_resume_summary.html">get_resume_summary()</a></code>
+
+        </dt>
+        <dd>Get Resume Summary</dd>
+
+        <dt>
+
+          <code><a href="load_for_resume.html">load_for_resume()</a></code>
+
+        </dt>
+        <dd>Load Run for Resume</dd>
+      </dl></div><div class="section level2">
+      <h2 id="retention">Retention<a class="anchor" aria-label="anchor" href="#retention"></a></h2>
+
+      <div class="section-desc"><p>Control what artifacts are retained in results</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="resolve_retention.html">resolve_retention()</a></code>
+
+        </dt>
+        <dd>Resolve retention specification</dd>
+
+        <dt>
+
+          <code><a href="RETENTION_PROFILES.html">RETENTION_PROFILES</a></code>
+
+        </dt>
+        <dd>Retention profiles</dd>
+      </dl></div><div class="section level2">
+      <h2 id="utilities">Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a></h2>
+
+      <div class="section-desc"><p>Helper functions and utilities</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="null-coalescing.html">`%||%`</a></code>
+
+        </dt>
+        <dd>Null coalescing operator</dd>
+
+        <dt>
 
           <code><a href="cluster_setup.html">cluster_setup()</a></code>
 
         </dt>
         <dd>Convenience Function to set up a cluster used for multiprocessing</dd>
-      </dl><dl><dt>
 
-          <code><a href="custom_loo_object.html">custom_loo_object()</a></code>
-
-        </dt>
-        <dd>Builds a loo object that contains any pointwise criterion, acting as elpd for compatibility.</dd>
-      </dl><dl><dt>
-
-          <code><a href="dataset_conf_sim.html">dataset_conf_sim()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="dataset_sim.html">dataset_sim()</a></code>
-
-        </dt>
-        <dd>Run simulation for a single dataset configuration</dd>
-      </dl><dl><dt>
-
-          <code><a href="elpd_loo_handler.html">elpd_loo_handler()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="elpd_pointwise_summaries.html">elpd_pointwise_summaries()</a></code>
-
-        </dt>
-        <dd>Pointwise elps summaries</dd>
-      </dl><dl><dt>
-
-          <code><a href="elpd_test.html">elpd_test()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="fit_conf_key.html">fit_conf_key()</a></code>
-
-        </dt>
-        <dd>Generate lookup keys for fit configurations to retrieve prefit objects matching said config.</dd>
-      </dl><dl><dt>
-
-          <code><a href="fit_sim.html">fit_sim()</a></code>
-
-        </dt>
-        <dd>Fit a single model in a simulation study</dd>
-      </dl><dl><dt>
-
-          <code><a href="forward_sampling.html">forward_sampling()</a></code>
-
-        </dt>
-        <dd>Simulate a new dataset using forward sampling.</dd>
-      </dl><dl><dt>
-
-          <code><a href="full_simulation.html">full_simulation()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="gamma_discrepancy.html">gamma_discrepancy()</a></code>
-
-        </dt>
-        <dd>Quantifies deviation from uniformity by the likelihood of observing the most extreme point on the empirical CDF of the given rank distribution according to 1 (equation 7).</dd>
-      </dl><dl><dt>
-
-          <code><a href="get_prefit.html">get_prefit()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
+        <dt>
 
           <code><a href="ifs_SBC.html">ifs_SBC()</a></code>
 
         </dt>
         <dd>Full inverse forward sampling supported SBC</dd>
-      </dl><dl><dt>
-
-          <code><a href="loo_compare_handler.html">loo_compare_handler()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="metric_list_handler.html">metric_list_handler()</a></code>
-
-        </dt>
-        <dd>Collect multiple metrics at once</dd>
-      </dl><dl><dt>
-
-          <code><a href="metric_lookup.html">metric_lookup()</a></code>
-
-        </dt>
-        <dd>Access metrics with string identifiers</dd>
-      </dl><dl><dt>
-
-          <code><a href="prior_lookup.html">prior_lookup()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="r2.html">r2()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="r2_loo.html">r2_loo()</a></code>
-
-        </dt>
-        <dd>Calculate PSIS-loo R² for a given brms fit</dd>
-      </dl><dl><dt>
-
-          <code><a href="r2_test.html">r2_test()</a></code>
-
-        </dt>
-        <dd>Title</dd>
-      </dl><dl><dt>
-
-          <code><a href="reproduce_result.html">reproduce_result()</a></code>
-
-        </dt>
-        <dd>This method will reproduce the exact dataset and fit corresponding to the supplied result dataframe row.</dd>
-      </dl><dl><dt>
-
-          <code><a href="rmse.html">rmse()</a></code>
-
-        </dt>
-        <dd>Calculate the root-mean-squared-error for given y and yrep.</dd>
-      </dl><dl><dt>
-
-          <code><a href="rmse_loo.html">rmse_loo()</a></code>
-
-        </dt>
-        <dd>Calculate PSIS-loo rmse for a given brms fit</dd>
-      </dl><dl><dt>
-
-          <code><a href="rmse_test.html">rmse_test()</a></code>
-
-        </dt>
-        <dd>Title</dd>
       </dl></div>
-  </main></div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside></div>
 
 
     <footer><div class="pkgdown-footer-left">
@@ -205,7 +419,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.3.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer></div>
