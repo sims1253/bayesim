@@ -133,6 +133,8 @@ reference:
       Helper functions and utilities
     contents:
       - "%||%"
+      - format_task_id
+      - make_task_id
       - resolve_retention
 
 # Articles organization

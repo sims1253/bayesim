@@ -342,13 +342,17 @@ format_task_id <- function(data_idx, fit_idx, rep_idx) {
 #' @param x A named list, possibly containing nested named numeric vectors
 #' @param prefix Character string to use as prefix for flattened names
 #'
-#' @return A flattened named list where nested elements have names in the
-#'   format "prefix__original_name__sub_name".
+#' @return A flattened named list where nested named numeric vectors are
+#'   expanded. When `prefix` is non-empty, flattened names use
+#'   "prefix__name__sub_name"; when `prefix` is empty (""), they use
+#'   "name__sub_name". Scalar and unnamed elements are passed through unchanged.
 #'
 #' @details
 #' This function handles lists where some elements may be named numeric
 #' vectors. Those vectors are flattened into individual scalar elements
-#' with the naming convention `prefix__vector_name__sub_name`.
+#' with a double-underscore naming convention. The empty-prefix variant
+#' is used internally by checkpointing code where the metric name already
+#' serves as the outer namespace.
 #'
 #' @export
 #' @keywords internal
