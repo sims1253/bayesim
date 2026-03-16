@@ -286,7 +286,7 @@ result <- run_simulation(config, progress = TRUE)
 #> length is not a multiple of shorter object length
 #> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
 #> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Running tasks 51/240 [1.4s]
+#> Running tasks 51/240 [1.5s]
 #> Warning in draws[, slope_param] * x: longer object length is not a multiple of
 #> shorter object length
 #> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
@@ -347,73 +347,7 @@ result <- run_simulation(config, progress = TRUE)
 #> length is not a multiple of shorter object length
 #> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
 #> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Running tasks 101/240 [2s]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
-#> shorter object length
-#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
-#> length is not a multiple of shorter object length
-#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
-#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Running tasks 101/240 [2.2s]
 #> Warning in draws[, slope_param] * x: longer object length is not a multiple of
 #> shorter object length
 #> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
@@ -528,7 +462,73 @@ result <- run_simulation(config, progress = TRUE)
 #> length is not a multiple of shorter object length
 #> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
 #> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Running tasks 240/240 [3.3s]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Warning in draws[, slope_param] * x: longer object length is not a multiple of
+#> shorter object length
+#> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
+#> length is not a multiple of shorter object length
+#> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
+#> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
+#> Running tasks 240/240 [3.5s]
 ```
 
 The progress bar shows completion status and elapsed time. With 240
@@ -551,7 +551,7 @@ print(result)
 #>     - Failed: 0 
 #>     - Skipped: 0 
 #>   Task grid: 240 rows x 6 cols
-#>   Total time: 3.35 s
+#>   Total time: 3.55 s
 ```
 
 ### Summary Tibble
@@ -591,12 +591,12 @@ head(result$summary)
 #> 5              1.161367     1.01      400      350         0             0
 #> 6              1.165993     1.01      400      350         0             0
 #>   timing_total rep_idx data_n data_intercept data_slope data_sigma
-#> 1  0.038484335       1     50              1          2        0.5
-#> 2  0.059901476       2     50              1          2        0.5
-#> 3  0.003878355       3     50              1          2        0.5
-#> 4  0.003783226       4     50              1          2        0.5
-#> 5  0.003839493       5     50              1          2        0.5
-#> 6  0.003783703       6     50              1          2        0.5
+#> 1  0.039872646       1     50              1          2        0.5
+#> 2  0.065809011       2     50              1          2        0.5
+#> 3  0.004417419       3     50              1          2        0.5
+#> 4  0.004241943       4     50              1          2        0.5
+#> 5  0.004124880       5     50              1          2        0.5
+#> 6  0.004016876       6     50              1          2        0.5
 #>           fit_model
 #> 1 linear_regression
 #> 2 linear_regression

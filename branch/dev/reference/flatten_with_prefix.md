@@ -21,14 +21,19 @@ flatten_with_prefix(x, prefix)
 
 ## Value
 
-A flattened named list where nested elements have names in the format
-"prefix\_\_original_name\_\_sub_name".
+A flattened named list where nested named numeric vectors are expanded.
+When `prefix` is non-empty, flattened names use
+"prefix\_\_name\_\_sub_name"; when `prefix` is empty (""), they use
+"name\_\_sub_name". Scalar and unnamed elements are passed through
+unchanged.
 
 ## Details
 
 This function handles lists where some elements may be named numeric
 vectors. Those vectors are flattened into individual scalar elements
-with the naming convention `prefix__vector_name__sub_name`.
+with a double-underscore naming convention. The empty-prefix variant is
+used internally by checkpointing code where the metric name already
+serves as the outer namespace.
 
 ## Examples
 

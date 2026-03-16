@@ -123,5 +123,9 @@ Helper functions and utilities
 
 - [`` `%||%` ``](https://sims1253.github.io/bayesim/reference/null-coalescing.md)
   : Null coalescing operator
+- [`format_task_id()`](https://sims1253.github.io/bayesim/reference/format_task_id.md)
+  **\[deprecated\]** : Format task ID from indices (deprecated)
+- [`make_task_id()`](https://sims1253.github.io/bayesim/reference/make_task_id.md)
+  : Create task ID from indices
 - [`resolve_retention()`](https://sims1253.github.io/bayesim/reference/resolve_retention.md)
   : Resolve retention specification
