@@ -91,10 +91,9 @@ load_for_resume <- function(result_path, config) {
   manifest <- tryCatch(
     jsonlite::read_json(manifest_path),
     error = function(e) {
-      cli::cli_abort(
-        "Cannot read run manifest: {manifest_path}",
-        class = "bayesim_checkpoint_error"
-      )
+      stop(bayesim_checkpoint_error(
+        paste0("Cannot read run manifest: ", manifest_path)
+      ))
     }
   )
 
