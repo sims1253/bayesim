@@ -124,7 +124,7 @@ compute <- S7::new_generic(
 #' @param output The output list to validate.
 #' @param metric_name Character string identifying the metric (for error messages).
 #'
-#' @return Invisible NULL if validation passes. Otherwise, an error is raised.
+#' @return Invisible `output` if validation passes. Otherwise, an error is raised.
 #'
 #' @section Validation Rules:
 #' \itemize{
@@ -159,57 +159,55 @@ compute <- S7::new_generic(
 #'
 #' @export
 validate_metric_output <- function(output, metric_name) {
-  # Check that output is a list
   if (!is.list(output)) {
     stop(
-      sprintf(
-        "Metric '%s' output must be a list, got %s",
-        metric_name,
-        class(output)[1]
-      ),
-      call. = FALSE
+      bayesim_metric_error(
+        sprintf(
+          "Metric '%s' output must be a list, got %s",
+          metric_name,
+          class(output)[1]
+        )
+      )
     )
   }
 
-  # Check for empty output
   if (length(output) == 0) {
     stop(
-      sprintf("Metric '%s' output cannot be empty", metric_name),
-      call. = FALSE
+      bayesim_metric_error(
+        sprintf("Metric '%s' output cannot be empty", metric_name)
+      )
     )
   }
 
-  # Get names and check they are non-empty
   nms <- names(output)
   if (is.null(nms) || any(nms == "" | is.na(nms))) {
     unnamed_idx <- which(is.null(nms) | nms == "" | is.na(nms))
     stop(
-      sprintf(
-        "Metric '%s' output has unnamed or empty-named elements at positions: %s",
-        metric_name,
-        paste(unnamed_idx, collapse = ", ")
-      ),
-      call. = FALSE
+      bayesim_metric_error(
+        sprintf(
+          "Metric '%s' output has unnamed or empty-named elements at positions: %s",
+          metric_name,
+          paste(unnamed_idx, collapse = ", ")
+        )
+      )
     )
   }
 
-  # Check each value
   for (nm in nms) {
     val <- output[[nm]]
 
-    # Check for NULL
     if (is.null(val)) {
       stop(
-        sprintf(
-          "Metric '%s' output element '%s' is NULL (not allowed)",
-          metric_name,
-          nm
-        ),
-        call. = FALSE
+        bayesim_metric_error(
+          sprintf(
+            "Metric '%s' output element '%s' is NULL (not allowed)",
+            metric_name,
+            nm
+          )
+        )
       )
     }
 
-    # Check for allowed types: scalar atomic or named numeric vector
     is_scalar_atomic <- (is.logical(val) ||
       is.integer(val) ||
       is.double(val) ||
@@ -222,7 +220,6 @@ validate_metric_output <- function(output, metric_name) {
       all(names(val) != "" & !is.na(names(val)))
 
     if (!is_scalar_atomic && !is_named_numeric_vector) {
-      # Determine what we got for error message
       if (is.list(val)) {
         type_desc <- "list"
       } else if (is.data.frame(val)) {
@@ -245,24 +242,25 @@ validate_metric_output <- function(output, metric_name) {
       }
 
       stop(
-        sprintf(
-          paste0(
-            "Metric '%s' output element '%s' must be either:\n",
-            "  - a scalar atomic (logical, integer, double, character), or\n",
-            "  - a named numeric vector\n",
-            "Got: %s with length %d"
-          ),
-          metric_name,
-          nm,
-          type_desc,
-          length(val)
-        ),
-        call. = FALSE
+        bayesim_metric_error(
+          sprintf(
+            paste0(
+              "Metric '%s' output element '%s' must be either:\n",
+              "  - a scalar atomic (logical, integer, double, character), or\n",
+              "  - a named numeric vector\n",
+              "Got: %s with length %d"
+            ),
+            metric_name,
+            nm,
+            type_desc,
+            length(val)
+          )
+        )
       )
     }
   }
 
-  invisible(NULL)
+  invisible(output)
 }
 
 #' @title Flatten Metric Output
@@ -303,22 +301,16 @@ validate_metric_output <- function(output, metric_name) {
 #'
 #' @export
 flatten_metric_output <- function(output, metric_name) {
-  # Validate first
   validate_metric_output(output, metric_name)
 
-  # Initialize result
   result <- list()
 
-  # Process each element
   for (nm in names(output)) {
     val <- output[[nm]]
 
-    # Check if scalar or named vector
     if (length(val) == 1) {
-      # Scalar: just prefix with metric name
       result[[paste0(metric_name, "__", nm)]] <- val
     } else {
-      # Named numeric vector: expand with subnames
       for (sub_nm in names(val)) {
         result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
       }

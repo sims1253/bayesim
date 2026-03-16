@@ -15,7 +15,7 @@ verify that methods work correctly end-to-end}
 \item{verbose}{Logical, if TRUE print progress messages during validation}
 }
 \value{
-TRUE if valid, otherwise raises an error with details about what failed
+The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
 }
 \description{
 Validates that a fitter object correctly implements the bayesim Fitter interface.

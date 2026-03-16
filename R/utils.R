@@ -5,6 +5,37 @@
 #' @keywords internal
 NULL
 
+# Operators ----------------------------------------------------------------
+
+#' String concatenation operator
+#'
+#' @param x First string
+#' @param y Second string
+#' @return Concatenated string
+#'
+#' @name string-concat
+#' @export
+#' @keywords internal
+`%+%` <- function(x, y) {
+  paste0(x, y)
+}
+
+#' Null coalescing operator
+#'
+#' Returns `x` if not NULL, otherwise `y`.
+#'
+#' @param x Value to check
+#' @param y Default value if x is NULL
+#' @return `x` if not NULL, otherwise `y`
+#'
+#' @name null-coalescing
+#' @export
+#'
+#' @examples
+#' NULL %||% "default"  # returns "default"
+#' "value" %||% "default"  # returns "value"
+`%||%` <- function(x, y) if (is.null(x)) y else x
+
 # Atomic File Operations --------------------------------------------------
 
 #' Write JSON file atomically
@@ -269,10 +300,13 @@ capture_error_info <- function(e) {
 
 # Task ID Formatting ------------------------------------------------------
 
-#' Format task ID from indices
+#' Format task ID from indices (deprecated)
 #'
-#' Creates a standardized task ID string from data, fit, and replication
-#' indices.
+#' @description
+#' `r lifecycle::badge("deprecated")`
+#'
+#' Use [make_task_id()] instead, which auto-calculates field widths
+#' from the grid dimensions.
 #'
 #' @param data_idx Integer. Data index (1-999)
 #' @param fit_idx Integer. Fit index (1-999)
@@ -281,12 +315,21 @@ capture_error_info <- function(e) {
 #' @return Character string in format "dXXX_fXXX_rXXXXX"
 #'
 #' @export
-#' @keywords internal
 #' @examples
 #' format_task_id(1, 2, 100)
 #' # Returns: "d001_f002_r00100"
 format_task_id <- function(data_idx, fit_idx, rep_idx) {
-  sprintf("d%03d_f%03d_r%05d", data_idx, fit_idx, rep_idx)
+  lifecycle::deprecate_warn(
+    "1.1",
+    "format_task_id()",
+    "make_task_id()"
+  )
+  make_task_id(
+    data_idx,
+    fit_idx,
+    rep_idx,
+    widths = list(data = 3, fit = 3, rep = 5)
+  )
 }
 
 # Flatten Nested List -----------------------------------------------------
@@ -299,13 +342,17 @@ format_task_id <- function(data_idx, fit_idx, rep_idx) {
 #' @param x A named list, possibly containing nested named numeric vectors
 #' @param prefix Character string to use as prefix for flattened names
 #'
-#' @return A flattened named list where nested elements have names in the
-#'   format "prefix__original_name__sub_name".
+#' @return A flattened named list where nested named numeric vectors are
+#'   expanded. When `prefix` is non-empty, flattened names use
+#'   "prefix__name__sub_name"; when `prefix` is empty (""), they use
+#'   "name__sub_name". Scalar and unnamed elements are passed through unchanged.
 #'
 #' @details
 #' This function handles lists where some elements may be named numeric
 #' vectors. Those vectors are flattened into individual scalar elements
-#' with the naming convention `prefix__vector_name__sub_name`.
+#' with a double-underscore naming convention. The empty-prefix variant
+#' is used internally by checkpointing code where the metric name already
+#' serves as the outer namespace.
 #'
 #' @export
 #' @keywords internal
@@ -322,7 +369,11 @@ flatten_with_prefix <- function(x, prefix) {
     if (is.numeric(value) && length(value) > 1 && !is.null(names(value))) {
       # Flatten named numeric vector
       for (sub_name in names(value)) {
-        new_name <- paste0(prefix, "__", name, "__", sub_name)
+        new_name <- if (prefix == "") {
+          paste0(name, "__", sub_name)
+        } else {
+          paste0(prefix, "__", name, "__", sub_name)
+        }
         result[[new_name]] <- value[[sub_name]]
       }
     } else {

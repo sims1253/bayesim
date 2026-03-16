@@ -24,11 +24,5 @@ A BiasMetric object.
 \description{
 Mean bias of predictions.
 
-\code{bias_metric()} is a constructor function that creates a BiasMetric
-instance with appropriate defaults. Use this constructor to work around S7's
-property default inheritance issue.
-}
-\examples{
-bias_metric()
-bias_metric(name = "my_bias")
+Constructor for BiasMetric.
 }

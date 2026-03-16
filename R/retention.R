@@ -14,6 +14,7 @@
 #'
 #' @format Character vector
 #' @keywords internal
+#' @export
 RETAIN_OPTIONS <- c(
   "metrics", # Always retained
   "diagnostics", # Convergence diagnostics
@@ -23,6 +24,12 @@ RETAIN_OPTIONS <- c(
   "data", # Input data
   "warnings" # Warning messages
 )
+
+#' Valid retention contexts
+#'
+#' @format Character vector
+#' @keywords internal
+RETENTION_CONTEXTS <- c("success", "warning", "error")
 
 #' Retention profiles
 #'
@@ -87,6 +94,129 @@ resolve_retention <- function(retain) {
   intersect(retain, RETAIN_OPTIONS)
 }
 
+#' Resolve retention specification to context-specific form
+#'
+#' Converts a retention profile name, character vector, or named list into
+#' a canonical named list with success/warning/error entries.
+#'
+#' @param retain Character vector/profile or named list with retention options
+#'
+#' @return Named list with entries for "success", "warning", and "error" contexts
+#'
+#' @keywords internal
+resolve_retention_spec <- function(retain) {
+  validate_retain_opts <- function(value, label = "retain") {
+    if (
+      is.character(value) &&
+        length(value) == 1 &&
+        value %in% names(RETENTION_PROFILES)
+    ) {
+      return(resolve_retention(value))
+    }
+
+    invalid <- setdiff(value, RETAIN_OPTIONS)
+    if (length(invalid) > 0) {
+      cli::cli_abort("{label} contains invalid options: {invalid}")
+    }
+
+    unique(c("metrics", intersect(value, RETAIN_OPTIONS)))
+  }
+
+  if (is.character(retain)) {
+    opts <- validate_retain_opts(retain)
+    return(list(success = opts, warning = opts, error = opts))
+  }
+
+  if (!is.list(retain)) {
+    cli::cli_abort(
+      paste(
+        "retain must be a character vector/profile or a named list",
+        "with any of success, warning, error"
+      )
+    )
+  }
+
+  if (length(retain) > 0 && is.null(names(retain))) {
+    cli::cli_abort(
+      "retain must be a named list when passed as a list; got unnamed list"
+    )
+  }
+
+  invalid_names <- setdiff(names(retain), RETENTION_CONTEXTS)
+  if (length(invalid_names) > 0) {
+    cli::cli_abort("retain contains invalid contexts: {invalid_names}")
+  }
+
+  base <- if ("success" %in% names(retain)) {
+    retain[["success"]]
+  } else {
+    c("metrics", "diagnostics")
+  }
+
+  success <- validate_retain_opts(base, "retain$success")
+  warning <- validate_retain_opts(
+    retain[["warning"]] %||% base,
+    "retain$warning"
+  )
+  error <- validate_retain_opts(retain[["error"]] %||% base, "retain$error")
+
+  list(success = success, warning = warning, error = error)
+}
+
+#' Validate a resolved retention specification
+#'
+#' @param value A resolved retention spec (named list with context entries)
+#'
+#' @return TRUE if valid, or an error message string
+#'
+#' @keywords internal
+validate_resolved_retention_spec <- function(value) {
+  if (!is.list(value)) {
+    return("retain must resolve to a named list")
+  }
+
+  missing_names <- setdiff(RETENTION_CONTEXTS, names(value))
+  if (length(missing_names) > 0) {
+    return(
+      paste0(
+        "retain is missing contexts: ",
+        paste(missing_names, collapse = ", ")
+      )
+    )
+  }
+
+  invalid_names <- setdiff(names(value), RETENTION_CONTEXTS)
+  if (length(invalid_names) > 0) {
+    return(
+      paste0(
+        "retain contains invalid contexts: ",
+        paste(invalid_names, collapse = ", ")
+      )
+    )
+  }
+
+  for (context in RETENTION_CONTEXTS) {
+    opts <- value[[context]]
+    if (!is.character(opts)) {
+      return(sprintf("retain$%s must be a character vector", context))
+    }
+
+    invalid_opts <- setdiff(opts, RETAIN_OPTIONS)
+    if (length(invalid_opts) > 0) {
+      return(
+        paste0(
+          "retain$",
+          context,
+          " contains invalid options: ",
+          paste(invalid_opts, collapse = ", ")
+        )
+      )
+    }
+  }
+
+  TRUE
+}
+
 #' Resolve retention options for a task result
 #'
 #' @param retain_spec Canonical retention spec list with success/warning/error entries
@@ -131,17 +261,17 @@ retention_for_task_result <- function(
 #' Apply retention policy to fit result
 #'
 #' Removes fields from fit result based on retention policy to reduce
-#' memory footprint. This function modifies the fit_result in place
-#' by setting unwanted fields to NULL.
+#' memory footprint.
 #'
 #' @param fit_result A bayesim_fit_result object
 #' @param retain Character vector of retention options specifying what to keep
+#' @param data_bundle Ignored. Retained for backward compatibility.
 #'
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
 #' @keywords internal
 #' @export
-apply_fit_retention <- function(fit_result, retain) {
+apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   if (!"fit" %in% retain) {
     fit_result$fit <- NULL
   }
@@ -154,11 +284,15 @@ apply_fit_retention <- function(fit_result, retain) {
   if (!"warnings" %in% retain) {
     fit_result$warnings <- character()
   }
+  if (!"data" %in% retain) {
+    fit_result$data_bundle <- NULL
+  }
 
   fit_result
 }
 
-## Task Result Retention -------------------------------------------------------
+## Task Result Retention
+# -----------------------------------------------------------------------
 
 #' Apply retention policy to task result
 #'

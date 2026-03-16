@@ -29,11 +29,5 @@ A CoverageMetric object.
 \description{
 Coverage of true parameter values within credible intervals.
 
-\code{coverage_metric()} is a constructor function that creates a CoverageMetric
-instance with appropriate defaults. Use this constructor to work around S7's
-property default inheritance issue.
-}
-\examples{
-coverage_metric()
-coverage_metric(prob = 0.90)
+Constructor for CoverageMetric.
 }

@@ -164,11 +164,11 @@ describe("Retention profiles", {
 })
 
 # =============================================================================
-# Tests for max_in_memory parameter
+# Tests for chunk_size parameter
 # =============================================================================
 
-describe("simulation_config() max_in_memory parameter", {
-  it("accepts max_in_memory parameter", {
+describe("simulation_config() chunk_size parameter", {
+  it("accepts chunk_size parameter", {
     config <- simulation_config(
       data_grid = data.frame(n = 100),
       fit_grid = data.frame(model = "test"),
@@ -186,13 +186,13 @@ describe("simulation_config() max_in_memory parameter", {
       fitter = NULL,
       n_replicates = 2L,
       seed = 42L,
-      max_in_memory = 10L
+      chunk_size = 10L
     )
 
-    expect_equal(config@max_in_memory, 10L)
+    expect_equal(config@chunk_size, 10L)
   })
 
-  it("defaults max_in_memory to checkpoint_every when not specified", {
+  it("defaults chunk_size to checkpoint_every when not specified", {
     config <- simulation_config(
       data_grid = data.frame(n = 100),
       fit_grid = data.frame(model = "test"),
@@ -213,10 +213,10 @@ describe("simulation_config() max_in_memory parameter", {
       checkpoint_every = 25L
     )
 
-    expect_equal(config@max_in_memory, 25L)
+    expect_equal(config@chunk_size, 25L)
   })
 
-  it("allows max_in_memory different from checkpoint_every", {
+  it("allows chunk_size different from checkpoint_every", {
     config <- simulation_config(
       data_grid = data.frame(n = 100),
       fit_grid = data.frame(model = "test"),
@@ -235,14 +235,14 @@ describe("simulation_config() max_in_memory parameter", {
       n_replicates = 2L,
       seed = 42L,
       checkpoint_every = 50L,
-      max_in_memory = 10L
+      chunk_size = 10L
     )
 
     expect_equal(config@checkpoint_every, 50L)
-    expect_equal(config@max_in_memory, 10L)
+    expect_equal(config@chunk_size, 10L)
   })
 
-  it("validates max_in_memory is positive integer", {
+  it("validates chunk_size is positive integer", {
     expect_error(
       simulation_config(
         data_grid = data.frame(n = 100),
@@ -261,9 +261,9 @@ describe("simulation_config() max_in_memory parameter", {
         fitter = NULL,
         n_replicates = 2L,
         seed = 42L,
-        max_in_memory = 0L
+        chunk_size = 0L
       ),
-      "max_in_memory must be a positive integer"
+      "chunk_size must be a positive integer"
     )
   })
 })

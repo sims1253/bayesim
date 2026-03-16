@@ -104,7 +104,10 @@ run_simulation <- function(
 
   metrics <- config@metrics %||% list()
 
-  cli::cli_alert_info(sprintf("Starting simulation with %d tasks", nrow(task_grid)))
+  cli::cli_alert_info(sprintf(
+    "Starting simulation with %d tasks",
+    nrow(task_grid)
+  ))
 
   # Execute tasks with periodic checkpointing
   results <- execute_tasks(

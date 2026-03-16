@@ -576,7 +576,7 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #'   verify that methods work correctly end-to-end
 #' @param verbose Logical, if TRUE print progress messages during validation
 #'
-#' @return TRUE if valid, otherwise raises an error with details about what failed
+#' @return The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
 #'
 #' @details
 #' The validation performs the following checks:
@@ -972,23 +972,5 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
   }
 
   msg("Validation passed!")
-  invisible(TRUE)
+  invisible(fitter)
 }
-
-
-#' Null coalescing operator
-#'
-#' Returns `x` if not NULL, otherwise `y`.
-#'
-#' @param x Value to check
-#' @param y Default value if x is NULL
-#'
-#' @return `x` if not NULL, otherwise `y`
-#'
-#' @name null-coalescing
-#' @export
-#'
-#' @examples
-#' NULL %||% "default"  # returns "default"
-#' "value" %||% "default"  # returns "value"
-`%||%` <- function(x, y) if (is.null(x)) y else x

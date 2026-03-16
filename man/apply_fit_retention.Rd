@@ -4,19 +4,20 @@
 \alias{apply_fit_retention}
 \title{Apply retention policy to fit result}
 \usage{
-apply_fit_retention(fit_result, retain)
+apply_fit_retention(fit_result, retain, data_bundle = NULL)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object}
 
 \item{retain}{Character vector of retention options specifying what to keep}
+
+\item{data_bundle}{Ignored. Retained for backward compatibility.}
 }
 \value{
 Modified bayesim_fit_result object with non-retained fields removed
 }
 \description{
 Removes fields from fit result based on retention policy to reduce
-memory footprint. This function modifies the fit_result in place
-by setting unwanted fields to NULL.
+memory footprint.
 }
 \keyword{internal}

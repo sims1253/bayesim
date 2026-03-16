@@ -3,66 +3,7 @@
 #' @importFrom S7 class_numeric class_logical
 NULL
 
-# Valid retain options
-VALID_RETAIN_OPTIONS <- c(
-  "metrics",
-  "diagnostics",
-  "draws",
-  "predictions",
-  "fit",
-  "data",
-  "warnings"
-)
-
-VALID_RETENTION_CONTEXTS <- c("success", "warning", "error")
-VALID_CHECKPOINT_FORMATS <- c("rds", "parquet")
-
-validate_resolved_retention_spec <- function(value) {
-  if (!is.list(value)) {
-    return("retain must resolve to a named list")
-  }
-
-  missing_names <- setdiff(VALID_RETENTION_CONTEXTS, names(value))
-  if (length(missing_names) > 0) {
-    return(
-      paste0(
-        "retain is missing contexts: ",
-        paste(missing_names, collapse = ", ")
-      )
-    )
-  }
-
-  invalid_names <- setdiff(names(value), VALID_RETENTION_CONTEXTS)
-  if (length(invalid_names) > 0) {
-    return(
-      paste0(
-        "retain contains invalid contexts: ",
-        paste(invalid_names, collapse = ", ")
-      )
-    )
-  }
-
-  for (context in VALID_RETENTION_CONTEXTS) {
-    opts <- value[[context]]
-    if (!is.character(opts)) {
-      return(sprintf("retain$%s must be a character vector", context))
-    }
-
-    invalid_opts <- setdiff(opts, VALID_RETAIN_OPTIONS)
-    if (length(invalid_opts) > 0) {
-      return(
-        paste0(
-          "retain$",
-          context,
-          " contains invalid options: ",
-          paste(invalid_opts, collapse = ", ")
-        )
-      )
-    }
-  }
-
-  TRUE
-}
+VALID_CHECKPOINT_FORMATS <- c("rds")
 
 # S7 class definition for SimulationConfig
 SimulationConfig <- S7::new_class(
@@ -172,14 +113,6 @@ SimulationConfig <- S7::new_class(
         }
       }
     ),
-    max_in_memory = S7::new_property(
-      class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "max_in_memory must be a positive integer"
-        }
-      }
-    ),
     retain = S7::new_property(
       class = S7::class_list,
       validator = function(value) {
@@ -259,10 +192,10 @@ simulation_config <- function(
   n_replicates = 1L,
   seed,
   result_path = NULL,
-  checkpoint_format = c("rds", "parquet"),
+  checkpoint_format = c("rds"),
   checkpoint_every = 50L,
   chunk_size = NULL,
-  max_in_memory = NULL,
+  max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
   max_errors = Inf
 ) {
@@ -366,17 +299,20 @@ simulation_config <- function(
     cli::cli_abort("checkpoint_every must be a positive integer >= 1")
   }
 
-  provided_max_in_memory <- !is.null(max_in_memory)
-
-  if (!is.null(chunk_size) && !is.null(max_in_memory)) {
+  if (!is.null(chunk_size) && lifecycle::is_present(max_in_memory)) {
     cli::cli_abort("Use either chunk_size or max_in_memory, not both")
   }
 
   if (is.null(chunk_size)) {
-    chunk_size <- max_in_memory
-  }
-  if (is.null(chunk_size)) {
     chunk_size <- checkpoint_every
+  }
+  if (lifecycle::is_present(max_in_memory)) {
+    lifecycle::deprecate_warn(
+      "1.1",
+      "simulation_config(max_in_memory)",
+      "simulation_config(chunk_size)"
+    )
+    chunk_size <- max_in_memory
   }
 
   chunk_size <- as.integer(chunk_size)
@@ -385,13 +321,7 @@ simulation_config <- function(
       is.na(chunk_size) ||
       chunk_size < 1
   ) {
-    cli::cli_abort(
-      if (provided_max_in_memory) {
-        "max_in_memory must be a positive integer >= 1"
-      } else {
-        "chunk_size must be a positive integer >= 1"
-      }
-    )
+    cli::cli_abort("chunk_size must be a positive integer >= 1")
   }
 
   retain <- resolve_retention_spec(retain)
@@ -418,7 +348,6 @@ simulation_config <- function(
     checkpoint_every = checkpoint_every,
     checkpoint_format = checkpoint_format,
     chunk_size = chunk_size,
-    max_in_memory = chunk_size,
     retain = retain,
     max_errors = max_errors
   )
@@ -435,6 +364,7 @@ simulation_config <- function(
 #' @return A list of Metric objects, or NULL if input was NULL.
 #'
 #' @keywords internal
+#' @export
 resolve_metrics <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -522,6 +452,7 @@ as_config_spec <- function(config) {
 #' @return A character string representing the function signature.
 #'
 #' @keywords internal
+#' @export
 capture_function_signature <- function(fn) {
   if (!is.function(fn)) {
     return(NA_character_)
@@ -587,6 +518,7 @@ capture_function_signature <- function(fn) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
+#' @export
 capture_fitter_spec <- function(fitter) {
   if (is.null(fitter)) {
     return(NA)
@@ -616,6 +548,7 @@ capture_fitter_spec <- function(fitter) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
+#' @export
 capture_metrics_spec <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -759,58 +692,6 @@ get_total_tasks <- function(config) {
   }
 
   nrow(config@data_grid) * nrow(config@fit_grid) * config@n_replicates
-}
-
-resolve_retention_spec <- function(retain) {
-  validate_retention_value <- function(value, label = "retain") {
-    if (
-      is.character(value) &&
-        length(value) == 1 &&
-        value %in% names(RETENTION_PROFILES)
-    ) {
-      return(resolve_retention(value))
-    }
-
-    invalid <- setdiff(value, VALID_RETAIN_OPTIONS)
-    if (length(invalid) > 0) {
-      cli::cli_abort("{label} contains invalid options: {invalid}")
-    }
-
-    unique(c("metrics", intersect(value, VALID_RETAIN_OPTIONS)))
-  }
-
-  if (is.character(retain)) {
-    opts <- validate_retention_value(retain)
-    return(list(success = opts, warning = opts, error = opts))
-  }
-
-  if (!is.list(retain)) {
-    cli::cli_abort(
-      paste(
-        "retain must be a character vector/profile or a named list with any of success, warning, error"
-      )
-    )
-  }
-
-  invalid_names <- setdiff(names(retain), VALID_RETENTION_CONTEXTS)
-  if (length(invalid_names) > 0) {
-    cli::cli_abort("retain contains invalid contexts: {invalid_names}")
-  }
-
-  base <- if ("success" %in% names(retain)) {
-    retain[["success"]]
-  } else {
-    c("metrics", "diagnostics")
-  }
-
-  success <- validate_retention_value(base, "retain$success")
-  warning <- validate_retention_value(
-    retain[["warning"]] %||% base,
-    "retain$warning"
-  )
-  error <- validate_retention_value(retain[["error"]] %||% base, "retain$error")
-
-  list(success = success, warning = warning, error = error)
 }
 
 namespaced_object_version <- function(class_name) {

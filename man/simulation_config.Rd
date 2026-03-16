@@ -14,10 +14,10 @@ simulation_config(
   n_replicates = 1L,
   seed,
   result_path = NULL,
-  checkpoint_format = c("rds", "parquet"),
+  checkpoint_format = c("rds"),
   checkpoint_every = 50L,
   chunk_size = NULL,
-  max_in_memory = NULL,
+  max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
   max_errors = Inf
 )

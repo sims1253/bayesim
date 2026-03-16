@@ -33,51 +33,49 @@ is_bayesim_fit_result <- function(x) {
 #' invalid timing, missing draws colnames, etc.).
 #'
 #' @keywords internal
+#' @export
 validate_bayesim_fit_result <- function(x) {
   if (!is_bayesim_fit_result(x)) {
-    stop("Object must have class 'bayesim_fit_result'", call. = FALSE)
+    stop(bayesim_contract_error("Object must have class 'bayesim_fit_result'"))
   }
 
-  # Check success/error consistency
   if (isTRUE(x$success)) {
     if (!is.null(x$error)) {
-      stop("When success is TRUE, error must be NULL", call. = FALSE)
+      stop(bayesim_contract_error("When success is TRUE, error must be NULL"))
     }
   } else {
     if (is.null(x$error)) {
-      stop("When success is FALSE, error must be non-NULL", call. = FALSE)
+      stop(bayesim_contract_error(
+        "When success is FALSE, error must be non-NULL"
+      ))
     }
   }
 
-  # Validate timing
   if (!is.list(x$timing)) {
-    stop("timing must be a list", call. = FALSE)
+    stop(bayesim_contract_error("timing must be a list"))
   }
   if (!is.numeric(x$timing$total) || length(x$timing$total) != 1) {
-    stop("timing$total must be a scalar numeric", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be a scalar numeric"))
   }
   if (x$timing$total < 0) {
-    stop("timing$total must be >= 0", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be >= 0"))
   }
 
-  # Validate draws if present
   if (!is.null(x$draws)) {
     if (!is.matrix(x$draws)) {
-      stop("draws must be a matrix when not NULL", call. = FALSE)
+      stop(bayesim_contract_error("draws must be a matrix when not NULL"))
     }
     if (is.null(colnames(x$draws))) {
-      stop("draws matrix must have colnames", call. = FALSE)
+      stop(bayesim_contract_error("draws matrix must have colnames"))
     }
   }
 
-  # Validate warnings
   if (!is.character(x$warnings)) {
-    stop("warnings must be a character vector", call. = FALSE)
+    stop(bayesim_contract_error("warnings must be a character vector"))
   }
 
-  # Validate diagnostics
   if (!is.list(x$diagnostics)) {
-    stop("diagnostics must be a list", call. = FALSE)
+    stop(bayesim_contract_error("diagnostics must be a list"))
   }
 
   invisible(x)
@@ -207,55 +205,54 @@ is_bayesim_task_result <- function(x) {
 #' missing metrics for successful tasks, missing error for failed tasks, etc.).
 #'
 #' @keywords internal
+#' @export
 validate_bayesim_task_result <- function(x) {
   if (!is_bayesim_task_result(x)) {
-    stop("Object must have class 'bayesim_task_result'", call. = FALSE)
+    stop(bayesim_contract_error("Object must have class 'bayesim_task_result'"))
   }
 
-  # Validate task_id
   if (!is.character(x$task_id) || length(x$task_id) != 1) {
-    stop("task_id must be a scalar character", call. = FALSE)
+    stop(bayesim_contract_error("task_id must be a scalar character"))
   }
 
-  # Validate status
   valid_statuses <- c("success", "failed", "skipped")
   if (!is.character(x$status) || length(x$status) != 1) {
-    stop("status must be a scalar character", call. = FALSE)
+    stop(bayesim_contract_error("status must be a scalar character"))
   }
   if (!(x$status %in% valid_statuses)) {
-    stop(
+    stop(bayesim_contract_error(
       "status must be one of: ",
-      paste(valid_statuses, collapse = ", "),
-      call. = FALSE
-    )
+      paste(valid_statuses, collapse = ", ")
+    ))
   }
 
-  # Validate status/consistency with metrics and error
   if (x$status == "success") {
     if (is.null(x$metrics)) {
-      stop("When status is 'success', metrics must not be NULL", call. = FALSE)
+      stop(bayesim_contract_error(
+        "When status is 'success', metrics must not be NULL"
+      ))
     }
   }
   if (x$status == "failed") {
     if (is.null(x$error)) {
-      stop("When status is 'failed', error must not be NULL", call. = FALSE)
+      stop(bayesim_contract_error(
+        "When status is 'failed', error must not be NULL"
+      ))
     }
   }
 
-  # Validate timing
   if (!is.list(x$timing)) {
-    stop("timing must be a list", call. = FALSE)
+    stop(bayesim_contract_error("timing must be a list"))
   }
   if (!is.numeric(x$timing$total) || length(x$timing$total) != 1) {
-    stop("timing$total must be a scalar numeric", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be a scalar numeric"))
   }
   if (x$timing$total < 0) {
-    stop("timing$total must be >= 0", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be >= 0"))
   }
 
-  # Validate warnings
   if (!is.character(x$warnings)) {
-    stop("warnings must be a character vector", call. = FALSE)
+    stop(bayesim_contract_error("warnings must be a character vector"))
   }
 
   invisible(x)
@@ -370,63 +367,67 @@ is_bayesim_simulation_result <- function(x) {
 #' invalid task_results elements, non-data.frame summary/errors, etc.).
 #'
 #' @keywords internal
+#' @export
 validate_bayesim_simulation_result <- function(x) {
   if (!is_bayesim_simulation_result(x)) {
-    stop("Object must have class 'bayesim_simulation_result'", call. = FALSE)
+    stop(bayesim_contract_error(
+      "Object must have class 'bayesim_simulation_result'"
+    ))
   }
 
-  # Validate config_fingerprint
   if (
     !is.character(x$config_fingerprint) || length(x$config_fingerprint) != 1
   ) {
-    stop("config_fingerprint must be a scalar character", call. = FALSE)
+    stop(bayesim_contract_error(
+      "config_fingerprint must be a scalar character"
+    ))
   }
 
-  # Validate task_results is a list of bayesim_task_result
   if (!is.list(x$task_results)) {
-    stop("task_results must be a list", call. = FALSE)
+    stop(bayesim_contract_error("task_results must be a list"))
   }
   for (i in seq_along(x$task_results)) {
     if (!is_bayesim_task_result(x$task_results[[i]])) {
-      stop(
-        "All elements of task_results must be bayesim_task_result objects",
-        call. = FALSE
-      )
+      stop(bayesim_contract_error(
+        "All elements of task_results must be bayesim_task_result objects"
+      ))
     }
   }
 
-  # Validate task_grid is a tibble/data.frame if present
   if (!is.null(x$task_grid)) {
     if (!is.data.frame(x$task_grid)) {
-      stop("task_grid must be NULL or a data.frame/tibble", call. = FALSE)
+      stop(bayesim_contract_error(
+        "task_grid must be NULL or a data.frame/tibble"
+      ))
     }
   }
 
-  # Validate summary is a tibble/data.frame
   if (!is.data.frame(x$summary)) {
-    stop("summary must be a data.frame or tibble", call. = FALSE)
+    stop(bayesim_contract_error("summary must be a data.frame or tibble"))
   }
 
-  # Validate timing
   if (!is.list(x$timing)) {
-    stop("timing must be a list", call. = FALSE)
+    stop(bayesim_contract_error("timing must be a list"))
   }
   if (!is.numeric(x$timing$total) || length(x$timing$total) != 1) {
-    stop("timing$total must be a scalar numeric", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be a scalar numeric"))
   }
   if (x$timing$total < 0) {
-    stop("timing$total must be >= 0", call. = FALSE)
+    stop(bayesim_contract_error("timing$total must be >= 0"))
   }
 
-  # Validate errors is a tibble/data.frame
   if (!is.data.frame(x$errors)) {
-    stop("errors must be a data.frame or tibble", call. = FALSE)
+    stop(bayesim_contract_error("errors must be a data.frame or tibble"))
   }
 
-  # Validate checkpoint_path
   if (!is.null(x$checkpoint_path)) {
-    if (!is.character(x$checkpoint_path) || length(x$checkpoint_path) != 1) {
-      stop("checkpoint_path must be NULL or a scalar character", call. = FALSE)
+    if (
+      !is.character(x$checkpoint_path) ||
+        length(x$checkpoint_path) != 1
+    ) {
+      stop(bayesim_contract_error(
+        "checkpoint_path must be NULL or a scalar character"
+      ))
     }
   }
 

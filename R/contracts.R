@@ -67,7 +67,6 @@ NULL
 #' )
 #' validate_data_bundle(data_bundle)
 validate_data_bundle <- function(data_bundle) {
-  # Check that data_bundle is a list
   if (!is.list(data_bundle)) {
     stop(
       bayesim_data_error(
@@ -76,15 +75,19 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  # Validate train
   if (is.null(data_bundle$train)) {
     stop(bayesim_data_error("data_bundle$train is required and cannot be NULL"))
   }
-  if (is.data.frame(data_bundle$train) && nrow(data_bundle$train) < 1) {
+  if (!is.data.frame(data_bundle$train) && !is.matrix(data_bundle$train)) {
+    stop(bayesim_data_error(
+      "data_bundle$train must be a data.frame or matrix, got " %+%
+        class(data_bundle$train)[1]
+    ))
+  }
+  if (nrow(data_bundle$train) < 1) {
     stop(bayesim_data_error("data_bundle$train must have at least 1 row"))
   }
 
-  # Validate test
   if (!is.null(data_bundle$test)) {
     if (
       !is.data.frame(data_bundle$test) &&
@@ -97,7 +100,7 @@ validate_data_bundle <- function(data_bundle) {
     }
   }
 
-  # Validate response (optional fitter-specific hint)
+  # response is optional - only validated when present
   if (!is.null(data_bundle$response) && !is.character(data_bundle$response)) {
     stop(
       bayesim_data_error(
@@ -149,7 +152,6 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  # Validate true_params
   if (is.null(data_bundle$true_params)) {
     stop(bayesim_data_error(
       "data_bundle$true_params is required and cannot be NULL"
@@ -178,7 +180,6 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  # Validate vars_of_interest
   if (is.null(data_bundle$vars_of_interest)) {
     stop(bayesim_data_error(
       "data_bundle$vars_of_interest is required and cannot be NULL"
@@ -240,7 +241,7 @@ validate_data_bundle <- function(data_bundle) {
     stop(bayesim_data_error(msg))
   }
 
-  # Validate references (optional)
+  # Optional: validate references
   if (!is.null(data_bundle$references)) {
     if (!is.numeric(data_bundle$references)) {
       stop(
@@ -293,7 +294,7 @@ validate_data_bundle <- function(data_bundle) {
     }
   }
 
-  # Validate meta (optional)
+  # Optional: validate meta is a named list of scalars
   if (!is.null(data_bundle$meta)) {
     if (!is.list(data_bundle$meta)) {
       stop(
@@ -403,11 +404,12 @@ validate_fit_result_interface <- function(fit_result) {
 # Fitter Interface Validation
 # =============================================================================
 
-#' Validate Fitter Interface
+#' Validate Fitter Class Hierarchy
 #'
-#' Validates that a fitter object conforms to the Fitter S7 class interface.
-#' The fitter must be an S7 object that inherits from the Fitter class and
-#' implements all required methods.
+#' Validates that a fitter object is an S7 instance of the Fitter class.
+#' This is a lightweight class-hierarchy check used internally by
+#' [validate_simulation_config()]. For full interface validation including
+#' method existence and optional smoke testing, use [validate_fitter()].
 #'
 #' @param fitter An S7 object to validate as a Fitter.
 #'
@@ -418,16 +420,12 @@ validate_fit_result_interface <- function(fit_result) {
 #' \itemize{
 #'   \item Must be an S7 object (checked via S7::S7_inherits())
 #'   \item Must inherit from the "Fitter" class
-#'   \item Must implement the following methods:
-#'     \itemize{
-#'       \item `fit(data_bundle, fit_spec, seed, task_ctx)`
-#'       \item `extract_draws(fit_result, variables = NULL)`
-#'       \item `predict(fit_result, newdata = NULL, seed = NULL)`
-#'       \item `log_lik(fit_result, newdata = NULL)`
-#'       \item `loo(fit_result)`
-#'       \item `diagnostics(fit_result)`
-#'     }
 #' }
+#'
+#' Method existence is not checked here because S7 methods are dispatched
+#' via generics, not stored as properties. The Fitter base class uses
+#' S7::stop_method_not_implemented() for abstract methods, so subclasses
+#' that don't override will raise errors when methods are called.
 #'
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
@@ -435,14 +433,13 @@ validate_fit_result_interface <- function(fit_result) {
 #' @keywords internal
 #' @export
 #'
-#' @seealso [Fitter], [MockFitter]
+#' @seealso [Fitter], [validate_fitter()]
 #'
 #' @examples
 #' # Validate the mock fitter
 #' mock_fitter <- MockFitter()
-#' validate_fitter_interface(mock_fitter)
-validate_fitter_interface <- function(fitter) {
-  # Check that fitter is an S7 object
+#' check_fitter_class(mock_fitter)
+check_fitter_class <- function(fitter) {
   if (!S7::S7_inherits(fitter)) {
     stop(
       bayesim_contract_error(
@@ -451,7 +448,6 @@ validate_fitter_interface <- function(fitter) {
     )
   }
 
-  # Check that fitter inherits from Fitter
   if (!S7::S7_inherits(fitter, Fitter)) {
     stop(
       bayesim_contract_error(
@@ -461,36 +457,28 @@ validate_fitter_interface <- function(fitter) {
     )
   }
 
-  # Note: We do NOT check for method existence here because S7 methods are
-  # dispatched via generics, not stored as properties. The Fitter base class
-  # uses S7::stop_method_not_implemented() for abstract methods, so subclasses
-  # that don't override will get appropriate errors when methods are called.
-
   invisible(fitter)
 }
+
+#' @rdname check_fitter_class
+#' @export
+validate_fitter_interface <- check_fitter_class
 
 # =============================================================================
 # Metric Interface Validation
 # =============================================================================
 
-#' Validate Metric Interface
+#' Validate Metric Class and Name Property
 #'
-#' Validates that a metric object conforms to the Metric S7 class interface.
-#' The metric must be an S7 object that inherits from the Metric class and
-#' implements the compute method.
+#' Validates that a metric object is an S7 instance of the Metric class
+#' with a valid `name` property. This is a lightweight check used internally
+#' by [validate_simulation_config()]. Method existence is not checked because
+#' S7 dispatches via generics and the base class raises errors for unimplemented
+#' abstract methods.
 #'
 #' @param metric An S7 object to validate as a Metric.
 #'
 #' @return The input `metric`, invisibly, if validation passes.
-#'
-#' @details
-#' The metric must satisfy the following requirements:
-#' \itemize{
-#'   \item Must be an S7 object (checked via S7::S7_inherits())
-#'   \item Must inherit from the "Metric" class
-#'   \item Must implement the `compute(fit_result, data_bundle, context, task_ctx)` method
-#'   \item Must have a `name` property that is a non-empty character string
-#' }
 #'
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
@@ -499,26 +487,7 @@ validate_fitter_interface <- function(fitter) {
 #' @export
 #'
 #' @seealso [Metric], [validate_metric_output()]
-#'
-#' @examples
-#' \dontrun{
-#' # Create a custom metric using proper S7 syntax
-#' MyMetric <- S7::new_class(
-#'   "MyMetric",
-#'   parent = Metric,
-#'   properties = list(
-#'     name = S7::new_property(S7::class_character, default = "my_metric")
-#'   )
-#' )
-#' # Register the compute method separately
-#' S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-#'   list(value = 1.0)
-#' }
-#' my_metric <- MyMetric(name = "my_metric")
-#' validate_metric_interface(my_metric)
-#' }
 validate_metric_interface <- function(metric) {
-  # Check that metric is an S7 object
   if (!S7::S7_inherits(metric)) {
     stop(
       bayesim_contract_error(
@@ -527,7 +496,6 @@ validate_metric_interface <- function(metric) {
     )
   }
 
-  # Check that metric inherits from Metric
   if (!S7::S7_inherits(metric, Metric)) {
     stop(
       bayesim_contract_error(
@@ -537,12 +505,6 @@ validate_metric_interface <- function(metric) {
     )
   }
 
-  # Note: We do NOT check for compute method existence here because S7 methods
-  # are dispatched via generics, not stored as properties. The Metric base class
-  # uses S7::stop_method_not_implemented() for abstract methods, so subclasses
-  # that don't override will get appropriate errors when methods are called.
-
-  # Check that name property is valid
   metric_name <- tryCatch(
     {
       metric@name
@@ -620,7 +582,6 @@ validate_metric_interface <- function(metric) {
 #' validate_simulation_config(config)
 #' }
 validate_simulation_config <- function(config) {
-  # Check that config is a SimulationConfig
   if (!is_simulation_config(config)) {
     stop(
       bayesim_config_error(
@@ -629,7 +590,7 @@ validate_simulation_config <- function(config) {
     )
   }
 
-  # Validate fitter (required)
+  # Fitter is required for simulation
   if (is.null(config@fitter)) {
     stop(
       bayesim_config_error(
@@ -651,7 +612,7 @@ validate_simulation_config <- function(config) {
     }
   )
 
-  # Validate metrics (if present)
+  # Each metric must pass class/name validation
   if (!is.null(config@metrics) && length(config@metrics) > 0) {
     for (i in seq_along(config@metrics)) {
       metric <- config@metrics[[i]]
@@ -680,7 +641,7 @@ validate_simulation_config <- function(config) {
     }
   }
 
-  # Validate data_generator signature
+  # data_generator must be a function with at least 3 args
   if (is.null(config@data_generator)) {
     stop(
       bayesim_config_error(
@@ -726,7 +687,6 @@ validate_simulation_config <- function(config) {
     )
   }
 
-  # Validate n_replicates
   if (
     is.null(config@n_replicates) ||
       length(config@n_replicates) != 1 ||
@@ -740,7 +700,6 @@ validate_simulation_config <- function(config) {
     )
   }
 
-  # Validate seed
   if (is.null(config@seed) || length(config@seed) != 1 || is.na(config@seed)) {
     stop(
       bayesim_config_error(
@@ -755,13 +714,3 @@ validate_simulation_config <- function(config) {
 # =============================================================================
 # Helper Functions
 # =============================================================================
-
-#' String concatenation operator
-#'
-#' @param x First string
-#' @param y Second string
-#' @return Concatenated string
-#' @keywords internal
-`%+%` <- function(x, y) {
-  paste0(x, y)
-}

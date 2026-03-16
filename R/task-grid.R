@@ -1,4 +1,5 @@
 #' @keywords internal
+#' @importFrom parallel nextRNGStream
 NULL
 
 #' Create Task RNG Streams
@@ -14,6 +15,9 @@ NULL
 #'   representing the `.Random.seed` state for that task.
 #'
 #' @keywords internal
+#' @export
+#'
+#' @note This function is exported for advanced/internal use.
 create_task_rng_streams <- function(global_seed, n_tasks) {
   # Store current RNG state to restore later
   old_kind <- RNGkind()[1]
@@ -56,6 +60,15 @@ task_id_widths <- function(data_idx, fit_idx, rep_idx) {
   )
 }
 
+#' Create task ID from indices
+#'
+#' @param data_idx Integer. Data index.
+#' @param fit_idx Integer. Fit index.
+#' @param rep_idx Integer. Replication index.
+#' @param widths Optional list with data, fit, rep widths. Auto-computed if NULL.
+#'
+#' @return Character string task ID.
+#' @export
 make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
   if (is.null(widths)) {
     widths <- task_id_widths(data_idx, fit_idx, rep_idx)

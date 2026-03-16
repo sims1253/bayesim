@@ -1389,7 +1389,7 @@ describe("SimulationConfig", {
           checkpoint_format = "csv",
           seed = 42L
         ),
-        "should be one of"
+        "'arg' should be \"rds\""
       )
     })
 

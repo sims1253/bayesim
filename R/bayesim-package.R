@@ -7,7 +7,7 @@
 #' @keywords internal
 #' @import rlang
 #' @importFrom cli cli_abort cli_warn cli_inform
-#' @importFrom lifecycle deprecated
+#' @importFrom lifecycle deprecated deprecate_warn
 #' @seealso [simulation_config()], [run_simulation()], [resume_simulation()],
 #'   [Fitter], [Metric]
 "_PACKAGE"
@@ -27,7 +27,7 @@ NULL
 #' that breaks backward compatibility.
 #'
 #' @keywords internal
-RUN_SCHEMA_VERSION <- "1.0.0"
+RUN_SCHEMA_VERSION <- 1L
 
 #' Result Schema Version
 #'
@@ -35,4 +35,4 @@ RUN_SCHEMA_VERSION <- "1.0.0"
 #' Increment this when result column names or types change.
 #'
 #' @keywords internal
-RESULT_SCHEMA_VERSION <- "1.0.0"
+RESULT_SCHEMA_VERSION <- 1L

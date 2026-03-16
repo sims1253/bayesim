@@ -12,8 +12,10 @@ flatten_with_prefix(x, prefix)
 \item{prefix}{Character string to use as prefix for flattened names}
 }
 \value{
-A flattened named list where nested elements have names in the
-format "prefix__original_name__sub_name".
+A flattened named list where nested named numeric vectors are
+expanded. When \code{prefix} is non-empty, flattened names use
+"prefix__name__sub_name"; when \code{prefix} is empty (""), they use
+"name__sub_name". Scalar and unnamed elements are passed through unchanged.
 }
 \description{
 Flattens a named list with nested named numeric vectors, using a
@@ -22,7 +24,9 @@ prefix__name__subname naming convention for the flattened elements.
 \details{
 This function handles lists where some elements may be named numeric
 vectors. Those vectors are flattened into individual scalar elements
-with the naming convention \code{prefix__vector_name__sub_name}.
+with a double-underscore naming convention. The empty-prefix variant
+is used internally by checkpointing code where the metric name already
+serves as the outer namespace.
 }
 \examples{
 x <- list(a = 1, b = c(x = 2, y = 3), c = 4)

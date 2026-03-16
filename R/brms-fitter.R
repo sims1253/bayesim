@@ -1,5 +1,6 @@
 #' @title Brms Fitter
-#' @description Fitter implementation for brms models.
+#' @description Fitter implementation for brms models. Extends the abstract Fitter class
+#'   with brms-specific configuration properties.
 #'
 #' @param name Character string identifying the fitter (inherited from Fitter)
 #' @param supports_predictions Logical indicating if predictions are supported (inherited)
