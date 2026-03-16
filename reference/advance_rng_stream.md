@@ -1,7 +1,6 @@
 # Advance RNG stream
 
-Advances the RNG state by n steps without returning random values.
-Useful for skipping ahead in a stream.
+Advances the RNG state by n steps and returns the new state.
 
 ## Usage
 
@@ -25,14 +24,12 @@ Advanced RNG state (integer vector)
 
 ## Details
 
-This is a **pure function** with no side effects:
-
-- It does NOT modify `.Random.seed` in the global environment
-
-- It creates a local copy of the RNG state, advances it, and returns the
-  new state
-
-- The caller is responsible for setting the returned state if needed
+This function temporarily sets `.Random.seed` in `.GlobalEnv` to advance
+the stream, then returns the new state. It does NOT permanently modify
+the global `.Random.seed` (unless it did not exist before, in which case
+it is removed after use). The caller is responsible for applying the
+returned state if needed (e.g., via
+[`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)).
 
 ## Examples
 

@@ -55,11 +55,8 @@ capabilities, and memory-bounded execution.
 
 - Complete rewrite of the simulation execution path
 - New S7-based interface for custom fitters and metrics
-- Old
-  [`full_simulation()`](https://sims1253.github.io/bayesim/reference/full_simulation.md),
-  [`dataset_sim()`](https://sims1253.github.io/bayesim/reference/dataset_sim.md),
-  [`fit_sim()`](https://sims1253.github.io/bayesim/reference/fit_sim.md)
-  functions are deprecated
+- Old `full_simulation()`, `dataset_sim()`, `fit_sim()` functions are
+  deprecated
 
 ### New Features
 
@@ -92,7 +89,7 @@ capabilities, and memory-bounded execution.
 
 - [`validate_data_bundle()`](https://sims1253.github.io/bayesim/reference/validate_data_bundle.md)
   for data generator output validation
-- [`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/validate_fitter_interface.md)
+- [`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/check_fitter_class.md)
   for fitter contract validation
 - [`validate_metric_interface()`](https://sims1253.github.io/bayesim/reference/validate_metric_interface.md)
   for metric contract validation
@@ -154,8 +151,7 @@ capabilities, and memory-bounded execution.
   precomputes context (predictions, log_lik, loo)
 - [`compute_all_metrics()`](https://sims1253.github.io/bayesim/reference/compute_all_metrics.md)
   with required vs optional metric handling
-- [`apply_retention()`](https://sims1253.github.io/bayesim/reference/apply_retention.md)
-  removes large objects based on retention policy
+- `apply_retention()` removes large objects based on retention policy
 
 #### Metric Registry
 

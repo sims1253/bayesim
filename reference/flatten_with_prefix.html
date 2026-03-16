@@ -71,14 +71,18 @@ prefix__name__subname naming convention for the flattened elements.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A flattened named list where nested elements have names in the
-format "prefix__original_name__sub_name".</p>
+    <p>A flattened named list where nested named numeric vectors are
+expanded. When <code>prefix</code> is non-empty, flattened names use
+"prefix__name__sub_name"; when <code>prefix</code> is empty (""), they use
+"name__sub_name". Scalar and unnamed elements are passed through unchanged.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>This function handles lists where some elements may be named numeric
 vectors. Those vectors are flattened into individual scalar elements
-with the naming convention <code>prefix__vector_name__sub_name</code>.</p>
+with a double-underscore naming convention. The empty-prefix variant
+is used internally by checkpointing code where the metric name already
+serves as the outer namespace.</p>
     </div>
 
     <div class="section level2">

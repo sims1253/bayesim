@@ -2,9 +2,7 @@
 
 Posterior mean estimates for parameters.
 
-`posterior_mean_metric()` is a constructor function that creates a
-PosteriorMeanMetric instance with appropriate defaults. Use this
-constructor to work around S7's property default inheritance issue.
+Constructor for PosteriorMeanMetric.
 
 ## Usage
 
@@ -37,18 +35,3 @@ posterior_mean_metric(name = "posterior_mean")
 ## Value
 
 A PosteriorMeanMetric object.
-
-## Examples
-
-``` r
-posterior_mean_metric()
-#> <bayesim::PosteriorMeanMetric>
-#>  @ name    : chr "posterior_mean"
-#>  @ needs   : chr(0) 
-#>  @ required: logi FALSE
-posterior_mean_metric(name = "my_posterior_mean")
-#> <bayesim::PosteriorMeanMetric>
-#>  @ name    : chr "my_posterior_mean"
-#>  @ needs   : chr(0) 
-#>  @ required: logi FALSE
-```

@@ -1,13 +1,12 @@
 # Apply retention policy to fit result
 
 Removes fields from fit result based on retention policy to reduce
-memory footprint. This function modifies the fit_result in place by
-setting unwanted fields to NULL.
+memory footprint.
 
 ## Usage
 
 ``` r
-apply_fit_retention(fit_result, retain)
+apply_fit_retention(fit_result, retain, data_bundle = NULL)
 ```
 
 ## Arguments
@@ -19,6 +18,10 @@ apply_fit_retention(fit_result, retain)
 - retain:
 
   Character vector of retention options specifying what to keep
+
+- data_bundle:
+
+  Ignored. Retained for backward compatibility.
 
 ## Value
 

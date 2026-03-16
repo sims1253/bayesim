@@ -1,7 +1,10 @@
-# Format task ID from indices
+# Format task ID from indices (deprecated)
 
-Creates a standardized task ID string from data, fit, and replication
-indices.
+**\[deprecated\]**
+
+Use
+[`make_task_id()`](https://sims1253.github.io/bayesim/reference/make_task_id.md)
+instead, which auto-calculates field widths from the grid dimensions.
 
 ## Usage
 
@@ -31,6 +34,8 @@ Character string in format "dXXX_fXXX_rXXXXX"
 
 ``` r
 format_task_id(1, 2, 100)
+#> Warning: `format_task_id()` was deprecated in bayesim 1.1.
+#> ℹ Please use `make_task_id()` instead.
 #> [1] "d001_f002_r00100"
 # Returns: "d001_f002_r00100"
 ```

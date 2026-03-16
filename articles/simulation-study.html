@@ -73,7 +73,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sims1253/bayesim" class="external-link">bayesim</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Attaching package: 'dplyr'</span></span>
@@ -86,7 +86,12 @@
 <span><span class="co">#&gt; The following objects are masked from 'package:base':</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;     intersect, setdiff, setequal, union</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Attaching package: 'ggplot2'</span></span>
+<span><span class="co">#&gt; The following object is masked from 'package:bayesim':</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt;     %+%</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -357,7 +362,7 @@ metrics require an explicit <code>name</code> argument.</p>
 <span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
 <span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
 <span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Running tasks 51/240 [1.5s]</span></span>
+<span><span class="co">#&gt; Running tasks 51/240 [1.4s]</span></span>
 <span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
 <span><span class="co">#&gt; shorter object length</span></span>
 <span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
@@ -418,73 +423,7 @@ metrics require an explicit <code>name</code> argument.</p>
 <span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
 <span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
 <span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Running tasks 101/240 [2.2s]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
-<span><span class="co">#&gt; shorter object length</span></span>
-<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
-<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
-<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
-<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Running tasks 101/240 [2s]</span></span>
 <span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
 <span><span class="co">#&gt; shorter object length</span></span>
 <span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
@@ -599,7 +538,73 @@ metrics require an explicit <code>name</code> argument.</p>
 <span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
 <span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
 <span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
-<span><span class="co">#&gt; Running tasks 240/240 [3.6s]</span></span></code></pre></div>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Warning in draws[, slope_param] * x: longer object length is not a multiple of</span></span>
+<span><span class="co">#&gt; shorter object length</span></span>
+<span><span class="co">#&gt; Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object</span></span>
+<span><span class="co">#&gt; length is not a multiple of shorter object length</span></span>
+<span><span class="co">#&gt; Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =</span></span>
+<span><span class="co">#&gt; n_draws): data length differs from size of matrix: [250000 != 500 x 400]</span></span>
+<span><span class="co">#&gt; Running tasks 240/240 [3.3s]</span></span></code></pre></div>
 <p>The progress bar shows completion status and elapsed time. With 240
 tasks and the MockFitter, this completes quickly. Studies with brms
 models may take minutes to hours depending on data size and model
@@ -621,7 +626,7 @@ complexity.</p>
 <span><span class="co">#&gt;     - Failed: 0 </span></span>
 <span><span class="co">#&gt;     - Skipped: 0 </span></span>
 <span><span class="co">#&gt;   Task grid: 240 rows x 6 cols</span></span>
-<span><span class="co">#&gt;   Total time: 3.65 s</span></span></code></pre></div>
+<span><span class="co">#&gt;   Total time: 3.33 s</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="summary-tibble">Summary Tibble<a class="anchor" aria-label="anchor" href="#summary-tibble"></a>
@@ -660,12 +665,12 @@ grid columns with <code>fit_</code>:</p>
 <span><span class="co">#&gt; 5              1.161367     1.01      400      350         0             0</span></span>
 <span><span class="co">#&gt; 6              1.165993     1.01      400      350         0             0</span></span>
 <span><span class="co">#&gt;   timing_total rep_idx data_n data_intercept data_slope data_sigma</span></span>
-<span><span class="co">#&gt; 1  0.039705276       1     50              1          2        0.5</span></span>
-<span><span class="co">#&gt; 2  0.061890602       2     50              1          2        0.5</span></span>
-<span><span class="co">#&gt; 3  0.004263878       3     50              1          2        0.5</span></span>
-<span><span class="co">#&gt; 4  0.004091263       4     50              1          2        0.5</span></span>
-<span><span class="co">#&gt; 5  0.004189968       5     50              1          2        0.5</span></span>
-<span><span class="co">#&gt; 6  0.004311800       6     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 1  0.037990808       1     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 2  0.059893847       2     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 3  0.003829241       3     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 4  0.003706217       4     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 5  0.003778219       5     50              1          2        0.5</span></span>
+<span><span class="co">#&gt; 6  0.003727913       6     50              1          2        0.5</span></span>
 <span><span class="co">#&gt;           fit_model</span></span>
 <span><span class="co">#&gt; 1 linear_regression</span></span>
 <span><span class="co">#&gt; 2 linear_regression</span></span>

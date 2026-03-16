@@ -479,9 +479,9 @@ print(head(result_minimal$summary, 3))
 #> 2                             1                         1
 #> 3                             1                         1
 #>   coverage__by_param__sigma timing_total rep_idx data_n data_intercept
-#> 1                         1  0.034754753       1    100              1
-#> 2                         1  0.050897598       2    100              1
-#> 3                         1  0.006005764       3    100              1
+#> 1                         1  0.035192728       1    100              1
+#> 2                         1  0.047021866       2    100              1
+#> 3                         1  0.005603313       3    100              1
 #>   data_slope data_sigma fit_model
 #> 1          2          1    linear
 #> 2          2          1    linear
@@ -504,9 +504,9 @@ print(head(result_standard$summary, 3))
 #> 2                         1     1.01      400      350         0             0
 #> 3                         1     1.01      400      350         0             0
 #>   timing_total rep_idx data_n data_intercept data_slope data_sigma fit_model
-#> 1  0.006068945       1    100              1          2          1    linear
-#> 2  0.005939484       2    100              1          2          1    linear
-#> 3  0.005780458       3    100              1          2          1    linear
+#> 1  0.005848169       1    100              1          2          1    linear
+#> 2  0.005661011       2    100              1          2          1    linear
+#> 3  0.005575418       3    100              1          2          1    linear
 ```
 
 Both profiles produce the same summary tibble with metric values. The

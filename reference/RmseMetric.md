@@ -2,9 +2,7 @@
 
 Root Mean Square Error between predictions and true values.
 
-`rmse_metric()` is a constructor function that creates an RmseMetric
-instance with appropriate defaults. Use this constructor to work around
-S7's property default inheritance issue.
+Constructor for RmseMetric.
 
 ## Usage
 
@@ -39,11 +37,6 @@ An RmseMetric object.
 rmse_metric()
 #> <bayesim::RmseMetric>
 #>  @ name    : chr "rmse"
-#>  @ needs   : chr "predictions"
-#>  @ required: logi FALSE
-rmse_metric(name = "my_rmse")
-#> <bayesim::RmseMetric>
-#>  @ name    : chr "my_rmse"
 #>  @ needs   : chr "predictions"
 #>  @ required: logi FALSE
 ```

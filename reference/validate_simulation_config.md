@@ -27,7 +27,7 @@ The configuration is validated for:
 - Being a valid SimulationConfig S7 object
 
 - Having a non-NULL fitter that passes
-  [`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/validate_fitter_interface.md)
+  [`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/check_fitter_class.md)
 
 - Having metrics (if present) that pass
   [`validate_metric_interface()`](https://sims1253.github.io/bayesim/reference/validate_metric_interface.md)
@@ -41,7 +41,7 @@ Throws a `bayesim_config_error` condition if validation fails.
 ## See also
 
 [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md),
-[`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/validate_fitter_interface.md),
+[`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/check_fitter_class.md),
 [`validate_metric_interface()`](https://sims1253.github.io/bayesim/reference/validate_metric_interface.md)
 
 ## Examples
