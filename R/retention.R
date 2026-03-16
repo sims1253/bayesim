@@ -116,7 +116,7 @@ resolve_retention_spec <- function(retain) {
 
     invalid <- setdiff(value, RETAIN_OPTIONS)
     if (length(invalid) > 0) {
-      cli::cli_abort("{label} contains invalid options: {invalid}")
+      stop(bayesim_config_error(paste0(label, " contains invalid options: ", paste(invalid, collapse = ", "))))
     }
 
     unique(c("metrics", intersect(value, RETAIN_OPTIONS)))
@@ -128,23 +128,23 @@ resolve_retention_spec <- function(retain) {
   }
 
   if (!is.list(retain)) {
-    cli::cli_abort(
+    stop(bayesim_config_error(
       paste(
         "retain must be a character vector/profile or a named list",
         "with any of success, warning, error"
       )
-    )
+    ))
   }
 
   if (length(retain) > 0 && is.null(names(retain))) {
-    cli::cli_abort(
+    stop(bayesim_config_error(
       "retain must be a named list when passed as a list; got unnamed list"
-    )
+    ))
   }
 
   invalid_names <- setdiff(names(retain), RETENTION_CONTEXTS)
   if (length(invalid_names) > 0) {
-    cli::cli_abort("retain contains invalid contexts: {invalid_names}")
+    stop(bayesim_config_error(paste0("retain contains invalid contexts: ", paste(invalid_names, collapse = ", "))))
   }
 
   base <- if ("success" %in% names(retain)) {

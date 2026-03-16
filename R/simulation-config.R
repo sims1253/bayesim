@@ -201,21 +201,21 @@ simulation_config <- function(
 ) {
   if (!is.null(task_grid)) {
     if (!is.data.frame(task_grid)) {
-      cli::cli_abort("task_grid must be a data.frame")
+      stop(bayesim_config_error("task_grid must be a data.frame"))
     }
     if (nrow(task_grid) < 1) {
-      cli::cli_abort("task_grid must have at least 1 row")
+      stop(bayesim_config_error("task_grid must have at least 1 row"))
     }
 
     has_explicit_specs <- all(c("data_spec", "fit_spec") %in% names(task_grid))
     has_index_specs <- all(c("data_idx", "fit_idx") %in% names(task_grid))
 
     if (!has_explicit_specs && !has_index_specs) {
-      cli::cli_abort(
+      stop(bayesim_config_error(
         paste(
           "task_grid must contain either list-columns data_spec/fit_spec or index columns data_idx/fit_idx"
         )
-      )
+      ))
     }
   }
 
@@ -223,17 +223,17 @@ simulation_config <- function(
     is.null(task_grid) || !all(c("data_spec", "fit_spec") %in% names(task_grid))
   ) {
     if (!is.data.frame(data_grid)) {
-      cli::cli_abort("data_grid must be a data.frame")
+      stop(bayesim_config_error("data_grid must be a data.frame"))
     }
     if (nrow(data_grid) < 1) {
-      cli::cli_abort("data_grid must have at least 1 row")
+      stop(bayesim_config_error("data_grid must have at least 1 row"))
     }
 
     if (!is.data.frame(fit_grid)) {
-      cli::cli_abort("fit_grid must be a data.frame")
+      stop(bayesim_config_error("fit_grid must be a data.frame"))
     }
     if (nrow(fit_grid) < 1) {
-      cli::cli_abort("fit_grid must have at least 1 row")
+      stop(bayesim_config_error("fit_grid must have at least 1 row"))
     }
   } else {
     data_grid <- if (is.null(data_grid)) NULL else data_grid
@@ -241,20 +241,20 @@ simulation_config <- function(
   }
 
   if (!is.function(data_generator)) {
-    cli::cli_abort("data_generator must be a function")
+    stop(bayesim_config_error("data_generator must be a function"))
   }
   gen_formals <- names(formals(data_generator))
   required_args <- c("data_spec", "seed", "task_ctx")
   if (length(gen_formals) < 3) {
-    cli::cli_abort(c(
-      "data_generator must accept at least 3 arguments",
-      "Required signature: (data_spec, seed, task_ctx)"
-    ))
+    stop(bayesim_config_error(paste(
+      "data_generator must accept at least 3 arguments:",
+      "(data_spec, seed, task_ctx)"
+    )))
   }
 
   if (!is.null(fitter)) {
     if (!S7::S7_inherits(fitter)) {
-      cli::cli_abort("fitter must be an S7 Fitter object")
+      stop(bayesim_config_error("fitter must be an S7 Fitter object"))
     }
   }
 
@@ -262,12 +262,12 @@ simulation_config <- function(
 
   n_replicates <- as.integer(n_replicates)
   if (length(n_replicates) != 1 || is.na(n_replicates) || n_replicates < 1) {
-    cli::cli_abort("n_replicates must be a positive integer >= 1")
+    stop(bayesim_config_error("n_replicates must be a positive integer >= 1"))
   }
 
   seed <- as.integer(seed)
   if (length(seed) != 1 || is.na(seed)) {
-    cli::cli_abort("seed must be a single integer")
+    stop(bayesim_config_error("seed must be a single integer"))
   }
 
   if (!is.null(result_path)) {
@@ -276,7 +276,7 @@ simulation_config <- function(
         length(result_path) != 1 ||
         is.na(result_path)
     ) {
-      cli::cli_abort("result_path must be NULL or a single character string")
+      stop(bayesim_config_error("result_path must be NULL or a single character string"))
     }
   }
 
@@ -288,11 +288,11 @@ simulation_config <- function(
       is.na(checkpoint_every) ||
       checkpoint_every < 1
   ) {
-    cli::cli_abort("checkpoint_every must be a positive integer >= 1")
+    stop(bayesim_config_error("checkpoint_every must be a positive integer >= 1"))
   }
 
   if (!is.null(chunk_size) && lifecycle::is_present(max_in_memory)) {
-    cli::cli_abort("Use either chunk_size or max_in_memory, not both")
+    stop(bayesim_config_error("Use either chunk_size or max_in_memory, not both"))
   }
 
   if (is.null(chunk_size)) {
@@ -313,16 +313,16 @@ simulation_config <- function(
       is.na(chunk_size) ||
       chunk_size < 1
   ) {
-    cli::cli_abort("chunk_size must be a positive integer >= 1")
+    stop(bayesim_config_error("chunk_size must be a positive integer >= 1"))
   }
 
   retain <- resolve_retention_spec(retain)
 
   if (length(max_errors) != 1 || is.na(max_errors)) {
-    cli::cli_abort("max_errors must be a single numeric value")
+    stop(bayesim_config_error("max_errors must be a single numeric value"))
   }
   if (!is.infinite(max_errors) && max_errors < 0) {
-    cli::cli_abort("max_errors must be Inf or a non-negative number")
+    stop(bayesim_config_error("max_errors must be Inf or a non-negative number"))
   }
 
   # Create and return S7 object
@@ -366,24 +366,24 @@ resolve_metrics <- function(metrics) {
   }
 
   if (is.character(metrics)) {
-    cli::cli_abort(
+    stop(bayesim_config_error(
       paste(
         "metrics must be Metric objects, not character names.",
         "Use metric constructors such as list(rmse_metric(), bias_metric())."
       )
-    )
+    ))
   }
 
   if (!is.list(metrics)) {
-    cli::cli_abort(
+    stop(bayesim_config_error(
       "metrics must be NULL, a Metric object, or a list of Metric objects"
-    )
+    ))
   }
 
   for (i in seq_along(metrics)) {
     metric <- metrics[[i]]
     if (!S7::S7_inherits(metric, Metric)) {
-      cli::cli_abort("metrics[[{i}]] is not an S7 Metric object")
+      stop(bayesim_config_error(paste0("metrics[[", i, "]] is not an S7 Metric object")))
     }
   }
 
@@ -410,7 +410,7 @@ resolve_metrics <- function(metrics) {
 #' }
 as_config_spec <- function(config) {
   if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   # Extract properties that define the simulation identity
@@ -595,7 +595,7 @@ capture_metrics_spec <- function(metrics) {
 #' }
 compute_config_fingerprint <- function(config) {
   if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   spec <- as_config_spec(config)
@@ -633,7 +633,7 @@ is_simulation_config <- function(x) {
 #' @keywords internal
 validate_config_completeness <- function(config) {
   if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   # Check for required components
@@ -646,7 +646,7 @@ validate_config_completeness <- function(config) {
   }
 
   if (is.null(config@data_generator)) {
-    cli::cli_abort("data_generator cannot be NULL")
+    stop(bayesim_config_error("data_generator cannot be NULL"))
   }
 
   TRUE
@@ -675,7 +675,7 @@ validate_config_completeness <- function(config) {
 #' }
 get_total_tasks <- function(config) {
   if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   if (!is.null(config@task_grid)) {

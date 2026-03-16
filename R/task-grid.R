@@ -102,9 +102,9 @@ canonicalize_task_grid <- function(task_grid, config) {
 
   if (has_explicit_specs) {
     if (!is.list(grid$data_spec) || !is.list(grid$fit_spec)) {
-      cli::cli_abort(
+      stop(bayesim_config_error(
         "task_grid$data_spec and task_grid$fit_spec must be list-columns"
-      )
+      ))
     }
 
     if (!"data_idx" %in% names(grid)) {
@@ -115,25 +115,23 @@ canonicalize_task_grid <- function(task_grid, config) {
     }
   } else {
     if (!all(c("data_idx", "fit_idx") %in% names(grid))) {
-      cli::cli_abort("task_grid must contain data_idx and fit_idx columns")
+      stop(bayesim_config_error("task_grid must contain data_idx and fit_idx columns"))
     }
 
     grid$data_idx <- as.integer(grid$data_idx)
     grid$fit_idx <- as.integer(grid$fit_idx)
 
     if (anyNA(grid$data_idx) || any(grid$data_idx < 1L)) {
-      cli::cli_abort("task_grid$data_idx must contain positive integers")
+      stop(bayesim_config_error("task_grid$data_idx must contain positive integers"))
     }
     if (anyNA(grid$fit_idx) || any(grid$fit_idx < 1L)) {
-      cli::cli_abort("task_grid$fit_idx must contain positive integers")
+      stop(bayesim_config_error("task_grid$fit_idx must contain positive integers"))
     }
 
     if (is.null(config@data_grid) || is.null(config@fit_grid)) {
-      cli::cli_abort(
-        paste(
-          "task_grid with data_idx/fit_idx requires data_grid and fit_grid in the configuration"
-        )
-      )
+      stop(bayesim_config_error(
+        "task_grid with data_idx/fit_idx requires data_grid and fit_grid in the configuration"
+      ))
     }
   }
 
@@ -185,9 +183,8 @@ canonicalize_task_grid <- function(task_grid, config) {
 #' # task_grid has 2 * 2 * 10 = 40 rows
 #' }
 create_task_grid <- function(config) {
-  # Validate config
   if (!is_simulation_config(config)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   if (!is.null(config@task_grid)) {
@@ -265,7 +262,7 @@ get_task_spec <- function(task_grid, task_id, config) {
   row <- task_grid[task_grid$task_id == task_id, ]
 
   if (nrow(row) == 0) {
-    cli::cli_abort("Task '{task_id}' not found in grid")
+    stop(bayesim_config_error(paste0("Task '", task_id, "' not found in grid")))
   }
 
   list(

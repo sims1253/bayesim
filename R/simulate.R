@@ -37,9 +37,8 @@ run_simulation <- function(
 ) {
   resume <- match.arg(resume)
 
-  # Validate config
   if (!is_simulation_config(config)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
   validate_simulation_config(config)
 
@@ -65,7 +64,7 @@ run_simulation <- function(
   resume_data <- NULL
 
   if (identical(resume, "must") && !has_existing_checkpoints) {
-    cli::cli_abort("No compatible checkpoint state found to resume")
+    stop(bayesim_config_error("No compatible checkpoint state found to resume"))
   }
 
   if (!identical(resume, "never") && has_existing_checkpoints) {
