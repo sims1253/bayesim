@@ -590,7 +590,6 @@ validate_simulation_config <- function(config) {
     )
   }
 
-  # Fitter is required for simulation
   if (is.null(config@fitter)) {
     stop(
       bayesim_config_error(
@@ -612,7 +611,6 @@ validate_simulation_config <- function(config) {
     }
   )
 
-  # Each metric must pass class/name validation
   if (!is.null(config@metrics) && length(config@metrics) > 0) {
     for (i in seq_along(config@metrics)) {
       metric <- config@metrics[[i]]

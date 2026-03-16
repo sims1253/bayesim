@@ -240,7 +240,6 @@ simulation_config <- function(
     fit_grid <- if (is.null(fit_grid)) NULL else fit_grid
   }
 
-  # Validate data_generator
   if (!is.function(data_generator)) {
     cli::cli_abort("data_generator must be a function")
   }
@@ -253,30 +252,24 @@ simulation_config <- function(
     ))
   }
 
-  # Validate fitter
   if (!is.null(fitter)) {
-    # Check if fitter is an S7 object (Fitter class check deferred to when Fitter is defined)
     if (!S7::S7_inherits(fitter)) {
       cli::cli_abort("fitter must be an S7 Fitter object")
     }
   }
 
-  # Resolve metrics
   resolved_metrics <- resolve_metrics(metrics)
 
-  # Validate n_replicates
   n_replicates <- as.integer(n_replicates)
   if (length(n_replicates) != 1 || is.na(n_replicates) || n_replicates < 1) {
     cli::cli_abort("n_replicates must be a positive integer >= 1")
   }
 
-  # Validate seed
   seed <- as.integer(seed)
   if (length(seed) != 1 || is.na(seed)) {
     cli::cli_abort("seed must be a single integer")
   }
 
-  # Validate result_path
   if (!is.null(result_path)) {
     if (
       !is.character(result_path) ||
@@ -289,7 +282,6 @@ simulation_config <- function(
 
   checkpoint_format <- match.arg(checkpoint_format, VALID_CHECKPOINT_FORMATS)
 
-  # Validate checkpoint_every
   checkpoint_every <- as.integer(checkpoint_every)
   if (
     length(checkpoint_every) != 1 ||
@@ -326,7 +318,6 @@ simulation_config <- function(
 
   retain <- resolve_retention_spec(retain)
 
-  # Validate max_errors
   if (length(max_errors) != 1 || is.na(max_errors)) {
     cli::cli_abort("max_errors must be a single numeric value")
   }
