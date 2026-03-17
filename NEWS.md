@@ -1,3 +1,14 @@
+# bayesim 1.0.2
+
+This release improves code quality and standardizes the error handling API.
+
+## Changes
+
+* Standardized error throwing to use `stop(bayesim_*_error(...))` instead of
+  mixed `cli::cli_abort()` and `rlang::abort()` calls across all files.
+* Removed unused `cli_inform` import from the package namespace.
+* Removed restating validation comments that duplicated code without adding insight.
+
 # bayesim 1.0.1
 
 This release finalizes the rewrite follow-up work around the new simulation API,

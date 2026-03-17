@@ -13,23 +13,23 @@
 #' @noRd
 register_metric <- function(metric, overwrite = FALSE) {
   if (!S7::S7_inherits(metric)) {
-    cli::cli_abort("metric must be an S7 object")
+    stop(bayesim_config_error("metric must be an S7 object"))
   }
 
   # Check it's actually a Metric subclass
   if (!S7::S7_inherits(metric, Metric)) {
-    cli::cli_abort("metric must inherit from the Metric S7 class")
+    stop(bayesim_config_error("metric must inherit from the Metric S7 class"))
   }
 
   name <- metric@name
   if (is.null(name) || name == "") {
-    cli::cli_abort("metric must have a non-empty name")
+    stop(bayesim_config_error("metric must have a non-empty name"))
   }
 
   if (!overwrite && !is.null(.metric_registry[[name]])) {
-    cli::cli_abort(
-      "Metric '{name}' is already registered. Use overwrite = TRUE to replace."
-    )
+    stop(bayesim_config_error(
+      paste0("Metric '", name, "' is already registered. Use overwrite = TRUE to replace.")
+    ))
   }
 
   .metric_registry[[name]] <- metric
@@ -47,7 +47,7 @@ register_metric <- function(metric, overwrite = FALSE) {
 #' @noRd
 get_metric <- function(name) {
   if (!is.character(name) || length(name) != 1) {
-    cli::cli_abort("name must be a single character string")
+    stop(bayesim_config_error("name must be a single character string"))
   }
 
   .metric_registry[[name]]
@@ -73,7 +73,7 @@ list_metrics <- function() {
 #' @noRd
 unregister_metric <- function(name) {
   if (!is.character(name) || length(name) != 1) {
-    cli::cli_abort("name must be a single character string")
+    stop(bayesim_config_error("name must be a single character string"))
   }
 
   if (is.null(.metric_registry[[name]])) {
@@ -103,7 +103,7 @@ resolve_metrics_from_registry <- function(metrics) {
     resolved <- lapply(metrics, function(name) {
       m <- get_metric(name)
       if (is.null(m)) {
-        cli::cli_abort("Metric '{name}' not found in registry")
+        stop(bayesim_config_error(paste0("Metric '", name, "' not found in registry")))
       }
       m
     })
@@ -115,13 +115,13 @@ resolve_metrics_from_registry <- function(metrics) {
     for (i in seq_along(metrics)) {
       m <- metrics[[i]]
       if (!S7::S7_inherits(m)) {
-        cli::cli_abort("metrics[[{i}]] is not an S7 Metric object")
+        stop(bayesim_config_error(paste0("metrics[[", i, "]] is not an S7 Metric object")))
       }
     }
     return(metrics)
   }
 
-  cli::cli_abort("metrics must be a character vector or list of Metric objects")
+  stop(bayesim_config_error("metrics must be a character vector or list of Metric objects"))
 }
 
 #' Clear all registered metrics

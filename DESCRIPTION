@@ -1,6 +1,6 @@
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
-Version: 1.0.1
+Version: 1.0.2
 URL: https://sims1253.github.io/bayesim, https://github.com/sims1253/bayesim
 BugReports: https://github.com/sims1253/bayesim/issues
 Authors@R: c(

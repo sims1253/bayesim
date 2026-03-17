@@ -762,7 +762,7 @@ read_checkpoint_object <- function(path, checkpoint_format = "rds") {
 
 assert_supported_checkpoint_format <- function(checkpoint_format) {
   if (!identical(checkpoint_format, "rds")) {
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+    stop(bayesim_checkpoint_error(paste0("Unsupported checkpoint format '", checkpoint_format, "'")))
   }
 
   invisible(checkpoint_format)

@@ -259,7 +259,7 @@ execute_tasks <- function(
         idx <- match(task$task_id, task_grid$task_id)
 
         if (is.na(idx)) {
-          cli::cli_abort("Task ID '{task$task_id}' not found in task_grid")
+          stop(bayesim_config_error(paste0("Task ID '", task$task_id, "' not found in task_grid")))
         }
 
         task_results[[idx]] <- result
@@ -598,7 +598,7 @@ resume_simulation <- function(result_path, config = NULL, progress = TRUE) {
   }
 
   if (!is_simulation_config(config)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+    stop(bayesim_config_error("config must be a SimulationConfig object"))
   }
 
   config@result_path <- result_path

@@ -99,37 +99,26 @@ load_for_resume <- function(result_path, config) {
 
   # Check run schema version compatibility
   if (!identical(manifest$run_schema_version, RUN_SCHEMA_VERSION)) {
-    cli::cli_abort(
-      c(
-        "Incompatible checkpoint schema",
-        "x" = "Checkpoint run_schema_version: {manifest$run_schema_version}",
-        "i" = "Expected version: {RUN_SCHEMA_VERSION}"
-      ),
-      class = "bayesim_checkpoint_error"
-    )
+    stop(bayesim_checkpoint_error(paste0(
+      "Incompatible checkpoint schema: run_schema_version ",
+      manifest$run_schema_version, ", expected ", RUN_SCHEMA_VERSION
+    )))
   }
 
   # Check result schema version compatibility
   if (!identical(manifest$result_schema_version, RESULT_SCHEMA_VERSION)) {
-    cli::cli_abort(
-      c(
-        "Incompatible result schema",
-        "x" = "Checkpoint result_schema_version: {manifest$result_schema_version}",
-        "i" = "Expected version: {RESULT_SCHEMA_VERSION}"
-      ),
-      class = "bayesim_checkpoint_error"
-    )
+    stop(bayesim_checkpoint_error(paste0(
+      "Incompatible result schema: result_schema_version ",
+      manifest$result_schema_version, ", expected ", RESULT_SCHEMA_VERSION
+    )))
   }
 
   manifest_format <- manifest$checkpoint_format %||% "rds"
   if (!identical(manifest_format, config@checkpoint_format)) {
-    cli::cli_abort(
-      c(
-        "Checkpoint format mismatch",
-        "x" = "Checkpoint uses '{manifest_format}' but config requests '{config@checkpoint_format}'"
-      ),
-      class = "bayesim_checkpoint_error"
-    )
+    stop(bayesim_checkpoint_error(paste0(
+      "Checkpoint format mismatch: checkpoint uses '", manifest_format,
+      "' but config requests '", config@checkpoint_format, "'"
+    )))
   }
 
   # Find valid checkpoint (scan backward from latest if corrupted)
@@ -139,10 +128,9 @@ load_for_resume <- function(result_path, config) {
     config_fingerprint = expected_fingerprint
   )
   if (is.null(checkpoint)) {
-    cli::cli_abort(
-      "No valid compatible checkpoint found in {result_path}",
-      class = "bayesim_checkpoint_error"
-    )
+    stop(bayesim_checkpoint_error(
+      paste0("No valid compatible checkpoint found in ", result_path)
+    ))
   }
 
   # Rebuild task grid with restored status
@@ -250,10 +238,9 @@ merge_results <- function(prior_results, new_results) {
       new_row <- new_results[new_results$task_id == task_id, , drop = FALSE]
 
       if (nrow(prior_row) != 1 || nrow(new_row) != 1) {
-        cli::cli_abort(
-          "Duplicate terminal rows detected for task_id '{task_id}'",
-          class = "bayesim_checkpoint_error"
-        )
+        stop(bayesim_checkpoint_error(
+          paste0("Duplicate terminal rows detected for task_id '", task_id, "'")
+        ))
       }
 
       if (
@@ -262,13 +249,12 @@ merge_results <- function(prior_results, new_results) {
           normalize_result_row(new_row)
         )
       ) {
-        cli::cli_abort(
+        stop(bayesim_checkpoint_error(
           paste(
             "Conflicting duplicate terminal rows detected for task_id",
             shQuote(task_id)
-          ),
-          class = "bayesim_checkpoint_error"
-        )
+          )
+        ))
       }
     }
   }
@@ -305,9 +291,9 @@ rehydrate_config_from_manifest <- function(result_path) {
   manifest <- read_run_manifest(result_path)
 
   if (is.null(manifest) || is.null(manifest$config_spec)) {
-    cli::cli_abort(
+    stop(bayesim_checkpoint_error(
       "Run manifest does not contain a rehydratable configuration; please supply config explicitly"
-    )
+    ))
   }
 
   spec <- manifest$config_spec
@@ -344,9 +330,9 @@ rehydrate_config_from_manifest <- function(result_path) {
 
 rehydrate_function_spec <- function(spec) {
   if (is.null(spec) || !isTRUE(spec$rehydratable) || is.null(spec$reference)) {
-    cli::cli_abort(
+    stop(bayesim_checkpoint_error(
       "Run manifest references non-rehydratable executable components; please supply config explicitly"
-    )
+    ))
   }
 
   validate_namespace_version(spec$reference$package, spec$reference$version)
@@ -360,16 +346,16 @@ rehydrate_s7_spec <- function(spec) {
   }
 
   if (!isTRUE(spec$rehydratable) || is.null(spec$class)) {
-    cli::cli_abort(
+    stop(bayesim_checkpoint_error(
       "Run manifest references non-rehydratable executable components; please supply config explicitly"
-    )
+    ))
   }
 
   class_parts <- strsplit(spec$class, "::", fixed = TRUE)[[1]]
   if (length(class_parts) != 2) {
-    cli::cli_abort(
+    stop(bayesim_checkpoint_error(
       "Cannot rehydrate S7 object without namespaced class reference"
-    )
+    ))
   }
 
   validate_namespace_version(class_parts[[1]], spec$package_version)
@@ -386,12 +372,11 @@ validate_namespace_version <- function(package, expected_version = NULL) {
 
   current_version <- as.character(getNamespaceVersion(package))
   if (!identical(current_version, expected_version)) {
-    cli::cli_abort(
-      c(
-        "Component version mismatch during resume rehydration",
-        "x" = "Package '{package}' version is '{current_version}', expected '{expected_version}'"
-      )
-    )
+    stop(bayesim_checkpoint_error(paste0(
+      "Component version mismatch during resume rehydration: ",
+      "Package '", package, "' version is '", current_version,
+      "', expected '", expected_version, "'"
+    )))
   }
 
   invisible(TRUE)
