@@ -585,12 +585,12 @@ describe("flatten_with_prefix()", {
     expect_true("param__a__y" %in% names(result))
   })
 
-  it("preserves scalar values without modification", {
+  it("prefixes scalar values with non-empty prefix", {
     x <- list(scalar_val = 42, nested = c(a = 1, b = 2))
     result <- flatten_with_prefix(x, "param")
 
-    expect_true("scalar_val" %in% names(result))
-    expect_equal(result$scalar_val, 42)
+    expect_true("param__scalar_val" %in% names(result))
+    expect_equal(result$param__scalar_val, 42)
   })
 
   it("preserves unnamed numeric vectors (length > 1) as-is", {
@@ -602,13 +602,14 @@ describe("flatten_with_prefix()", {
     expect_equal(result$unnamed, c(1, 2, 3))
   })
 
-  it("handles single element named vectors as scalars", {
+  it("prefixes single element named vectors with non-empty prefix", {
     x <- list(single = c(a = 1))
     result <- flatten_with_prefix(x, "param")
 
-    # Single element named vectors should be treated as scalars (not flattened)
-    expect_true("single" %in% names(result))
-    expect_equal(result$single, c(a = 1))
+    # Single element named vectors get prefixed when prefix is non-empty
+    expect_true("param__single" %in% names(result))
+    # The value preserves its original name
+    expect_equal(result$param__single, c(a = 1))
   })
 
   it("handles empty list gracefully", {

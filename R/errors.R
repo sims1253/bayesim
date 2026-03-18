@@ -242,7 +242,10 @@ is_fatal_error <- function(cond) {
   inherits(cond, "bayesim_config_error") ||
     inherits(cond, "bayesim_contract_error") ||
     inherits(cond, "bayesim_checkpoint_error") ||
-    inherits(cond, "bayesim_internal_error")
+    inherits(cond, "bayesim_internal_error") ||
+    # bayesim_validation_error inherits from bayesim_contract_error,
+    # but is listed explicitly for clarity
+    inherits(cond, "bayesim_validation_error")
 }
 
 #' Check if an error is recoverable (task-level)

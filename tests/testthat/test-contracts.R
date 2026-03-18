@@ -1768,13 +1768,14 @@ describe("Utility Functions", {
   })
 
   describe("flatten_with_prefix()", {
-    it("flattens simple list without nested vectors", {
+    it("flattens simple list with prefix for scalars", {
       x <- list(a = 1, b = 2, c = 3)
       result <- flatten_with_prefix(x, "test")
 
-      expect_equal(result$a, 1)
-      expect_equal(result$b, 2)
-      expect_equal(result$c, 3)
+      # Scalars get prefixed when prefix is non-empty
+      expect_equal(result$test__a, 1)
+      expect_equal(result$test__b, 2)
+      expect_equal(result$test__c, 3)
     })
 
     it("flattens named numeric vectors with prefix", {
@@ -1786,15 +1787,16 @@ describe("Utility Functions", {
       expect_equal(result$param__b__y, 3)
     })
 
-    it("handles mixed list correctly", {
+    it("handles mixed list correctly with prefix", {
       x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
       result <- flatten_with_prefix(x, "param")
 
-      expect_equal(result$a, 1)
-      # flatten_with_prefix uses "__" separator for all parts
+      # Scalars get prefixed when prefix is non-empty
+      expect_equal(result$param__a, 1)
+      # Named vectors get expanded with prefix
       expect_equal(result$param__b__x, 2)
       expect_equal(result$param__b__y, 3)
-      expect_equal(result$c, 4)
+      expect_equal(result$param__c, 4)
     })
 
     it("does not flatten unnamed vectors", {
@@ -1804,11 +1806,13 @@ describe("Utility Functions", {
       expect_equal(result$a, c(1, 2, 3))
     })
 
-    it("does not flatten single-element vectors", {
+    it("prefixes single-element named vectors when prefix is non-empty", {
       x <- list(a = c(value = 1))
       result <- flatten_with_prefix(x, "test")
 
-      expect_equal(result$a, c(value = 1))
+      expect_true("test__a" %in% names(result))
+      # The value preserves its original name from the named vector
+      expect_equal(unname(result$test__a), 1)
     })
   })
 

@@ -772,14 +772,14 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       error = function(e) {
         stop(bayesim_validation_error(
           paste0("extract_draws() method failed during smoke test: ", conditionMessage(e))
-        )
+        ))
       }
     )
 
     if (!is.matrix(draws)) {
       stop(bayesim_validation_error(
         paste0("extract_draws() did not return a matrix. Returned class: ", paste(class(draws), collapse = ", "))
-      )
+      ))
     }
 
     if (is.null(colnames(draws))) {
@@ -797,7 +797,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         error = function(e) {
           stop(bayesim_validation_error(
             paste0("predict_fit() method failed during smoke test: ", conditionMessage(e))
-          )
+          ))
         }
       )
 
@@ -835,7 +835,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         error = function(e) {
           stop(bayesim_validation_error(
             paste0("log_lik() method failed during smoke test: ", conditionMessage(e))
-          )
+          ))
         }
       )
 
@@ -867,15 +867,15 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       diagnostics(fitter, fit_result),
       error = function(e) {
         stop(bayesim_validation_error(
-            paste0("diagnostics() method failed during smoke test: ", conditionMessage(e))
-          )
+          paste0("diagnostics() method failed during smoke test: ", conditionMessage(e))
+        ))
       }
     )
 
     if (!is.list(diag)) {
       stop(bayesim_validation_error(
         paste0("diagnostics() did not return a list. Returned class: ", paste(class(diag), collapse = ", "))
-      )
+      ))
     }
     msg("    [OK] diagnostics() returns list")
 

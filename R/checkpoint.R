@@ -283,16 +283,6 @@ write_checkpoint <- function(
       # Convert and write results
       results_df <- results_to_dataframe(task_results)
 
-      prior_checkpoint <- read_checkpoint(result_path)
-      if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
-        prior_only <- prior_checkpoint$results_df[
-          !prior_checkpoint$results_df$task_id %in% results_df$task_id,
-          ,
-          drop = FALSE
-        ]
-        results_df <- rbind(prior_only, results_df)
-      }
-
       write_checkpoint_object(results_df, results_path, checkpoint_format)
 
       # Read-back validation
@@ -672,6 +662,10 @@ get_latest_valid_checkpoint <- function(
 results_to_dataframe <- function(task_results) {
   if (is.null(task_results) || length(task_results) == 0) {
     return(data.frame(task_id = character(), status = character()))
+  }
+
+  if (!is.list(task_results)) {
+    stop(bayesim_contract_error("task_results must be a list"))
   }
 
   rows <- lapply(task_results, function(tr) {

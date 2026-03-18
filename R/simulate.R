@@ -279,13 +279,32 @@ execute_tasks <- function(
         non_null_indices <- which(!vapply(task_results, is.null, logical(1)))
         results_to_checkpoint <- task_results[non_null_indices]
 
-        write_checkpoint(
-          result_path,
-          task_grid,
-          results_to_checkpoint,
-          config_fingerprint,
-          checkpoint_format = config@checkpoint_format
-        )
+        # Merge with prior checkpoint results for complete checkpoint
+        prior_checkpoint <- read_checkpoint(result_path)
+        if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
+          current_df <- results_to_dataframe(results_to_checkpoint)
+          prior_only <- prior_checkpoint$results_df[
+            !prior_checkpoint$results_df$task_id %in% current_df$task_id,
+            ,
+            drop = FALSE
+          ]
+          merged_results <- merge_results(prior_only, results_to_checkpoint)
+          write_checkpoint(
+            result_path,
+            task_grid,
+            merged_results,
+            config_fingerprint,
+            checkpoint_format = config@checkpoint_format
+          )
+        } else {
+          write_checkpoint(
+            result_path,
+            task_grid,
+            results_to_checkpoint,
+            config_fingerprint,
+            checkpoint_format = config@checkpoint_format
+          )
+        }
 
         for (j in non_null_indices) {
           tr <- task_results[[j]]
