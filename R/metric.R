@@ -302,20 +302,5 @@ validate_metric_output <- function(output, metric_name) {
 #' @export
 flatten_metric_output <- function(output, metric_name) {
   validate_metric_output(output, metric_name)
-
-  result <- list()
-
-  for (nm in names(output)) {
-    val <- output[[nm]]
-
-    if (length(val) == 1) {
-      result[[paste0(metric_name, "__", nm)]] <- val
-    } else {
-      for (sub_nm in names(val)) {
-        result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
-      }
-    }
-  }
-
-  result
+  flatten_with_prefix(output, metric_name)
 }

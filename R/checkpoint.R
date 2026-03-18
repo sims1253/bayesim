@@ -19,8 +19,22 @@ NULL
 #' @keywords internal
 NULL
 
-# Schema versions are defined in bayesim-package.R
-# These are imported via NAMESPACE
+#' Run Schema Version
+#'
+#' Version identifier for checkpoint format compatibility.
+#' Increment this when the on-disk checkpoint format changes in a way
+#' that breaks backward compatibility.
+#'
+#' @keywords internal
+RUN_SCHEMA_VERSION <- 1L
+
+#' Result Schema Version
+#'
+#' Version identifier for result column contract.
+#' Increment this when result column names or types change.
+#'
+#' @keywords internal
+RESULT_SCHEMA_VERSION <- 1L
 
 # =============================================================================
 # Checkpoint Directory Initialization
@@ -746,7 +760,7 @@ read_run_manifest <- function(result_path) {
 
 checkpoint_data_path <- function(directory, stem, checkpoint_format = "rds") {
   if (!identical(checkpoint_format, "rds")) {
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
+    stop(bayesim_checkpoint_error(paste0("Unsupported checkpoint format '", checkpoint_format, "'")))
   }
 
   file.path(directory, paste0(stem, ".rds"))
@@ -757,7 +771,14 @@ write_checkpoint_object <- function(x, path, checkpoint_format = "rds") {
 }
 
 read_checkpoint_object <- function(path, checkpoint_format = "rds") {
-  readRDS(path)
+  tryCatch(
+    readRDS(path),
+    error = function(e) {
+      stop(bayesim_checkpoint_error(
+        paste0("Failed to read checkpoint file '", path, "': ", conditionMessage(e))
+      ))
+    }
+  )
 }
 
 assert_supported_checkpoint_format <- function(checkpoint_format) {

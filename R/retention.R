@@ -272,6 +272,9 @@ retention_for_task_result <- function(
 #' @keywords internal
 #' @export
 apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
+  if (!is_bayesim_fit_result(fit_result)) {
+    stop(bayesim_contract_error("fit_result must be a bayesim_fit_result object"))
+  }
   if (!"fit" %in% retain) {
     fit_result$fit <- NULL
   }
@@ -309,6 +312,9 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
 #' @keywords internal
 #' @export
 apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
+  if (!is_bayesim_task_result(task_result)) {
+    stop(bayesim_contract_error("task_result must be a bayesim_task_result object"))
+  }
   # Add optional retained fields
   if ("draws" %in% retain && !is.null(fit_result$draws)) {
     task_result$draws <- fit_result$draws

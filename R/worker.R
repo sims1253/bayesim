@@ -348,21 +348,30 @@ build_metric_context <- function(
   if ("predictions" %in% all_needs && fitter@supports_predictions) {
     context$predictions <- tryCatch(
       predict_fit(fitter, fit_result, seed = seed),
-      error = function(e) NULL
+      error = function(e) {
+        cli::cli_warn("predict_fit() failed for metric context: {conditionMessage(e)}")
+        NULL
+      }
     )
   }
 
   if ("log_lik" %in% all_needs && fitter@supports_log_lik) {
     context$log_lik <- tryCatch(
       log_lik(fitter, fit_result),
-      error = function(e) NULL
+      error = function(e) {
+        cli::cli_warn("log_lik() failed for metric context: {conditionMessage(e)}")
+        NULL
+      }
     )
   }
 
   if ("loo" %in% all_needs && fitter@supports_loo) {
     context$loo <- tryCatch(
       loo(fitter, fit_result),
-      error = function(e) NULL
+      error = function(e) {
+        cli::cli_warn("loo() failed for metric context: {conditionMessage(e)}")
+        NULL
+      }
     )
   }
 

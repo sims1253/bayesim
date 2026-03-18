@@ -15,24 +15,3 @@
 ## usethis namespace: start
 ## usethis namespace: end
 NULL
-
-# ============================================================================
-# Schema Version Constants
-# ============================================================================
-
-#' Run Schema Version
-#'
-#' Version identifier for checkpoint format compatibility.
-#' Increment this when the on-disk checkpoint format changes in a way
-#' that breaks backward compatibility.
-#'
-#' @keywords internal
-RUN_SCHEMA_VERSION <- 1L
-
-#' Result Schema Version
-#'
-#' Version identifier for result column contract.
-#' Increment this when result column names or types change.
-#'
-#' @keywords internal
-RESULT_SCHEMA_VERSION <- 1L

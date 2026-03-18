@@ -46,6 +46,14 @@ S7::method(fit, BrmsFitter) <- function(
   timer <- make_timer()
   timer$start()
 
+  # Validate fit_spec has required fields
+  if (is.null(fit_spec$formula)) {
+    stop(bayesim_contract_error("fit_spec$formula is required but got NULL"))
+  }
+  if (is.null(fit_spec$family)) {
+    stop(bayesim_contract_error("fit_spec$family is required but got NULL"))
+  }
+
   warnings <- character()
 
   result <- tryCatch(

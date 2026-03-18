@@ -376,6 +376,9 @@ flatten_with_prefix <- function(x, prefix) {
         }
         result[[new_name]] <- value[[sub_name]]
       }
+    } else if (prefix != "" && length(value) == 1) {
+      # Add prefix for scalars when a non-empty prefix is provided
+      result[[paste0(prefix, "__", name)]] <- value
     } else {
       result[[name]] <- value
     }
