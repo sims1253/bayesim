@@ -8,4 +8,12 @@ Validators for data bundles, fit results, fitter interfaces,
 metric interfaces, and simulation configurations. These validators enforce
 the contracts between components in the bayesim package.
 }
+\section{Validator locations}{
+
+Data/input validators live here in contracts.R. Result class validators
+(validate_bayesim_fit_result, validate_bayesim_task_result, etc.) live in
+results.R alongside the constructors they validate. Metric output validators
+live in metric.R alongside the metric class.
+}
+
 \keyword{internal}

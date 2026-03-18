@@ -658,7 +658,6 @@ get_latest_valid_checkpoint <- function(
 #' columns. NULL task results are skipped.
 #'
 #' @keywords internal
-#' @export
 results_to_dataframe <- function(task_results) {
   if (is.null(task_results) || length(task_results) == 0) {
     return(data.frame(task_id = character(), status = character()))

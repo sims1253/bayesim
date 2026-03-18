@@ -24,6 +24,12 @@ A tibble with one row per task, containing columns:
 Generates the complete, deterministic task table for a simulation.
 Tasks are ordered lexicographically by task_id for reproducibility.
 }
+\note{
+This function performs light validation (is_simulation_config check only).
+Full validation via validate_simulation_config() is expected to have been
+called at the entry point (run_simulation/resume_simulation) before this
+function is invoked.
+}
 \examples{
 \dontrun{
 config <- simulation_config(

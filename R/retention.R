@@ -270,7 +270,6 @@ retention_for_task_result <- function(
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
 #' @keywords internal
-#' @export
 apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   if (!is_bayesim_fit_result(fit_result)) {
     stop(bayesim_contract_error("fit_result must be a bayesim_fit_result object"))
@@ -310,7 +309,6 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
 #' @return Modified bayesim_task_result object with retained fields added
 #'
 #' @keywords internal
-#' @export
 apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
   if (!is_bayesim_task_result(task_result)) {
     stop(bayesim_contract_error("task_result must be a bayesim_task_result object"))

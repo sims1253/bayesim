@@ -10,8 +10,8 @@ new_task_result(
   metrics = NULL,
   diagnostics = NULL,
   timing = list(total = 0),
-  error = NULL,
-  warnings = character()
+  warnings = character(),
+  error = NULL
 )
 }
 \arguments{
@@ -25,9 +25,9 @@ new_task_result(
 
 \item{timing}{List containing timing information, must include \code{total}}
 
-\item{error}{NULL, or a list with \code{error_class} and \code{error_message} if failed}
-
 \item{warnings}{Character vector of warning messages}
+
+\item{error}{NULL, or a list with \code{error_class} and \code{error_message} if failed}
 }
 \value{
 A validated \code{bayesim_task_result} object

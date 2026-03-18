@@ -23,6 +23,9 @@ Use \code{\link[=make_task_id]{make_task_id()}} instead, which auto-calculates f
 from the grid dimensions.
 }
 \examples{
-format_task_id(1, 2, 100)
-# Returns: "d001_f002_r00100"
+# Migration: replace format_task_id() with make_task_id()
+# Before (deprecated):
+#   format_task_id(1, 2, 100)
+# After (preferred):
+make_task_id(1, 2, 100)
 }

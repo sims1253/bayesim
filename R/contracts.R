@@ -375,7 +375,6 @@ validate_data_bundle <- function(data_bundle) {
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [validate_bayesim_fit_result()], [new_fit_result()]
 #'
@@ -467,7 +466,6 @@ check_fitter_class <- function(fitter) {
 }
 
 #' @rdname check_fitter_class
-#' @export
 validate_fitter_interface <- check_fitter_class
 
 # =============================================================================
@@ -490,7 +488,6 @@ validate_fitter_interface <- check_fitter_class
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [Metric], [validate_metric_output()]
 validate_metric_interface <- function(metric) {

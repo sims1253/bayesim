@@ -29,7 +29,6 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #'   re-thrown and will stop the simulation.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -132,7 +131,6 @@ run_task_safe <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -317,7 +315,6 @@ run_task <- function(
 #' in NULL values for that context element.
 #'
 #' @keywords internal
-#' @export
 build_metric_context <- function(
   fit_result,
   fitter,
@@ -406,7 +403,6 @@ build_metric_context <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 compute_all_metrics <- function(
   fit_result,
   data_bundle,

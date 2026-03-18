@@ -137,29 +137,12 @@ new_fit_result <- function(
   error = NULL,
   data_bundle = NULL
 ) {
-  # Ensure warnings is character vector
-  if (is.null(warnings)) {
-    warnings <- character()
-  }
-
-  # Ensure diagnostics is a list
-  if (is.null(diagnostics)) {
-    diagnostics <- list()
-  }
-
-  # Ensure timing components exist
-  if (is.null(timing)) {
-    timing <- list(total = 0, warmup = 0, sample = 0)
-  }
-  if (is.null(timing$total)) {
-    timing$total <- 0
-  }
-  if (is.null(timing$warmup)) {
-    timing$warmup <- 0
-  }
-  if (is.null(timing$sample)) {
-    timing$sample <- 0
-  }
+  warnings <- warnings %||% character()
+  diagnostics <- diagnostics %||% list()
+  timing <- timing %||% list(total = 0, warmup = 0, sample = 0)
+  timing$total <- timing$total %||% 0
+  timing$warmup <- timing$warmup %||% 0
+  timing$sample <- timing$sample %||% 0
 
   result <- structure(
     list(
@@ -267,8 +250,8 @@ validate_bayesim_task_result <- function(x) {
 #' @param metrics Named list of computed metrics (NULL if task failed or skipped)
 #' @param diagnostics Named list of diagnostic values (NULL if task failed)
 #' @param timing List containing timing information, must include `total`
-#' @param error NULL, or a list with `error_class` and `error_message` if failed
 #' @param warnings Character vector of warning messages
+#' @param error NULL, or a list with `error_class` and `error_message` if failed
 #'
 #' @return A validated `bayesim_task_result` object
 #'
@@ -308,21 +291,12 @@ new_task_result <- function(
   metrics = NULL,
   diagnostics = NULL,
   timing = list(total = 0),
-  error = NULL,
-  warnings = character()
+  warnings = character(),
+  error = NULL
 ) {
-  # Ensure warnings is character vector
-  if (is.null(warnings)) {
-    warnings <- character()
-  }
-
-  # Ensure timing is a list with total
-  if (is.null(timing)) {
-    timing <- list(total = 0)
-  }
-  if (is.null(timing$total)) {
-    timing$total <- 0
-  }
+  warnings <- warnings %||% character()
+  timing <- timing %||% list(total = 0)
+  timing$total <- timing$total %||% 0
 
   result <- structure(
     list(
@@ -331,8 +305,8 @@ new_task_result <- function(
       metrics = metrics,
       diagnostics = diagnostics,
       timing = timing,
-      error = error,
-      warnings = warnings
+      warnings = warnings,
+      error = error
     ),
     class = "bayesim_task_result"
   )
@@ -495,28 +469,11 @@ new_simulation_result <- function(
   errors = NULL,
   checkpoint_path = NULL
 ) {
-  # Ensure task_results is a list
-  if (is.null(task_results)) {
-    task_results <- list()
-  }
-
-  # Ensure summary is a data.frame (create empty if NULL)
-  if (is.null(summary)) {
-    summary <- data.frame()
-  }
-
-  # Ensure timing is a list with total
-  if (is.null(timing)) {
-    timing <- list(total = 0)
-  }
-  if (is.null(timing$total)) {
-    timing$total <- 0
-  }
-
-  # Ensure errors is a data.frame (create empty if NULL)
-  if (is.null(errors)) {
-    errors <- data.frame()
-  }
+  task_results <- task_results %||% list()
+  summary <- summary %||% data.frame()
+  timing <- timing %||% list(total = 0)
+  timing$total <- timing$total %||% 0
+  errors <- errors %||% data.frame()
 
   result <- structure(
     list(

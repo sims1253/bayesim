@@ -316,8 +316,11 @@ capture_error_info <- function(e) {
 #'
 #' @export
 #' @examples
-#' format_task_id(1, 2, 100)
-#' # Returns: "d001_f002_r00100"
+#' # Migration: replace format_task_id() with make_task_id()
+#' # Before (deprecated):
+#' #   format_task_id(1, 2, 100)
+#' # After (preferred):
+#' make_task_id(1, 2, 100)
 format_task_id <- function(data_idx, fit_idx, rep_idx) {
   lifecycle::deprecate_warn(
     "1.1",

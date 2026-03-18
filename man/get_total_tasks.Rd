@@ -16,6 +16,11 @@ Integer. Total number of tasks.
 Calculates the total number of simulation tasks based on the configuration.
 Each task is one (data_spec, fit_spec, replicate) combination.
 }
+\note{
+This function performs light validation (is_simulation_config check only).
+Full validation is expected at the entry point (run_simulation/resume_simulation)
+before this utility function is called.
+}
 \examples{
 \dontrun{
 config <- simulation_config(
