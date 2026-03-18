@@ -661,6 +661,10 @@ validate_config_completeness <- function(config) {
 #'
 #' @return Integer. Total number of tasks.
 #'
+#' @note This function performs light validation (is_simulation_config check only).
+#'   Full validation is expected at the entry point (run_simulation/resume_simulation)
+#'   before this utility function is called.
+#'
 #' @export
 #'
 #' @examples

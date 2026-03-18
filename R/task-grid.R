@@ -166,6 +166,11 @@ canonicalize_task_grid <- function(task_grid, config) {
 #'   - `rng_seed`: List column containing precomputed RNG stream for each task
 #'   - `status`: Character status, initialized to "pending"
 #'
+#' @note This function performs light validation (is_simulation_config check only).
+#'   Full validation via validate_simulation_config() is expected to have been
+#'   called at the entry point (run_simulation/resume_simulation) before this
+#'   function is invoked.
+#'
 #' @keywords internal
 #' @export
 #'
