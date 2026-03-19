@@ -346,13 +346,13 @@ simulation_config <- function(
 
 #' Resolve Metrics to List of Metric Objects
 #'
-#' Internal helper to convert character metric names or Metric objects
-#' into a standardized list of Metric objects.
+#' Internal helper to validate and normalize metric inputs into a standardized
+#' list of Metric objects.
 #'
-#' @param metrics Character vector of metric names, list of Metric objects,
-#'   or NULL.
+#' @param metrics A Metric object, a list of Metric objects, or NULL.
+#'   Character vectors are rejected with an informative error.
 #'
-#' @return A list of Metric objects, or NULL if input was NULL.
+#' @return A list of Metric objects, or an empty list if input was NULL.
 #'
 #' @keywords internal
 #' @export
@@ -440,7 +440,16 @@ as_config_spec <- function(config) {
 #'
 #' @param fn A function.
 #'
-#' @return A character string representing the function signature.
+#' @return On success, a named list with fields:
+#'   \itemize{
+#'     \item `rehydratable` - Logical; TRUE if the function can be
+#'       reconstituted from a package namespace reference.
+#'     \item `reference` - NULL or a list with `package`, `name`, `version`.
+#'     \item `environment` - Character string naming the function's environment.
+#'     \item `args` - Character vector of formal argument names.
+#'     \item `body_hash` - Character string hash of the function body.
+#'   }
+#'   Returns `NA_character_` if `fn` is not a function or capture fails.
 #'
 #' @keywords internal
 #' @export

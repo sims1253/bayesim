@@ -39,6 +39,10 @@ validate_bayesim_fit_result <- function(x) {
     stop(bayesim_contract_error("Object must have class 'bayesim_fit_result'"))
   }
 
+  if (!is.logical(x$success) || length(x$success) != 1 || is.na(x$success)) {
+    stop(bayesim_contract_error("success must be a scalar logical (TRUE or FALSE)"))
+  }
+
   if (isTRUE(x$success)) {
     if (!is.null(x$error)) {
       stop(bayesim_contract_error("When success is TRUE, error must be NULL"))

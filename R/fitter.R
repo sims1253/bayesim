@@ -107,6 +107,8 @@ fit <- S7::new_generic(
 #'     \item P = number of parameters/variables
 #'     \item Column names match variable names
 #'   }
+#'   Returns `NULL` when `fit_result$success` is `FALSE` or the fit
+#'   object is unavailable.
 #' @export
 extract_draws <- S7::new_generic(
   "extract_draws",
@@ -133,6 +135,8 @@ extract_draws <- S7::new_generic(
 #'     \item `predicted_sd`: Vector of prediction standard deviations (N)
 #'     \item Additional fitter-specific outputs
 #'   }
+#'   Returns `NULL` when `fit_result$success` is `FALSE` or the fit
+#'   object is unavailable.
 #' @export
 predict_fit <- S7::new_generic(
   "predict_fit",
@@ -156,6 +160,8 @@ predict_fit <- S7::new_generic(
 #'     \item S = number of posterior draws
 #'     \item Entry (i, s) is log p(y_i | parameters_s)
 #'   }
+#'   Returns `NULL` when `fit_result$success` is `FALSE` or the fit
+#'   object is unavailable.
 #' @export
 log_lik <- S7::new_generic(
   "log_lik",
@@ -181,6 +187,8 @@ log_lik <- S7::new_generic(
 #'     \item `pareto_k`: Pareto k diagnostic values (vector of length N)
 #'     \item Additional loo-specific diagnostics
 #'   }
+#'   Returns `NULL` when `fit_result$success` is `FALSE` or the fit
+#'   object is unavailable.
 #' @export
 loo <- S7::new_generic("loo", "fitter", function(fitter, fit_result) {
   S7::S7_dispatch()

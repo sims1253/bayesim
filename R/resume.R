@@ -4,10 +4,8 @@ NULL
 #' Check if Resumable Run Exists
 #'
 #' Checks whether a valid checkpoint exists that can be resumed.
-#' A run can be resumed if:
-#' - Both run_manifest.json and latest.json exist
-#' - latest.json points to a valid checkpoint_id
-#' - The referenced checkpoint can be read and validated
+#' A run can be resumed if any valid checkpoint is found (scanning backward
+#' from the latest, matching the recovery logic used by `load_for_resume()`).
 #'
 #' @param result_path Character; path to results directory containing checkpoints.
 #'
@@ -29,25 +27,14 @@ can_resume <- function(result_path) {
   }
 
   manifest_path <- file.path(result_path, "run_manifest.json")
-  latest_path <- file.path(result_path, "latest.json")
-
-  if (!file.exists(manifest_path) || !file.exists(latest_path)) {
+  if (!file.exists(manifest_path)) {
     return(FALSE)
   }
 
-  # Check for valid checkpoint reference
-  latest <- tryCatch(
-    jsonlite::read_json(latest_path),
-    error = function(e) NULL
-  )
-
-  if (is.null(latest) || is.null(latest$checkpoint_id)) {
-    return(FALSE)
-  }
-
-  # Verify checkpoint can be read
+  # Use the same recovery logic as load_for_resume(): scan backward
+  # from the latest checkpoint to find any valid one.
   checkpoint <- tryCatch(
-    read_checkpoint(result_path, latest$checkpoint_id),
+    get_latest_valid_checkpoint(result_path),
     error = function(e) NULL
   )
 
@@ -91,7 +78,8 @@ load_for_resume <- function(result_path, config) {
     jsonlite::read_json(manifest_path),
     error = function(e) {
       stop(bayesim_checkpoint_error(
-        paste0("Cannot read run manifest: ", manifest_path)
+        paste0("Cannot read run manifest: ", manifest_path,
+               " (", conditionMessage(e), ")")
       ))
     }
   )
@@ -184,14 +172,10 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
     terminal_tasks$task_id
   )
 
-  # Update status for matching task IDs
-  task_ids <- fresh_grid$task_id
-  for (i in seq_along(task_ids)) {
-    task_id <- task_ids[i]
-    if (task_id %in% names(status_lookup)) {
-      fresh_grid$status[i] <- status_lookup[task_id]
-    }
-  }
+  # Update status for matching task IDs (vectorized)
+  idx <- match(fresh_grid$task_id, names(status_lookup))
+  matched <- !is.na(idx)
+  fresh_grid$status[matched] <- status_lookup[idx[matched]]
 
   fresh_grid
 }
@@ -396,7 +380,12 @@ normalize_manifest_df <- function(x) {
     return(bind_rows_safe(x))
   }
 
-  tryCatch(as.data.frame(x), error = function(e) x)
+  tryCatch(as.data.frame(x), error = function(e) {
+    stop(bayesim_checkpoint_error(
+      paste0("Cannot normalize manifest task_grid to data.frame: ",
+             conditionMessage(e))
+    ))
+  })
 }
 
 normalize_manifest_retain <- function(x) {

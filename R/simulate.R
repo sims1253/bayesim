@@ -288,7 +288,7 @@ execute_tasks <- function(
             ,
             drop = FALSE
           ]
-          merged_results <- merge_results(prior_only, results_to_checkpoint)
+          merged_results <- merge_results(prior_only, current_df)
           write_checkpoint(
             result_path,
             task_grid,
@@ -543,60 +543,55 @@ enrich_summary_with_grid_columns <- function(
   summary$rep_idx <- rep_indices
 
   # Add data_grid columns with "data_" prefix
-  if (!is.null(data_grid) && nrow(data_grid) > 0) {
-    data_colnames <- names(data_grid)
-    for (col_name in data_colnames) {
-      new_col_name <- paste0("data_", col_name)
-      summary[[new_col_name]] <- data_grid[[col_name]][data_indices]
-    }
-  }
-
-  if (is.null(data_grid) && "data_spec" %in% names(task_grid)) {
-    data_specs <- task_grid$data_spec[grid_indices]
-    data_names <- unique(unlist(lapply(data_specs, names), use.names = FALSE))
-    for (col_name in data_names) {
-      new_col_name <- paste0("data_", col_name)
-      summary[[new_col_name]] <- vapply(
-        data_specs,
-        function(spec) {
-          value <- spec[[col_name]]
-          if (is.null(value) || length(value) != 1 || is.list(value)) {
-            NA
-          } else {
-            as.character(value)
-          }
-        },
-        character(1)
-      )
-    }
-  }
+  summary <- add_grid_columns(summary, task_grid, grid_indices,
+    grid = data_grid, spec_col = "data_spec", prefix = "data_")
 
   # Add fit_grid columns with "fit_" prefix
-  if (!is.null(fit_grid) && nrow(fit_grid) > 0) {
-    fit_colnames <- names(fit_grid)
-    for (col_name in fit_colnames) {
-      new_col_name <- paste0("fit_", col_name)
-      summary[[new_col_name]] <- fit_grid[[col_name]][fit_indices]
-    }
-  }
+  summary <- add_grid_columns(summary, task_grid, grid_indices,
+    grid = fit_grid, spec_col = "fit_spec", prefix = "fit_")
 
-  if (is.null(fit_grid) && "fit_spec" %in% names(task_grid)) {
-    fit_specs <- task_grid$fit_spec[grid_indices]
-    fit_names <- unique(unlist(lapply(fit_specs, names), use.names = FALSE))
-    for (col_name in fit_names) {
-      new_col_name <- paste0("fit_", col_name)
-      summary[[new_col_name]] <- vapply(
-        fit_specs,
+  summary
+}
+
+#' Add grid columns from a data/fit grid or spec column
+#'
+#' Helper for [enrich_summary_with_grid_columns()] that handles both the
+#' direct grid-index path and the inline-spec fallback path.
+#'
+#' @param summary A tibble with task results
+#' @param task_grid The task grid tibble
+#' @param grid_indices Integer vector mapping summary rows to task_grid rows
+#' @param grid A data frame with grid rows, or NULL to fall back to spec column
+#' @param spec_col Character name of the spec column in task_grid (used when grid is NULL)
+#' @param prefix Column name prefix (e.g. "data_" or "fit_")
+#'
+#' @return The summary tibble with additional columns
+#'
+#' @keywords internal
+add_grid_columns <- function(summary, task_grid, grid_indices,
+                              grid = NULL, spec_col = NULL, prefix = "") {
+  if (is.null(grid) && !is.null(spec_col) && spec_col %in% names(task_grid)) {
+    specs <- task_grid[[spec_col]][grid_indices]
+    col_names <- unique(unlist(lapply(specs, names), use.names = FALSE))
+    for (col_name in col_names) {
+      summary[[paste0(prefix, col_name)]] <- vapply(
+        specs,
         function(spec) {
           value <- spec[[col_name]]
-          if (is.null(value) || length(value) != 1 || is.list(value)) {
-            NA
-          } else {
-            as.character(value)
-          }
+          if (is.null(value) || length(value) != 1 || is.list(value)) NA
+          else as.character(value)
         },
         character(1)
       )
+    }
+    return(summary)
+  }
+
+  if (!is.null(grid) && nrow(grid) > 0) {
+    indices <- if (prefix == "data_") grid_indices else grid_indices
+    col_names <- names(grid)
+    for (col_name in col_names) {
+      summary[[paste0(prefix, col_name)]] <- grid[[col_name]][indices]
     }
   }
 

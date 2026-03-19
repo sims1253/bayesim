@@ -417,7 +417,8 @@ compute_all_metrics <- function(
   }
 
   metric_results <- vector("list", n_metrics)
-  warning_acc <- character()
+  warning_parts <- vector("list", n_metrics)
+  n_warn <- 0L
 
   for (i in seq_len(n_metrics)) {
     metric <- metrics[[i]]
@@ -452,13 +453,16 @@ compute_all_metrics <- function(
         result_path = result_path
       )
       metric_results[[i]] <- processed$values
-      warning_acc <- c(warning_acc, processed$warnings)
+      if (length(processed$warnings) > 0L) {
+        n_warn <- n_warn + 1L
+        warning_parts[[n_warn]] <- processed$warnings
+      }
     }
   }
 
   list(
     metrics = unlist(metric_results, recursive = FALSE),
-    warnings = unique(warning_acc)
+    warnings = unique(unlist(warning_parts[seq_len(n_warn)], recursive = FALSE))
   )
 }
 
@@ -489,8 +493,10 @@ finalize_metric_values <- function(
 ) {
   validate_metric_output(output, metric_name)
 
-  values <- list()
-  warnings <- character()
+  value_parts <- vector("list", length(output))
+  warn_parts <- vector("list", length(output))
+  n_warn <- 0L
+  n_val <- 0L
 
   for (field_name in names(output)) {
     value <- output[[field_name]]
@@ -505,28 +511,40 @@ finalize_metric_values <- function(
       )
 
       prefix <- paste0(metric_name, "__", field_name)
-      values[[paste0(prefix, "__externalized")]] <- TRUE
-      values[[paste0(prefix, "__artifact_path")]] <- pointer$path
-      values[[paste0(prefix, "__artifact_hash")]] <- pointer$hash
-      values[[paste0(prefix, "__artifact_size")]] <- pointer$size
-      values[[paste0(prefix, "__n_values")]] <- length(value)
-      warnings <- c(
-        warnings,
-        sprintf(
-          "Externalized high-cardinality metric '%s__%s' for task '%s'",
-          metric_name,
-          field_name,
-          task_ctx$task_id %||% "unknown"
-        )
+      n_val <- n_val + 5L
+      value_parts[[n_val - 4L]] <- TRUE
+      names(value_parts)[[n_val - 4L]] <- paste0(prefix, "__externalized")
+      value_parts[[n_val - 3L]] <- pointer$path
+      names(value_parts)[[n_val - 3L]] <- paste0(prefix, "__artifact_path")
+      value_parts[[n_val - 2L]] <- pointer$hash
+      names(value_parts)[[n_val - 2L]] <- paste0(prefix, "__artifact_hash")
+      value_parts[[n_val - 1L]] <- pointer$size
+      names(value_parts)[[n_val - 1L]] <- paste0(prefix, "__artifact_size")
+      value_parts[[n_val]] <- length(value)
+      names(value_parts)[[n_val]] <- paste0(prefix, "__n_values")
+      n_warn <- n_warn + 1L
+      warn_parts[[n_warn]] <- sprintf(
+        "Externalized high-cardinality metric '%s__%s' for task '%s'",
+        metric_name,
+        field_name,
+        task_ctx$task_id %||% "unknown"
       )
     } else {
       inline_output <- list(value)
       names(inline_output) <- field_name
-      values <- c(values, flatten_metric_output(inline_output, metric_name))
+      flat <- flatten_metric_output(inline_output, metric_name)
+      for (k in seq_along(flat)) {
+        n_val <- n_val + 1L
+        value_parts[[n_val]] <- flat[[k]]
+        names(value_parts)[[n_val]] <- names(flat)[[k]]
+      }
     }
   }
 
-  list(values = values, warnings = unique(warnings))
+  list(
+    values = value_parts[seq_len(n_val)],
+    warnings = unique(unlist(warn_parts[seq_len(n_warn)], recursive = FALSE))
+  )
 }
 
 should_externalize_metric_value <- function(value, result_path = NULL) {

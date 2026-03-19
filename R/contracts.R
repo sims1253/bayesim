@@ -84,9 +84,9 @@ validate_data_bundle <- function(data_bundle) {
   if (is.null(data_bundle$train)) {
     stop(bayesim_data_error("data_bundle$train is required and cannot be NULL"))
   }
-  if (!is.data.frame(data_bundle$train) && !is.matrix(data_bundle$train)) {
+  if (!is.data.frame(data_bundle$train)) {
     stop(bayesim_data_error(
-      "data_bundle$train must be a data.frame or matrix, got " %+%
+      "data_bundle$train must be a data.frame, got " %+%
         class(data_bundle$train)[1]
     ))
   }
@@ -95,35 +95,25 @@ validate_data_bundle <- function(data_bundle) {
   }
 
   if (!is.null(data_bundle$test)) {
-    if (
-      !is.data.frame(data_bundle$test) &&
-        !is.matrix(data_bundle$test) &&
-        !is.list(data_bundle$test)
-    ) {
+    if (!is.data.frame(data_bundle$test)) {
       stop(bayesim_data_error(
-        "data_bundle$test must be NULL or a structured object (data.frame, matrix, or list)"
+        "data_bundle$test must be NULL or a data.frame, got " %+%
+          class(data_bundle$test)[1]
       ))
     }
   }
 
-  # response is optional - only validated when present
-  if (!is.null(data_bundle$response) && !is.character(data_bundle$response)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$response must be NULL or a character vector, got " %+%
-          typeof(data_bundle$response)
+  # response must be a scalar character when present
+  if (!is.null(data_bundle$response)) {
+    if (!is.character(data_bundle$response) || length(data_bundle$response) != 1) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$response must be NULL or a scalar character, got " %+%
+            typeof(data_bundle$response) %+%
+            if (length(data_bundle$response) != 1) " (length != 1)" else ""
+        )
       )
-    )
-  }
-  if (
-    !is.null(data_bundle$response) &&
-      (length(data_bundle$response) < 1 ||
-        anyNA(data_bundle$response) ||
-        any(data_bundle$response == ""))
-  ) {
-    stop(bayesim_data_error(
-      "data_bundle$response cannot contain NA or empty strings"
-    ))
+    }
   }
 
   if (

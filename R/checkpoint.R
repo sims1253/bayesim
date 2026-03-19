@@ -292,7 +292,8 @@ write_checkpoint <- function(
       )
       if (is.null(test_grid)) {
         stop(bayesim_checkpoint_error(
-          "Checkpoint read-back validation failed for ledger"
+          paste0("Checkpoint read-back validation failed for ledger: ",
+                 basename(ledger_path))
         ))
       }
 
@@ -302,7 +303,8 @@ write_checkpoint <- function(
       )
       if (is.null(test_results)) {
         stop(bayesim_checkpoint_error(
-          "Checkpoint read-back validation failed for results"
+          paste0("Checkpoint read-back validation failed for results: ",
+                 basename(results_path))
         ))
       }
 
@@ -403,6 +405,16 @@ write_checkpoint <- function(
 #' checkpoint <- read_checkpoint("/path/to/results", checkpoint_id = 5)
 #' }
 read_checkpoint <- function(result_path, checkpoint_id = NULL) {
+  tryCatch(
+    read_checkpoint_impl(result_path, checkpoint_id),
+    error = function(e) {
+      cli::cli_warn("Failed to read checkpoint: {conditionMessage(e)}")
+      NULL
+    }
+  )
+}
+
+read_checkpoint_impl <- function(result_path, checkpoint_id = NULL) {
   if (is.null(result_path)) {
     return(NULL)
   }

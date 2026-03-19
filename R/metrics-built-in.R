@@ -215,13 +215,3 @@ S7::method(compute, PosteriorMeanMetric) <- function(
 
   as.list(means)
 }
-
-#' Register built-in metrics
-#'
-#' @keywords internal
-register_built_in_metrics <- function() {
-  register_metric(rmse_metric(), overwrite = TRUE)
-  register_metric(bias_metric(), overwrite = TRUE)
-  register_metric(coverage_metric(), overwrite = TRUE)
-  register_metric(posterior_mean_metric(), overwrite = TRUE)
-}

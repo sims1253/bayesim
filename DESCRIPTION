@@ -35,7 +35,6 @@ Collate:
     'rng.R'
     'task-grid.R'
     'worker.R'
-    'metric-registry.R'
     'simulate.R'
     'checkpoint.R'
     'resume.R'
