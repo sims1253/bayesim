@@ -164,6 +164,64 @@ run_simulation <- function(
   )
 }
 
+#' Flush task results to checkpoint and lighten in-memory results
+#'
+#' Writes a checkpoint containing both prior and current results, then
+#' replaces in-memory task results with lightweight summaries.
+#'
+#' @param task_results List of task results (may contain NULLs for cleared slots).
+#' @param task_grid Task grid data frame.
+#' @param result_path Checkpoint directory path.
+#' @param config_fingerprint Configuration fingerprint for validation.
+#' @param config SimulationConfig object (used for checkpoint_format).
+#' @param retain Retention specification.
+#'
+#' @return Modified task_results list with heavy objects removed.
+#'
+#' @keywords internal
+flush_checkpoint <- function(task_results, task_grid, result_path,
+                              config_fingerprint, config, retain) {
+  non_null_indices <- which(!vapply(task_results, is.null, logical(1)))
+  results_to_checkpoint <- task_results[non_null_indices]
+
+  # Merge with prior checkpoint results for complete checkpoint
+  prior_checkpoint <- read_checkpoint(result_path)
+  if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
+    current_df <- results_to_dataframe(results_to_checkpoint)
+    prior_only <- prior_checkpoint$results_df[
+      !prior_checkpoint$results_df$task_id %in% current_df$task_id,
+      ,
+      drop = FALSE
+    ]
+    merged_results <- merge_results(prior_only, current_df)
+    write_checkpoint(
+      result_path, task_grid, merged_results,
+      config_fingerprint,
+      checkpoint_format = config@checkpoint_format
+    )
+  } else {
+    write_checkpoint(
+      result_path, task_grid, results_to_checkpoint,
+      config_fingerprint,
+      checkpoint_format = config@checkpoint_format
+    )
+  }
+
+  # Lighten in-memory results to free memory
+  for (j in non_null_indices) {
+    tr <- task_results[[j]]
+    if (!is.null(tr)) {
+      task_results[[j]] <- lighten_task_result(
+        tr,
+        retention_for_task_result(retain, tr$status, tr$warnings)
+      )
+    }
+  }
+
+  task_results
+}
+
+
 #' Execute all tasks in grid
 #'
 #' @param task_grid A task grid tibble from create_task_grid()
@@ -276,46 +334,10 @@ execute_tasks <- function(
       }
 
       if (!is.null(result_path) && !is.null(config_fingerprint)) {
-        non_null_indices <- which(!vapply(task_results, is.null, logical(1)))
-        results_to_checkpoint <- task_results[non_null_indices]
-
-        # Merge with prior checkpoint results for complete checkpoint
-        prior_checkpoint <- read_checkpoint(result_path)
-        if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
-          current_df <- results_to_dataframe(results_to_checkpoint)
-          prior_only <- prior_checkpoint$results_df[
-            !prior_checkpoint$results_df$task_id %in% current_df$task_id,
-            ,
-            drop = FALSE
-          ]
-          merged_results <- merge_results(prior_only, current_df)
-          write_checkpoint(
-            result_path,
-            task_grid,
-            merged_results,
-            config_fingerprint,
-            checkpoint_format = config@checkpoint_format
-          )
-        } else {
-          write_checkpoint(
-            result_path,
-            task_grid,
-            results_to_checkpoint,
-            config_fingerprint,
-            checkpoint_format = config@checkpoint_format
-          )
-        }
-
-        for (j in non_null_indices) {
-          tr <- task_results[[j]]
-          if (!is.null(tr)) {
-            task_results[[j]] <- lighten_task_result(
-              tr,
-              retention_for_task_result(retain, tr$status, tr$warnings)
-            )
-          }
-        }
-
+        task_results <- flush_checkpoint(
+          task_results, task_grid, result_path, config_fingerprint,
+          config, retain
+        )
         n_in_memory <- sum(!vapply(task_results, is.null, logical(1)))
         gc(verbose = FALSE)
       }
