@@ -1491,7 +1491,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = c(10, 20), beta = c(1, 2)),
         fit_grid = data.frame(model = "baseline"),
-        data_generator = bayesim:::bayesim_example_data_generator,
+        data_generator = bayesim:::example_data_generator,
         fitter = MockFitter(),
         metrics = list(rmse_metric()),
         n_replicates = 1L,
@@ -1519,7 +1519,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = c(50, 100), beta = c(1, 2)),
         fit_grid = data.frame(model = "baseline"),
-        data_generator = bayesim:::bayesim_example_data_generator,
+        data_generator = bayesim:::example_data_generator,
         fitter = MockFitter(),
         metrics = list(rmse_metric()),
         n_replicates = 2L,

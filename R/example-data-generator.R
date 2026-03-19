@@ -1,5 +1,5 @@
 #' @keywords internal
-bayesim_example_data_generator <- function(data_spec, seed, task_ctx) {
+example_data_generator <- function(data_spec, seed, task_ctx) {
   withr::with_seed(seed, {
     n <- as.integer(data_spec$n %||% 10L)
     beta <- as.numeric(data_spec$beta %||% 1)

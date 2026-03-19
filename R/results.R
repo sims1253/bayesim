@@ -14,7 +14,6 @@ NULL
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_fit_result"`, `FALSE` otherwise
-#' @keywords internal
 #' @export
 is_bayesim_fit_result <- function(x) {
   inherits(x, "bayesim_fit_result")
@@ -156,7 +155,6 @@ new_fit_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_task_result"`, `FALSE` otherwise
-#' @keywords internal
 #' @export
 is_bayesim_task_result <- function(x) {
   inherits(x, "bayesim_task_result")
@@ -292,7 +290,6 @@ new_task_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_simulation_result"`, `FALSE` otherwise
-#' @keywords internal
 #' @export
 is_bayesim_simulation_result <- function(x) {
   inherits(x, "bayesim_simulation_result")

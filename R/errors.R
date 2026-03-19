@@ -14,7 +14,6 @@ NULL
 #' @param message The error message.
 #' @param call The call that caused the error (optional).
 #' @return An error condition object.
-#' @keywords internal
 #' @export
 bayesim_error <- function(message, call = NULL) {
   structure(
@@ -27,7 +26,6 @@ bayesim_error <- function(message, call = NULL) {
 #'
 #' @param cond A condition object to test.
 #' @return TRUE if the condition is a bayesim error, FALSE otherwise.
-#' @keywords internal
 #' @export
 is_bayesim_error <- function(cond) {
   inherits(cond, "bayesim_error")
@@ -40,7 +38,6 @@ is_bayesim_error <- function(cond) {
 #' Configuration validation error (fatal)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_config_error <- function(message, call = NULL) {
   structure(
@@ -52,7 +49,6 @@ bayesim_config_error <- function(message, call = NULL) {
 #' Contract/interface violation error (fatal)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_contract_error <- function(message, call = NULL) {
   structure(
@@ -64,7 +60,6 @@ bayesim_contract_error <- function(message, call = NULL) {
 #' Checkpoint read/write error (fatal)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_checkpoint_error <- function(message, call = NULL) {
   structure(
@@ -76,7 +71,6 @@ bayesim_checkpoint_error <- function(message, call = NULL) {
 #' Internal consistency error (fatal)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_internal_error <- function(message, call = NULL) {
   structure(
@@ -90,7 +84,6 @@ bayesim_internal_error <- function(message, call = NULL) {
 #' Inherits from `bayesim_contract_error`.
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_validation_error <- function(message, call = NULL) {
   structure(
@@ -112,7 +105,6 @@ bayesim_validation_error <- function(message, call = NULL) {
 #' Data generation/validation error (recoverable)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_data_error <- function(message, call = NULL) {
   structure(
@@ -124,7 +116,6 @@ bayesim_data_error <- function(message, call = NULL) {
 #' Model fitting error (recoverable)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_fit_error <- function(message, call = NULL) {
   structure(
@@ -136,7 +127,6 @@ bayesim_fit_error <- function(message, call = NULL) {
 #' Metric computation error (recoverable)
 #'
 #' @inheritParams bayesim_error
-#' @keywords internal
 #' @export
 bayesim_metric_error <- function(message, call = NULL) {
   structure(
@@ -153,7 +143,6 @@ bayesim_metric_error <- function(message, call = NULL) {
 #'
 #' @param cond A condition object to test.
 #' @return TRUE if the error should stop the entire simulation run.
-#' @keywords internal
 #' @export
 is_fatal_error <- function(cond) {
   inherits(cond, "bayesim_config_error") ||
@@ -167,7 +156,6 @@ is_fatal_error <- function(cond) {
 #'
 #' @param cond A condition object to test.
 #' @return TRUE if the simulation can continue with other tasks.
-#' @keywords internal
 #' @export
 is_recoverable_error <- function(cond) {
   inherits(cond, "bayesim_data_error") ||
