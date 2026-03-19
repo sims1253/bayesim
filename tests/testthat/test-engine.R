@@ -1184,8 +1184,7 @@ describe("Worker", {
       # Default: remove fit and draws
       result <- apply_fit_retention(
         fit_result,
-        c("metrics", "diagnostics"),
-        data_bundle = data_bundle
+        c("metrics", "diagnostics")
       )
 
       expect_null(result$fit)
@@ -1203,8 +1202,7 @@ describe("Worker", {
 
       result <- apply_fit_retention(
         fit_result,
-        c("metrics", "fit"),
-        data_bundle = data_bundle
+        c("metrics", "fit")
       )
 
       expect_true(is.list(result$fit))
@@ -1222,8 +1220,7 @@ describe("Worker", {
 
       result <- apply_fit_retention(
         fit_result,
-        c("metrics", "draws"),
-        data_bundle = data_bundle
+        c("metrics", "draws")
       )
 
       expect_true(is.matrix(result$draws))
@@ -1238,8 +1235,7 @@ describe("Worker", {
 
       result <- apply_fit_retention(
         fit_result,
-        c("metrics", "diagnostics"),
-        data_bundle = data_bundle
+        c("metrics", "diagnostics")
       )
 
       expect_true(is.list(result$diagnostics))
@@ -1254,8 +1250,7 @@ describe("Worker", {
 
       result <- apply_fit_retention(
         fit_result,
-        c("metrics"),
-        data_bundle = data_bundle
+        c("metrics")
       )
 
       expect_null(result$diagnostics)

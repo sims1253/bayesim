@@ -269,8 +269,7 @@ run_task <- function(
 
   fit_result <- apply_fit_retention(
     fit_result,
-    task_retain,
-    data_bundle = data_bundle
+    task_retain
   )
 
   task_result <- new_task_result(

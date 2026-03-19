@@ -265,12 +265,11 @@ retention_for_task_result <- function(
 #'
 #' @param fit_result A bayesim_fit_result object
 #' @param retain Character vector of retention options specifying what to keep
-#' @param data_bundle Ignored. Retained for backward compatibility.
 #'
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
 #' @keywords internal
-apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
+apply_fit_retention <- function(fit_result, retain) {
   if (!is_bayesim_fit_result(fit_result)) {
     stop(bayesim_contract_error("fit_result must be a bayesim_fit_result object"))
   }
