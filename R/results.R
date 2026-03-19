@@ -22,15 +22,8 @@ is_bayesim_fit_result <- function(x) {
 
 #' Validate a bayesim_fit_result object
 #'
-#' Performs consistency checks on a bayesim_fit_result object.
-#'
 #' @param x A bayesim_fit_result object to validate
 #' @return The input object, invisibly, if validation passes
-#'
-#' @section Errors:
-#' Throws an error if validation fails, with a message indicating the specific
-#' validation problem (e.g., class mismatch, success/error inconsistency,
-#' invalid timing, missing draws colnames, etc.).
 #'
 #' @keywords internal
 #' @export
@@ -87,29 +80,19 @@ validate_bayesim_fit_result <- function(x) {
 
 #' Create a new bayesim_fit_result object
 #'
-#' Constructs a result object from a Bayesian model fitting operation.
+#' Constructs a validated result object from a Bayesian model fitting operation.
+#' All validation is performed by [validate_bayesim_fit_result()].
 #'
-#' @param success Logical scalar indicating if the fit succeeded
-#' @param fit The backend fit object (may be NULL if removed by retention policy)
-#' @param draws Matrix of posterior draws (S x P), with column names for parameters
-#' @param diagnostics Named list of diagnostic values (scalars or named numeric vectors)
-#' @param timing List containing total, warmup, and sample timing in seconds
-#' @param warnings Character vector of warning messages captured during fitting
-#' @param error A condition object if the fit failed, NULL otherwise
-#' @param data_bundle Optional list containing the training/test data used for fitting
+#' @param success Logical scalar indicating if the fit succeeded.
+#' @param fit The backend fit object (may be NULL if removed by retention policy).
+#' @param draws Matrix of posterior draws (S x P), with column names for parameters.
+#' @param diagnostics Named list of diagnostic values.
+#' @param timing List containing `total`, `warmup`, and `sample` timing in seconds.
+#' @param warnings Character vector of warning messages captured during fitting.
+#' @param error A condition object if the fit failed, NULL otherwise.
+#' @param data_bundle Optional list containing the training/test data used for fitting.
 #'
-#' @return A validated `bayesim_fit_result` object
-#'
-#' @details
-#' The bayesim_fit_result class encapsulates all outputs from a Bayesian model
-#' fitting operation, including the posterior draws, diagnostics, timing information,
-#' and any warnings or errors encountered.
-#'
-#' Validation rules:
-#' - If `success` is FALSE, `error` must be non-NULL
-#' - If `success` is TRUE, `error` must be NULL
-#' - `timing$total` must be non-negative
-#' - If `draws` is not NULL, it must be a matrix with column names
+#' @return A validated `bayesim_fit_result` object.
 #'
 #' @keywords internal
 #' @export
@@ -181,15 +164,8 @@ is_bayesim_task_result <- function(x) {
 
 #' Validate a bayesim_task_result object
 #'
-#' Performs consistency checks on a bayesim_task_result object.
-#'
 #' @param x A bayesim_task_result object to validate
 #' @return The input object, invisibly, if validation passes
-#'
-#' @section Errors:
-#' Throws an error if validation fails, with a message indicating the specific
-#' validation problem (e.g., class mismatch, invalid task_id or status,
-#' missing metrics for successful tasks, missing error for failed tasks, etc.).
 #'
 #' @keywords internal
 #' @export
@@ -247,28 +223,18 @@ validate_bayesim_task_result <- function(x) {
 
 #' Create a new bayesim_task_result object
 #'
-#' Constructs a result object from a single simulation task execution.
+#' Constructs a validated result object from a single simulation task execution.
+#' All validation is performed by [validate_bayesim_task_result()].
 #'
-#' @param task_id Character scalar identifying the task
-#' @param status Character scalar: one of "success", "failed", or "skipped"
-#' @param metrics Named list of computed metrics (NULL if task failed or skipped)
-#' @param diagnostics Named list of diagnostic values (NULL if task failed)
-#' @param timing List containing timing information, must include `total`
-#' @param warnings Character vector of warning messages
-#' @param error NULL, or a list with `error_class` and `error_message` if failed
+#' @param task_id Character scalar identifying the task.
+#' @param status Character scalar: one of "success", "failed", or "skipped".
+#' @param metrics Named list of computed metrics (NULL if task failed or skipped).
+#' @param diagnostics Named list of diagnostic values (NULL if task failed).
+#' @param timing List containing timing information, must include `total`.
+#' @param warnings Character vector of warning messages.
+#' @param error NULL, or a list with `error_class` and `error_message` if failed.
 #'
-#' @return A validated `bayesim_task_result` object
-#'
-#' @details
-#' The bayesim_task_result class captures the outcome of a single simulation task,
-#' including its computed metrics, any diagnostics, timing information, and
-#' errors or warnings.
-#'
-#' Validation rules:
-#' - `status` must be one of "success", "failed", or "skipped"
-#' - If `status` is "success", `metrics` must not be NULL
-#' - If `status` is "failed", `error` must not be NULL
-#' - `timing$total` must be non-negative
+#' @return A validated `bayesim_task_result` object.
 #'
 #' @keywords internal
 #' @export
@@ -334,15 +300,8 @@ is_bayesim_simulation_result <- function(x) {
 
 #' Validate a bayesim_simulation_result object
 #'
-#' Performs consistency checks on a bayesim_simulation_result object.
-#'
 #' @param x A bayesim_simulation_result object to validate
 #' @return The input object, invisibly, if validation passes
-#'
-#' @section Errors:
-#' Throws an error if validation fails, with a message indicating the specific
-#' validation problem (e.g., class mismatch, invalid config_fingerprint,
-#' invalid task_results elements, non-data.frame summary/errors, etc.).
 #'
 #' @keywords internal
 #' @export
@@ -414,29 +373,18 @@ validate_bayesim_simulation_result <- function(x) {
 
 #' Create a new bayesim_simulation_result object
 #'
-#' Constructs a result object from a complete simulation run.
+#' Constructs a validated result object from a complete simulation run.
+#' All validation is performed by [validate_bayesim_simulation_result()].
 #'
-#' @param config_fingerprint Character hash uniquely identifying the configuration
-#' @param task_results List of `bayesim_task_result` objects
-#' @param task_grid Tibble with task grid information (task_id, data_idx, fit_idx, rep_idx, status)
-#' @param summary Tibble with one row per task, columns for metrics and diagnostics
-#' @param timing List containing total, by_phase, and other timing breakdowns
-#' @param errors Tibble of failed tasks with error details
-#' @param checkpoint_path Path to the final checkpoint file, or NULL
+#' @param config_fingerprint Character hash uniquely identifying the configuration.
+#' @param task_results List of `bayesim_task_result` objects.
+#' @param task_grid Tibble with task grid information.
+#' @param summary Tibble with one row per task, columns for metrics and diagnostics.
+#' @param timing List containing `total` and optional timing breakdowns.
+#' @param errors Tibble of failed tasks with error details.
+#' @param checkpoint_path Path to the final checkpoint file, or NULL.
 #'
-#' @return A validated `bayesim_simulation_result` object
-#'
-#' @details
-#' The bayesim_simulation_result class encapsulates the complete results of a
-#' simulation study, including all individual task results, an aggregated summary,
-#' timing breakdowns, error information, and checkpoint location.
-#'
-#' Validation rules:
-#' - `config_fingerprint` must be a scalar character
-#' - `task_results` must be a list where all elements are `bayesim_task_result`
-#' - `summary` and `errors` must be data frames
-#' - `timing$total` must be non-negative
-#' - `checkpoint_path` must be NULL or a scalar character
+#' @return A validated `bayesim_simulation_result` object.
 #'
 #' @keywords internal
 #' @export

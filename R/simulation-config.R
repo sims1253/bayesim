@@ -160,7 +160,7 @@ SimulationConfig <- S7::new_class(
 #' @param checkpoint_every Positive integer. Save progress every N tasks.
 #' @param chunk_size Positive integer. Maximum number of task results to keep
 #'   in memory before forcing a checkpoint write. Defaults to `checkpoint_every`.
-#' @param max_in_memory Deprecated alias for `chunk_size`.
+#' @param max_in_memory `r lifecycle::badge("deprecated")` Use `chunk_size` instead.
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
 #' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no limit.
