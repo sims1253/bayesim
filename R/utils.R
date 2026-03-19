@@ -396,9 +396,9 @@ flatten_with_prefix <- function(x, prefix) {
 #'
 #' Lightweight replacement for `dplyr::bind_rows()` that handles data frames
 #' with different column sets by unioning all column names and filling
-#' missing values with `NA`.
+#' missing values with `NA`. List elements are coerced to data frames.
 #'
-#' @param dfs A list of data frames (or a single data frame).
+#' @param dfs A list of data frames or lists (or a single data frame).
 #'
 #' @return A single data frame with all rows. If input is empty, returns a
 #'   zero-row data frame.
@@ -409,7 +409,11 @@ bind_rows_safe <- function(dfs) {
   if (length(dfs) == 0) {
     return(data.frame())
   }
-  if (is.data.frame(dfs[[1L]]) && length(dfs) == 1L) {
+  # Coerce list elements to data frames
+  dfs <- lapply(dfs, function(df) {
+    if (is.data.frame(df)) df else as.data.frame(df, stringsAsFactors = FALSE)
+  })
+  if (length(dfs) == 1L) {
     return(dfs[[1L]])
   }
   all_cols <- unique(unlist(lapply(dfs, names)))
