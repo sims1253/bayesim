@@ -389,3 +389,40 @@ flatten_with_prefix <- function(x, prefix) {
 
   result
 }
+
+# Row-Binding Helper -------------------------------------------------------
+
+#' Bind rows from multiple data frames with mismatched columns
+#'
+#' Lightweight replacement for `dplyr::bind_rows()` that handles data frames
+#' with different column sets by unioning all column names and filling
+#' missing values with `NA`.
+#'
+#' @param dfs A list of data frames (or a single data frame).
+#'
+#' @return A single data frame with all rows. If input is empty, returns a
+#'   zero-row data frame.
+#'
+#' @keywords internal
+#' @export
+bind_rows_safe <- function(dfs) {
+  if (length(dfs) == 0) {
+    return(data.frame())
+  }
+  if (is.data.frame(dfs[[1L]]) && length(dfs) == 1L) {
+    return(dfs[[1L]])
+  }
+  all_cols <- unique(unlist(lapply(dfs, names)))
+  if (length(all_cols) == 0) {
+    return(data.frame())
+  }
+  do.call(
+    rbind,
+    lapply(dfs, function(df) {
+      for (col in setdiff(all_cols, names(df))) {
+        df[[col]] <- NA
+      }
+      df[, all_cols, drop = FALSE]
+    })
+  )
+}

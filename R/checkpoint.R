@@ -710,9 +710,9 @@ results_to_dataframe <- function(task_results) {
     return(data.frame(task_id = character(), status = character()))
   }
 
-  # Use dplyr::bind_rows() which handles different columns gracefully
+  # Use bind_rows_safe() which handles different columns gracefully
   # by filling missing columns with NA
-  dplyr::bind_rows(rows)
+  bind_rows_safe(rows)
 }
 
 # =============================================================================

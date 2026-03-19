@@ -5,7 +5,6 @@
 #' processing.
 #'
 #' @keywords internal
-#' @import rlang
 #' @importFrom cli cli_abort cli_warn
 #' @importFrom lifecycle deprecated deprecate_warn
 #' @seealso [simulation_config()], [run_simulation()], [resume_simulation()],

@@ -393,7 +393,7 @@ normalize_manifest_df <- function(x) {
   }
 
   if (is.list(x) && all(vapply(x, is.list, logical(1)))) {
-    return(dplyr::bind_rows(x))
+    return(bind_rows_safe(x))
   }
 
   tryCatch(as.data.frame(x), error = function(e) x)
