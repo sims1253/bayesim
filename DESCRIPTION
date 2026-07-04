@@ -44,6 +44,7 @@ Collate:
     'linear-regression-fitter.R'
     'cmdstan-fitter.R'
     'model-grid.R'
+    'runtime-ux.R'
     'metrics-built-in.R'
     'metrics-extended.R'
     'sbc-bands.R'

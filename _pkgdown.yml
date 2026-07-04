@@ -117,8 +117,10 @@ reference:
     desc: >
       Summaries, SBC diagnostics, and plotting functions for simulation results
     contents:
+      - preflight
       - summarize_simulation
       - performance_measures
+      - failed_tasks
       - sbc_ranks
       - plot_rank_hist
       - plot_rank_ecdf

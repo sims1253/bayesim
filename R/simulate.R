@@ -125,6 +125,9 @@ run_simulation <- function(
 
   metrics <- config@metrics %||% list()
 
+  # F1: condensed prelight one-liner before the run starts.
+  tryCatch(preflight(config, condensed = TRUE), error = function(e) NULL)
+
   cli::cli_alert_info(sprintf(
     "Starting simulation with %d tasks",
     nrow(task_grid)
@@ -197,7 +200,7 @@ run_simulation <- function(
   }
 
   # Build final result with merged results
-  build_simulation_result(
+  result <- build_simulation_result(
     config = config,
     task_results = final_task_results,
     task_grid = results$task_grid,
@@ -205,6 +208,13 @@ run_simulation <- function(
     elapsed = timer$elapsed(),
     checkpoint_path = config@result_path
   )
+
+  # F2: compact failure summary when any task failed.
+  if (!is.null(result$summary) && any(result$summary$status == "failed", na.rm = TRUE)) {
+    print_failure_summary(result)
+  }
+
+  result
 }
 
 #' Execute all tasks in grid

@@ -273,9 +273,18 @@ simulation_config <- function(
   }
 
   # Validate seed
+  if (missing(seed)) {
+    cli::cli_abort(c(
+      "{.arg seed} is required.",
+      i = "bayesim derives every task's RNG stream from this one seed, so an explicit value is required for reproducibility."
+    ))
+  }
   seed <- as.integer(seed)
   if (length(seed) != 1 || is.na(seed)) {
-    cli::cli_abort("seed must be a single integer")
+    cli::cli_abort(c(
+      "seed must be a single integer.",
+      i = "bayesim derives every task's RNG stream from this one seed."
+    ))
   }
 
   # Validate result_path
