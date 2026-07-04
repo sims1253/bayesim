@@ -99,9 +99,9 @@ plot_metric(result, "bias__value", x = "slope")
 
 ## Larger studies
 
-For studies too large to hold in memory, use `retain = "metrics"` and
-`chunk_size`, and checkpoint to `result_path` so the run is interruptible and
-resumable (see `vignette("memory-management")`). For brms-based studies the
+For studies too large to hold in memory, use `retain = "metrics"` and a modest
+`checkpoint_every`, and checkpoint to `result_path` so the run is interruptible
+and resumable (see `vignette("memory-management")`). For brms-based studies the
 model bank compiles each distinct model once, so a study sweeping many
 replicates of the same model pays the compile cost only once
 (see `vignette("custom-fitters")`).
