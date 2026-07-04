@@ -41,6 +41,7 @@ Collate:
     'retention.R'
     'model-bank.R'
     'brms-fitter.R'
+    'linear-regression-fitter.R'
     'metrics-built-in.R'
     'metrics-extended.R'
     'sbc-bands.R'

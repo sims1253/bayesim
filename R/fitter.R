@@ -279,8 +279,9 @@ fit_diagnostics <- S7::new_generic(
 #' @param n_chains Integer; number of chains to simulate
 #'
 #' @return An S7 class object representing a MockFitter
-#' @export
-#' @seealso [Fitter] for the abstract base class, [BrmsFitter] for real inference
+#' @keywords internal
+#' @seealso [Fitter] for the abstract base class, [BrmsFitter] and
+#'   [LinearRegressionFitter] for real inference
 MockFitter <- S7::new_class(
   "MockFitter",
   parent = Fitter,

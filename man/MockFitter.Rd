@@ -42,5 +42,7 @@ For a lightweight no-Stan alternative, see the \code{LinearFitter} example
 in \code{vignette("custom-fitters")}.
 }
 \seealso{
-\link{Fitter} for the abstract base class, \link{BrmsFitter} for real inference
+\link{Fitter} for the abstract base class, \link{BrmsFitter} and
+\link{LinearRegressionFitter} for real inference
 }
+\keyword{internal}

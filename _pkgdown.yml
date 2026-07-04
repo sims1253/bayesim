@@ -69,6 +69,7 @@ reference:
       - Fitter
       - BrmsFitter
       - MockFitter
+      - LinearRegressionFitter
       - fit_model
       - extract_draws
       - predict_fit
