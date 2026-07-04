@@ -411,3 +411,164 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
   if (!is.null(facets)) p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facets)))
   p
 }
+
+# performance_measures (Morris et al. 2019 layer) -------------------------
+
+#' Simulation-method performance measures with Monte-Carlo standard errors
+#'
+#' @description
+#' Computes the Morris, White & Crowther (2019, *Stat Med*) estimator-
+#' performance measures — **bias**, **empirical SE**, **MSE**, **coverage**,
+#' **average model SE**, and `n_sim` — for each estimand (parameter) and
+#' condition cell, each with its MCSE. This is the function a methods paper
+#' actually needs; it is the centerpiece of the analysis layer (E3).
+#'
+#' For each parameter the function pairs the data-generating `truth__<param>`
+#' column with the per-task `posterior_summary__*__<param>` columns (point
+#' estimate `mean`, posterior `sd`, and interval `q_lower`/`q_upper`). Coverage
+#' uses the interval when available; otherwise it falls back to a
+#' `coverage__by_param__<param>` column if present.
+#'
+#' MCSE formulas follow Morris et al. / rsimsum:
+#' \itemize{
+#'   \item bias MCSE = sd(point_est) / sqrt(n)
+#'   \item empSE MCSE = sd / sqrt(2(n-1))
+#'   \item MSE MCSE = sqrt(Var((est-truth)^2) / n)
+#'   \item coverage MCSE = sqrt(p(1-p) / n)
+#'   \item modelSE MCSE = sd(posterior_sd) / sqrt(n)
+#' }
+#'
+#' @param result A `bayesim_simulation_result` (uses `$summary`), or a
+#'   data.frame of per-task metrics.
+#' @param estimand Optional character; a single parameter name. When NULL
+#'   (default), all parameters with both a `truth__*` and
+#'   `posterior_summary__mean__*` column are analyzed.
+#' @param estimator Character scalar naming the per-task point estimate to use:
+#'   one of `"mean"` (default), `"median"`. Selects the corresponding
+#'   `posterior_summary__<estimator>__<param>` column.
+#' @param by Character vector of condition/grouping columns. Defaults to the
+#'   data_grid and fit_grid columns found in the summary (excluding task_id,
+#'   rep_idx, status, and metric columns).
+#'
+#' @return A tidy tibble with columns: the `by` columns, `estimand`,
+#'   `measure`, `value`, `mcse`, `n_sim`. One row per condition x estimand x
+#'   measure. `measure` is one of `bias`, `emp_se`, `mse`, `coverage`,
+#'   `model_se`, `n_sim`.
+#' @export
+#' @references Morris, White & Crowther (2019), *Using simulation studies to
+#'   evaluate statistical methods*, Statistics in Medicine.
+#' @examples
+#' \dontrun{
+#' result <- run_simulation(config, progress = FALSE)
+#' performance_measures(result)
+#' performance_measures(result, estimand = "x", by = "model")
+#' }
+performance_measures <- function(result, estimand = NULL, estimator = c("mean", "median"),
+                                 by = NULL) {
+  estimator <- match.arg(estimator)
+  df <- if (is.data.frame(result)) result else result$summary
+  if (is.null(df) || !is.data.frame(df)) {
+    stop(bayesim_config_error(
+      "performance_measures requires a simulation result or summary data.frame"
+    ))
+  }
+
+  # Default grouping: data_grid/fit_grid condition columns. Exclude task
+  # metadata, per-task diagnostics, metric columns (carry __), truth columns,
+  # and timing/n_-prefixed columns.
+  if (is.null(by)) {
+    exclude_patterns <- "^(task_id|rep_idx|status|timing|fit_model|rhat|ess|divergent|max_treedepth|n_)|__|^truth__"
+    by <- names(df)[!grepl(exclude_patterns, names(df))]
+    # Keep only scalar condition columns.
+    by <- by[vapply(df[, by, drop = FALSE], function(col) {
+      is.numeric(col) || is.character(col) || is.factor(col) || is.logical(col)
+    }, logical(1))]
+  }
+  if (length(by) == 0L) by <- "fit_model"
+
+  # Discover estimands: parameters with both truth__ and posterior_summary__mean__.
+  truth_cols <- grep("^truth__", names(df), value = TRUE)
+  est_col_tmpl <- paste0("posterior_summary__", estimator, "__")
+  available_estimands <- vapply(truth_cols, function(tc) {
+    param <- sub("^truth__", "", tc)
+    paste0(est_col_tmpl, param) %in% names(df)
+  }, logical(1))
+  estimands <- if (is.null(estimand)) {
+    sub("^truth__", "", truth_cols[available_estimands])
+  } else {
+    estimand
+  }
+  if (length(estimands) == 0L) {
+    stop(bayesim_config_error(paste(
+      "No estimands found: performance_measures needs both truth__<param> and",
+      paste0("posterior_summary__", estimator, "__<param>"),
+      "columns. Compute posterior_summary_metric() and record truths (E1)."
+    )))
+  }
+
+  rows <- list()
+  for (param in estimands) {
+    truth_col <- paste0("truth__", param)
+    est_col <- paste0(est_col_tmpl, param)
+    sd_col <- paste0("posterior_summary__sd__", param)
+    lo_col <- paste0("posterior_summary__q_lower__", param)
+    hi_col <- paste0("posterior_summary__q_upper__", param)
+    cov_col <- paste0("coverage__by_param__", param)
+
+    if (!truth_col %in% names(df) || !est_col %in% names(df)) next
+
+    split_cols <- if (length(by)) df[, by, drop = FALSE] else data.frame(.group = rep(1, nrow(df)))
+    if (length(by) == 0L) by_use <- ".group" else by_use <- by
+    splits <- interaction(split_cols, drop = TRUE)
+
+    for (lev in levels(splits)) {
+      sel <- which(splits == lev)
+      est <- df[[est_col]][sel]
+      truth <- df[[truth_col]][sel]
+      ok <- !is.na(est) & !is.na(truth)
+      est <- est[ok]; truth <- truth[ok]
+      n <- length(est)
+      if (n == 0L) next
+      errs <- est - truth
+
+      # Condition cell values for the `by` columns.
+      cond <- as.list(df[sel[1L], by_use, drop = FALSE])
+
+      add <- function(measure, value, mcse) {
+        row <- c(cond, list(estimand = param, measure = measure,
+                            value = value, mcse = mcse, n_sim = n))
+        rows[[length(rows) + 1L]] <<- row
+      }
+
+      # bias = mean(est - truth); MCSE = sd(est)/sqrt(n)
+      add("bias", mean(errs), if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_)
+      # empirical SE = sd(est); MCSE = sd/sqrt(2(n-1))
+      emp_se <- if (n > 1L) stats::sd(est) else NA_real_
+      add("emp_se", emp_se, if (n > 2L) emp_se / sqrt(2 * (n - 1L)) else NA_real_)
+      # MSE = mean((est-truth)^2); MCSE = sqrt(Var(err^2)/n)
+      sq <- errs^2
+      add("mse", mean(sq), if (n > 1L) sqrt(stats::var(sq) / n) else NA_real_)
+      # average model SE = mean(posterior_sd); MCSE = sd(posterior_sd)/sqrt(n)
+      if (sd_col %in% names(df)) {
+        pse <- df[[sd_col]][sel][ok]
+        add("model_se", mean(pse, na.rm = TRUE),
+            if (sum(!is.na(pse)) > 1L) stats::sd(pse, na.rm = TRUE) / sqrt(sum(!is.na(pse))) else NA_real_)
+      }
+      # coverage = P(truth in [lo, hi]); MCSE = sqrt(p(1-p)/n)
+      if (lo_col %in% names(df) && hi_col %in% names(df)) {
+        lo <- df[[lo_col]][sel][ok]; hi <- df[[hi_col]][sel][ok]
+        covered <- (truth >= lo) & (truth <= hi)
+        p <- mean(covered, na.rm = TRUE)
+        ncv <- sum(!is.na(covered))
+        add("coverage", p, if (ncv > 1L) sqrt(p * (1 - p) / ncv) else NA_real_)
+      } else if (cov_col %in% names(df)) {
+        p <- mean(df[[cov_col]][sel], na.rm = TRUE)
+        ncv <- sum(!is.na(df[[cov_col]][sel]))
+        add("coverage", p, if (ncv > 1L) sqrt(p * (1 - p) / ncv) else NA_real_)
+      }
+      add("n_sim", n, NA_real_)
+    }
+  }
+
+  tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE)))
+}

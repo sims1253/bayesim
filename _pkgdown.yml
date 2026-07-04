@@ -95,17 +95,17 @@ reference:
     contents:
       - Metric
       - compute_metric
-      - rmse_metric
-      - bias_metric
+      - pred_rmse_metric
+      - pred_bias_metric
       - coverage_metric
-      - mae_metric
-      - mse_metric
+      - pred_mae_metric
+      - pred_mse_metric
       - pos_prob_metric
       - posterior_summary_metric
       - convergence_metric
       - sampler_diagnostics_metric
       - rank_metric
-      - rstar_metric
+
       - elpd_loo_metric
       - rmse_loo_metric
       - r2_loo_metric
@@ -118,6 +118,7 @@ reference:
       Summaries, SBC diagnostics, and plotting functions for simulation results
     contents:
       - summarize_simulation
+      - performance_measures
       - sbc_ranks
       - plot_rank_hist
       - plot_rank_ecdf
