@@ -28,7 +28,7 @@ recovery behave. This runs with the built-in `MockFitter()`.
 ```{r}
 library(bayesim)
 
-power_generator <- function(data_spec, seed, task_ctx) {
+power_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   y <- data_spec$beta * x + stats::rnorm(n, sd = 1)
@@ -73,7 +73,7 @@ evaluated in this vignette.
 
 ```{r, eval=FALSE}
 # Define a generator producing right-skewed data.
-skew_generator <- function(data_spec, seed, task_ctx) {
+skew_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   mu <- data_spec$beta * x

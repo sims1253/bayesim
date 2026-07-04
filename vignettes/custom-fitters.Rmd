@@ -130,7 +130,7 @@ S7::method(fit_diagnostics, LinearFitter) <- function(fitter, fit_result) {
 ## Using the custom fitter
 
 ```{r}
-my_generator <- function(data_spec, seed, task_ctx) {
+my_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   y <- data_spec$slope * x + stats::rnorm(n)

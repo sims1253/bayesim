@@ -242,7 +242,7 @@ generate_template_data <- function(
     template = TRUE
   )
 
-  data_bundle <- data_generator(data_spec, seed, task_ctx)
+  data_bundle <- data_generator(data_spec, task_ctx)
 
   if (is.null(data_bundle) || is.null(data_bundle$train)) {
     stop(bayesim_internal_error(paste(

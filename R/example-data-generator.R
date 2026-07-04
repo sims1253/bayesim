@@ -19,7 +19,7 @@
 #' @param task_ctx Task context.
 #' @return A `data_bundle` list.
 #' @keywords internal
-bayesim_example_data_generator <- function(data_spec, seed, task_ctx) {
+bayesim_example_data_generator <- function(data_spec, task_ctx) {
   n <- as.integer(data_spec$n %||% 10L)
   beta <- as.numeric(data_spec$beta %||% 1)
   sigma <- as.numeric(data_spec$sigma %||% 1)

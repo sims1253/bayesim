@@ -39,12 +39,12 @@ library(bayesim)
 ## Define a Data Generator
 
 A data generator is a function with the signature
-`(data_spec, seed, task_ctx)` returning a named list. It must consume the
+`(data_spec, task_ctx)` returning a named list. It must consume the
 **ambient** RNG state (the engine restores a per-task L'Ecuyer stream before
 each call), so do not re-seed inside.
 
 ```{r}
-my_data_generator <- function(data_spec, seed, task_ctx) {
+my_data_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   y <- data_spec$intercept + data_spec$slope * x +

@@ -29,7 +29,7 @@ report as \code{true_params} (defaults to all population-level effects
 \code{prior_fit}'s formula).}
 }
 \value{
-A generator function \verb{(data_spec, seed, task_ctx) -> data_bundle}.
+A generator function \verb{(data_spec, task_ctx) -> data_bundle}.
 }
 \description{
 Draws a parameter vector theta from the model prior (via a \code{sample_prior = "only"} brmsfit) and simulates data \code{y ~ p(y | theta)} using

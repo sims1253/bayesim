@@ -49,7 +49,7 @@ are documented honestly here. A future version may add
 response values instead of producing NAs. Default \code{FALSE}.}
 }
 \value{
-A generator function \verb{(data_spec, seed, task_ctx) -> data_bundle}.
+A generator function \verb{(data_spec, task_ctx) -> data_bundle}.
 }
 \description{
 Draws a parameter vector theta from a preconditioning fit (typically a

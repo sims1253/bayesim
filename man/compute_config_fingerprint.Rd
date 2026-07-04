@@ -18,10 +18,12 @@ The fingerprint uniquely identifies a simulation configuration
 for caching and deduplication purposes.
 }
 \details{
-The fingerprint excludes runtime-specific settings:
+The fingerprint excludes runtime policy settings (B4):
 \itemize{
 \item \code{result_path}: Output location doesn't affect simulation identity
-\item \code{checkpoint_every}: Checkpoint frequency is runtime optimization
+\item \code{checkpoint_every} / \code{checkpoint_format}: checkpoint cadence/format is runtime optimization
+\item \code{retain}: retention policy must not invalidate resume
+\item \code{max_errors}: error tolerance is runtime policy
 }
 }
 \examples{

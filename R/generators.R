@@ -6,11 +6,12 @@
 #   - ifs_generator():            inverse forward sampling from a preconditioning fit
 #
 # All factories return a closure with the standard signature
-#   (data_spec, seed, task_ctx) -> data_bundle
+#   (data_spec, task_ctx) -> data_bundle
 # that consumes the AMBIENT RNG state (the worker restores the per-task
-# L'Ecuyer stream via set_task_rng() before invoking the generator). The `seed`
-# argument is retained for backends requiring an explicit integer but is NOT
-# used to re-seed; doing so would defeat stream-based determinism.
+# L'Ecuyer stream via set_task_rng() before invoking the generator).
+# `task_ctx$seed` carries an integer seed for backends (e.g. Stan) that need
+# one, but generators must NOT use it to re-seed; doing so would defeat
+# stream-based determinism.
 
 
 # Fixed-truth generator ---------------------------------------------------
@@ -33,7 +34,7 @@
 #'   list with at least `train` (data.frame). May optionally return `response`,
 #'   `test`, `references`, `meta`.
 #'
-#' @return A generator function `(data_spec, seed, task_ctx) -> data_bundle`.
+#' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
 #' @examples
 #' \dontrun{
@@ -67,7 +68,7 @@ fixed_truth_generator <- function(truth, draw_data) {
     ))
   }
 
-  function(data_spec, seed, task_ctx) {
+  function(data_spec, task_ctx) {
     bundle <- draw_data(data_spec, task_ctx)
     bundle$true_params <- truth
     bundle$vars_of_interest <- names(truth)
@@ -105,7 +106,7 @@ fixed_truth_generator <- function(truth, draw_data) {
 #' @param response Name of the response column (defaults to the LHS of
 #'   `prior_fit`'s formula).
 #'
-#' @return A generator function `(data_spec, seed, task_ctx) -> data_bundle`.
+#' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
 prior_predictive_generator <- function(prior_fit,
                                        predictor_generator = NULL,
@@ -126,7 +127,7 @@ prior_predictive_generator <- function(prior_fit,
   resp <- response %||% .fit_response_name(prior_fit)
   voi <- vars_of_interest %||% .default_prior_vars(prior_fit)
 
-  function(data_spec, seed, task_ctx) {
+  function(data_spec, task_ctx) {
     # Deterministic draw index from the replicate index, wrapped into range.
     # rep_idx is 1-based; cycle modulo the number of prior draws so a study
     # with more replicates than prior draws still covers them all.
@@ -207,7 +208,7 @@ prior_predictive_generator <- function(prior_fit,
 #' @param truncate Logical; if `TRUE` and bounds are set, clamp out-of-bounds
 #'   response values instead of producing NAs. Default `FALSE`.
 #'
-#' @return A generator function `(data_spec, seed, task_ctx) -> data_bundle`.
+#' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
 ifs_generator <- function(prefit,
                           predictor_generator = NULL,
@@ -230,7 +231,7 @@ ifs_generator <- function(prefit,
   resp <- response %||% .fit_response_name(prefit)
   voi <- vars_of_interest %||% .default_prior_vars(prefit)
 
-  function(data_spec, seed, task_ctx) {
+  function(data_spec, task_ctx) {
     rep_idx <- task_ctx$rep_idx %||% 1L
     draw_id <- ((as.integer(rep_idx) - 1L) %% n_draws) + 1L
 

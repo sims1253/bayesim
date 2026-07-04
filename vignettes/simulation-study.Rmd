@@ -29,7 +29,7 @@ crossed with `n_replicates`. Each cell is one task.
 library(bayesim)
 
 # A data generator that consumes the ambient RNG state (restored per task).
-my_generator <- function(data_spec, seed, task_ctx) {
+my_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   y <- data_spec$slope * x + stats::rnorm(n, sd = data_spec$sigma)

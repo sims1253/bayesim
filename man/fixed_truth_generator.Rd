@@ -15,7 +15,7 @@ list with at least \code{train} (data.frame). May optionally return \code{respon
 \code{test}, \code{references}, \code{meta}.}
 }
 \value{
-A generator function \verb{(data_spec, seed, task_ctx) -> data_bundle}.
+A generator function \verb{(data_spec, task_ctx) -> data_bundle}.
 }
 \description{
 Returns a generator closure that delegates to a user-supplied \code{draw_data}

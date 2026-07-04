@@ -1172,7 +1172,7 @@ describe("Metric Class", {
 # =============================================================================
 
 describe("SimulationConfig", {
-  test_data_gen <- function(data_spec, seed, task_ctx) {
+  test_data_gen <- function(data_spec, task_ctx) {
     list(
       train = data.frame(x = 1:10, y = rnorm(10)),
       test = NULL,
@@ -1205,7 +1205,6 @@ describe("SimulationConfig", {
         result_path = "/tmp/results",
         checkpoint_format = "rds",
         checkpoint_every = 25L,
-        chunk_size = 10L,
         retain = list(success = c("metrics", "diagnostics"), error = "debug"),
         max_errors = 10
       )
@@ -1216,7 +1215,6 @@ describe("SimulationConfig", {
       expect_equal(config@result_path, "/tmp/results")
       expect_equal(config@checkpoint_every, 25L)
       expect_equal(config@checkpoint_format, "rds")
-      expect_equal(config@chunk_size, 10L)
       expect_equal(config@retain$success, c("metrics", "diagnostics"))
       expect_true(all(c("metrics", "draws", "fit") %in% config@retain$error))
     })
@@ -1399,16 +1397,32 @@ describe("SimulationConfig", {
       )
     })
 
-    it("validates chunk_size is positive integer", {
+    it("validates checkpoint_every is positive integer", {
       expect_error(
         simulation_config(
           data_grid = data.frame(a = 1),
           fit_grid = data.frame(a = 1),
           data_generator = test_data_gen,
-          chunk_size = 0L,
+          checkpoint_every = 0L,
           seed = 42L
         ),
-        "chunk_size must be a positive integer"
+        "checkpoint_every must be a positive integer"
+      )
+    })
+
+    it("B4: two configs differing only in retain have equal fingerprints", {
+      base <- list(
+        data_grid = data.frame(a = 1),
+        fit_grid = data.frame(a = 1),
+        data_generator = test_data_gen,
+        seed = 42L,
+        n_replicates = 5L
+      )
+      cfg1 <- do.call(simulation_config, c(base, list(retain = c("metrics"))))
+      cfg2 <- do.call(simulation_config, c(base, list(retain = c("metrics", "diagnostics"))))
+      expect_equal(
+        compute_config_fingerprint(cfg1),
+        compute_config_fingerprint(cfg2)
       )
     })
 

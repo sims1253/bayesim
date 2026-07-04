@@ -15,8 +15,7 @@ execute_tasks(
   progress,
   result_path = NULL,
   config_fingerprint = NULL,
-  checkpoint_every = 50L,
-  chunk_size = NULL
+  checkpoint_every = 50L
 )
 }
 \arguments{

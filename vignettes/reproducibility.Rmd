@@ -48,7 +48,7 @@ library(bayesim)
 config <- simulation_config(
   data_grid = data.frame(n = c(50, 100)),
   fit_grid = data.frame(model = "m"),
-  data_generator = function(data_spec, seed, task_ctx) {
+  data_generator = function(data_spec, task_ctx) {
     # consume the AMBIENT RNG state (restored by the worker before this call);
     # do NOT call set.seed() or withr::with_seed() here
     n <- data_spec$n

@@ -4,14 +4,14 @@
 \alias{bayesim_example_data_generator}
 \title{Built-in example data generator}
 \usage{
-bayesim_example_data_generator(data_spec, seed, task_ctx)
+bayesim_example_data_generator(data_spec, task_ctx)
 }
 \arguments{
 \item{data_spec}{List with \code{n}, \code{beta}, \code{sigma}.}
 
-\item{seed}{Scalar task seed (unused; ambient RNG is consumed).}
-
 \item{task_ctx}{Task context.}
+
+\item{seed}{Scalar task seed (unused; ambient RNG is consumed).}
 }
 \value{
 A \code{data_bundle} list.

@@ -16,8 +16,6 @@ simulation_config(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
-  chunk_size = NULL,
-  max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL
@@ -34,8 +32,9 @@ Each row represents a distinct model configuration to fit.}
 data_grid and fit_grid. Must contain either data_spec/fit_spec list-columns
 or data_idx/fit_idx index columns.}
 
-\item{data_generator}{A function with signature \verb{(data_spec, seed, task_ctx) -> data_bundle}.
-Generates data for a single replicate given a data specification row.}
+\item{data_generator}{A function with signature \verb{(data_spec, task_ctx) -> data_bundle}.
+Generates data for a single replicate given a data specification row.
+\code{task_ctx$seed} carries the per-task integer seed for backends that need one.}
 
 \item{fitter}{An S7 Fitter object that handles model fitting.}
 
@@ -48,19 +47,20 @@ Generates data for a single replicate given a data specification row.}
 \item{result_path}{NULL or character path. If provided, results are saved here.}
 
 \item{checkpoint_format}{Character scalar. Checkpoint storage format.
-Currently only \code{"rds"} is implemented for checkpoint persistence.}
+Currently only \code{"rds"} is implemented for checkpoint persistence. (B4:
+excluded from the config fingerprint — it is runtime policy.)}
 
-\item{checkpoint_every}{Positive integer. Save progress every N tasks.}
-
-\item{chunk_size}{Positive integer. Maximum number of task results to keep
-in memory before forcing a checkpoint write. Defaults to \code{checkpoint_every}.}
-
-\item{max_in_memory}{Deprecated alias for \code{chunk_size}.}
+\item{checkpoint_every}{Positive integer. Save progress every N tasks. This
+single knob also bounds the number of task results held in memory at once
+(B4: the former separate \code{chunk_size} knob was merged into this).}
 
 \item{retain}{Character vector. What to retain in results. Must be subset of
-\code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.}
+\code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.
+(B4: excluded from the config fingerprint — changing retention must not
+invalidate resume.)}
 
-\item{max_errors}{Numeric. Maximum errors before stopping. Use \code{Inf} for no limit.}
+\item{max_errors}{Numeric. Maximum errors before stopping. Use \code{Inf} for no
+limit. (B4: excluded from the config fingerprint.)}
 
 \item{daemon_setup}{Optional function run once per mirai daemon (via
 \code{mirai::everywhere()}) before tasks start, e.g. to configure cmdstan

@@ -177,9 +177,10 @@ run_task <- function(
   # Step 1: Generate data
   data_result <- tryCatch(
     {
+      # B4: generator signature is (data_spec, task_ctx); task_ctx$seed carries
+      # the integer seed for backends that need one.
       data_bundle <- config_spec$data_generator(
         task$data_spec,
-        task_seed,
         task_ctx
       )
       validate_data_bundle(data_bundle)

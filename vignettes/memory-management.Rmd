@@ -58,9 +58,10 @@ computation), at the cost of higher memory.
 
 ## Chunked execution
 
-`chunk_size` controls how many tasks are dispatched and held in memory at
-once. The engine processes tasks in batches of `chunk_size`, lightening each
-batch's results (per the retention profile) before starting the next.
+`checkpoint_every` controls how many tasks are dispatched and held in memory at
+once. The engine processes tasks in batches of `checkpoint_every`, lightening
+each batch's results (per the retention profile) before starting the next. (B4
+merged the former separate `chunk_size` knob into this single one.)
 
 ```{r, eval=FALSE}
 config <- simulation_config(
@@ -72,8 +73,7 @@ config <- simulation_config(
   n_replicates = 1000L,
   seed = 42L,
   retain = "metrics",
-  chunk_size = 50L,        # process 50 tasks per batch
-  checkpoint_every = 50L   # write a checkpoint after each batch
+  checkpoint_every = 50L   # process 50 tasks per batch + write a checkpoint
 )
 ```
 
@@ -93,7 +93,6 @@ config <- simulation_config(
   seed = 42L,
   result_path = "results/big_study",
   checkpoint_every = 50L,
-  chunk_size = 50L,
   retain = "metrics"
 )
 
@@ -107,6 +106,6 @@ result <- run_simulation(config, resume = "auto")
 ## Parallel memory considerations
 
 When using mirai daemons, each daemon holds its own copies of dispatched
-tasks' artifacts. `chunk_size` bounds the in-flight work per daemon, and the
-retention profile bounds per-task size. For memory-constrained HPC nodes,
-prefer `retain = "metrics"` with a modest `chunk_size`.
+tasks' artifacts. `checkpoint_every` bounds the in-flight work per daemon, and
+the retention profile bounds per-task size. For memory-constrained HPC nodes,
+prefer `retain = "metrics"` with a modest `checkpoint_every`.

@@ -6,9 +6,10 @@ skip_if_not(requireNamespace("rstan", quietly = TRUE))
 
 # A trivial gaussian generator producing the same structure every call.
 # Variables (y, x) match the test models so update(recompile=FALSE) holds.
-gaussian_data_generator <- function(data_spec, seed, task_ctx) {
+gaussian_data_generator <- function(data_spec, task_ctx) {
   # Consume the ambient RNG state (the worker restores the per-task stream).
-  # For direct calls outside the worker, fall back to the provided seed.
+  # For direct calls outside the worker, fall back to task_ctx$seed.
+  seed <- task_ctx$seed
   if (!is.null(seed)) {
     # Use a fresh local draw to avoid disturbing global state in tests.
     withr::local_seed(seed)
@@ -71,7 +72,7 @@ describe("BrmsFitter model bank", {
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
     # Two fit_model() calls on different data should reuse the same prefit binary.
@@ -115,7 +116,7 @@ describe("BrmsFitter model bank", {
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
     r1 <- fit_model(fitter, data_bundle, fit_spec, seed = 777L, task_ctx = list(task_id = "a"))
@@ -149,7 +150,7 @@ describe("BrmsFitter model bank", {
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
     result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "t"))
 
@@ -214,7 +215,7 @@ describe("BrmsFitter model bank", {
 
     # fit_model() with no bank does a fresh compile.
     bayesim:::set_model_bank(NULL)
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
     result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "t"))
     expect_true(result$success)
@@ -298,7 +299,7 @@ describe("BrmsFitter warning capture (F5)", {
     bayesim:::set_model_bank(NULL)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
     result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "w1"))
@@ -326,7 +327,7 @@ describe("BrmsFitter warning capture (F5)", {
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
-    data_bundle <- gaussian_data_generator(list(n = 20), seed = 1, NULL)
+    data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
     result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "w2"))

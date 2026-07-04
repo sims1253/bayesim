@@ -36,10 +36,10 @@ SimulationConfig <- S7::new_class(
     data_generator = S7::new_property(
       class = S7::class_function,
       validator = function(value) {
-        # Check function signature has at least 3 arguments
+        # Check function signature has at least 2 arguments
         args <- names(formals(value))
-        if (length(args) < 3) {
-          "data_generator must accept at least 3 arguments: (data_spec, seed, task_ctx)"
+        if (length(args) < 2) {
+          "data_generator must accept at least 2 arguments: (data_spec, task_ctx)"
         }
       }
     ),
@@ -105,14 +105,6 @@ SimulationConfig <- S7::new_class(
         }
       }
     ),
-    chunk_size = S7::new_property(
-      class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "chunk_size must be a positive integer"
-        }
-      }
-    ),
     retain = S7::new_property(
       class = S7::class_list,
       validator = function(value) {
@@ -152,22 +144,26 @@ SimulationConfig <- S7::new_class(
 #' @param task_grid Optional pre-computed task grid. If provided, overrides
 #'   data_grid and fit_grid. Must contain either data_spec/fit_spec list-columns
 #'   or data_idx/fit_idx index columns.
-#' @param data_generator A function with signature `(data_spec, seed, task_ctx) -> data_bundle`.
+#' @param data_generator A function with signature `(data_spec, task_ctx) -> data_bundle`.
 #'   Generates data for a single replicate given a data specification row.
+#'   `task_ctx$seed` carries the per-task integer seed for backends that need one.
 #' @param fitter An S7 Fitter object that handles model fitting.
 #' @param metrics A list of Metric objects.
 #' @param n_replicates Positive integer. Number of replicates per data/fit combination.
 #' @param seed Integer. Base seed for reproducible random number generation.
 #' @param result_path NULL or character path. If provided, results are saved here.
 #' @param checkpoint_format Character scalar. Checkpoint storage format.
-#'   Currently only `"rds"` is implemented for checkpoint persistence.
-#' @param checkpoint_every Positive integer. Save progress every N tasks.
-#' @param chunk_size Positive integer. Maximum number of task results to keep
-#'   in memory before forcing a checkpoint write. Defaults to `checkpoint_every`.
-#' @param max_in_memory Deprecated alias for `chunk_size`.
+#'   Currently only `"rds"` is implemented for checkpoint persistence. (B4:
+#'   excluded from the config fingerprint — it is runtime policy.)
+#' @param checkpoint_every Positive integer. Save progress every N tasks. This
+#'   single knob also bounds the number of task results held in memory at once
+#'   (B4: the former separate `chunk_size` knob was merged into this).
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
-#' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no limit.
+#'   (B4: excluded from the config fingerprint — changing retention must not
+#'   invalidate resume.)
+#' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no
+#'   limit. (B4: excluded from the config fingerprint.)
 #' @param daemon_setup Optional function run once per mirai daemon (via
 #'   `mirai::everywhere()`) before tasks start, e.g. to configure cmdstan
 #'   paths or load a model bank. Ignored when no daemons are set. Default NULL.
@@ -201,8 +197,6 @@ simulation_config <- function(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
-  chunk_size = NULL,
-  max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL
@@ -253,11 +247,11 @@ simulation_config <- function(
     cli::cli_abort("data_generator must be a function")
   }
   gen_formals <- names(formals(data_generator))
-  required_args <- c("data_spec", "seed", "task_ctx")
-  if (length(gen_formals) < 3) {
+  required_args <- c("data_spec", "task_ctx")
+  if (length(gen_formals) < 2) {
     cli::cli_abort(c(
-      "data_generator must accept at least 3 arguments",
-      "Required signature: (data_spec, seed, task_ctx)"
+      "data_generator must accept at least 2 arguments",
+      "Required signature: (data_spec, task_ctx)"
     ))
   }
 
@@ -307,31 +301,6 @@ simulation_config <- function(
     cli::cli_abort("checkpoint_every must be a positive integer >= 1")
   }
 
-  if (!is.null(chunk_size) && lifecycle::is_present(max_in_memory)) {
-    cli::cli_abort("Use either chunk_size or max_in_memory, not both")
-  }
-
-  if (is.null(chunk_size)) {
-    chunk_size <- checkpoint_every
-  }
-  if (lifecycle::is_present(max_in_memory)) {
-    lifecycle::deprecate_warn(
-      "1.1",
-      "simulation_config(max_in_memory)",
-      "simulation_config(chunk_size)"
-    )
-    chunk_size <- max_in_memory
-  }
-
-  chunk_size <- as.integer(chunk_size)
-  if (
-    length(chunk_size) != 1 ||
-      is.na(chunk_size) ||
-      chunk_size < 1
-  ) {
-    cli::cli_abort("chunk_size must be a positive integer >= 1")
-  }
-
   retain <- resolve_retention_spec(retain)
 
   # Validate max_errors
@@ -355,7 +324,6 @@ simulation_config <- function(
     result_path = result_path,
     checkpoint_every = checkpoint_every,
     checkpoint_format = checkpoint_format,
-    chunk_size = chunk_size,
     retain = retain,
     max_errors = max_errors,
     daemon_setup = daemon_setup
@@ -430,8 +398,9 @@ as_config_spec <- function(config) {
     cli::cli_abort("config must be a SimulationConfig object")
   }
 
-  # Extract properties that define the simulation identity
-  # Exclude: result_path, checkpoint_every (runtime settings)
+  # Extract properties that define the simulation identity. B4: exclude runtime
+  # policy (result_path, checkpoint_every, checkpoint_format, retain, max_errors)
+  # — changing retention or error tolerance must not invalidate resume.
   spec <- list(
     data_grid = config@data_grid,
     fit_grid = config@fit_grid,
@@ -442,10 +411,7 @@ as_config_spec <- function(config) {
     fitter_spec = capture_fitter_spec(config@fitter),
     metrics_spec = capture_metrics_spec(config@metrics),
     n_replicates = config@n_replicates,
-    seed = config@seed,
-    checkpoint_format = config@checkpoint_format,
-    retain = config@retain,
-    max_errors = config@max_errors
+    seed = config@seed
   )
 
   spec
@@ -584,9 +550,11 @@ capture_metrics_spec <- function(metrics) {
 #' The fingerprint uniquely identifies a simulation configuration
 #' for caching and deduplication purposes.
 #'
-#' The fingerprint excludes runtime-specific settings:
+#' The fingerprint excludes runtime policy settings (B4):
 #' - `result_path`: Output location doesn't affect simulation identity
-#' - `checkpoint_every`: Checkpoint frequency is runtime optimization
+#' - `checkpoint_every` / `checkpoint_format`: checkpoint cadence/format is runtime optimization
+#' - `retain`: retention policy must not invalidate resume
+#' - `max_errors`: error tolerance is runtime policy
 #'
 #' @param config An S7 SimulationConfig object.
 #'

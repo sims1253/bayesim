@@ -249,7 +249,7 @@ describe("Task Grid", {
     simulation_config(
       data_grid = data.frame(n = seq_len(n_data) * 100),
       fit_grid = data.frame(model = paste0("model_", seq_len(n_fit))),
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(data_spec$n), x = rnorm(data_spec$n)),
           test = NULL,
@@ -688,7 +688,7 @@ describe("Worker", {
   # Create a simple test configuration
   create_worker_test_config <- function() {
     list(
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(10), x = rnorm(10)),
           test = NULL,
@@ -720,7 +720,7 @@ describe("Worker", {
     it("catches errors and returns task_result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Data generation error")
         }
       )
@@ -737,7 +737,7 @@ describe("Worker", {
     it("returns task_id in error result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Error")
         }
       )
@@ -750,7 +750,7 @@ describe("Worker", {
     it("includes timing in error result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Error")
         }
       )
@@ -792,7 +792,7 @@ describe("Worker", {
     it("with failing data generator returns failed status", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional data generation failure")
         }
       )
@@ -856,7 +856,7 @@ describe("Worker", {
       received_ctx <- NULL
 
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           received_ctx <<- task_ctx
           list(
             train = data.frame(y = 1:10, x = 1:10),
@@ -880,7 +880,7 @@ describe("Worker", {
       fitter_seed <- NULL
 
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           received_seed <<- seed
           list(
             train = data.frame(y = 1:10, x = 1:10),
@@ -927,7 +927,7 @@ describe("Worker", {
       task <- create_test_task(seed = 321)
       result_path <- withr::local_tempdir()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           list(
             train = data.frame(y = 1:10, x = 1:10),
             test = NULL,
@@ -1280,7 +1280,7 @@ describe("run_simulation()", {
       simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           list(
             train = data.frame(y = rnorm(10)),
             test = NULL,
@@ -1305,7 +1305,7 @@ describe("run_simulation()", {
     simulation_config(
       data_grid = data.frame(n = c(50, 100)),
       fit_grid = data.frame(model = c("baseline")),
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(data_spec$n), x = rnorm(data_spec$n)),
           test = NULL,
@@ -1381,7 +1381,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional failure")
         },
         fitter = MockFitter(),
@@ -1410,7 +1410,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional failure")
         },
         fitter = MockFitter(),
@@ -1565,7 +1565,6 @@ describe("run_simulation()", {
         metrics = list(rmse_metric()),
         n_replicates = 6L,
         seed = 42L,
-        chunk_size = 2L,
         checkpoint_every = 2L
       )
       task_grid <- create_task_grid(config)
@@ -1611,7 +1610,7 @@ describe("run_simulation()", {
         simulation_config(
           data_grid = data.frame(n = 50),
           fit_grid = data.frame(model = "baseline"),
-          data_generator = function(data_spec, seed, task_ctx) {
+          data_generator = function(data_spec, task_ctx) {
             list(
               train = data.frame(y = rnorm(data_spec$n)),
               test = NULL,

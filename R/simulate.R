@@ -143,8 +143,7 @@ run_simulation <- function(
     progress = progress,
     result_path = config@result_path,
     config_fingerprint = config_fingerprint,
-    checkpoint_every = config@checkpoint_every,
-    chunk_size = config@chunk_size
+    checkpoint_every = config@checkpoint_every
   )
 
   timer$stop()
@@ -217,17 +216,12 @@ execute_tasks <- function(
   progress,
   result_path = NULL,
   config_fingerprint = NULL,
-  checkpoint_every = 50L,
-  chunk_size = NULL
+  checkpoint_every = 50L
 ) {
-  # Default chunk_size to checkpoint_every
-  if (is.null(chunk_size)) {
-    chunk_size <- checkpoint_every
-  }
-
   pending <- get_pending_tasks(task_grid)
   n_pending <- nrow(pending)
-  batch_size <- min(as.integer(chunk_size), as.integer(checkpoint_every))
+  # B4: one knob. batch_size = checkpoint_every (also bounds in-memory results).
+  batch_size <- as.integer(checkpoint_every)
 
   # For memory-bounded execution, we use a list that may contain NULLs
   # for checkpointed results that have been cleared from memory.

@@ -39,10 +39,10 @@
 #'   }
 #'
 #' @examples
-#' mock_data_generator(list(n = 50), seed = 123, list(task_id = "test"))
+#' mock_data_generator(list(n = 50), list(task_id = "test"))
 #'
 #' @keywords internal
-mock_data_generator <- function(data_spec, seed, task_ctx) {
+mock_data_generator <- function(data_spec, task_ctx) {
   # Consume the ambient RNG state (the worker restores the per-task L'Ecuyer
   # stream before each call); do not re-seed internally.
   n <- data_spec$n %||% 100
