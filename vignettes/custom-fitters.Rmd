@@ -29,7 +29,7 @@ Every fitter must implement these S7 generics:
 |---|---|---|
 | `fit(fitter, data_bundle, fit_spec, seed, task_ctx)` | training data + spec | a `bayesim_fit_result` (use `new_fit_result()` internally) |
 | `extract_draws(fitter, fit_result)` | a fit result | a draws matrix (rows = draws, cols = parameters) |
-| `predict_fit(fitter, fit_result, seed)` | a fit result | list with `predicted_mean`, optionally `predicted_samples`, `predicted_sd` |
+| `predict_fit(fitter, fit_result, seed)` | a fit result | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
 | `log_lik(fitter, fit_result, newdata)` | a fit result | log-likelihood matrix (draws x observations) |
 | `loo_fit(fitter, fit_result)` | a fit result | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k` |
 | `diagnostics(fitter, fit_result)` | a fit result | list with `rhat_max`, `ess_bulk_min`, `divergent`, ... |
@@ -91,13 +91,17 @@ S7::method(extract_draws, LinearFitter) <- function(fitter, fit_result, variable
 }
 
 # predict_fit(): posterior-mean predictions
+# Convention: predicted_samples is S x N (draws as rows, observations as cols),
+# matching log_lik() and predict_epred().
 S7::method(predict_fit, LinearFitter) <- function(fitter, fit_result, newdata = NULL, seed = NULL) {
   data <- fit_result$data_bundle$train
-  preds <- as.matrix(cbind(1, data$x)) %*% t(fit_result$draws)
+  # draws is S x P; design matrix X is N x P, so draws %*% t(X) is S x N.
+  X <- as.matrix(cbind(1, data$x))
+  preds <- fit_result$draws %*% t(X)
   list(
-    predicted_mean = rowMeans(preds),
+    predicted_mean = colMeans(preds),
     predicted_samples = preds,
-    predicted_sd = apply(preds, 1, sd)
+    predicted_sd = apply(preds, 2, sd)
   )
 }
 

@@ -703,10 +703,12 @@ describe("NULL Safety in MockFitter", {
         task_ctx = list(task_id = "test")
       )
 
-      # Should not error when newdata is NULL
+      # Should not error when newdata is NULL.
+      # Convention: log_lik is S x N (draws x observations), so the number of
+      # columns equals the number of observations in the training data.
       ll <- log_lik(fitter, fit_result, newdata = NULL)
       expect_true(is.matrix(ll))
-      expect_equal(nrow(ll), 10) # n_obs from training data
+      expect_equal(ncol(ll), 10) # n_obs from training data
     })
   })
 

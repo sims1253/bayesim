@@ -769,6 +769,9 @@ describe("Fitter Class", {
       expect_true("predicted_samples" %in% names(preds))
       expect_true("predicted_sd" %in% names(preds))
       expect_equal(length(preds$predicted_mean), 10)
+      # S x N orientation: 10 observations => 10 columns.
+      expect_true(is.matrix(preds$predicted_samples))
+      expect_equal(ncol(preds$predicted_samples), 10)
     })
 
     it("log_lik() returns matrix", {

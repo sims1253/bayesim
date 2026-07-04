@@ -128,11 +128,16 @@ extract_draws <- S7::new_generic(
 #'
 #' @return A list containing:
 #'   \itemize{
-#'     \item `predicted_mean`: Vector of mean predictions (N)
-#'     \item `predicted_samples`: Matrix of posterior predictive samples (N x S)
-#'     \item `predicted_sd`: Vector of prediction standard deviations (N)
+#'     \item `predicted_mean`: Vector of mean predictions (length N)
+#'     \item `predicted_samples`: Matrix of posterior predictive samples
+#'       (S x N; draws as rows, observations as columns)
+#'     \item `predicted_sd`: Vector of prediction standard deviations (length N)
 #'     \item Additional fitter-specific outputs
 #'   }
+#'
+#'   `predicted_samples` follows the same orientation convention as
+#'   [log_lik()] and [predict_epred()]: all matrices are draws x observations
+#'   (S rows, N columns).
 #' @export
 predict_fit <- S7::new_generic(
   "predict_fit",
@@ -484,23 +489,33 @@ S7::method(predict_fit, MockFitter) <- function(
       x <- 1
     }
 
-    # Calculate predicted mean based on available parameters
+    # Calculate per-draw, per-observation mean as an S x N matrix
+    # (draws as rows, observations as columns). draws is S x P and x is
+    # length N, so draws[, p] * x recycles column-wise into S x N.
     if (!is.null(intercept_param) && !is.null(slope_param)) {
-      # Linear prediction: intercept + slope * x
-      # Result is a vector of length n_draws (for scalar x) or matrix (for vector x)
-      predicted_mean <- draws[, intercept_param] + draws[, slope_param] * x
+      # Linear prediction: intercept + slope * x  -> S x N
+      intercept_vec <- draws[, intercept_param] # length S
+      slope_vec <- draws[, slope_param]         # length S
+      pred_mean_matrix <- outer(intercept_vec, rep(1, n_obs)) +
+        outer(slope_vec, x)
     } else if (!is.null(intercept_param)) {
-      # Only intercept available
-      predicted_mean <- draws[, intercept_param]
+      # Only intercept available: replicate intercept across observations.
+      intercept_vec <- draws[, intercept_param]
+      pred_mean_matrix <- matrix(
+        rep(intercept_vec, n_obs),
+        nrow = n_draws,
+        ncol = n_obs
+      )
     } else if (!is.null(slope_param)) {
-      # Only slope available (no intercept)
-      predicted_mean <- draws[, slope_param] * x
+      # Only slope available (no intercept): slope * x  -> S x N
+      slope_vec <- draws[, slope_param]
+      pred_mean_matrix <- outer(slope_vec, x)
     } else {
-      # No location parameters found, use 0 as fallback
-      predicted_mean <- rep(0, n_draws)
+      # No location parameters found, use 0 as fallback (S x N of zeros).
+      pred_mean_matrix <- matrix(0, nrow = n_draws, ncol = n_obs)
     }
 
-    # Get scale values for predictions
+    # Get scale values for predictions (length-S vector, one per draw)
     if (!is.null(scale_param)) {
       scale_values <- draws[, scale_param]
     } else {
@@ -508,31 +523,26 @@ S7::method(predict_fit, MockFitter) <- function(
       scale_values <- rep(1, n_draws)
     }
 
-    # Generate posterior predictive samples
-    # predicted_mean should be n_draws-length for scalar x,
-    # or n_obs x n_draws matrix for vector x
-    if (is.matrix(predicted_mean)) {
-      # Already a matrix (n_obs x n_draws)
-      pred_mean_matrix <- predicted_mean
-    } else {
-      # Replicate to n_obs x n_draws matrix
-      pred_mean_matrix <- matrix(
-        rep(predicted_mean, each = n_obs),
-        nrow = n_obs,
-        ncol = n_draws
-      )
-    }
+    # Build the S x N scale matrix by recycling the length-S scale_values
+    # across the N columns (each draw has one scale applied to all obs).
+    scale_matrix <- matrix(
+      rep(scale_values, n_obs),
+      nrow = n_draws,
+      ncol = n_obs
+    )
 
+    # Generate posterior predictive samples as S x N
+    # (draws as rows, observations as columns).
     predicted_samples <- matrix(
-      rnorm(n_obs * n_draws, mean = pred_mean_matrix, sd = scale_values),
-      nrow = n_obs,
-      ncol = n_draws
+      rnorm(n_draws * n_obs, mean = pred_mean_matrix, sd = scale_matrix),
+      nrow = n_draws,
+      ncol = n_obs
     )
 
     list(
-      predicted_mean = rowMeans(predicted_samples),
+      predicted_mean = colMeans(predicted_samples),
       predicted_samples = predicted_samples,
-      predicted_sd = apply(predicted_samples, 1, sd)
+      predicted_sd = apply(predicted_samples, 2, sd)
     )
   })
 }
@@ -921,6 +931,25 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
           ),
           class = "bayesim_validation_error"
         )
+      }
+
+      # Orientation check: predicted_samples must be S x N (draws x
+      # observations). We verify observations-as-columns (N columns). The row
+      # count S is fitter-specific, so only the column count is enforced; this
+      # is robust to fitters whose n_draws happens to equal n_obs by coincidence.
+      if (is.matrix(preds$predicted_samples)) {
+        if (ncol(preds$predicted_samples) != n) {
+          rlang::abort(
+            c(
+              "predict_fit() returned predicted_samples with the wrong orientation",
+              i = paste0(
+                "predicted_samples must be S x N (draws x observations); ",
+                "expected N columns, got ", ncol(preds$predicted_samples)
+              )
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
       }
       msg("    [OK] predict_fit() returns valid predictions")
     } else {
