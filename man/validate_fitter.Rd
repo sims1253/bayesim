@@ -69,6 +69,5 @@ cat("Fitter is valid!\n")
 }
 }
 \seealso{
-\link{Fitter}, \link{MockFitter}
+\link{Fitter}, \link{MockFitter}, \code{\link[=validate_metric]{validate_metric()}}
 }
-\keyword{internal}

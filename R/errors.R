@@ -13,7 +13,6 @@ NULL
 #' @param call The call that caused the error (optional)
 #' @return An error condition object
 #' @keywords internal
-#' @export
 bayesim_error <- function(message, call = NULL) {
   structure(
     list(message = message, call = call),
@@ -74,7 +73,6 @@ bayesim_config_error <- function(message, call = NULL) {
 #' @return An error condition object with class c("bayesim_contract_error",
 #'   "bayesim_error", "error", "condition")
 #' @keywords internal
-#' @export
 #' @seealso [is_fatal_error()]
 bayesim_contract_error <- function(message, call = NULL) {
   structure(
@@ -93,7 +91,7 @@ bayesim_contract_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_checkpoint_error",
 #'   "bayesim_error", "error", "condition")
-#' @export
+#' @keywords internal
 #' @seealso [is_fatal_error()]
 bayesim_checkpoint_error <- function(message, call = NULL) {
   structure(
@@ -112,7 +110,7 @@ bayesim_checkpoint_error <- function(message, call = NULL) {
 #' @inheritParams bayesim_error
 #' @return An error condition object with class c("bayesim_internal_error",
 #'   "bayesim_error", "error", "condition")
-#' @export
+#' @keywords internal
 #' @seealso [is_fatal_error()]
 bayesim_internal_error <- function(message, call = NULL) {
   structure(

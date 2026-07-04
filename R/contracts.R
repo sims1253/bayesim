@@ -404,79 +404,23 @@ validate_fit_result_interface <- function(fit_result) {
 # =============================================================================
 # Fitter Interface Validation
 # =============================================================================
-
-#' Validate Fitter Class Hierarchy
-#'
-#' Validates that a fitter object is an S7 instance of the Fitter class.
-#' This is a lightweight class-hierarchy check used internally by
-#' [validate_simulation_config()]. For full interface validation including
-#' method existence and optional smoke testing, use [validate_fitter()].
-#'
-#' @param fitter An S7 object to validate as a Fitter.
-#'
-#' @return The input `fitter`, invisibly, if validation passes.
-#'
-#' @details
-#' The fitter must satisfy the following requirements:
-#' \itemize{
-#'   \item Must be an S7 object (checked via S7::S7_inherits())
-#'   \item Must inherit from the "Fitter" class
-#' }
-#'
-#' Method existence is not checked here because S7 methods are dispatched
-#' via generics, not stored as properties. The Fitter base class uses
-#' S7::stop_method_not_implemented() for abstract methods, so subclasses
-#' that don't override will raise errors when methods are called.
-#'
-#' @section Errors:
-#' Throws a `bayesim_contract_error` condition if validation fails.
-#'
-#' @keywords internal
-#'
-#' @seealso [Fitter], [validate_fitter()]
-#'
-#' @examples
-#' \dontrun{
-#' # Validate the mock fitter
-#' mock_fitter <- MockFitter()
-#' validate_fitter_interface(mock_fitter)
-#' }
-check_fitter_class <- function(fitter) {
-  if (!S7::S7_inherits(fitter)) {
-    stop(
-      bayesim_contract_error(
-        "fitter must be an S7 object, got " %+% class(fitter)[1]
-      )
-    )
-  }
-
-  if (!S7::S7_inherits(fitter, Fitter)) {
-    stop(
-      bayesim_contract_error(
-        "fitter must inherit from Fitter class, got class: " %+%
-          paste(class(fitter), collapse = ", ")
-      )
-    )
-  }
-
-  invisible(fitter)
-}
-
-#' @rdname check_fitter_class
-#' @export
-validate_fitter_interface <- check_fitter_class
+# B3: the duplicate lightweight fitter class check (check_fitter_class /
+# validate_fitter_interface) was merged into the exported validate_fitter()
+# in R/fitter.R, which performs the class hierarchy + method checks. Internal
+# callers use validate_fitter() directly.
 
 # =============================================================================
 # Metric Interface Validation
 # =============================================================================
 
-#' Validate Metric Class and Name Property
+#' @title Validate a Metric Object
 #'
-#' Validates that a metric object is an S7 instance of the Metric class
-#' with a valid `name` property. This is a lightweight check used internally
-#' by [validate_simulation_config()]. Method existence is not checked because
-#' S7 dispatches via generics and the base class raises errors for unimplemented
-#' abstract methods.
+#' @description
+#' Validates that a metric object is an S7 instance of the Metric class with a
+#' valid `name` property. This is the canonical metric validator (B3 merges the
+#' former internal `validate_metric_interface` into this exported name). Method
+#' existence is not checked because S7 dispatches via generics and the base
+#' class raises errors for unimplemented abstract methods.
 #'
 #' @param metric An S7 object to validate as a Metric.
 #'
@@ -485,11 +429,10 @@ validate_fitter_interface <- check_fitter_class
 #' @section Errors:
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
-#' @keywords internal
 #' @export
 #'
-#' @seealso [Metric], [validate_metric_output()]
-validate_metric_interface <- function(metric) {
+#' @seealso [Metric], [validate_metric_output()], [validate_fitter()]
+validate_metric <- function(metric) {
   if (!S7::S7_inherits(metric)) {
     stop(
       bayesim_contract_error(
@@ -557,8 +500,8 @@ validate_metric_interface <- function(metric) {
 #' The configuration is validated for:
 #' \itemize{
 #'   \item Being a valid SimulationConfig S7 object
-#'   \item Having a non-NULL fitter that passes [validate_fitter_interface()]
-#'   \item Having metrics (if present) that pass [validate_metric_interface()]
+#'   \item Having a non-NULL fitter that passes [validate_fitter()]
+#'   \item Having metrics (if present) that pass [validate_metric()]
 #'   \item Having a data_generator function with the correct signature
 #' }
 #'
@@ -567,7 +510,7 @@ validate_metric_interface <- function(metric) {
 #'
 #' @keywords internal
 #'
-#' @seealso [simulation_config()], [validate_fitter_interface()], [validate_metric_interface()]
+#' @seealso [simulation_config()], [validate_fitter()], [validate_metric()]
 #'
 #' @examples
 #' \dontrun{
@@ -602,7 +545,7 @@ validate_simulation_config <- function(config) {
 
   tryCatch(
     {
-      validate_fitter_interface(config@fitter)
+      validate_fitter(config@fitter)
     },
     error = function(e) {
       stop(
@@ -619,7 +562,7 @@ validate_simulation_config <- function(config) {
       metric <- config@metrics[[i]]
       tryCatch(
         {
-          validate_metric_interface(metric)
+          validate_metric(metric)
         },
         error = function(e) {
           metric_id <- if (S7::S7_inherits(metric) && !is.null(metric@name)) {

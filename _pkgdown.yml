@@ -126,13 +126,12 @@ reference:
       Validators, error constructors, and classifiers for extending bayesim
     contents:
       - validate_data_bundle
-      - validate_fitter_interface
-      - validate_metric_interface
-      - bayesim_error
+      - validate_fitter
+      - validate_metric
       - bayesim_config_error
-      - bayesim_contract_error
       - bayesim_data_error
       - bayesim_fit_error
+      - bayesim_metric_error
       - is_bayesim_error
       - is_fatal_error
       - is_recoverable_error

@@ -21,8 +21,8 @@ all metrics, and the data_generator function signature.
 The configuration is validated for:
 \itemize{
 \item Being a valid SimulationConfig S7 object
-\item Having a non-NULL fitter that passes \code{\link[=validate_fitter_interface]{validate_fitter_interface()}}
-\item Having metrics (if present) that pass \code{\link[=validate_metric_interface]{validate_metric_interface()}}
+\item Having a non-NULL fitter that passes \code{\link[=validate_fitter]{validate_fitter()}}
+\item Having metrics (if present) that pass \code{\link[=validate_metric]{validate_metric()}}
 \item Having a data_generator function with the correct signature
 }
 }
@@ -46,6 +46,6 @@ validate_simulation_config(config)
 }
 }
 \seealso{
-\code{\link[=simulation_config]{simulation_config()}}, \code{\link[=validate_fitter_interface]{validate_fitter_interface()}}, \code{\link[=validate_metric_interface]{validate_metric_interface()}}
+\code{\link[=simulation_config]{simulation_config()}}, \code{\link[=validate_fitter]{validate_fitter()}}, \code{\link[=validate_metric]{validate_metric()}}
 }
 \keyword{internal}

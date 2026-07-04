@@ -26,6 +26,6 @@ expect.
 }
 \description{
 Compute pointwise log-likelihood values. Named \code{log_lik_matrix} (rather than
-\code{log_lik}) so that bayesim does not mask \link[brms:log_lik]{brms::log_lik} / \link[loo:log_lik]{loo::log_lik}
-\code{rstantools}-style generics for users who load bayesim alongside brms.
+\code{log_lik}) so that bayesim does not mask \link[brms:log_lik]{brms::log_lik} or the rstantools
+\code{log_lik} generic for users who load bayesim alongside brms.
 }

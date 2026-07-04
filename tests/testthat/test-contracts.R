@@ -1902,33 +1902,23 @@ describe("Validators", {
     })
   })
 
-  describe("validate_fitter_interface()", {
-    validator_exists <- exists("validate_fitter_interface", mode = "function")
-
+  describe("validate_fitter()", {
     it("accepts valid Fitter objects", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-
       fitter <- MockFitter()
-      expect_silent(validate_fitter_interface(fitter))
+      expect_silent(validate_fitter(fitter))
     })
 
     it("rejects non-Fitter objects", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-      expect_error(validate_fitter_interface("not a fitter"))
+      expect_error(validate_fitter("not a fitter"))
     })
 
     it("rejects NULL", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-      expect_error(validate_fitter_interface(NULL))
+      expect_error(validate_fitter(NULL))
     })
   })
 
-  describe("validate_metric_interface()", {
-    validator_exists <- exists("validate_metric_interface", mode = "function")
-
+  describe("validate_metric()", {
     it("accepts valid Metric objects", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-
       # Define a test metric inline with name property set
       TestMetricForValidation <- S7::new_class(
         "TestMetricForValidation",
@@ -1938,17 +1928,15 @@ describe("Validators", {
         )
       )
       metric <- TestMetricForValidation(name = "test_metric")
-      expect_silent(validate_metric_interface(metric))
+      expect_silent(validate_metric(metric))
     })
 
     it("rejects non-Metric objects", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-      expect_error(validate_metric_interface("not a metric"))
+      expect_error(validate_metric("not a metric"))
     })
 
     it("rejects NULL", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-      expect_error(validate_metric_interface(NULL))
+      expect_error(validate_metric(NULL))
     })
   })
 })

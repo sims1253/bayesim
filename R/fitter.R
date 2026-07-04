@@ -180,8 +180,8 @@ S7::method(predict_epred, S7::class_any) <- function(fitter, fit_result, newdata
 #' @title Compute Pointwise Log-Likelihood
 #' @description
 #' Compute pointwise log-likelihood values. Named `log_lik_matrix` (rather than
-#' `log_lik`) so that bayesim does not mask [brms::log_lik] / [loo::log_lik]
-#' `rstantools`-style generics for users who load bayesim alongside brms.
+#' `log_lik`) so that bayesim does not mask [brms::log_lik] or the rstantools
+#' `log_lik` generic for users who load bayesim alongside brms.
 #'
 #' @param fitter An S7 Fitter object
 #' @param fit_result A `bayesim_fit_result` object from [fit_model()]
@@ -658,8 +658,8 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - If `supports_log_lik`, calls `log_lik_matrix()` and verifies matrix output
 #' - Calls `fit_diagnostics()` and verifies list output
 #'
-#' @keywords internal
-#' @seealso [Fitter], [MockFitter]
+#' @export
+#' @seealso [Fitter], [MockFitter], [validate_metric()]
 #'
 #' @examples
 #' \dontrun{
