@@ -25,6 +25,7 @@ Collate:
     'zzz.R'
     'errors.R'
     'utils.R'
+    's7-validators.R'
     'results.R'
     'fitter.R'
     'metric.R'

@@ -14,7 +14,6 @@ skip_on_cran()
     response = "y",
     true_params = c(beta = 0),
     vars_of_interest = "beta",
-    references = c(beta = 0),
     meta = list()
   )
 }

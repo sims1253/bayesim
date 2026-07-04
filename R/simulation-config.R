@@ -61,11 +61,9 @@ SimulationConfig <- S7::new_class(
     ),
     n_replicates = S7::new_property(
       class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "n_replicates must be a positive integer"
-        }
-      }
+      validator = validate_positive_integer(
+        message = "n_replicates must be a positive integer"
+      )
     ),
     seed = S7::new_property(
       class = S7::class_integer,
@@ -85,11 +83,9 @@ SimulationConfig <- S7::new_class(
     ),
     checkpoint_every = S7::new_property(
       class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "checkpoint_every must be a positive integer"
-        }
-      }
+      validator = validate_positive_integer(
+        message = "checkpoint_every must be a positive integer"
+      )
     ),
     checkpoint_format = S7::new_property(
       class = S7::class_character,
@@ -126,6 +122,14 @@ SimulationConfig <- S7::new_class(
     ),
     daemon_setup = S7::new_property(
       class = S7::new_union(S7::class_function, NULL),
+      default = NULL
+    ),
+    # Workstream I3: optional adaptive stopping policy. NULL = run all tasks.
+    # When non-NULL a list with: estimand (character), measure (one of
+    # bias/coverage/emp_se/mse/model_se), target_mcse (numeric > 0),
+    # min_reps (integer, default 50), check_every (integer, default 50).
+    stop_on = S7::new_property(
+      class = S7::new_union(S7::class_any, NULL),
       default = NULL
     )
   )
@@ -167,6 +171,15 @@ SimulationConfig <- S7::new_class(
 #' @param daemon_setup Optional function run once per mirai daemon (via
 #'   `mirai::everywhere()`) before tasks start, e.g. to configure cmdstan
 #'   paths or load a model bank. Ignored when no daemons are set. Default NULL.
+#' @param stop_on Optional adaptive stopping policy (experimental). `NULL`
+#'   (default) runs all tasks. Otherwise a list with elements: `estimand`
+#'   (character parameter name), `measure` (one of `"bias"`, `"coverage"`,
+#'   `"emp_se"`, `"mse"`, `"model_se"`), `target_mcse` (numeric > 0),
+#'   `min_reps` (integer, default 50), `check_every` (integer, default 50).
+#'   Once the MCSE of `measure` for `estimand` falls below `target_mcse` AND
+#'   at least `min_reps` replicates have completed, remaining pending tasks
+#'   are marked `"skipped"` and the run stops. (I3: excluded from the config
+#'   fingerprint — it is runtime policy.)
 #'
 #' @return An S7 SimulationConfig object.
 #'
@@ -199,7 +212,8 @@ simulation_config <- function(
   checkpoint_every = 50L,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
-  daemon_setup = NULL
+  daemon_setup = NULL,
+  stop_on = NULL
 ) {
   if (!is.null(task_grid)) {
     if (!is.data.frame(task_grid)) {
@@ -320,6 +334,9 @@ simulation_config <- function(
     cli::cli_abort("max_errors must be Inf or a non-negative number")
   }
 
+  # I3: validate optional adaptive-stopping policy.
+  stop_on <- validate_stop_on(stop_on)
+
   # Create and return S7 object
   SimulationConfig(
     data_grid = data_grid,
@@ -335,7 +352,8 @@ simulation_config <- function(
     checkpoint_format = checkpoint_format,
     retain = retain,
     max_errors = max_errors,
-    daemon_setup = daemon_setup
+    daemon_setup = daemon_setup,
+    stop_on = stop_on
   )
 }
 
@@ -384,6 +402,77 @@ resolve_metrics <- function(metrics) {
   metrics
 }
 
+# I3: validate the optional adaptive-stopping policy ----------------------
+
+# Valid performance measures (must match those produced by performance_measures).
+VALID_STOP_MEASURES <- c("bias", "coverage", "emp_se", "mse", "model_se")
+
+#' Validate the optional adaptive-stopping policy (I3)
+#'
+#' `NULL` is valid (no adaptive stopping). Otherwise the input must be a list
+#' with: `estimand` (character), `measure` (one of `VALID_STOP_MEASURES`),
+#' `target_mcse` (numeric > 0), and optional `min_reps` (integer, default 50)
+#' and `check_every` (integer, default 50). Returns a normalized list.
+#'
+#' @param stop_on NULL or a list.
+#' @return NULL or a normalized list.
+#' @keywords internal
+validate_stop_on <- function(stop_on) {
+  if (is.null(stop_on)) return(NULL)
+  if (!is.list(stop_on)) {
+    stop(bayesim_config_error("stop_on must be NULL or a list"))
+  }
+  need <- c("estimand", "measure", "target_mcse")
+  missing <- setdiff(need, names(stop_on))
+  if (length(missing) > 0L) {
+    stop(bayesim_config_error(paste(
+      "stop_on is missing required element(s):",
+      paste(missing, collapse = ", ")
+    )))
+  }
+  estimand <- stop_on$estimand
+  if (!is.character(estimand) || length(estimand) != 1L ||
+        is.na(estimand) || !nzchar(estimand)) {
+    stop(bayesim_config_error(
+      "stop_on$estimand must be a single non-empty character string"
+    ))
+  }
+  measure <- stop_on$measure
+  if (!is.character(measure) || length(measure) != 1L || is.na(measure) ||
+        !measure %in% VALID_STOP_MEASURES) {
+    stop(bayesim_config_error(paste(
+      "stop_on$measure must be one of:",
+      paste(VALID_STOP_MEASURES, collapse = ", ")
+    )))
+  }
+  target_mcse <- stop_on$target_mcse
+  if (!is.numeric(target_mcse) || length(target_mcse) != 1L ||
+        is.na(target_mcse) || target_mcse <= 0) {
+    stop(bayesim_config_error(
+      "stop_on$target_mcse must be a single positive numeric value"
+    ))
+  }
+  min_reps <- as.integer(stop_on$min_reps %||% 50L)
+  if (length(min_reps) != 1L || is.na(min_reps) || min_reps < 1L) {
+    stop(bayesim_config_error(
+      "stop_on$min_reps must be a single positive integer"
+    ))
+  }
+  check_every <- as.integer(stop_on$check_every %||% 50L)
+  if (length(check_every) != 1L || is.na(check_every) || check_every < 1L) {
+    stop(bayesim_config_error(
+      "stop_on$check_every must be a single positive integer"
+    ))
+  }
+  list(
+    estimand = estimand,
+    measure = measure,
+    target_mcse = target_mcse,
+    min_reps = min_reps,
+    check_every = check_every
+  )
+}
+
 #' Convert SimulationConfig to Plain List for Hashing
 #'
 #' Converts an S7 SimulationConfig object to a plain list suitable for
@@ -409,7 +498,8 @@ as_config_spec <- function(config) {
 
   # Extract properties that define the simulation identity. B4: exclude runtime
   # policy (result_path, checkpoint_every, checkpoint_format, retain, max_errors)
-  # — changing retention or error tolerance must not invalidate resume.
+  # — changing retention or error tolerance must not invalidate resume. I3:
+  # stop_on (adaptive stopping) is also runtime policy and excluded here.
   spec <- list(
     data_grid = config@data_grid,
     fit_grid = config@fit_grid,

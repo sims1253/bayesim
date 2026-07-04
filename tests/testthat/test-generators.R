@@ -21,7 +21,7 @@ describe("fixed_truth_generator", {
         list(train = data.frame(y = y, x = x), response = "y")
       }
     )
-    bundle <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "t1", rep_idx = 1L))
+    bundle <- gen(list(n = 20), list(task_id = "t1", rep_idx = 1L))
     expect_equal(bundle$true_params, c(beta = 1, sigma = 1))
     expect_equal(bundle$vars_of_interest, c("beta", "sigma"))
     expect_s3_class(bundle$train, "data.frame")
@@ -62,8 +62,8 @@ describe("prior_predictive_generator", {
     )
 
     # Same rep_idx -> identical true_params (the fixed prior draw theta).
-    b1 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "a", rep_idx = 1L))
-    b2 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "b", rep_idx = 1L))
+    b1 <- gen(list(n = 20), list(task_id = "a", rep_idx = 1L))
+    b2 <- gen(list(n = 20), list(task_id = "b", rep_idx = 1L))
     expect_equal(b1$true_params, b2$true_params)
 
     # The simulated y depends on the ambient RNG (for predictors), so it only
@@ -73,7 +73,7 @@ describe("prior_predictive_generator", {
 
     # Different rep_idx -> different theta (when more than 1 prior draw).
     if (posterior::ndraws(prior_fit) > 1L) {
-      b3 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "c", rep_idx = 2L))
+      b3 <- gen(list(n = 20), list(task_id = "c", rep_idx = 2L))
       expect_false(identical(b1$true_params, b3$true_params))
     }
 
@@ -101,8 +101,8 @@ describe("ifs_generator", {
       vars_of_interest = "x"
     )
 
-    b1 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "a", rep_idx = 1L))
-    b2 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "b", rep_idx = 1L))
+    b1 <- gen(list(n = 20), list(task_id = "a", rep_idx = 1L))
+    b2 <- gen(list(n = 20), list(task_id = "b", rep_idx = 1L))
     expect_equal(b1$true_params, b2$true_params)
 
     expect_equal(b1$meta$generator, "ifs")
@@ -127,7 +127,7 @@ describe("ifs_generator", {
       upper_bound = 1e6,
       truncate = TRUE
     )
-    b <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "t", rep_idx = 1L))
+    b <- gen(list(n = 20), list(task_id = "t", rep_idx = 1L))
     expect_true(all(b$train$y >= -1e6))
     expect_true(all(b$train$y <= 1e6))
   })
@@ -198,8 +198,7 @@ describe("ifs_generator F1 — simulated response", {
     )
     gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors,
                          vars_of_interest = "x")
-    bundle <- gen(list(n = 20), seed = NULL,
-                  task_ctx = list(task_id = "t1", rep_idx = 1L))
+    bundle <- gen(list(n = 20), task_ctx = list(task_id = "t1", rep_idx = 1L))
     expect_true("y" %in% names(bundle$train))
     expect_false(all(is.na(bundle$train$y)))
     # The simulated y must NOT be literally the pilot data's y (it is freshly
@@ -218,8 +217,7 @@ describe("ifs_generator F1 — simulated response", {
     )
     gen <- ifs_generator(prefit = prefit, predictor_generator = NULL,
                          vars_of_interest = "x")
-    bundle <- gen(list(n = 20), seed = NULL,
-                  task_ctx = list(task_id = "t1", rep_idx = 1L))
+    bundle <- gen(list(n = 20), task_ctx = list(task_id = "t1", rep_idx = 1L))
     # Predictor columns come from the pilot, but the response MUST be freshly
     # simulated (previously this returned the pilot frame unchanged).
     expect_true("y" %in% names(bundle$train))
@@ -240,8 +238,7 @@ describe("ifs_generator F1 — simulated response", {
     gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors,
                          vars_of_interest = "x")
 
-    b2 <- gen(list(n = 20), seed = NULL,
-              task_ctx = list(task_id = "t2", rep_idx = 2L))
+    b2 <- gen(list(n = 20), task_ctx = list(task_id = "t2", rep_idx = 2L))
     expect_equal(b2$meta$truth_draw_id, 2L)
     expect_true("y" %in% names(b2$train))
     expect_false(all(is.na(b2$train$y)))
@@ -249,8 +246,7 @@ describe("ifs_generator F1 — simulated response", {
     # rep_idx beyond n_draws must wrap via modulo without indexing errors.
     rep_idx_wrap <- as.integer(n_draws) + 5L
     expected_id <- ((rep_idx_wrap - 1L) %% n_draws) + 1L
-    bw <- gen(list(n = 20), seed = NULL,
-              task_ctx = list(task_id = "tw", rep_idx = rep_idx_wrap))
+    bw <- gen(list(n = 20), task_ctx = list(task_id = "tw", rep_idx = rep_idx_wrap))
     expect_equal(bw$meta$truth_draw_id, expected_id)
     expect_false(all(is.na(bw$train$y)))
   })
@@ -265,8 +261,7 @@ describe("ifs_generator F1 — simulated response", {
       silent = 2L, refresh = 0L
     )
     gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors)
-    bundle <- gen(list(n = 20), seed = NULL,
-                  task_ctx = list(task_id = "mv1", rep_idx = 1L))
+    bundle <- gen(list(n = 20), task_ctx = list(task_id = "mv1", rep_idx = 1L))
     expect_true("a" %in% names(bundle$train))
     expect_true("b" %in% names(bundle$train))
     expect_false(all(is.na(bundle$train$a)))
@@ -289,13 +284,13 @@ describe("prior_predictive_generator F1 — simulated response", {
     gen <- prior_predictive_generator(prior_fit = prior_fit,
                                       predictor_generator = gaussian_predictors,
                                       vars_of_interest = "x")
-    b1 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "a", rep_idx = 1L))
+    b1 <- gen(list(n = 20), list(task_id = "a", rep_idx = 1L))
     # Response column present and non-NA.
     expect_true("y" %in% names(b1$train))
     expect_false(all(is.na(b1$train$y)))
     # Different rep_idx -> different simulated response (varies with the draw).
     if (posterior::ndraws(prior_fit) > 1L) {
-      b2 <- gen(list(n = 20), seed = NULL, task_ctx = list(task_id = "b", rep_idx = 2L))
+      b2 <- gen(list(n = 20), list(task_id = "b", rep_idx = 2L))
       expect_false(identical(b1$train$y, b2$train$y))
     }
   })

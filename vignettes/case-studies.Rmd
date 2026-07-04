@@ -146,10 +146,10 @@ config <- simulation_config(
 
 result <- run_simulation(config, progress = TRUE)
 
-# Rank histograms + ECDF with simultaneous confidence bands.
+# Rank histograms + ECDF with uniformity band.
 plot_rank_hist(sbc_ranks(result))
 plot_rank_ecdf(sbc_ranks(result))
 ```
 
 Under a correctly calibrated model, the rank histogram is approximately flat
-and the ECDF stays within the confidence band.
+and the ECDF stays within the uniformity band.

@@ -5,7 +5,7 @@ skip_on_cran()
   n <- data_spec$n; x <- stats::rnorm(n); y <- x + stats::rnorm(n)
   list(train = data.frame(y = y, x = x), test = NULL, response = "y",
        true_params = c(x = 1), vars_of_interest = "x",
-       references = c(x = 0), meta = list())
+       meta = list())
 }
 
 describe("F1 preflight", {

@@ -34,7 +34,6 @@
 #'     \item{response}{Name of the response variable}
 #'     \item{true_params}{Named vector of true parameter values}
 #'     \item{vars_of_interest}{Names of parameters to estimate}
-#'     \item{references}{Reference values for parameters}
 #'     \item{meta}{List of metadata}
 #'   }
 #'
@@ -55,7 +54,6 @@ mock_data_generator <- function(data_spec, task_ctx) {
     response = "y",
     true_params = c(beta = 1.0, sigma = 1.0),
     vars_of_interest = c("beta", "sigma"),
-    references = c(beta = 0, sigma = 1),
     meta = list()
   )
 }
@@ -74,7 +72,6 @@ mock_data_generator <- function(data_spec, task_ctx) {
 #'     \item{response}{Name of the response variable ("y")}
 #'     \item{true_params}{Named vector of true parameter values}
 #'     \item{vars_of_interest}{Names of parameters to estimate}
-#'     \item{references}{Reference values for parameters}
 #'     \item{meta}{List of metadata}
 #'   }
 #'
@@ -91,7 +88,6 @@ valid_data_bundle <- function() {
     response = "y",
     true_params = c(beta = 1.0),
     vars_of_interest = "beta",
-    references = c(beta = 0),
     meta = list()
   )
 }

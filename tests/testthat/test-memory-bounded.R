@@ -175,7 +175,6 @@ describe("simulation_config() checkpoint_every parameter", {
       response = "y",
       true_params = c(a = 1),
       vars_of_interest = "a",
-      references = c(a = 0),
       meta = list()
     )
   }

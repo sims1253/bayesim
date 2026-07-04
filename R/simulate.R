@@ -260,6 +260,11 @@ execute_tasks <- function(
   error_count <- 0
   n_in_memory <- 0
 
+  # I3: optional adaptive stopping policy (NULL => run all tasks). The check
+  # fires after each batch whose completed-task count reaches a check_every
+  # boundary AND >= min_reps. bayesim_adaptive_check never throws.
+  stop_on <- config@stop_on
+
   # C1: exactly one progress system. purrr's .progress drives the per-task bar
   # inside each batch (passed through run_batch); the outer loop only emits
   # per-batch checkpoint messages.
@@ -348,6 +353,32 @@ execute_tasks <- function(
         ))
       }
 
+      # I3: adaptive stopping. Only consider running the (cheap) MCSE check at a
+      # check_every boundary and once min_reps have completed. The check runs
+      # BEFORE lightening so per-task metrics are still in memory.
+      if (!is.null(stop_on)) {
+        n_completed <- sum(!vapply(task_results, is.null, logical(1)))
+        check_every <- as.integer(stop_on$check_every %||% 50L)
+        min_reps <- as.integer(stop_on$min_reps %||% 50L)
+        at_boundary <- (n_completed %% check_every) == 0L
+        if (isTRUE(at_boundary) && n_completed >= min_reps) {
+          stop_now <- bayesim_adaptive_check(task_results, task_grid, stop_on, config)
+          if (isTRUE(stop_now)) {
+            cli::cli_alert_info(
+              "Adaptive stop: MCSE of '{stop_on$measure}' for '{stop_on$estimand}' below {stop_on$target_mcse} after {n_completed} reps; skipping remaining tasks"
+            )
+            # Mark all still-pending tasks as skipped so they appear in the
+            # summary with status 'skipped'. The post-loop fill below also
+            # handles NULL slots, but we set the grid status explicitly here.
+            pending_remaining <- which(task_grid$status == "pending")
+            for (ti in pending_remaining) {
+              task_grid$status[ti] <- "skipped"
+            }
+            break
+          }
+        }
+      }
+
       if (!is.null(result_path) && !is.null(config_fingerprint)) {
         non_null_indices <- which(!vapply(task_results, is.null, logical(1)))
         results_to_checkpoint <- task_results[non_null_indices]
@@ -383,21 +414,24 @@ execute_tasks <- function(
     }
   }
 
-  # After the main loop, fill any remaining NULL slots with skipped results
+  # After the main loop, fill any remaining NULL slots with skipped results.
+  # This covers both max_errors termination (status was left "pending") and
+  # I3 adaptive-stop termination (status was set to "skipped" for pending rows).
   for (i in seq_along(task_results)) {
     if (
-      is.null(task_results[[i]]) && identical(task_grid$status[i], "pending")
+      is.null(task_results[[i]]) &&
+        task_grid$status[i] %in% c("pending", "skipped")
     ) {
+      task_grid$status[i] <- "skipped"
       task_results[[i]] <- new_task_result(
         task_id = task_grid$task_id[i],
         status = "skipped",
         timing = list(total = 0),
         error = list(
           error_class = "skipped",
-          error_message = "Task not executed (max_errors reached)"
+          error_message = "Task not executed (run stopped)"
         )
       )
-      task_grid$status[i] <- "skipped"
     }
   }
 
@@ -742,4 +776,61 @@ resume_simulation <- function(result_path, config = NULL, progress = TRUE) {
 
   config@result_path <- result_path
   run_simulation(config, resume = "must", progress = progress)
+}
+
+# Workstream I3: adaptive stopping -----------------------------------------
+
+#' Build a quick summary tibble from in-memory task results (I3)
+#'
+#' Internal helper for adaptive stopping: flattens the non-NULL entries of
+#' `task_results` to a summary data.frame via [results_to_dataframe()] and
+#' enriches it with data_grid/fit_grid/rep_idx columns (matching what
+#' [build_simulation_result()] produces). Used by [bayesim_adaptive_check()] so
+#' it can call [performance_measures()] mid-run.
+#'
+#' @param task_results List of `bayesim_task_result` (possibly with NULLs).
+#' @param task_grid The task grid tibble (with up-to-date statuses).
+#' @param config A SimulationConfig.
+#' @return A data.frame summary, or NULL if no non-NULL results.
+#' @keywords internal
+bayesim_adaptive_summary <- function(task_results, task_grid, config) {
+  non_null <- which(!vapply(task_results, is.null, logical(1)))
+  if (length(non_null) == 0L) return(NULL)
+  df <- results_to_dataframe(task_results[non_null])
+  if (is.null(df) || nrow(df) == 0L) return(NULL)
+  enrich_summary_with_grid_columns(
+    summary = df,
+    task_grid = task_grid,
+    data_grid = config@data_grid,
+    fit_grid = config@fit_grid
+  )
+}
+
+#' Should the run stop early based on the adaptive-stopping policy? (I3)
+#'
+#' Builds a quick summary from `task_results_so_far` and calls
+#' [performance_measures()] for `stop_on$estimand`. Returns TRUE when the MCSE of
+#' `stop_on$measure` is finite and below `stop_on$target_mcse`. Wrapped in
+#' tryCatch by the caller: any failure (e.g. no truth columns yet) => FALSE.
+#'
+#' @param task_results_so_far List of in-memory `bayesim_task_result`.
+#' @param task_grid Current task grid (statuses updated).
+#' @param stop_on A validated `stop_on` list (see [validate_stop_on()]).
+#' @param config A SimulationConfig.
+#' @return TRUE/FALSE. Never throws.
+#' @keywords internal
+bayesim_adaptive_check <- function(task_results_so_far, task_grid, stop_on, config) {
+  if (is.null(stop_on)) return(FALSE)
+  ok <- tryCatch({
+    df <- bayesim_adaptive_summary(task_results_so_far, task_grid, config)
+    if (is.null(df) || nrow(df) == 0L) return(FALSE)
+    pm <- performance_measures(df, estimand = stop_on$estimand)
+    if (is.null(pm) || nrow(pm) == 0L) return(FALSE)
+    sel <- pm$measure == stop_on$measure
+    if (!any(sel)) return(FALSE)
+    mcse <- pm$mcse[sel][1L]
+    target <- stop_on$target_mcse
+    isTRUE(is.finite(mcse)) && isTRUE(mcse < target)
+  }, error = function(e) FALSE)
+  isTRUE(ok)
 }

@@ -32,7 +32,7 @@
 #'   `true_params` and `vars_of_interest` for every generated bundle.
 #' @param draw_data Function with signature `(data_spec, task_ctx)` returning a
 #'   list with at least `train` (data.frame). May optionally return `response`,
-#'   `test`, `references`, `meta`.
+#'   `test`, `meta`.
 #'
 #' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
@@ -160,7 +160,6 @@ prior_predictive_generator <- function(prior_fit,
       response = resp,
       true_params = theta,
       vars_of_interest = names(theta),
-      references = setNames(rep(NA_real_, length(theta)), names(theta)),
       meta = list(generator = "prior_predictive", truth_draw_id = draw_id)
     )
   }
@@ -283,7 +282,6 @@ ifs_generator <- function(prefit,
       response = resp,
       true_params = theta,
       vars_of_interest = names(theta),
-      references = setNames(rep(NA_real_, length(theta)), names(theta)),
       meta = list(generator = "ifs", truth_draw_id = draw_id)
     )
   }

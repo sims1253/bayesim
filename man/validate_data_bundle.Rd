@@ -28,8 +28,6 @@ The data_bundle must have the following structure:
 \item \code{true_params}: A named numeric vector where names exactly match
 \code{vars_of_interest}
 \item \code{vars_of_interest}: A non-empty character vector of unique names
-\item \code{references}: A named numeric vector where names exactly match
-\code{vars_of_interest} (optional)
 \item \code{meta}: Optional named list with scalar values only
 }
 
@@ -41,7 +39,6 @@ Validation rules:
 \item \code{true_params} must be a named numeric vector
 \item \code{vars_of_interest} must be a non-empty unique character vector
 \item \code{setequal(names(true_params), vars_of_interest)} must be TRUE
-\item If provided, \code{setequal(names(references), vars_of_interest)} must be TRUE
 \item No duplicate names in any named vector/list
 \item \code{meta} must be a named list with scalar values only (if present)
 }
@@ -58,8 +55,7 @@ data_bundle <- list(
   test = data.frame(x = 11:15, y = rnorm(5)),
   response = "y",
   true_params = c(beta = 1.5, sigma = 0.5),
-  vars_of_interest = c("beta", "sigma"),
-  references = c(beta = 0, sigma = 1)
+  vars_of_interest = c("beta", "sigma")
 )
 validate_data_bundle(data_bundle)
 }

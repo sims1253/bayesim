@@ -31,7 +31,6 @@ bayesim_example_data_generator <- function(data_spec, task_ctx) {
     response = "y",
     true_params = c(beta = beta, sigma = sigma),
     vars_of_interest = c("beta", "sigma"),
-    references = c(beta = 0, sigma = 1),
     meta = list(task_id = task_ctx$task_id %||% NA_character_)
   )
 }

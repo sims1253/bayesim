@@ -31,8 +31,6 @@ NULL
 #'   \item `true_params`: A named numeric vector where names exactly match
 #'     `vars_of_interest`
 #'   \item `vars_of_interest`: A non-empty character vector of unique names
-#'   \item `references`: A named numeric vector where names exactly match
-#'     `vars_of_interest` (optional)
 #'   \item `meta`: Optional named list with scalar values only
 #' }
 #'
@@ -44,7 +42,6 @@ NULL
 #'   \item `true_params` must be a named numeric vector
 #'   \item `vars_of_interest` must be a non-empty unique character vector
 #'   \item `setequal(names(true_params), vars_of_interest)` must be TRUE
-#'   \item If provided, `setequal(names(references), vars_of_interest)` must be TRUE
 #'   \item No duplicate names in any named vector/list
 #'   \item `meta` must be a named list with scalar values only (if present)
 #' }
@@ -62,8 +59,7 @@ NULL
 #'   test = data.frame(x = 11:15, y = rnorm(5)),
 #'   response = "y",
 #'   true_params = c(beta = 1.5, sigma = 0.5),
-#'   vars_of_interest = c("beta", "sigma"),
-#'   references = c(beta = 0, sigma = 1)
+#'   vars_of_interest = c("beta", "sigma")
 #' )
 #' validate_data_bundle(data_bundle)
 validate_data_bundle <- function(data_bundle) {
@@ -247,58 +243,6 @@ validate_data_bundle <- function(data_bundle) {
     stop(bayesim_data_error(msg))
   }
 
-  # Optional: validate references
-  if (!is.null(data_bundle$references)) {
-    if (!is.numeric(data_bundle$references)) {
-      stop(
-        bayesim_data_error(
-          "data_bundle$references must be a numeric vector, got " %+%
-            typeof(data_bundle$references)
-        )
-      )
-    }
-    if (is.null(names(data_bundle$references))) {
-      stop(bayesim_data_error("data_bundle$references must have names"))
-    }
-    if (anyDuplicated(names(data_bundle$references)) > 0) {
-      dup_names <- names(data_bundle$references)[duplicated(names(
-        data_bundle$references
-      ))]
-      stop(
-        bayesim_data_error(
-          "data_bundle$references has duplicate names: " %+%
-            paste(unique(dup_names), collapse = ", ")
-        )
-      )
-    }
-
-    # Validate references names match vars_of_interest if both are present
-    if (
-      !setequal(names(data_bundle$references), data_bundle$vars_of_interest)
-    ) {
-      in_refs_not_vars <- setdiff(
-        names(data_bundle$references),
-        data_bundle$vars_of_interest
-      )
-      in_vars_not_refs <- setdiff(
-        data_bundle$vars_of_interest,
-        names(data_bundle$references)
-      )
-      msg <- "data_bundle: names(references) must exactly match vars_of_interest. "
-      if (length(in_refs_not_vars) > 0) {
-        msg <- msg %+%
-          "In references but not vars_of_interest: " %+%
-          paste(in_refs_not_vars, collapse = ", ") %+%
-          ". "
-      }
-      if (length(in_vars_not_refs) > 0) {
-        msg <- msg %+%
-          "In vars_of_interest but not references: " %+%
-          paste(in_vars_not_refs, collapse = ", ")
-      }
-      stop(bayesim_data_error(msg))
-    }
-  }
 
   # Optional: validate meta is a named list of scalars
   if (!is.null(data_bundle$meta)) {

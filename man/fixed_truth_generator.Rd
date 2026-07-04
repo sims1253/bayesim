@@ -12,7 +12,7 @@ fixed_truth_generator(truth, draw_data)
 
 \item{draw_data}{Function with signature \verb{(data_spec, task_ctx)} returning a
 list with at least \code{train} (data.frame). May optionally return \code{response},
-\code{test}, \code{references}, \code{meta}.}
+\code{test}, \code{meta}.}
 }
 \value{
 A generator function \verb{(data_spec, task_ctx) -> data_bundle}.

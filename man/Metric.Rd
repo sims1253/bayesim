@@ -52,7 +52,6 @@ implemented by subclasses.
   \\item data_bundle: A list containing data-related objects including
     train (training data), test (test data if applicable), response
     (response variable), true_params (true parameter values if known),
-    references (reference values), etc.
   \\item context: A list with precomputed values based on the metric's
     `needs` property. May include predictions, log_lik (log-likelihood
     values), loo (leave-one-out cross-validation results), etc.

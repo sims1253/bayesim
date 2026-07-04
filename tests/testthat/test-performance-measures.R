@@ -8,7 +8,7 @@ skip_on_cran()
   list(train = data.frame(y = y, x = x), test = NULL, response = "y",
        true_params = c(Intercept = 1, x = b, sigma = 1),
        vars_of_interest = c("Intercept", "x", "sigma"),
-       references = c(Intercept = 0, x = 0, sigma = 1), meta = list())
+       meta = list())
 }
 
 describe("performance_measures", {

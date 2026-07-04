@@ -223,26 +223,36 @@ plot_rank_hist <- function(ranks) {
     ggplot2::theme_minimal()
 }
 
-#' Plot SBC rank ECDF with simultaneous confidence bands
+#' Plot SBC rank ECDF with uniformity band
 #'
-#' @description Plots the empirical CDF of SBC ranks against the uniform CDF,
-#'   with simultaneous confidence bands following Säilynoja, Bürkner & Vehtari
-#'   (2022). Under correct calibration the ECDF should stay within the band.
+#' @description Plots the empirical CDF of SBC ranks against the uniform CDF
+#'   (the diagonal), with a pointwise alpha-uniformity band following Talts
+#'   et al. (2018). The band is the pointwise coverage interval for the ECDF
+#'   of a uniform sample, derived from the beta distribution of order
+#'   statistics: at the i-th of n ordered points the lower bound is
+#'   `qbeta((1-alpha)/2, i, n+1-i)` and the upper bound is
+#'   `qbeta(1-(1-alpha)/2, i, n+1-i)`. Under correct calibration the ECDF
+#'   should stay within the band at level alpha.
 #' @param ranks A tibble from [sbc_ranks()], or a `bayesim_simulation_result`.
+#' @param alpha Coverage level of the pointwise uniformity band (default 0.95).
 #' @return A ggplot object.
 #' @export
 #' @examples
 #' \dontrun{
 #' plot_rank_ecdf(sbc_ranks(result))
+#' plot_rank_ecdf(sbc_ranks(result), alpha = 0.99)
 #' }
-plot_rank_ecdf <- function(ranks) {
+plot_rank_ecdf <- function(ranks, alpha = 0.95) {
   rlang::check_installed("ggplot2", "to use plot_rank_ecdf()")
   if (inherits(ranks, "bayesim_simulation_result")) ranks <- sbc_ranks(ranks)
   if (nrow(ranks) == 0L) stop(bayesim_config_error("No rank data; was rank_metric() used?"))
+  if (
+    !is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
+      alpha <= 0 || alpha >= 1
+  ) {
+    stop(bayesim_config_error("alpha must be a scalar in (0, 1), got " %+% alpha))
+  }
 
-  # Build ECDF and simultaneous confidence band per parameter (Säilynoja,
-  # Bürkner & Vehtari 2022), ported via adjust_gamma()/sbc_band().
-  conf_level <- 0.95
   plot_data <- do.call(rbind, lapply(unique(ranks$param), function(p) {
     sub <- ranks[ranks$param == p, , drop = FALSE]
     n <- nrow(sub)
@@ -256,46 +266,34 @@ plot_rank_ecdf <- function(ranks) {
     # Normalized rank on [0,1]: rank in 0..S, map to (rank+0.5)/(S+1).
     r <- (sort(sub$rank) + 0.5) / (S + 1)
     ecdf_y <- seq_len(n) / n
-    # Simultaneous band over the ECDF of n ranks, using the exact single-sample
-    # construction (sbc_band -> adjust_gamma_optimize).
-    band <- tryCatch(
-      sbc_band(N = n, K = max(100L, n), conf_level = conf_level),
-      error = function(e) NULL
+    # Pointwise alpha-uniformity band (Talts et al. 2018): the ECDF of a
+    # uniform sample of size n has pointwise coverage via the beta distribution
+    # of order statistics -- the i-th order statistic is Beta(i, n+1-i).
+    lo_q <- (1 - alpha) / 2
+    hi_q <- 1 - lo_q
+    i <- seq_len(n)
+    lower <- stats::qbeta(lo_q, i, n + 1L - i)
+    upper <- stats::qbeta(hi_q, i, n + 1L - i)
+    tibble::tibble(
+      param = p,
+      rank_norm = r,
+      ecdf = ecdf_y,
+      lower = pmax(0, lower),
+      upper = pmin(1, upper)
     )
-    if (is.null(band)) {
-      # Degenerate fallback (very small n): a wide pointwise band.
-      bound <- sqrt(log(2 / (1 - conf_level)) / (2 * n))
-      tibble::tibble(
-        param = p,
-        rank_norm = r,
-        ecdf = ecdf_y,
-        lower = pmax(0, ecdf_y - bound),
-        upper = pmin(1, ecdf_y + bound)
-      )
-    } else {
-      # Interpolate the band onto the observed rank points.
-      lo <- stats::approx(band$x, band$lower, xout = r, rule = 2)$y
-      hi <- stats::approx(band$x, band$upper, xout = r, rule = 2)$y
-      tibble::tibble(
-        param = p,
-        rank_norm = r,
-        ecdf = ecdf_y,
-        lower = pmax(0, lo),
-        upper = pmin(1, hi)
-      )
-    }
   }))
 
   ggplot2::ggplot(plot_data, ggplot2::aes(.data$rank_norm)) +
-    ggplot2::geom_ribbon(ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
-      alpha = 0.2, fill = "grey50"
+    ggplot2::geom_ribbon(
+      ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
+      alpha = 0.2, fill = "grey70"
     ) +
-    ggplot2::geom_line(ggplot2::aes(y = .data$ecdf)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+    ggplot2::geom_line(ggplot2::aes(y = .data$ecdf)) +
     ggplot2::facet_wrap(~param) +
     ggplot2::labs(
       x = "normalized rank", y = "ECDF",
-      title = "SBC rank ECDF with 95% simultaneous confidence band"
+      title = paste0("SBC rank ECDF with ", round(alpha * 100), "% uniformity band")
     ) +
     ggplot2::theme_minimal()
 }
@@ -594,4 +592,88 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
   }
 
   tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE)))
+}
+
+# n_replicates_for_target (Workstream I5) ----------------------------------
+
+#' Required number of replicates for a target MCSE
+#'
+#' @description
+#' Inverts the Monte-Carlo standard error (MCSE) formulas used by
+#' [performance_measures()] to return the number of replicates `n` required to
+#' achieve a target MCSE. Useful for planning a simulation study (a precision /
+#' power calculation) before running it.
+#'
+#' The MCSE formulas (Morris et al. 2019; rsimsum) invert to:
+#' \itemize{
+#'   \item **coverage** (binary 0/1 outcome):
+#'     `MCSE = sqrt(p (1 - p) / n)`  =>  `n = p (1 - p) / MCSE^2`.
+#'     The default `p = 0.5` is the conservative max-variance case (it
+#'     maximises `p (1 - p)` and therefore gives the largest required `n`).
+#'   \item **continuous** metrics (bias / mean / model SE):
+#'     `MCSE = sd / sqrt(n)`  =>  `n = (sd / MCSE)^2`.
+#'     Requires an assumed standard deviation `assumed_sd` for the per-replicate
+#'     point estimate (e.g. a guess at the empirical SE of the estimator).
+#' }
+#'
+#' The returned value is `ceiling(n)` so it is always a whole number of
+#' replicates.
+#'
+#' @param target_mcse Numeric scalar > 0. The MCSE you want to achieve.
+#' @param metric_type Character scalar: `"coverage"` (binary coverage metrics) or
+#'   `"continuous"` (bias / mean / model SE metrics).
+#' @param p Numeric scalar in `[0, 1]`. Assumed coverage probability. Only used
+#'   when `metric_type = "coverage"`. Defaults to `0.5`, the
+#'   variance-maximising (most conservative) choice.
+#' @param assumed_sd Numeric scalar > 0. Assumed standard deviation of the
+#'   per-replicate point estimate. Required when
+#'   `metric_type = "continuous"`; ignored otherwise.
+#'
+#' @return An integer scalar: the number of replicates required (the ceiling of
+#'   the inverted-MCSE `n`).
+#' @export
+#' @seealso [performance_measures()] for the MCSE formulas being inverted.
+#' @examples
+#' \dontrun{
+#' # Coverage: target MCSE 0.03 under the conservative p = 0.5.
+#' n_replicates_for_target(0.03, "coverage")
+#'
+#' # Coverage at an assumed rate of 0.9.
+#' n_replicates_for_target(0.03, "coverage", p = 0.9)
+#'
+#' # Continuous metric (e.g. bias) with assumed sd of the point estimate.
+#' n_replicates_for_target(0.05, "continuous", assumed_sd = 0.5)
+#' }
+n_replicates_for_target <- function(target_mcse,
+                                    metric_type = c("coverage", "continuous"),
+                                    p = 0.5,
+                                    assumed_sd = NULL) {
+  metric_type <- match.arg(metric_type)
+
+  if (!is.numeric(target_mcse) || length(target_mcse) != 1L ||
+        is.na(target_mcse) || target_mcse <= 0) {
+    stop(bayesim_config_error(
+      "target_mcse must be a single positive numeric value"
+    ))
+  }
+
+  if (metric_type == "coverage") {
+    if (!is.numeric(p) || length(p) != 1L || is.na(p) || p < 0 || p > 1) {
+      stop(bayesim_config_error(
+        "p must be a single numeric value in [0, 1] for metric_type 'coverage'"
+      ))
+    }
+    n <- p * (1 - p) / target_mcse^2
+  } else {
+    if (is.null(assumed_sd) ||
+          !is.numeric(assumed_sd) || length(assumed_sd) != 1L ||
+          is.na(assumed_sd) || assumed_sd <= 0) {
+      stop(bayesim_config_error(
+        "assumed_sd must be a single positive numeric value for metric_type 'continuous'"
+      ))
+    }
+    n <- (assumed_sd / target_mcse)^2
+  }
+
+  as.integer(ceiling(n))
 }

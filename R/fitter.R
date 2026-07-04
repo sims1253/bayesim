@@ -790,7 +790,6 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       response = "y",
       true_params = c(intercept = 0, beta = 0, sigma = 1),
       vars_of_interest = c("intercept", "beta", "sigma"),
-      references = NULL,
       meta = list()
     )
 

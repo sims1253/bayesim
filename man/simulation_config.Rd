@@ -18,7 +18,8 @@ simulation_config(
   checkpoint_every = 50L,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
-  daemon_setup = NULL
+  daemon_setup = NULL,
+  stop_on = NULL
 )
 }
 \arguments{
@@ -65,6 +66,16 @@ limit. (B4: excluded from the config fingerprint.)}
 \item{daemon_setup}{Optional function run once per mirai daemon (via
 \code{mirai::everywhere()}) before tasks start, e.g. to configure cmdstan
 paths or load a model bank. Ignored when no daemons are set. Default NULL.}
+
+\item{stop_on}{Optional adaptive stopping policy (experimental). \code{NULL}
+(default) runs all tasks. Otherwise a list with elements: \code{estimand}
+(character parameter name), \code{measure} (one of \code{"bias"}, \code{"coverage"},
+\code{"emp_se"}, \code{"mse"}, \code{"model_se"}), \code{target_mcse} (numeric > 0),
+\code{min_reps} (integer, default 50), \code{check_every} (integer, default 50).
+Once the MCSE of \code{measure} for \code{estimand} falls below \code{target_mcse} AND
+at least \code{min_reps} replicates have completed, remaining pending tasks
+are marked \code{"skipped"} and the run stops. (I3: excluded from the config
+fingerprint — it is runtime policy.)}
 }
 \value{
 An S7 SimulationConfig object.

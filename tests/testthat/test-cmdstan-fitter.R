@@ -29,7 +29,6 @@ stan_data_fn <- function(data_bundle, fit_spec) {
     response = "y",
     true_params = c(beta_intercept = 1, beta_x = 0.5, sigma = 1),
     vars_of_interest = c("beta_intercept", "beta_x", "sigma"),
-    references = c(beta_intercept = 0, beta_x = 0, sigma = 1),
     meta = list()
   )
 }

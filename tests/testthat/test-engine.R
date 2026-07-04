@@ -256,7 +256,6 @@ describe("Task Grid", {
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
           vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
         )
       },
       n_replicates = n_replicates,
@@ -695,7 +694,6 @@ describe("Worker", {
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
           vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
         )
       }
     )
@@ -864,7 +862,6 @@ describe("Worker", {
             response = "y",
             true_params = c(beta = 1.0),
             vars_of_interest = "beta",
-            references = c(beta = 0)
           )
         }
       )
@@ -888,7 +885,6 @@ describe("Worker", {
             response = "y",
             true_params = c(beta = 1.0),
             vars_of_interest = "beta",
-            references = c(beta = 0)
           )
         }
       )
@@ -934,7 +930,6 @@ describe("Worker", {
             response = "y",
             true_params = c(beta = 1.0),
             vars_of_interest = "beta",
-            references = c(beta = 0)
           )
         },
         result_path = result_path
@@ -1287,7 +1282,6 @@ describe("run_simulation()", {
             response = "y",
             true_params = c(a = 1),
             vars_of_interest = "a",
-            references = c(a = 0)
           )
         },
         seed = 42L
@@ -1312,7 +1306,6 @@ describe("run_simulation()", {
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
           vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
         )
       },
       fitter = MockFitter(),

@@ -1870,7 +1870,6 @@ describe("Validators", {
         response = "y",
         true_params = c(beta = 1.0, sigma = 0.5),
         vars_of_interest = c("beta", "sigma"),
-        references = c(beta = 0, sigma = 1)
       )
       expect_silent(validate_data_bundle(bundle))
     })
@@ -1884,7 +1883,6 @@ describe("Validators", {
         response = "y",
         true_params = c(param1 = 1.0, param2 = 2.0),
         vars_of_interest = c("param1", "param2"),
-        references = c(param1 = 0.0, param2 = 0.0)
       )
       expect_silent(validate_data_bundle(bundle))
     })

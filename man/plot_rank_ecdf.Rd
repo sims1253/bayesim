@@ -2,23 +2,31 @@
 % Please edit documentation in R/analysis.R
 \name{plot_rank_ecdf}
 \alias{plot_rank_ecdf}
-\title{Plot SBC rank ECDF with simultaneous confidence bands}
+\title{Plot SBC rank ECDF with uniformity band}
 \usage{
-plot_rank_ecdf(ranks)
+plot_rank_ecdf(ranks, alpha = 0.95)
 }
 \arguments{
 \item{ranks}{A tibble from \code{\link[=sbc_ranks]{sbc_ranks()}}, or a \code{bayesim_simulation_result}.}
+
+\item{alpha}{Coverage level of the pointwise uniformity band (default 0.95).}
 }
 \value{
 A ggplot object.
 }
 \description{
-Plots the empirical CDF of SBC ranks against the uniform CDF,
-with simultaneous confidence bands following Säilynoja, Bürkner & Vehtari
-(2022). Under correct calibration the ECDF should stay within the band.
+Plots the empirical CDF of SBC ranks against the uniform CDF
+(the diagonal), with a pointwise alpha-uniformity band following Talts
+et al. (2018). The band is the pointwise coverage interval for the ECDF
+of a uniform sample, derived from the beta distribution of order
+statistics: at the i-th of n ordered points the lower bound is
+\code{qbeta((1-alpha)/2, i, n+1-i)} and the upper bound is
+\code{qbeta(1-(1-alpha)/2, i, n+1-i)}. Under correct calibration the ECDF
+should stay within the band at level alpha.
 }
 \examples{
 \dontrun{
 plot_rank_ecdf(sbc_ranks(result))
+plot_rank_ecdf(sbc_ranks(result), alpha = 0.99)
 }
 }

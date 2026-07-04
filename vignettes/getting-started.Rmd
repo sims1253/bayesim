@@ -61,7 +61,6 @@ my_data_generator <- function(data_spec, task_ctx) {
       sigma = data_spec$sigma
     ),
     vars_of_interest = c("Intercept", "x", "sigma"),
-    references = c(Intercept = 0, x = 0, sigma = 1)
   )
 }
 ```
