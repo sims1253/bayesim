@@ -58,5 +58,5 @@ fitter <- LinearRegressionFitter(n_draws = 500L)
 }
 }
 \seealso{
-\link{Fitter}, \link{BrmsFitter}, \code{\link[=CmdStanFitter]{CmdStanFitter()}}
+\link{Fitter}, \link{BrmsFitter}
 }

@@ -43,7 +43,7 @@
 #'
 #' @return An S7 `LinearRegressionFitter` object.
 #' @export
-#' @seealso [Fitter], [BrmsFitter], [CmdStanFitter()]
+#' @seealso [Fitter], [BrmsFitter]
 #' @examples
 #' \dontrun{
 #' fitter <- LinearRegressionFitter(n_draws = 500L)
