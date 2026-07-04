@@ -11,3 +11,5 @@
 ^\.claude$
 ^_pkgdown\.yml$
 ^PLAN.*\.md$
+^docs$
+^ROADMAP\.md$

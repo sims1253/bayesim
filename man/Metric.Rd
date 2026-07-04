@@ -24,6 +24,10 @@ them.}
 failure. If TRUE, an error in computing this metric will propagate and
 fail the entire task. If FALSE (default), metric failure results in
 NA values being recorded.}
+
+\item{summary_type}{Character; how \code{\link[=summarize_simulation]{summarize_simulation()}} aggregates this
+metric's flattened columns: \code{"mean"} (default, sd/sqrt(n) MCSE),
+\code{"proportion"} (coverage-style sqrt(p(1-p)/n) MCSE), or \code{"none"}.}
 }
 \value{
 An S7 class object representing a Metric.

@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 # Custom Fitters
 
-bayesim ships with `MockFitter()` (no Stan, for testing the framework) and
+bayesim ships with `LinearRegressionFitter(n_draws = 200L)` (no Stan, for testing the framework) and
 `BrmsFitter()` (real Bayesian inference via brms + Stan). To use a different
 backend, implement a custom fitter by extending the `Fitter` class and
 providing methods for the required generics.
@@ -157,11 +157,11 @@ head(result$summary)
 
 ## Validation
 
-Use `validate_fitter_interface()` to confirm a fitter implements all required
+Use `validate_fitter()` to confirm a fitter implements all required
 generics before running a study:
 
 ```{r}
-validate_fitter_interface(LinearFitter())
+validate_fitter(LinearFitter())
 ```
 
 # Custom Metrics

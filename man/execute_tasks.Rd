@@ -39,10 +39,8 @@ execute_tasks(
 
 \item{config_fingerprint}{Character; configuration fingerprint for validation}
 
-\item{checkpoint_every}{Integer; write checkpoint every N completed tasks}
-
-\item{chunk_size}{Integer; maximum task results to keep in memory before
-forcing a checkpoint write and clearing memory (default: same as checkpoint_every)}
+\item{checkpoint_every}{Integer; write checkpoint every N completed tasks.
+B4: also bounds the number of task results held in memory at once.}
 }
 \value{
 A list with task_results and task_grid

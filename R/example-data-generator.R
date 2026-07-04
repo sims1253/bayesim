@@ -10,13 +10,11 @@
 #' Generates a simple linear-regression dataset (`y = beta * x + noise`).
 #'
 #' Generators consume the ambient RNG state (the worker restores the per-task
-#' L'Ecuyer stream via `set_task_rng()`); the `seed` argument is retained in
-#' the signature for backends requiring an explicit integer but is not used to
-#' re-seed.
+#' L'Ecuyer stream via `set_task_rng()`). `task_ctx$seed` carries an integer
+#' seed for backends that need one; generators must not use it to re-seed.
 #'
 #' @param data_spec List with `n`, `beta`, `sigma`.
-#' @param seed Scalar task seed (unused; ambient RNG is consumed).
-#' @param task_ctx Task context.
+#' @param task_ctx Task context (carries `seed` for backends that need one).
 #' @return A `data_bundle` list.
 #' @keywords internal
 bayesim_example_data_generator <- function(data_spec, task_ctx) {

@@ -16,14 +16,14 @@ knitr::opts_chunk$set(
 
 # Case studies
 
-This vignette presents two case studies: an executable MockFitter-based power
+This vignette presents two case studies: an executable LinearRegressionFitter-based power
 sweep, and a sketch of a brms-based model-comparison study (code shown,
 evaluated only where Stan is available).
 
 ## Case study 1: power vs sample size (executable)
 
 We sweep sample size and effect size to see how posterior uncertainty and
-recovery behave. This runs with the built-in `MockFitter()`.
+recovery behave. This runs with the built-in `LinearRegressionFitter(n_draws = 200L)`.
 
 ```{r}
 library(bayesim)
@@ -48,7 +48,7 @@ config <- simulation_config(
   ),
   fit_grid = data.frame(model = "linear"),
   data_generator = power_generator,
-  fitter = MockFitter(),
+  fitter = LinearRegressionFitter(n_draws = 200L),
   metrics = list(pred_rmse_metric(), pred_bias_metric(), posterior_summary_metric()),
   n_replicates = 4L,
   seed = 7L

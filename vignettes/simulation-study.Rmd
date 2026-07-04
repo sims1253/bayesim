@@ -17,7 +17,7 @@ knitr::opts_chunk$set(
 # Designing simulation studies
 
 This vignette walks through designing, running, and analyzing a simulation
-study with bayesim. It runs end-to-end with `MockFitter()` (no Stan required).
+study with bayesim. It runs end-to-end with `LinearRegressionFitter(n_draws = 200L)` (no Stan required).
 
 ## Data and fit grids
 
@@ -57,7 +57,7 @@ config <- simulation_config(
   data_grid = data_grid,
   fit_grid = fit_grid,
   data_generator = my_generator,
-  fitter = MockFitter(),
+  fitter = LinearRegressionFitter(n_draws = 200L),
   metrics = list(
     pred_rmse_metric(),
     pred_bias_metric(),

@@ -9,9 +9,7 @@ bayesim_example_data_generator(data_spec, task_ctx)
 \arguments{
 \item{data_spec}{List with \code{n}, \code{beta}, \code{sigma}.}
 
-\item{task_ctx}{Task context.}
-
-\item{seed}{Scalar task seed (unused; ambient RNG is consumed).}
+\item{task_ctx}{Task context (carries \code{seed} for backends that need one).}
 }
 \value{
 A \code{data_bundle} list.
@@ -21,8 +19,7 @@ Generates a simple linear-regression dataset (\code{y = beta * x + noise}).
 }
 \details{
 Generators consume the ambient RNG state (the worker restores the per-task
-L'Ecuyer stream via \code{set_task_rng()}); the \code{seed} argument is retained in
-the signature for backends requiring an explicit integer but is not used to
-re-seed.
+L'Ecuyer stream via \code{set_task_rng()}). \code{task_ctx$seed} carries an integer
+seed for backends that need one; generators must not use it to re-seed.
 }
 \keyword{internal}

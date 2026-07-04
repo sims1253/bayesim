@@ -59,7 +59,7 @@ config <- simulation_config(
       true_params = c(slope = 1), vars_of_interest = "slope"
     )
   },
-  fitter = MockFitter(),
+  fitter = LinearRegressionFitter(n_draws = 200L),
   metrics = list(pred_rmse_metric()),
   n_replicates = 2L,
   seed = 42L

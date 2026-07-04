@@ -13,6 +13,9 @@
 #'   failure. If TRUE, an error in computing this metric will propagate and
 #'   fail the entire task. If FALSE (default), metric failure results in
 #'   NA values being recorded.
+#' @param summary_type Character; how [summarize_simulation()] aggregates this
+#'   metric's flattened columns: `"mean"` (default, sd/sqrt(n) MCSE),
+#'   `"proportion"` (coverage-style sqrt(p(1-p)/n) MCSE), or `"none"`.
 #'
 #' @return An S7 class object representing a Metric.
 #'
