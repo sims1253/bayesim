@@ -1,50 +1,44 @@
 # bayesim roadmap (backlog)
 
-Items deliberately deferred from the 2.0.0 redesign (see `PLAN.md`,
-Workstream I). Not implemented; recorded here so the work is not lost.
+Items recorded during the 2.0.0 redesign (see `PLAN.md`, Workstream I). Most
+were implemented in the deferred-work pass; the remaining open items are marked
+**OPEN**.
 
-## I1. Backend-agnostic prior-predictive / IFS generators
-`prior_predictive_generator()` and `ifs_generator()` currently require a
-brmsfit. Generalise to any fitter that exposes prior/posterior draws (incl.
-`CmdStanFitter` and `LinearRegressionFitter`).
+## Implemented (deferred-work pass)
 
-## I2. R\* diagnostic metric via `posterior::rstar`
-Re-add `rstar_metric()` (deleted in 2.0.0 as a placebo — it returned NA
-unconditionally). Needs per-chain draws (caret + ranger). Unlocked once
-`extract_draws` returns a `posterior::draws_df` with `.chain` (consider
-migrating the draws contract in 2.2, which also removes
-`relative_eff_from_chains()`'s fit-object reach-in).
+- **I1.** Backend-agnostic `prior_draws_generator()` / `forward_sim_generator()`
+  — work via the S7 `extract_draws`/`predict_fit` generics. NOTE: for non-brms
+  fitters the "prior" is approximate (posterior-as-prior); brms users keep the
+  brms-specific `prior_predictive_generator()` for full prior predictive
+  coverage. A true generic prior would need a `prior_draws` S7 method (below).
+- **I2.** `rstar_metric()` re-added via `posterior::rstar` (per-chain draws;
+  NA + warning for chain-less fitters; gated on caret/randomForest for brms).
+- **I3.** Adaptive stopping via `simulation_config(stop_on = ...)` — skips
+  remaining tasks once an estimand/measure MCSE falls below target.
+- **I4.** `report()` renders a Quarto study report from a template.
+- **I5.** `n_replicates_for_target()` inverts the MCSE formula.
+- **I6.** `vignettes/hpc.Rmd` — SLURM + remote mirai daemons, TLS, daemon_setup.
+- **I7.** `vignettes/targets.Rmd` — bayesim as a `targets` pipeline step.
+- **I8.** Optional parquet summary output (`summary_format = "parquet"`,
+  nanoparquet; `read_summary()`).
+- **I9.** `vignettes/bayesfam.Rmd` stub (SBC-as-acceptance-test; pending bayesfam release).
 
-## I3. Adaptive / sequential designs
-Stop conditions on MCSE targets — pause/stop a run once a coverage or bias MCSE
-threshold is met.
+## OPEN
 
-## I4. Quarto report template
-`report(result)` renders a standard study report (design table, performance
-measures, SBC panels) to HTML/PDF.
-
-## I5. Study-level power / precision helper
-Invert the MCSE formula: given a target coverage MCSE, return the number of
-replicates needed.
-
-## I6. HPC recipes
-SLURM + `mirai::daemons(url = ...)` worked example vignette.
-
-## I7. `targets` integration
-bayesim run as a `targets` pipeline step (cache invalidation via the config
-fingerprint).
-
-## I8. Optional parquet (nanoparquet) checkpoint / summary format
-For very large studies where the rds checkpoint / wide summary becomes a
-bottleneck.
-
-## I9. bayesfam integration vignette
-SBC as the acceptance test for every custom family, once
-`PLAN-bayesfam.md` lands.
-
-## Deletion candidates (flagged, not deleted — confirm with maintainer)
-- `bayesim_example_data_generator` (`R/example-data-generator.R`): unused in
-  docs; either wire into `getting-started` or remove.
-- `references` bundle field: documented, always NA, consumed by nothing —
-  candidate for removal from the data contract / generators / docs (the E5
-  sweep left it optional but in place).
+- **A true generic `prior_draws` S7 method.** `prior_draws_generator()` for
+  non-brms fitters uses the pilot fit's posterior draws as an approximation.
+  Adding `prior_draws(fitter, fit_spec, n)` as an S7 generic (with a default
+  that returns the weak-prior posterior for `LinearRegressionFitter` and a
+  `brms::prior_draws` wrapper for `BrmsFitter`) would make the prior-predictive
+  path exact for all fitters.
+- **R\* with `ranger`/`gbm` backends.** The current `rstar_metric` uses
+  caret's default `randomForest` backend; expose `method` / `hyperparameters`
+  (already properties on `RstarMetric`) in the constructor and document.
+- **`bayesfam` integration** — the vignette stub points to the as-yet-unreleased
+  `bayesfam` package; fill in the real workflow once it lands.
+- **Full `targets` round-trip test** — the targets vignette is prose-only
+  (eval=FALSE); a runnable end-to-end `targets` pipeline test would lock in the
+  cache-cue contract.
+- **Rank-histogram (binned) view** — `plot_rank_ecdf` has the ECDF + uniformity
+  band; a complementary binned histogram with the discrete uniform envelope is
+  still wanted for the SBC vignette.
