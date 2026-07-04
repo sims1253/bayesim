@@ -1,5 +1,99 @@
 # bayesim 2.0.0
 
+A ground-up rewrite of the simulation engine, fitters, generators, metrics, and
+analysis layer, redesigned around the needs of simulation-method studies
+(Morris, White & Crowther 2019). Breaking across the public API; the package
+remains GitHub-only and lifecycle-experimental.
+
+## Fitters and the fitter contract
+
+* **Contract matrices are now `S x N` (draws x observations) everywhere** —
+  `log_lik_matrix`, `predict_fit()$predicted_samples`, `predict_epred`. The
+  brms/loo convention, enforced by non-square `validate_fitter()` smoke tests.
+* **New `LinearRegressionFitter()`** — an exact conjugate Normal-Inverse-Gamma
+  Bayesian linear regression fitter. Real posteriors in milliseconds with zero
+  Stan; the package's executable-docs teaching backbone.
+* **New `CmdStanFitter()`** — run user-supplied Stan programs via cmdstanr
+  (declared `log_lik`/`epred` generated quantities). No model-bank integration
+  (cmdstanr caches binaries by file hash).
+* **New `brms_model()` / `model_grid()`** — assemble tidy `fit_grid`s of brms
+  model specs (formula/family/prior list-columns), validated at construction.
+* `MockFitter` demoted to internal (testing only).
+* `BrmsFitter` diagnostics now computed over **all** parameters (group-level,
+  distributional, sigma) via `posterior::summarise_draws`, not just fixed
+  effects; `loo_fit` uses chain-aware `r_eff`, matching `brms::loo()`.
+* Consolidated fitter/metric validation into the exported `validate_fitter()`
+  / `validate_metric()` (removed `check_fitter_class`,
+  `validate_fitter_interface`, `validate_metric_interface`).
+
+## Renamed generics (no aliases — pre-release API)
+
+| old | new |
+|---|---|
+| `fit()` | `fit_model()` |
+| `compute()` | `compute_metric()` |
+| `log_lik()` | `log_lik_matrix()` |
+| `diagnostics()` | `fit_diagnostics()` |
+
+bayesim no longer exports `fit`/`compute`/`log_lik`/`diagnostics`, so it stops
+masking `generics::fit`, `dplyr::compute`, and `brms::log_lik`.
+
+## Transport: purrr + mirai
+
+* Dispatch is now a single `purrr::map()` + `purrr::in_parallel()` code path;
+  mirai remains the daemon engine. `run_task_safe()` is total (fatal conditions
+  are captured and re-raised after the batch with their full class chain),
+  removing the cross-boundary condition-restoration machinery.
+* `run_simulation(config, workers = N)` sets up and tears down mirai daemons
+  for the run (the simple path); `mirai::daemons()` remains for advanced/HPC.
+
+## Metrics and analysis (Morris et al. framing)
+
+* **`performance_measures()`** — bias, empirical SE, MSE, coverage, average
+  model SE, and `n_sim`, each with its Morris et al. MCSE, per estimand and
+  condition. The centerpiece of the analysis layer.
+* Task results now carry the data-generating truth, flattened to
+  `truth__<param>` summary columns — enabling parameter-recovery analysis and
+  `plot_recovery()` for generator-drawn truths.
+* Prediction metrics renamed honestly: `rmse`/`bias`/`mae`/`mse` →
+  `pred_*_metric`. They **refuse to silently fall back to the training set**:
+  default to test data, NA with a one-time warning when no test set.
+* `Metric` gained a `summary_type` property; `summarize_simulation()` no longer
+  uses the mathematically-wrong rmse MCSE heuristic.
+* `true_params` / `vars_of_interest` are now optional (truth-free studies run).
+* Deleted `rstar_metric` (placebo: returned NA; on the ROADMAP).
+* `plot_coverage()` redesigned as a point-range plot with MCSE error bars.
+
+## Config knobs
+
+* `chunk_size` and the deprecated `max_in_memory` merged into a single
+  `checkpoint_every` knob.
+* Data-generator signature is now `(data_spec, task_ctx)`; `task_ctx$seed`
+  carries the integer for backends that need one.
+* `retain`, `max_errors`, and `checkpoint_format` excluded from the config
+  fingerprint — changing retention no longer invalidates resume.
+
+## Runtime UX
+
+* `preflight(config)` reports task count, grid shape, metrics' needs vs fitter
+  capabilities, daemons status, compile count (auto one-liner in
+  `run_simulation()`).
+* `failed_tasks(result)` accessor; compact failure summary printed at run end.
+* `print()` shows a metrics preview; `as_tibble.bayesim_simulation_result`
+  returns the summary for tidyverse piping.
+* Better `seed` error message.
+
+## Error API
+
+* Exported error constructors narrowed to `bayesim_data_error`,
+  `bayesim_fit_error`, `bayesim_metric_error`, `bayesim_config_error` plus
+  `is_bayesim_error`, `is_fatal_error`, `is_recoverable_error`. Base
+  `bayesim_error`/contract/checkpoint/internal constructors are internal.
+
+---
+
+# bayesim 2.0.0 (prior in-progress entry, kept for history)
+
 This is a ground-up rewrite of the simulation engine, fitters, generators,
 metrics, and analysis layer. It is breaking across the public API; the package
 remains GitHub-only and lifecycle-experimental.

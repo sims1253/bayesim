@@ -667,18 +667,16 @@ enrich_summary_with_grid_columns <- function(
     data_names <- unique(unlist(lapply(data_specs, names), use.names = FALSE))
     for (col_name in data_names) {
       new_col_name <- paste0("data_", col_name)
-      summary[[new_col_name]] <- vapply(
-        data_specs,
-        function(spec) {
-          value <- spec[[col_name]]
-          if (is.null(value) || length(value) != 1 || is.list(value)) {
-            NA
-          } else {
-            as.character(value)
-          }
-        },
-        character(1)
-      )
+      # H: preserve atomic types (numeric stays numeric); NA only for non-scalar.
+      vals <- lapply(data_specs, function(spec) {
+        value <- spec[[col_name]]
+        if (is.null(value) || length(value) != 1 || is.list(value)) {
+          NA
+        } else {
+          value
+        }
+      })
+      summary[[new_col_name]] <- simplify_to_atomic(vals)
     }
   }
 
@@ -696,22 +694,34 @@ enrich_summary_with_grid_columns <- function(
     fit_names <- unique(unlist(lapply(fit_specs, names), use.names = FALSE))
     for (col_name in fit_names) {
       new_col_name <- paste0("fit_", col_name)
-      summary[[new_col_name]] <- vapply(
-        fit_specs,
-        function(spec) {
-          value <- spec[[col_name]]
-          if (is.null(value) || length(value) != 1 || is.list(value)) {
-            NA
-          } else {
-            as.character(value)
-          }
-        },
-        character(1)
-      )
+      vals <- lapply(fit_specs, function(spec) {
+        value <- spec[[col_name]]
+        if (is.null(value) || length(value) != 1 || is.list(value)) {
+          NA
+        } else {
+          value
+        }
+      })
+      summary[[new_col_name]] <- simplify_to_atomic(vals)
     }
   }
 
   summary
+}
+
+# H: coerce a list of scalar values to the simplest atomic vector that holds
+# them, preserving numeric/integer/logical types; fall back to character only
+# when the values are genuinely non-numeric. NA-safe.
+simplify_to_atomic <- function(vals) {
+  if (length(vals) == 0L) return(character(0))
+  non_na <- vals[!is.na(vals)]
+  if (length(non_na) == 0L || all(vapply(non_na, is.numeric, logical(1)))) {
+    unlist(vals)
+  } else if (all(vapply(non_na, is.logical, logical(1)))) {
+    unlist(vals)
+  } else {
+    vapply(vals, function(v) if (is.na(v)) NA_character_ else as.character(v), character(1))
+  }
 }
 
 #' Resume a simulation from an existing result directory
