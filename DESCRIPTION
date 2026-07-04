@@ -48,6 +48,7 @@ Collate:
     'global_imports.R'
 Imports:
     S7,
+    carrier,
     cli (>= 3.6.0),
     digest (>= 0.6.30),
     jsonlite (>= 1.8.0),
@@ -56,6 +57,7 @@ Imports:
     mirai,
     parallel,
     posterior,
+    purrr (>= 1.1.0),
     rlang (>= 1.1.0),
     stats,
     tibble (>= 3.2.0),

@@ -881,7 +881,7 @@ describe("Worker", {
 
       config_spec <- list(
         data_generator = function(data_spec, task_ctx) {
-          received_seed <<- seed
+          received_seed <<- task_ctx$seed
           list(
             train = data.frame(y = 1:10, x = 1:10),
             test = NULL,

@@ -4,7 +4,12 @@
 \alias{run_simulation}
 \title{Run a Simulation Study}
 \usage{
-run_simulation(config, resume = c("auto", "never", "must"), progress = TRUE)
+run_simulation(
+  config,
+  resume = c("auto", "never", "must"),
+  progress = TRUE,
+  workers = NULL
+)
 }
 \arguments{
 \item{config}{A SimulationConfig S7 object}
@@ -12,6 +17,12 @@ run_simulation(config, resume = c("auto", "never", "must"), progress = TRUE)
 \item{resume}{Character strategy: "auto", "never", or "must"}
 
 \item{progress}{Logical; if TRUE, show progress bar}
+
+\item{workers}{Positive integer, NULL, or "multisession". When non-NULL,
+\code{mirai::daemons(workers)} is set up for the run and torn down on exit —
+the simple path for local parallelism. Must be NULL when daemons are
+already set (use \code{mirai::daemons()} directly for the advanced/HPC path:
+remote daemons, TLS, etc.). Daemons are set before the model bank ships.}
 }
 \value{
 A bayesim_simulation_result S3 object

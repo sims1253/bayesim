@@ -17,23 +17,22 @@ run_batch(batch_tasks, config_spec, fitter, metrics, retain, progress = FALSE)
 
 \item{retain}{Character vector of what to retain}
 
-\item{progress}{Logical; if TRUE, surface mirai's progress display}
+\item{progress}{Logical; if TRUE, surface purrr's progress display}
 }
 \value{
 A list of bayesim_task_result objects
 }
 \description{
-Dispatches a batch of simulation tasks either to mirai daemons (when
-\code{mirai::daemons_set()} is TRUE) or sequentially in-process via \code{\link[=lapply]{lapply()}}.
+Dispatches a batch of simulation tasks via purrr's mirai integration
+(\code{purrr::map()} + \code{purrr::in_parallel()}). With no daemons set, purrr falls
+back to sequential execution automatically, so there is a single code path
+(C1). mirai remains the daemon engine; daemons/model bank/\code{daemon_setup} are
+managed by \code{\link[=execute_tasks]{execute_tasks()}}.
 }
 \details{
-mirai is treated as pure transport: task-level failures are already encoded
-in each returned task result (status "failed") and are handled by the caller.
-Transport-level failures (daemon death, mirai error values) are fatal and
-re-raised as a bayesim fatal error.
-
-The model bank and \code{daemon_setup} hook are shipped once per
-\code{execute_tasks()} invocation (BEFORE the batch loop), not here per batch —
-see \code{\link[=execute_tasks]{execute_tasks()}}. This function only dispatches tasks.
+\code{run_task_safe()} is total (never throws), so transport is pure transport:
+every returned element is a \code{bayesim_task_result}. Transport-level failures
+(e.g. daemon death) surface as errors from \code{purrr::map()} and are re-raised
+as a bayesim fatal error by the caller.
 }
 \keyword{internal}

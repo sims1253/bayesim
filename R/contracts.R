@@ -603,12 +603,12 @@ validate_simulation_config <- function(config) {
   }
 
   gen_formals <- names(formals(config@data_generator))
-  required_args <- c("data_spec", "seed", "task_ctx")
+  required_args <- c("data_spec", "task_ctx")
 
   if (length(gen_formals) < length(required_args)) {
     stop(
       bayesim_config_error(
-        "data_generator must accept at least 3 arguments: (data_spec, seed, task_ctx). " %+%
+        "data_generator must accept at least 2 arguments: (data_spec, task_ctx). " %+%
           "Got " %+%
           length(gen_formals) %+%
           " arguments: " %+%

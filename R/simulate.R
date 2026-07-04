@@ -12,6 +12,11 @@ NULL
 #' @param config A SimulationConfig S7 object
 #' @param resume Character strategy: "auto", "never", or "must"
 #' @param progress Logical; if TRUE, show progress bar
+#' @param workers Positive integer, NULL, or "multisession". When non-NULL,
+#'   `mirai::daemons(workers)` is set up for the run and torn down on exit —
+#'   the simple path for local parallelism. Must be NULL when daemons are
+#'   already set (use `mirai::daemons()` directly for the advanced/HPC path:
+#'   remote daemons, TLS, etc.). Daemons are set before the model bank ships.
 #'
 #' @return A bayesim_simulation_result S3 object
 #'
@@ -33,7 +38,8 @@ NULL
 run_simulation <- function(
   config,
   resume = c("auto", "never", "must"),
-  progress = TRUE
+  progress = TRUE,
+  workers = NULL
 ) {
   resume <- match.arg(resume)
 
@@ -42,6 +48,21 @@ run_simulation <- function(
     cli::cli_abort("config must be a SimulationConfig object")
   }
   validate_simulation_config(config)
+
+  # C2: `workers` convenience argument. When non-NULL, set up mirai daemons for
+  # the run and tear them down on exit — but ONLY when no daemons were already
+  # set (respect user-managed daemons). Error if both `workers` and existing
+  # daemons are present. This happens before the model-bank everywhere() ship.
+  if (!is.null(workers)) {
+    if (isTRUE(mirai::daemons_set())) {
+      stop(bayesim_config_error(c(
+        "{.arg workers} is non-NULL but mirai daemons are already set.",
+        i = "Pass {.code workers = NULL} to use the existing daemons, or call {.code mirai::daemons(0)} first."
+      )))
+    }
+    mirai::daemons(workers)
+    on.exit(mirai::daemons(0), add = TRUE)
+  }
 
   timer <- make_timer()
   timer$start()
@@ -230,12 +251,9 @@ execute_tasks <- function(
   error_count <- 0
   n_in_memory <- 0
 
-  if (progress && n_pending > 0) {
-    pb <- cli::cli_progress_bar(
-      total = n_pending,
-      format = "Running tasks {cli::pb_current}/{cli::pb_total} [{cli::pb_elapsed}]"
-    )
-  }
+  # C1: exactly one progress system. purrr's .progress drives the per-task bar
+  # inside each batch (passed through run_batch); the outer loop only emits
+  # per-batch checkpoint messages.
 
   if (n_pending > 0) {
     # F6: ship the model bank and run the daemon_setup hook ONCE per
@@ -299,10 +317,26 @@ execute_tasks <- function(
         if (identical(result$status, "failed")) {
           error_count <- error_count + 1L
         }
+      }
 
-        if (progress) {
-          cli::cli_progress_update(id = pb)
-        }
+      # C1: re-raise fatal conditions after collecting the batch. run_task_safe
+      # captured them (rather than throwing across the daemon boundary) and
+      # marked error$fatal with the full condition class chain.
+      fatal_result <- batch_results[
+        vapply(batch_results, function(r) {
+          isTRUE(r$status == "failed") && isTRUE(r$error$fatal)
+        }, logical(1))
+      ]
+      if (length(fatal_result) > 0L) {
+        fr <- fatal_result[[1]]
+        err <- fr$error
+        cond_class <- err$condition_class %||%
+          c("bayesim_internal_error", "bayesim_error", "error", "condition")
+        cond_class <- unique(c(cond_class, "error", "condition"))
+        stop(structure(
+          list(message = err$error_message, call = NULL),
+          class = cond_class
+        ))
       }
 
       if (!is.null(result_path) && !is.null(config_fingerprint)) {
@@ -358,61 +392,38 @@ execute_tasks <- function(
     }
   }
 
-  if (progress) {
-    cli::cli_progress_done(id = pb)
-  }
-
   list(
     task_results = task_results,
     task_grid = task_grid
   )
 }
 
-#' Reconstruct a condition object from a mirai error value
-#'
-#' A `miraiError` carries the original task-side R condition's class and message
-#' (via the `condition.class` and `message` attributes). This rebuilds an error
-#' condition preserving that class chain so that, e.g., a fatal
-#' `bayesim_internal_error` raised inside a task is still recognized as such by
-#' [is_fatal_error()] after crossing the daemon boundary. Falls back to a
-#' `bayesim_internal_error` if the class chain cannot be recovered.
-#'
-#' @param r A `miraiError` object.
-#'
-#' @return An error condition object.
-#'
-#' @keywords internal
-restore_mirai_condition <- function(r) {
-  cond_class <- attr(r, "condition.class")
-  msg <- attr(r, "message") %||% as.character(r)
-  if (is.null(cond_class) || length(cond_class) < 1L) {
-    return(bayesim_internal_error(message = msg))
-  }
-  # Ensure "error"/"condition" are present for proper signaling.
-  cls <- unique(c(setdiff(cond_class, c("error", "condition")), "error", "condition"))
-  structure(list(message = msg, call = NULL), class = cls)
-}
+# C1: restore_mirai_condition() and the miraiError/errorValue inspection loop
+# were deleted. run_task_safe() is now total (fatal conditions are captured into
+# failed task results with the full class chain), so transport carries only
+# bayesim_task_result objects; the controller re-raises fatal conditions after
+# collecting a batch (see execute_tasks()).
+
 
 #' Run one batch of tasks
 #'
-#' Dispatches a batch of simulation tasks either to mirai daemons (when
-#' `mirai::daemons_set()` is TRUE) or sequentially in-process via [lapply()].
+#' Dispatches a batch of simulation tasks via purrr's mirai integration
+#' (`purrr::map()` + `purrr::in_parallel()`). With no daemons set, purrr falls
+#' back to sequential execution automatically, so there is a single code path
+#' (C1). mirai remains the daemon engine; daemons/model bank/`daemon_setup` are
+#' managed by [execute_tasks()].
 #'
-#' mirai is treated as pure transport: task-level failures are already encoded
-#' in each returned task result (status "failed") and are handled by the caller.
-#' Transport-level failures (daemon death, mirai error values) are fatal and
-#' re-raised as a bayesim fatal error.
-#'
-#' The model bank and `daemon_setup` hook are shipped once per
-#' `execute_tasks()` invocation (BEFORE the batch loop), not here per batch —
-#' see [execute_tasks()]. This function only dispatches tasks.
+#' `run_task_safe()` is total (never throws), so transport is pure transport:
+#' every returned element is a `bayesim_task_result`. Transport-level failures
+#' (e.g. daemon death) surface as errors from `purrr::map()` and are re-raised
+#' as a bayesim fatal error by the caller.
 #'
 #' @param batch_tasks List of task specification lists
 #' @param config_spec Plain list config spec for worker transport
 #' @param fitter S7 Fitter object
 #' @param metrics List of Metric objects
 #' @param retain Character vector of what to retain
-#' @param progress Logical; if TRUE, surface mirai's progress display
+#' @param progress Logical; if TRUE, surface purrr's progress display
 #'
 #' @return A list of bayesim_task_result objects
 #'
@@ -425,72 +436,26 @@ run_batch <- function(
   retain,
   progress = FALSE
 ) {
-  if (isTRUE(mirai::daemons_set())) {
-    # Dispatch to daemons. Pass the function OBJECT (not a namespace-qualified
-    # name) so mirai ships the closure to each daemon; bayesim must be installed
-    # there so the closure's package-environment references (run_task, etc.)
-    # resolve. run_task_safe is intentionally internal (not exported).
-    m <- tryCatch(
-      mirai::mirai_map(
-        .x = batch_tasks,
-        .f = run_task_safe,
-        .args = list(
-          config_spec = config_spec,
-          fitter = fitter,
-          metrics = metrics,
-          retain = retain
-        )
-      ),
-      error = function(e) e
-    )
-    if (inherits(m, "error")) {
-      stop(bayesim_internal_error(
-        message = paste("mirai dispatch failure:", conditionMessage(m))
-      ))
-    }
-
-    # Collect results, surfacing transport-level errors as fatal.
-    # mirai::.progress is a sentinel object selecting the progress-display
-    # collector; reference it fully-qualified to avoid a global-variable NOTE.
-    results <- tryCatch(
-      if (progress) m[mirai::.progress] else m[],
-      error = function(e) e
-    )
-    if (inherits(results, "error")) {
-      stop(bayesim_internal_error(
-        message = paste("mirai transport failure:", conditionMessage(results))
-      ))
-    }
-
-    # Inspect each element to separate task-level failures from transport errors.
-    #  - miraiError: an R error thrown INSIDE the task function (e.g. a fatal
-    #    bayesim condition re-thrown by run_task_safe). Preserve its original
-    #    class so downstream error handling sees the real condition.
-    #  - errorValue (not miraiError): a true transport/daemon failure (daemon
-    #    death, serialization failure). Fatal at the engine level.
-    for (i in seq_along(results)) {
-      r <- results[[i]]
-      if (mirai::is_mirai_error(r)) {
-        stop(restore_mirai_condition(r))
-      } else if (mirai::is_error_value(r)) {
-        stop(bayesim_internal_error(
-          message = paste("mirai transport error:", as.character(r))
-        ))
-      }
-    }
-    results
-  } else {
-    # Sequential in-process path
-    lapply(batch_tasks, function(task) {
-      run_task_safe(
-        task = task,
-        config_spec = config_spec,
-        fitter = fitter,
-        metrics = metrics,
-        retain = retain
-      )
-    })
-  }
+  # C1: single dispatch path. in_parallel() crates via carrier::crate(), which
+  # strips the lambda's environment; the mapped element is the ONLY positional
+  # argument, and every other dependency must be declared as a named constant
+  # (purrr in_parallel convention). run_task_safe resolves on daemons because
+  # bayesim is installed there (its callee run_task resolves in the bayesim
+  # namespace on the daemon). User generators/fitters are crated into the
+  # transport and so need not be installed on daemons themselves.
+  results <- purrr::map(
+    batch_tasks,
+    purrr::in_parallel(
+      \(task) run_task_safe(task, config_spec, fitter, metrics, retain),
+      run_task_safe = run_task_safe,
+      config_spec = config_spec,
+      fitter = fitter,
+      metrics = metrics,
+      retain = retain
+    ),
+    .progress = if (progress) "bayesim tasks" else FALSE
+  )
+  results
 }
 
 materialize_task_results <- function(

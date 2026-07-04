@@ -1307,8 +1307,8 @@ describe("SimulationConfig", {
       )
     })
 
-    it("validates data_generator has at least 3 arguments", {
-      bad_gen <- function(a, b) list()
+    it("validates data_generator has at least 2 arguments", {
+      bad_gen <- function(a) list()
       expect_error(
         simulation_config(
           data_grid = data.frame(a = 1),
@@ -1316,7 +1316,7 @@ describe("SimulationConfig", {
           data_generator = bad_gen,
           seed = 42L
         ),
-        "data_generator must accept at least 3 arguments"
+        "data_generator must accept at least 2 arguments"
       )
     })
 

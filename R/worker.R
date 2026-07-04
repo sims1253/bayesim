@@ -48,19 +48,24 @@ run_task_safe <- function(
   metrics,
   retain = c("metrics", "diagnostics")
 ) {
+  # C1: run_task_safe is TOTAL — it never throws. Fatal errors are captured
+  # into a failed task result carrying `error$fatal = TRUE` and the full
+  # condition class chain; the controller (execute_tasks) re-raises a
+  # reconstructed condition after collecting the batch. This removes the
+  # entire cross-boundary mirai condition-restoration machinery.
   tryCatch(
     run_task(task, config_spec, fitter, metrics, retain),
     error = function(e) {
-      # Check if this is a fatal error that should stop the run
-      if (is_fatal_error(e)) {
-        stop(e) # Re-throw fatal errors
-      }
-      # Convert recoverable errors to failed task results
+      err_info <- capture_error_info(e)
+      # Mark fatal conditions so the controller re-raises them after the batch.
+      err_info$fatal <- is_fatal_error(e)
+      # Preserve the full condition class chain for faithful reconstruction.
+      err_info$condition_class <- class(e)
       new_task_result(
         task_id = task$task_id,
         status = "failed",
         timing = list(total = 0),
-        error = capture_error_info(e)
+        error = err_info
       )
     }
   )
@@ -187,6 +192,10 @@ run_task <- function(
       list(success = TRUE, data_bundle = data_bundle)
     },
     error = function(e) {
+      # C1: fatal errors propagate so the controller can stop the run.
+      if (is_fatal_error(e)) {
+        stop(e)
+      }
       # Normalize to bayesim_data_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
         e <- bayesim_data_error(
@@ -216,6 +225,11 @@ run_task <- function(
       fit_model(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
     },
     error = function(e) {
+      # C1: fatal errors (config/contract/checkpoint/internal) propagate so the
+      # controller can stop the run. Only recoverable fit errors are wrapped.
+      if (is_fatal_error(e)) {
+        stop(e)
+      }
       # Normalize to bayesim_fit_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
         e <- bayesim_fit_error(
