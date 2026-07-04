@@ -34,6 +34,10 @@ navbar:
         - text: -------
         - text: Simulation Studies
           href: articles/simulation-study.html
+        - text: SBC and calibration
+          href: articles/sbc-and-calibration.html
+        - text: Design of simulation studies
+          href: articles/design-of-simulation-studies.html
         - text: -------
         - text: Custom Fitters
           href: articles/custom-fitters.html
@@ -158,6 +162,8 @@ articles:
   - title: Simulation Studies
     contents:
       - simulation-study
+      - sbc-and-calibration
+      - design-of-simulation-studies
 
   - title: Extending bayesim
     contents:
