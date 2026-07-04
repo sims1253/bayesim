@@ -1,9 +1,62 @@
+#' Resolve requested cleaned var names to actual draws-matrix columns
+#'
+#' Maps each name in `vars` to itself, then to `b_<name>`, in the set of
+#' `draws_colnames`, mirroring the both-directions lookup `.extract_truth()`
+#' already performs. This fixes the F2 mismatch where generators strip the
+#' `b_` prefix (so `vars_of_interest` holds cleaned names like `c("x",
+#' "Intercept")`) but brms draws matrices keep it (`c("b_x","b_Intercept",
+#' "sigma")`).
+#'
+#' Errors with a `bayesim_config_error` (same condition class as
+#' `.extract_truth()`) when a requested var is genuinely absent. A silent NA
+#' would corrupt SBC ranks and credible intervals without diagnostics.
+#'
+#' @param vars Character vector of cleaned names (e.g. `c("x","Intercept",
+#'   "sigma")`).
+#' @param draws_colnames Character vector of available draws-matrix column
+#'   names.
+#'
+#' @return A **named** character vector: names are the cleaned `vars` (use
+#'   these for output field naming), values are the actual draws column to
+#'   read. Empty input returns `character(0)` (names preserved).
+#'
+#' @keywords internal
+resolve_draw_columns <- function(vars, draws_colnames) {
+  if (length(vars) == 0L) {
+    out <- character(0)
+    names(out) <- character(0)
+    return(out)
+  }
+  hits <- vars
+  names(hits) <- vars
+  missing <- character(0)
+  for (i in seq_along(vars)) {
+    v <- vars[[i]]
+    if (v %in% draws_colnames) {
+      next
+    } else if (paste0("b_", v) %in% draws_colnames) {
+      hits[[i]] <- paste0("b_", v)
+    } else {
+      missing <- c(missing, v)
+    }
+  }
+  if (length(missing) > 0L) {
+    stop(bayesim_config_error(
+      "vars_of_interest not found in model draws: "
+        %+% paste(missing, collapse = ", ")
+        %+% ". Available: "
+        %+% paste(utils::head(draws_colnames, 20), collapse = ", ")
+    ))
+  }
+  hits
+}
+
 #' @title RMSE Metric
 #' @description Root Mean Square Error between predictions and true values.
 #' @param name Character string naming the metric. Defaults to "rmse".
 #' @param needs Character vector of required capabilities. Defaults to "predictions".
 #' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
-#' @export
+#' @keywords internal
 RmseMetric <- S7::new_class(
   "RmseMetric",
   parent = Metric,
@@ -58,7 +111,7 @@ S7::method(compute, RmseMetric) <- function(
 #' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
 #'
 #' @return A BiasMetric object.
-#' @export
+#' @keywords internal
 BiasMetric <- S7::new_class(
   "BiasMetric",
   parent = Metric,
@@ -108,7 +161,7 @@ S7::method(compute, BiasMetric) <- function(
 #' @param needs Character vector of required capabilities. Defaults to empty character vector.
 #' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
 #' @param prob Numeric probability for the credible interval width. Defaults to 0.95.
-#' @export
+#' @keywords internal
 CoverageMetric <- S7::new_class(
   "CoverageMetric",
   parent = Metric,
@@ -153,13 +206,14 @@ S7::method(compute, CoverageMetric) <- function(
   lower_q <- (1 - metric@prob) / 2
   upper_q <- 1 - lower_q
 
-  coverage <- vapply(vars_of_interest, function(var) {
-    if (!(var %in% colnames(draws)) || !(var %in% names(true_params))) {
+  mapped <- resolve_draw_columns(vars_of_interest, colnames(draws))
+  coverage <- vapply(names(mapped), function(vname) {
+    if (!(vname %in% names(true_params))) {
       return(NA_real_)
     }
-
-    ci <- quantile(draws[, var], c(lower_q, upper_q))
-    as.numeric(true_params[var] >= ci[1] && true_params[var] <= ci[2])
+    col <- mapped[[vname]]
+    ci <- quantile(draws[, col], c(lower_q, upper_q))
+    as.numeric(true_params[[vname]] >= ci[1] && true_params[[vname]] <= ci[2])
   }, FUN.VALUE = numeric(1), USE.NAMES = TRUE)
 
   list(
@@ -173,7 +227,7 @@ S7::method(compute, CoverageMetric) <- function(
 #' @param name Character string naming the metric. Defaults to "posterior_mean".
 #' @param needs Character vector of required capabilities. Defaults to empty character vector.
 #' @param required Logical indicating if metric failure causes task failure. Defaults to FALSE.
-#' @export
+#' @keywords internal
 PosteriorMeanMetric <- S7::new_class(
   "PosteriorMeanMetric",
   parent = Metric,
@@ -188,7 +242,7 @@ PosteriorMeanMetric <- S7::new_class(
 #' @description Constructor for PosteriorMeanMetric.
 #' @param name Character string naming the metric. Defaults to "posterior_mean".
 #' @return A PosteriorMeanMetric object.
-#' @export
+#' @keywords internal
 posterior_mean_metric <- function(name = "posterior_mean") {
   PosteriorMeanMetric(
     name = name,
@@ -209,19 +263,11 @@ S7::method(compute, PosteriorMeanMetric) <- function(
   }
 
   draws <- fit_result$draws
-  vars_of_interest <- data_bundle$vars_of_interest %||% colnames(draws)
+  voi <- data_bundle$vars_of_interest %||% colnames(draws)
+  mapped <- resolve_draw_columns(voi, colnames(draws))
 
-  means <- colMeans(draws[, vars_of_interest, drop = FALSE])
+  means <- colMeans(draws[, mapped, drop = FALSE])
+  names(means) <- names(mapped)
 
   as.list(means)
-}
-
-#' Register built-in metrics
-#'
-#' @keywords internal
-register_built_in_metrics <- function() {
-  register_metric(rmse_metric(), overwrite = TRUE)
-  register_metric(bias_metric(), overwrite = TRUE)
-  register_metric(coverage_metric(), overwrite = TRUE)
-  register_metric(posterior_mean_metric(), overwrite = TRUE)
 }

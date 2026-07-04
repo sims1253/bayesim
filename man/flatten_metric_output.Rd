@@ -32,6 +32,7 @@ for each element
 }
 
 \examples{
+\dontrun{
 # Scalar values
 flatten_metric_output(list(rmse = 0.5, n_obs = 100L), "my_metric")
 # Returns: list(my_metric__rmse = 0.5, my_metric__n_obs = 100L)
@@ -48,3 +49,5 @@ flatten_metric_output(
 # )
 
 }
+}
+\keyword{internal}

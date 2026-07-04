@@ -16,7 +16,9 @@ BrmsFitter(
   thin = 1L,
   refresh = 0L,
   silent = 2L,
-  cores = 1L
+  cores = 1L,
+  precompile = TRUE,
+  stan_args = list()
 )
 }
 \arguments{
@@ -43,6 +45,15 @@ BrmsFitter(
 \item{silent}{Integer verbosity level (0, 1, or 2)}
 
 \item{cores}{Integer number of cores for parallel processing}
+
+\item{precompile}{Logical; if TRUE (default), the model bank compiles each
+distinct model spec once via \code{brms::brm(chains = 0)} and reuses the prefit
+across tasks via \code{stats::update(recompile = FALSE)}. Set to FALSE to fall
+back to a fresh \code{brms::brm()} per task.}
+
+\item{stan_args}{Named list of Stan/brms arguments passed through to the fit,
+e.g. \code{list(adapt_delta = 0.95, max_treedepth = 12, init = 0.1, threads = 2)}.
+NULL (default) uses brms/Stan defaults.}
 }
 \value{
 An S7 BrmsFitter object

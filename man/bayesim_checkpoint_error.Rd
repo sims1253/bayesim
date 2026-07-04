@@ -23,4 +23,3 @@ error that stops the entire simulation run.
 \seealso{
 \code{\link[=is_fatal_error]{is_fatal_error()}}
 }
-\keyword{internal}

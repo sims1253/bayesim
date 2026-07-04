@@ -31,3 +31,4 @@ Coverage of true parameter values within credible intervals.
 
 Constructor for CoverageMetric.
 }
+\keyword{internal}

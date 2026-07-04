@@ -18,143 +18,141 @@ knitr::opts_chunk$set(
 
 bayesim is a simulation framework for Bayesian modeling studies. It provides:
 
-- **Reproducible execution** across sequential, parallel, and resumed runs
+- **Reproducible execution** across sequential, parallel (mirai), and resumed runs
+- **A model bank** that compiles each distinct Stan model once and reuses it
+  across tasks, eliminating per-task recompilation
 - **Checkpoint/resume** capabilities for long-running simulations
 - **Memory-bounded execution** with configurable artifact retention
-- **Extensible interfaces** for custom fitters and metrics
+- **Typed generators, metrics, and an analysis layer** -- no hand-rolled dplyr
+
+This vignette runs end-to-end with the built-in `MockFitter` (no Stan required).
+For real Bayesian inference, swap `MockFitter()` for `BrmsFitter()`.
 
 # Basic Usage
 
-> **Note:** This vignette uses `BrmsFitter()` which requires the brms package. For quick testing without brms, replace `BrmsFitter()` with `MockFitter()`.
-
-## Setting Up a Simulation
+## Setup
 
 ```{r setup}
 library(bayesim)
 ```
 
-### Define a Data Generator
+## Define a Data Generator
 
-The data generator creates synthetic datasets for your simulation. It must have the signature `(data_spec, seed, task_ctx)`:
+A data generator is a function with the signature
+`(data_spec, seed, task_ctx)` returning a named list. It must consume the
+**ambient** RNG state (the engine restores a per-task L'Ecuyer stream before
+each call), so do not re-seed inside.
 
 ```{r}
 my_data_generator <- function(data_spec, seed, task_ctx) {
-  # Note: seed is a scalar task seed.
-  # The simulation engine also restores the task RNG stream before each call,
-  # so repeated full, resumed, and parallel runs stay aligned.
   n <- data_spec$n
-  
-  # Generate synthetic data
-  x <- rnorm(n)
-  y <- data_spec$intercept + data_spec$slope * x + rnorm(n, sd = data_spec$sigma)
-  
+  x <- stats::rnorm(n)
+  y <- data_spec$intercept + data_spec$slope * x +
+    stats::rnorm(n, sd = data_spec$sigma)
   list(
     train = data.frame(y = y, x = x),
     test = NULL,
     response = "y",
-    true_params = c(intercept = data_spec$intercept, slope = data_spec$slope, sigma = data_spec$sigma),
+    true_params = c(
+      intercept = data_spec$intercept,
+      slope = data_spec$slope,
+      sigma = data_spec$sigma
+    ),
     vars_of_interest = c("intercept", "slope", "sigma"),
-    references = c(intercept = 0, slope = 0, sigma = 1),
-    meta = list()
+    references = c(intercept = 0, slope = 0, sigma = 1)
   )
 }
 ```
 
-### Create a Configuration
+For common patterns (fixed truth, prior-predictive, inverse forward sampling)
+use the factory constructors `fixed_truth_generator()`,
+`prior_predictive_generator()`, `ifs_generator()`.
 
-Create a simulation configuration with your data grid, fit grid, and other parameters. Note that metrics should be passed as a list of Metric objects. Built-in metric constructors like `rmse_metric()` have default names, but custom metrics require an explicit `name` argument:
+## Create a Configuration
 
-```{r, eval=FALSE}
-# Note: brms must be installed to use BrmsFitter()
+```{r}
 config <- simulation_config(
   data_grid = data.frame(
-    n = c(100, 500),
+    n = c(50, 100),
     intercept = 1,
     slope = 2,
     sigma = 1
   ),
-  fit_grid = data.frame(
-    model = "linear"
-  ),
+  fit_grid = data.frame(model = "linear"),
   data_generator = my_data_generator,
-  fitter = BrmsFitter(),  # Use BrmsFitter for Bayesian model fitting
+  fitter = MockFitter(),
   metrics = list(
     rmse_metric(),
-    bias_metric()
+    bias_metric(),
+    posterior_summary_metric(),
+    convergence_metric()
   ),
-  n_replicates = 10L,
+  n_replicates = 4L,
   seed = 42L
 )
 ```
 
-```{r, eval=FALSE}
-# Alternative: Use MockFitter for testing without brms
-# Note: MockFitter is for testing the simulation framework only.
-# For real Bayesian inference, use BrmsFitter() or a custom fitter.
-# See vignette("custom-fitters") for examples.
-config <- simulation_config(
-  data_grid = data.frame(
-    n = c(100, 500),
-    intercept = 1,
-    slope = 2,
-    sigma = 1
-  ),
-  fit_grid = data.frame(
-    model = "linear"
-  ),
-  data_generator = my_data_generator,
-  fitter = MockFitter(),  # Use mock for quick testing
-  metrics = list(
-    rmse_metric(),
-    bias_metric()
-  ),
-  n_replicates = 10L,
-  seed = 42L
-)
-```
+## Run the Simulation
 
-### Run the Simulation
-
-```{r, eval=FALSE}
+```{r}
 result <- run_simulation(config, progress = FALSE)
+print(result)
 ```
 
-### Examine Results
+## Examine Results
 
-```{r, eval=FALSE}
-print(result)
-
-# Summary tibble
+```{r}
 head(result$summary)
 ```
 
-The summary tibble includes:
+Each row is one task. Columns include `task_id`, `status`, `timing_total`,
+the grid columns, and one column per metric field
+(`rmse__value`, `bias__value`, `posterior_summary__mean__slope`, ...).
 
-- `task_id`, `status`, `timing_total`: Basic task information
-- `data_<colname>`: Columns from your data_grid (e.g., `data_n`, `data_sigma`)
-- `fit_<colname>`: Columns from your fit_grid (e.g., `fit_model`)
-- `<metric>__<field>`: Metric outputs (e.g., `rmse__value`, `bias__value`)
+# Summarizing Results
+
+`summarize_simulation()` aggregates the per-task summary by condition, with
+Monte Carlo standard errors (MCSE):
+
+```{r}
+agg <- summarize_simulation(result, by = c("n"))
+agg
+```
+
+For each metric you get `<metric>_mean`, `<metric>_median`, `<metric>_sd`, and
+`<metric>_mcse`, plus `n_reps`, `n_failed`, and `failure_rate`.
+
+# Parallel Execution (mirai)
+
+Parallelism is owned by the engine and uses [mirai](https://mirai.r-lib.org/).
+Set daemons before calling `run_simulation()`; otherwise execution is
+sequential.
+
+```{r, eval=FALSE}
+mirai::daemons(4)
+result <- run_simulation(config, progress = FALSE)
+mirai::daemons(0) # reset to sequential
+```
+
+`SimulationConfig` accepts a `daemon_setup` function run once per daemon (e.g.
+to configure the cmdstan path when using `BrmsFitter` on a cluster).
 
 # Checkpointing and Resume
 
-For long-running simulations, use checkpointing:
+For long-running simulations, write checkpoints to `result_path`:
 
 ```{r, eval=FALSE}
 config <- simulation_config(
-  data_grid = my_data_grid,
-  fit_grid = my_fit_grid,
+  data_grid = data_grid,
+  fit_grid = fit_grid,
   data_generator = my_data_generator,
-  fitter = my_fitter,
+  fitter = MockFitter(),
   metrics = list(rmse_metric()),
   n_replicates = 1000L,
   seed = 42L,
   result_path = "my_simulation",
-  checkpoint_every = 50L,
-  chunk_size = 50L,
-  checkpoint_format = "rds"
+  checkpoint_every = 50L
 )
-
-# Run (can be interrupted and resumed)
 result <- run_simulation(config, resume = "auto")
 ```
 
@@ -164,11 +162,9 @@ If interrupted, resume with:
 result <- resume_simulation("my_simulation")
 ```
 
-`checkpoint_format = "parquet"` is reserved for a future backend but is not implemented yet.
-
 # Custom Metrics
 
-Create custom metrics by extending the Metric class:
+Extend the `Metric` class and implement `compute()`:
 
 ```{r}
 MyMetric <- S7::new_class(
@@ -182,25 +178,36 @@ MyMetric <- S7::new_class(
 )
 
 S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  # Your metric computation
   list(value = 0.5)
 }
 
-# Use directly in simulation_config
 config <- simulation_config(
   data_grid = data.frame(n = 100),
   fit_grid = data.frame(model = "test"),
   data_generator = my_data_generator,
   fitter = MockFitter(),
-  metrics = list(MyMetric(name = "my_metric")),  # Use your custom metric with explicit name
-  n_replicates = 5L,
+  metrics = list(MyMetric()),
+  n_replicates = 2L,
   seed = 42L
 )
 ```
 
+The built-in metric library covers the standard surface: `bias_metric`,
+`rmse_metric`, `mae_metric`, `mse_metric`, `coverage_metric`,
+`pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
+`sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`, and
+LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
+`elpd_test_metric`, `rmse_test_metric`, `r2_test_metric`).
+
+# Reproducibility
+
+Same seed + same package/backend versions + same platform produces identical
+results. Across platforms (or Stan version changes) results are statistically
+equivalent but may differ in the least significant bits due to floating-point
+and backend differences.
+
 # Next Steps
 
-- See `vignette("simulation-study")` for a complete example simulation study with analysis and visualizations
-- See `vignette("custom-fitters")` for creating custom model fitters
-- See `vignette("reproducibility")` for understanding determinism guarantees
-- See `vignette("memory-management")` for handling large simulations
+- `vignette("custom-fitters")` for creating custom model fitters (incl. brms)
+- `vignette("reproducibility")` for the determinism guarantees
+- `vignette("memory-management")` for large simulations

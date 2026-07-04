@@ -43,12 +43,13 @@
 #'
 #' @keywords internal
 mock_data_generator <- function(data_spec, seed, task_ctx) {
-  set.seed(seed)
+  # Consume the ambient RNG state (the worker restores the per-task L'Ecuyer
+  # stream before each call); do not re-seed internally.
   n <- data_spec$n %||% 100
   list(
     train = data.frame(
-      y = rnorm(n),
-      x = rnorm(n)
+      y = stats::rnorm(n),
+      x = stats::rnorm(n)
     ),
     test = NULL,
     response = "y",

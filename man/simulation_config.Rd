@@ -19,7 +19,8 @@ simulation_config(
   chunk_size = NULL,
   max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
-  max_errors = Inf
+  max_errors = Inf,
+  daemon_setup = NULL
 )
 }
 \arguments{
@@ -60,6 +61,10 @@ in memory before forcing a checkpoint write. Defaults to \code{checkpoint_every}
 \code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.}
 
 \item{max_errors}{Numeric. Maximum errors before stopping. Use \code{Inf} for no limit.}
+
+\item{daemon_setup}{Optional function run once per mirai daemon (via
+\code{mirai::everywhere()}) before tasks start, e.g. to configure cmdstan
+paths or load a model bank. Ignored when no daemons are set. Default NULL.}
 }
 \value{
 An S7 SimulationConfig object.

@@ -14,12 +14,15 @@ log_lik(fitter, fit_result, newdata = NULL)
 \item{newdata}{Data frame with observations. If NULL, uses training data.}
 }
 \value{
-A matrix with dimensions N x S where:
+A matrix with dimensions S x N where:
 \itemize{
-\item N = number of observations
-\item S = number of posterior draws
-\item Entry (i, s) is log p(y_i | parameters_s)
+\item S = number of posterior draws (rows)
+\item N = number of observations (columns)
+\item Entry (s, i) is log p(y_i | parameters_s)
 }
+This is the brms/loo convention (draws as rows), matching
+\code{brms::log_lik} and what \code{loo::psis}/\code{loo::E_loo}/\code{loo::relative_eff}
+expect.
 }
 \description{
 Compute pointwise log-likelihood values.

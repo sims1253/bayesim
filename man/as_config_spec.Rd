@@ -24,3 +24,4 @@ spec <- as_config_spec(config)
 # spec can now be serialized or hashed
 }
 }
+\keyword{internal}

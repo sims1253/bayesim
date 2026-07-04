@@ -1,3 +1,121 @@
+# bayesim 2.0.0
+
+This is a ground-up rewrite of the simulation engine, fitters, generators,
+metrics, and analysis layer. It is breaking across the public API; the package
+remains GitHub-only and lifecycle-experimental.
+
+## Major changes
+
+### Engine
+* Parallelization switched from `future`/`future.apply` to **mirai**. The
+  engine owns parallelism; `SimulationConfig` gained a `daemon_setup` property
+  for per-daemon initialization (e.g. cmdstan path configuration). Tasks run
+  sequentially when no mirai daemons are set.
+* Per-task RNG is L'Ecuyer-CMRG streams restored in the worker before the data
+  generator runs; generators consume the ambient state (do not re-seed).
+
+### BrmsFitter and the model bank
+* `BrmsFitter` now compiles each distinct model spec **once** via
+  `brms::brm(chains = 0)` at `run_simulation()` start and reuses the compiled
+  binary via `stats::update(recompile = FALSE)` per task — eliminating the
+  catastrophic per-task recompilation of 1.x.
+* Added `precompile` (default `TRUE`) and `stan_args` properties. A structural
+  data-mismatch guard aborts loudly if task data would require recompilation.
+* `extract_brms_timings` now reports real warmup/sample timings from the
+  stanfit object for both cmdstanr and rstan backends.
+
+### Generators (new)
+* `fixed_truth_generator()`, `prior_predictive_generator()`,
+  `ifs_generator()` — factory constructors for the standard generator
+  signature `(data_spec, seed, task_ctx) -> data_bundle`. IFS and
+  prior-predictive use a deterministic draw index (`task_ctx$rep_idx`) so SBC
+  ranks are well-defined and resume is reproducible.
+* Inverse forward sampling internals (`brms_full_ppred`,
+  `brms_response_sequence`, `nodes_by_depth`) ported from 0.x and decoupled
+  from SBC/bayeshear/future.
+
+### Metrics (expanded)
+* 14 new metric constructors: `mae_metric`, `mse_metric`, `pos_prob_metric`,
+  `posterior_summary_metric`, `convergence_metric`, `sampler_diagnostics_metric`,
+  `rank_metric`, `rstar_metric`, `elpd_loo_metric`, `rmse_loo_metric`,
+  `r2_loo_metric`, `elpd_test_metric`, `rmse_test_metric`, `r2_test_metric`.
+* Removed the internal metric registry; metrics are constructed directly.
+
+### Analysis & reporting (new)
+* `summarize_simulation()` — per-condition aggregation with Monte Carlo
+  standard errors (rsimsum formulas).
+* SBC diagnostics: `sbc_ranks()`, `plot_rank_hist()`, `plot_rank_ecdf()` (with
+  simultaneous confidence bands), `plot_recovery()`, `plot_coverage()`,
+  `plot_metric()`. Plotting requires ggplot2 (Suggests, loaded on demand).
+
+## Breaking changes
+* Public API contracted to a curated surface of ~25 exports (see `_pkgdown.yml`).
+* The `loo` S7 generic was renamed `loo_fit` to avoid clashing with
+  `loo::loo()`. Custom fitters must implement `loo_fit`.
+* Operators `%+%` and `%||%` are no longer exported (use `rlang::%||%` or the
+  public equivalents).
+
+## Reproducibility
+Same seed + same package/backend versions + same platform produces identical
+results. Across platforms (or backend version changes) results are
+statistically equivalent but may differ in the least significant bits due to
+floating-point and Stan version differences.
+
+## Bug fixes (post-implementation review)
+These fixes address defects found in a code review of the initial 2.0 build.
+Each is verified by a behavioral test, not just `R CMD check` green.
+
+* **IFS forward sampling (critical):** `ifs_generator()` no longer returns the
+  pilot dataset unchanged. The 0.x response-dependency topological sort
+  (`brms_response_sequence` → adjacency matrix → `nodes_by_depth`) is restored
+  so the response column is actually simulated for univariate and multivariate
+  models; `brms_full_ppred()` now takes a single draw and returns a single
+  data.frame, eliminating the draw-index/list-index mismatch that produced
+  `NULL` for `rep_idx > 1`.
+* **vars_of_interest / draws-column mismatch (critical):** generators strip
+  the `b_` prefix (`vars_of_interest = c("x","Intercept")`) but brms draws
+  keep it (`c("b_x","b_Intercept","sigma")`), so every truth-comparing metric
+  silently returned NA on real brms fits. A new `resolve_draw_columns()` helper
+  maps cleaned names to actual columns (or errors) and is used by
+  `coverage_metric`, `posterior_mean_metric`, `pos_prob_metric`,
+  `posterior_summary_metric`, and `rank_metric`. Output field names stay on
+  the cleaned names.
+* **LOO-RMSE and LOO-R² (critical):** the invented formulas
+  (`sqrt(-2*mean(elpd))`, `1-exp(2*elpd/n)`) are replaced with PSIS-based
+  constructions on `loo::E_loo()`. `build_metric_context()` computes the PSIS
+  object once (with chain-derived `r_eff`, falling back to `r_eff = NULL`);
+  `rmse_loo` uses `E_loo(ppred, type="mean")` and reports max Pareto-k̂;
+  `r2_loo` reproduces brms' `loo_R2()` variance construction verbatim and uses
+  `posterior_epred` (a new `predict_epred` Fitter generic). Parity with
+  `brms::loo_R2()` verified on a fixture fit.
+* **SBC rank metric (critical for SBC validity):** `rank_metric()` gained
+  `thin = "auto"` (default), thinning toward the min bulk-ESS across ranked
+  variables to mitigate autocorrelation bias; `thin = FALSE` and integer strides
+  are alternatives. Output now includes per-variable `n_ranks` (post-thinning
+  sample size + 1); `sbc_ranks()` and `plot_rank_ecdf()` surface it.
+* **BrmsFitter warning capture:** warnings are now captured in the `fit`
+  method (covering both the fit and the lazy `summary()`-driven convergence
+  warning from diagnostics extraction), for both the model-bank and fresh-compile
+  paths. Previously the fresh path had no handler and warnings were lost.
+* **mirai / model-bank efficiency:** the model bank and `daemon_setup` hook
+  are shipped to daemons once per `run_simulation()` instead of per batch; the
+  prefit-side Stan data-structure signature is computed once in
+  `build_model_bank()` and cached (not recomputed per task); the session bank
+  is cleared on run exit.
+* **Cleanup:** `plot_rank_ecdf()` now uses true simultaneous ECDF bands
+  (`adjust_gamma` ported from 0.x / Säilynoja et al. 2022) instead of an
+  approximate KS bound; `posterior` moved from Suggests to Imports; the `dplyr`
+  dependency was dropped (base-R row-binding replaces `bind_rows`);
+  `bayesim_metric_error`, `bayesim_internal_error`, and
+  `bayesim_checkpoint_error` are now exported (extension docs raise them); dead
+  `hash_to_row` removed and a missing-`formula` guard added to
+  `build_model_bank()`; the IFS bounds `resample` docstring now honestly
+  describes the NA-out / truncate behavior and its rank-bias implication.
+* **Metric flatten:** single-parameter named-vector metric outputs (e.g. a
+  one-variable `rank`/`coverage` `by_param`) now carry the `__<param>` suffix
+  when flattened, so downstream consumers grepping for
+  `<metric>__by_param__<param>` find them.
+
 # bayesim 1.0.1
 
 This release finalizes the rewrite follow-up work around the new simulation API,

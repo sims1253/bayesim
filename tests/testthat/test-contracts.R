@@ -789,10 +789,13 @@ describe("Fitter Class", {
       ll <- log_lik(fitter, fit_result)
 
       expect_true(is.matrix(ll))
-      expect_equal(nrow(ll), 10) # 10 observations
+      # S x N convention (draws x observations): 10 observations => 10 columns.
+      expect_equal(ncol(ll), 10)
+      # Default MockFitter: n_draws=100, n_chains=4 => 400 draws (rows).
+      expect_equal(nrow(ll), as.integer(fitter@n_draws) * as.integer(fitter@n_chains))
     })
 
-    it("loo() returns proper structure", {
+    it("loo_fit() returns proper structure", {
       fitter <- MockFitter()
       data_bundle <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
@@ -807,7 +810,7 @@ describe("Fitter Class", {
         task_ctx = list(task_id = "test")
       )
 
-      loo_result <- loo(fitter, fit_result)
+      loo_result <- loo_fit(fitter, fit_result)
 
       expect_true(is.list(loo_result))
       expect_true("elpd" %in% names(loo_result))

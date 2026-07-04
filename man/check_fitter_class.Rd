@@ -39,9 +39,11 @@ Throws a \code{bayesim_contract_error} condition if validation fails.
 }
 
 \examples{
+\dontrun{
 # Validate the mock fitter
 mock_fitter <- MockFitter()
-check_fitter_class(mock_fitter)
+validate_fitter_interface(mock_fitter)
+}
 }
 \seealso{
 \link{Fitter}, \code{\link[=validate_fitter]{validate_fitter()}}

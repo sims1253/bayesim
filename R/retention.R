@@ -14,7 +14,6 @@
 #'
 #' @format Character vector
 #' @keywords internal
-#' @export
 RETAIN_OPTIONS <- c(
   "metrics", # Always retained
   "diagnostics", # Convergence diagnostics
@@ -66,11 +65,12 @@ RETENTION_PROFILES <- list(
 #' @return Character vector of valid retention options
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' resolve_retention("minimal")
 #' resolve_retention(c("metrics", "draws"))
+#' }
 resolve_retention <- function(retain) {
   if (is.null(retain)) {
     return(character())
@@ -270,7 +270,6 @@ retention_for_task_result <- function(
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
 #' @keywords internal
-#' @export
 apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   if (!"fit" %in% retain) {
     fit_result$fit <- NULL
@@ -307,7 +306,6 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
 #' @return Modified bayesim_task_result object with retained fields added
 #'
 #' @keywords internal
-#' @export
 apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
   # Add optional retained fields
   if ("draws" %in% retain && !is.null(fit_result$draws)) {
@@ -337,11 +335,12 @@ apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
 #' @return Size in bytes as numeric
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' estimate_size(1:1000)
 #' estimate_size(iris)
+#' }
 estimate_size <- function(x) {
   as.numeric(utils::object.size(x))
 }
@@ -357,12 +356,13 @@ estimate_size <- function(x) {
 #' @return TRUE if the task_result exceeds the threshold, FALSE otherwise
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' result <- list(metrics = list(rmse = 0.1), diagnostics = list(rhat = 1.01))
 #' exceeds_size_threshold(result)
 #' exceeds_size_threshold(result, threshold_bytes = 10)
+#' }
 exceeds_size_threshold <- function(
   task_result,
   threshold_bytes = 5 * 1024 * 1024
@@ -391,7 +391,6 @@ exceeds_size_threshold <- function(
 #'   }
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [write_rds_atomic()], [compute_hash()]
 externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
@@ -441,7 +440,6 @@ externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
 #' can be loaded from checkpoint if needed for detailed analysis.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [execute_tasks()], [write_checkpoint()]
 lighten_task_result <- function(task_result, retain) {

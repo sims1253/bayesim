@@ -49,6 +49,7 @@ Validation rules:
 }
 }
 \examples{
+\dontrun{
 # Successful task
 result <- new_task_result(
   task_id = "task_001",
@@ -65,5 +66,6 @@ result <- new_task_result(
   error = list(error_class = "convergence_error", error_message = "R-hat > 1.1"),
   timing = list(total = 2.0)
 )
+}
 }
 \keyword{internal}

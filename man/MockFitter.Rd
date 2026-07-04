@@ -13,6 +13,19 @@ MockFitter(
   n_chains = 4L
 )
 }
+\arguments{
+\item{name}{Character string identifying the fitter}
+
+\item{supports_predictions}{Logical; whether predictions are supported}
+
+\item{supports_log_lik}{Logical; whether log-likelihood is supported}
+
+\item{supports_loo}{Logical; whether LOO-CV is supported}
+
+\item{n_draws}{Integer; number of posterior draws to simulate}
+
+\item{n_chains}{Integer; number of chains to simulate}
+}
 \value{
 An S7 class object representing a MockFitter
 }
@@ -31,4 +44,3 @@ in \code{vignette("custom-fitters")}.
 \seealso{
 \link{Fitter} for the abstract base class, \link{BrmsFitter} for real inference
 }
-\keyword{internal}

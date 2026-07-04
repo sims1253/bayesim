@@ -109,6 +109,28 @@ run_simulation <- function(
     nrow(task_grid)
   ))
 
+  # Build the model bank for BrmsFitter (compile once per distinct spec).
+  # The bank is stored in a session option (set_model_bank) and pushed to
+  # daemons in execute_tasks(); fit() retrieves it via get_model_bank(). This
+  # keeps the bank out of the S7 fitter (which would corrupt the config
+  # fingerprint).
+  if (inherits(config@fitter, "BrmsFitter") && isTRUE(config@fitter@precompile)) {
+    model_bank <- build_model_bank(
+      fitter = config@fitter,
+      fit_grid = config@fit_grid,
+      data_generator = config@data_generator,
+      data_spec_template = as.list(config@data_grid[1L, , drop = FALSE]),
+      result_path = config@result_path,
+      seed = config@seed
+    )
+    set_model_bank(model_bank)
+    # F6: clear the session bank after the run so it does not leak across runs
+    # (a stale bank from a previous run could mismatch a new fit_grid).
+    on.exit(set_model_bank(NULL), add = TRUE)
+  } else {
+    set_model_bank(NULL)
+  }
+
   # Execute tasks with periodic checkpointing
   results <- execute_tasks(
     task_grid = task_grid,
@@ -222,6 +244,26 @@ execute_tasks <- function(
   }
 
   if (n_pending > 0) {
+    # F6: ship the model bank and run the daemon_setup hook ONCE per
+    # execute_tasks() invocation, BEFORE the batch loop. Previously this lived
+    # in run_batch() and re-serialized the full bank to all daemons every batch
+    # (e.g. 200x for a 10k-task run at batch 50). Note: daemons launched
+    # mid-run by the user will not have the bank — daemons must be set before
+    # run_simulation().
+    if (isTRUE(mirai::daemons_set())) {
+      model_bank <- get_model_bank()
+      if (!is.null(model_bank)) {
+        mirai::everywhere(
+          options(bayesim.model_bank = mb),
+          .args = list(mb = model_bank)
+        )
+      }
+      daemon_setup <- config@daemon_setup
+      if (is.function(daemon_setup)) {
+        mirai::everywhere(daemon_setup(), .args = list(daemon_setup = daemon_setup))
+      }
+    }
+
     batch_start <- 1L
 
     while (batch_start <= n_pending) {
@@ -238,20 +280,13 @@ execute_tasks <- function(
         get_task_spec(task_grid, task_id, config)
       })
 
-      batch_results <- future.apply::future_lapply(
-        batch_tasks,
-        function(task) {
-          package_name <- config_spec$package_name %||% "bayesim"
-          ns <- loadNamespace(package_name)
-          get("run_task_safe", envir = ns)(
-            task = task,
-            config_spec = config_spec,
-            fitter = fitter,
-            metrics = metrics,
-            retain = retain
-          )
-        },
-        future.seed = NULL
+      batch_results <- run_batch(
+        batch_tasks = batch_tasks,
+        config_spec = config_spec,
+        fitter = fitter,
+        metrics = metrics,
+        retain = retain,
+        progress = progress
       )
 
       for (k in seq_along(batch_results)) {
@@ -337,6 +372,131 @@ execute_tasks <- function(
     task_results = task_results,
     task_grid = task_grid
   )
+}
+
+#' Reconstruct a condition object from a mirai error value
+#'
+#' A `miraiError` carries the original task-side R condition's class and message
+#' (via the `condition.class` and `message` attributes). This rebuilds an error
+#' condition preserving that class chain so that, e.g., a fatal
+#' `bayesim_internal_error` raised inside a task is still recognized as such by
+#' [is_fatal_error()] after crossing the daemon boundary. Falls back to a
+#' `bayesim_internal_error` if the class chain cannot be recovered.
+#'
+#' @param r A `miraiError` object.
+#'
+#' @return An error condition object.
+#'
+#' @keywords internal
+restore_mirai_condition <- function(r) {
+  cond_class <- attr(r, "condition.class")
+  msg <- attr(r, "message") %||% as.character(r)
+  if (is.null(cond_class) || length(cond_class) < 1L) {
+    return(bayesim_internal_error(message = msg))
+  }
+  # Ensure "error"/"condition" are present for proper signaling.
+  cls <- unique(c(setdiff(cond_class, c("error", "condition")), "error", "condition"))
+  structure(list(message = msg, call = NULL), class = cls)
+}
+
+#' Run one batch of tasks
+#'
+#' Dispatches a batch of simulation tasks either to mirai daemons (when
+#' `mirai::daemons_set()` is TRUE) or sequentially in-process via [lapply()].
+#'
+#' mirai is treated as pure transport: task-level failures are already encoded
+#' in each returned task result (status "failed") and are handled by the caller.
+#' Transport-level failures (daemon death, mirai error values) are fatal and
+#' re-raised as a bayesim fatal error.
+#'
+#' The model bank and `daemon_setup` hook are shipped once per
+#' `execute_tasks()` invocation (BEFORE the batch loop), not here per batch —
+#' see [execute_tasks()]. This function only dispatches tasks.
+#'
+#' @param batch_tasks List of task specification lists
+#' @param config_spec Plain list config spec for worker transport
+#' @param fitter S7 Fitter object
+#' @param metrics List of Metric objects
+#' @param retain Character vector of what to retain
+#' @param progress Logical; if TRUE, surface mirai's progress display
+#'
+#' @return A list of bayesim_task_result objects
+#'
+#' @keywords internal
+run_batch <- function(
+  batch_tasks,
+  config_spec,
+  fitter,
+  metrics,
+  retain,
+  progress = FALSE
+) {
+  if (isTRUE(mirai::daemons_set())) {
+    # Dispatch to daemons. Pass the function OBJECT (not a namespace-qualified
+    # name) so mirai ships the closure to each daemon; bayesim must be installed
+    # there so the closure's package-environment references (run_task, etc.)
+    # resolve. run_task_safe is intentionally internal (not exported).
+    m <- tryCatch(
+      mirai::mirai_map(
+        .x = batch_tasks,
+        .f = run_task_safe,
+        .args = list(
+          config_spec = config_spec,
+          fitter = fitter,
+          metrics = metrics,
+          retain = retain
+        )
+      ),
+      error = function(e) e
+    )
+    if (inherits(m, "error")) {
+      stop(bayesim_internal_error(
+        message = paste("mirai dispatch failure:", conditionMessage(m))
+      ))
+    }
+
+    # Collect results, surfacing transport-level errors as fatal.
+    # mirai::.progress is a sentinel object selecting the progress-display
+    # collector; reference it fully-qualified to avoid a global-variable NOTE.
+    results <- tryCatch(
+      if (progress) m[mirai::.progress] else m[],
+      error = function(e) e
+    )
+    if (inherits(results, "error")) {
+      stop(bayesim_internal_error(
+        message = paste("mirai transport failure:", conditionMessage(results))
+      ))
+    }
+
+    # Inspect each element to separate task-level failures from transport errors.
+    #  - miraiError: an R error thrown INSIDE the task function (e.g. a fatal
+    #    bayesim condition re-thrown by run_task_safe). Preserve its original
+    #    class so downstream error handling sees the real condition.
+    #  - errorValue (not miraiError): a true transport/daemon failure (daemon
+    #    death, serialization failure). Fatal at the engine level.
+    for (i in seq_along(results)) {
+      r <- results[[i]]
+      if (mirai::is_mirai_error(r)) {
+        stop(restore_mirai_condition(r))
+      } else if (mirai::is_error_value(r)) {
+        stop(bayesim_internal_error(
+          message = paste("mirai transport error:", as.character(r))
+        ))
+      }
+    }
+    results
+  } else {
+    # Sequential in-process path
+    lapply(batch_tasks, function(task) {
+      run_task_safe(
+        task = task,
+        config_spec = config_spec,
+        fitter = fitter,
+        metrics = metrics,
+        retain = retain
+      )
+    })
+  }
 }
 
 materialize_task_results <- function(

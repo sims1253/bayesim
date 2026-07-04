@@ -14,7 +14,6 @@ NULL
 #' @return TRUE if a valid run can be resumed, FALSE otherwise.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -76,7 +75,6 @@ can_resume <- function(result_path) {
 #' 5. Rebuilds task grid with status from checkpoint
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -177,7 +175,6 @@ load_for_resume <- function(result_path, config) {
 #' reproducibility guarantees.
 #'
 #' @keywords internal
-#' @export
 merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
   # Start with fresh grid (has all tasks with pending status and rng_seed)
   # Update status for tasks that were terminal in checkpoint
@@ -228,7 +225,6 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
 #' prior_results that appear in new_results, then combines.
 #'
 #' @keywords internal
-#' @export
 merge_results <- function(prior_results, new_results) {
   # Handle empty/NULL cases
   if (is.null(prior_results) || nrow(prior_results) == 0) {
@@ -412,7 +408,15 @@ normalize_manifest_df <- function(x) {
   }
 
   if (is.list(x) && all(vapply(x, is.list, logical(1)))) {
-    return(dplyr::bind_rows(x))
+    # Combine list-of-lists into a data.frame, filling missing columns with NA
+    # (replaces dplyr::bind_rows to drop the dplyr dependency).
+    all_cols <- unique(unlist(lapply(x, names)))
+    rows <- lapply(x, function(r) {
+      missing <- setdiff(all_cols, names(r))
+      if (length(missing) > 0L) r[missing] <- rep(NA, length(missing))
+      as.data.frame(r[all_cols], stringsAsFactors = FALSE)
+    })
+    return(do.call(rbind, rows))
   }
 
   tryCatch(as.data.frame(x), error = function(e) x)
@@ -471,7 +475,6 @@ normalize_manifest_numeric <- function(x, default = NULL) {
 #' Returns NULL if no valid resume state exists.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{

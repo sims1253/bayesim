@@ -15,7 +15,6 @@ NULL
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_fit_result"`, `FALSE` otherwise
 #' @keywords internal
-#' @export
 is_bayesim_fit_result <- function(x) {
   inherits(x, "bayesim_fit_result")
 }
@@ -33,7 +32,6 @@ is_bayesim_fit_result <- function(x) {
 #' invalid timing, missing draws colnames, etc.).
 #'
 #' @keywords internal
-#' @export
 validate_bayesim_fit_result <- function(x) {
   if (!is_bayesim_fit_result(x)) {
     stop(bayesim_contract_error("Object must have class 'bayesim_fit_result'"))
@@ -108,8 +106,8 @@ validate_bayesim_fit_result <- function(x) {
 #' - If `draws` is not NULL, it must be a matrix with column names
 #'
 #' @keywords internal
-#' @export
 #' @examples
+#' \dontrun{
 #' # Successful fit
 #' draws <- matrix(rnorm(1000), ncol = 2, nrow = 500)
 #' colnames(draws) <- c("alpha", "beta")
@@ -127,6 +125,7 @@ validate_bayesim_fit_result <- function(x) {
 #'   diagnostics = list(),
 #'   timing = list(total = 2.0, warmup = 2.0, sample = 0)
 #' )
+#' }
 new_fit_result <- function(
   success = TRUE,
   fit = NULL,
@@ -187,7 +186,6 @@ new_fit_result <- function(
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_task_result"`, `FALSE` otherwise
 #' @keywords internal
-#' @export
 is_bayesim_task_result <- function(x) {
   inherits(x, "bayesim_task_result")
 }
@@ -205,7 +203,6 @@ is_bayesim_task_result <- function(x) {
 #' missing metrics for successful tasks, missing error for failed tasks, etc.).
 #'
 #' @keywords internal
-#' @export
 validate_bayesim_task_result <- function(x) {
   if (!is_bayesim_task_result(x)) {
     stop(bayesim_contract_error("Object must have class 'bayesim_task_result'"))
@@ -284,8 +281,8 @@ validate_bayesim_task_result <- function(x) {
 #' - `timing$total` must be non-negative
 #'
 #' @keywords internal
-#' @export
 #' @examples
+#' \dontrun{
 #' # Successful task
 #' result <- new_task_result(
 #'   task_id = "task_001",
@@ -302,6 +299,7 @@ validate_bayesim_task_result <- function(x) {
 #'   error = list(error_class = "convergence_error", error_message = "R-hat > 1.1"),
 #'   timing = list(total = 2.0)
 #' )
+#' }
 new_task_result <- function(
   task_id = character(1),
   status = "success",
@@ -349,7 +347,6 @@ new_task_result <- function(
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_simulation_result"`, `FALSE` otherwise
 #' @keywords internal
-#' @export
 is_bayesim_simulation_result <- function(x) {
   inherits(x, "bayesim_simulation_result")
 }
@@ -367,7 +364,6 @@ is_bayesim_simulation_result <- function(x) {
 #' invalid task_results elements, non-data.frame summary/errors, etc.).
 #'
 #' @keywords internal
-#' @export
 validate_bayesim_simulation_result <- function(x) {
   if (!is_bayesim_simulation_result(x)) {
     stop(bayesim_contract_error(
@@ -461,8 +457,8 @@ validate_bayesim_simulation_result <- function(x) {
 #' - `checkpoint_path` must be NULL or a scalar character
 #'
 #' @keywords internal
-#' @export
 #' @examples
+#' \dontrun{
 #' # Create a simulation result
 #' task1 <- new_task_result(
 #'   task_id = "task_001",
@@ -486,6 +482,7 @@ validate_bayesim_simulation_result <- function(x) {
 #'   errors = tibble::tibble(task_id = character(), error_message = character()),
 #'   checkpoint_path = "/path/to/checkpoint.rds"
 #' )
+#' }
 new_simulation_result <- function(
   config_fingerprint = character(1),
   task_results = list(),
@@ -538,7 +535,8 @@ new_simulation_result <- function(
 # Print methods
 # =============================================================================
 
-#' @export
+#' @exportS3Method
+#' @keywords internal
 print.bayesim_fit_result <- function(x, ...) {
   cat("<bayesim_fit_result>\n")
   cat("  Success:", if (isTRUE(x$success)) "TRUE" else "FALSE", "\n")
@@ -566,7 +564,8 @@ print.bayesim_fit_result <- function(x, ...) {
   invisible(x)
 }
 
-#' @export
+#' @exportS3Method
+#' @keywords internal
 print.bayesim_task_result <- function(x, ...) {
   cat("<bayesim_task_result>\n")
   cat("  Task ID:", x$task_id, "\n")
@@ -587,7 +586,8 @@ print.bayesim_task_result <- function(x, ...) {
   invisible(x)
 }
 
-#' @export
+#' @exportS3Method
+#' @keywords internal
 print.bayesim_simulation_result <- function(x, ...) {
   cat("<bayesim_simulation_result>\n")
   cat("  Config fingerprint:", x$config_fingerprint, "\n")

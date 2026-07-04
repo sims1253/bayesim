@@ -28,3 +28,4 @@ Posterior mean estimates for parameters.
 
 Constructor for PosteriorMeanMetric.
 }
+\keyword{internal}

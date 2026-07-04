@@ -23,6 +23,9 @@ Use \code{\link[=make_task_id]{make_task_id()}} instead, which auto-calculates f
 from the grid dimensions.
 }
 \examples{
+\dontrun{
 format_task_id(1, 2, 100)
 # Returns: "d001_f002_r00100"
 }
+}
+\keyword{internal}

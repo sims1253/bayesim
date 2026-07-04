@@ -1507,29 +1507,29 @@ describe("run_simulation()", {
       expect_equal(nrow(resumed$summary), nrow(first$summary))
     })
 
-    it("produces matching summaries under sequential and multisession future plans", {
+    it("produces matching summaries under sequential and mirai daemon execution", {
+      skip_on_cran()
       skip_if_not(
         run_sim_exists(),
         "run_simulation not available or is_simulation_config broken"
       )
 
-      old_plan <- future::plan()
-      on.exit(future::plan(old_plan), add = TRUE)
-
       config <- simulation_config(
         data_grid = data.frame(n = c(50, 100), beta = c(1, 2)),
         fit_grid = data.frame(model = "baseline"),
-        data_generator = bayesim:::bayesim_example_data_generator,
+        data_generator = mock_data_generator,
         fitter = MockFitter(),
         metrics = list(rmse_metric()),
         n_replicates = 2L,
         seed = 42L
       )
 
-      future::plan(future::sequential)
+      # Sequential path (no daemons set)
       seq_result <- run_simulation(config, resume = "never", progress = FALSE)
 
-      future::plan(future::multisession, workers = 2)
+      # Parallel path via mirai daemons; reset on exit
+      mirai::daemons(2)
+      on.exit(mirai::daemons(0), add = TRUE)
       par_result <- run_simulation(config, resume = "never", progress = FALSE)
 
       normalize_summary <- function(x) {
@@ -1542,6 +1542,68 @@ describe("run_simulation()", {
         normalize_summary(seq_result$summary),
         normalize_summary(par_result$summary)
       )
+    })
+
+    it("ships the model bank once per run, not per batch (F6)", {
+      skip_on_cran()
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      # F6 hoisted the mirai::everywhere() bank-ship + daemon_setup hook out of
+      # run_batch() into execute_tasks(), so it fires once per run instead of
+      # once per batch. Verify by counting everywhere() calls across a
+      # multi-batch run. We bypass run_simulation() (which overwrites the bank
+      # for non-BrmsFitters) and call execute_tasks() directly with a
+      # non-NULL bank in the session option.
+      config <- simulation_config(
+        data_grid = data.frame(n = 50),
+        fit_grid = data.frame(model = "baseline"),
+        data_generator = mock_data_generator,
+        fitter = MockFitter(),
+        metrics = list(rmse_metric()),
+        n_replicates = 6L,
+        seed = 42L,
+        chunk_size = 2L,
+        checkpoint_every = 2L
+      )
+      task_grid <- create_task_grid(config)
+
+      mirai::daemons(2)
+      on.exit(mirai::daemons(0), add = TRUE)
+
+      # Set a non-NULL bank so the ship branch fires.
+      bayesim:::set_model_bank(list(dummy = "entry"))
+      on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
+
+      # Intercept mirai::everywhere to count dispatches (3 batches would have
+      # fired 3x under the old per-batch placement; the hoist fires exactly 1x).
+      orig_everywhere <- mirai::everywhere
+      everywhere_calls <- 0L
+      mock_everywhere <- function(expr = NULL, .args = list(), .local = FALSE) {
+        everywhere_calls <<- everywhere_calls + 1L
+      }
+      unlockBinding("everywhere", asNamespace("mirai"))
+      assign("everywhere", mock_everywhere, envir = asNamespace("mirai"))
+      on.exit({
+        assign("everywhere", orig_everywhere, envir = asNamespace("mirai"))
+        lockBinding("everywhere", asNamespace("mirai"))
+      }, add = TRUE)
+
+      execute_tasks(
+        task_grid = task_grid,
+        config = config,
+        config_spec = as_config_spec(config),
+        fitter = config@fitter,
+        metrics = config@metrics,
+        retain = config@retain,
+        max_errors = config@max_errors,
+        progress = FALSE
+      )
+
+      # Exactly one bank-ship per run across 3 batches (F6 hoist).
+      expect_equal(everywhere_calls, 1L)
     })
 
     it("rejects parquet checkpoint_format at construction time", {

@@ -4,8 +4,10 @@
 ^README\.Rmd$
 ^doc$
 ^Meta$
-^REWRITE_PLAN\.md$
 ^\.github$
 ^\.lintr$
 ^\.desloppify$
 ^\.factory$
+^\.claude$
+^_pkgdown\.yml$
+^PLAN.*\.md$

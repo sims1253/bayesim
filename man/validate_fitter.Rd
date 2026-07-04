@@ -40,7 +40,7 @@ The validation performs the following checks:
 \item \code{extract_draws()} method is implemented
 \item \code{predict_fit()} method is implemented
 \item \code{log_lik()} method is implemented
-\item \code{loo()} method is implemented
+\item \code{loo_fit()} method is implemented
 \item \code{diagnostics()} method is implemented
 }
 
@@ -55,6 +55,7 @@ The validation performs the following checks:
 }
 }
 \examples{
+\dontrun{
 # Validate the built-in MockFitter (basic check only)
 validate_fitter(MockFitter())
 
@@ -62,7 +63,6 @@ validate_fitter(MockFitter())
 validate_fitter(MockFitter(), smoke_test = TRUE, verbose = TRUE)
 
 # Use in your fitter tests
-\dontrun{
 my_fitter <- MyCustomFitter()
 validate_fitter(my_fitter, smoke_test = TRUE)
 cat("Fitter is valid!\n")
@@ -71,3 +71,4 @@ cat("Fitter is valid!\n")
 \seealso{
 \link{Fitter}, \link{MockFitter}
 }
+\keyword{internal}

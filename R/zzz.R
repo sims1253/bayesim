@@ -1,4 +1,4 @@
 .onLoad <- function(libname, pkgname) {
-  # Register built-in metrics on package load
-  register_built_in_metrics()
+  # bayesim 2.0 uses constructors directly; no metric registry.
+  invisible()
 }

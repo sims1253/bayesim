@@ -15,7 +15,6 @@ NULL
 #'   representing the `.Random.seed` state for that task.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @note This function is exported for advanced/internal use.
 create_task_rng_streams <- function(global_seed, n_tasks) {
@@ -68,7 +67,7 @@ task_id_widths <- function(data_idx, fit_idx, rep_idx) {
 #' @param widths Optional list with data, fit, rep widths. Auto-computed if NULL.
 #'
 #' @return Character string task ID.
-#' @export
+#' @keywords internal
 make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
   if (is.null(widths)) {
     widths <- task_id_widths(data_idx, fit_idx, rep_idx)
@@ -169,7 +168,6 @@ canonicalize_task_grid <- function(task_grid, config) {
 #'   - `status`: Character status, initialized to "pending"
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -252,7 +250,6 @@ create_task_grid <- function(config) {
 #'   - `rng_seed`: Integer vector RNG state for this task
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -304,7 +301,6 @@ get_task_spec <- function(task_grid, task_id, config) {
 #' @return A filtered task grid tibble.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -324,7 +320,6 @@ filter_tasks_by_status <- function(task_grid, status) {
 #' @return A task grid tibble containing only tasks with status "pending".
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -347,7 +342,6 @@ get_pending_tasks <- function(task_grid) {
 #' @return A modified task grid tibble with the updated status.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -381,7 +375,6 @@ validate_task_id <- function(task_id) {
 #'   or NULL if the task_id format is invalid.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -413,7 +406,6 @@ parse_task_id <- function(task_id) {
 #' @return Named integer vector with counts for each status.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{

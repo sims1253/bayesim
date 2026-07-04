@@ -39,7 +39,7 @@ The following S7 generics must be implemented by subclasses:
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
 \item{\code{predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
 \item{\code{log_lik(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
-\item{\code{loo(fitter, fit_result)}}{LOO-CV computation}
+\item{\code{loo_fit(fitter, fit_result)}}{LOO-CV computation}
 \item{\code{diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
 }
 }
@@ -47,7 +47,7 @@ The following S7 generics must be implemented by subclasses:
 \section{Creating Custom Fitters}{
 
 To create a custom fitter, extend this class and implement methods for the
-S7 generics: \code{fit()}, \code{extract_draws()}, \code{predict()}, \code{log_lik()}, \code{loo()}, \code{diagnostics()}.
+S7 generics: \code{fit()}, \code{extract_draws()}, \code{predict()}, \code{log_lik()}, \code{loo_fit()}, \code{diagnostics()}.
 }
 
 \seealso{

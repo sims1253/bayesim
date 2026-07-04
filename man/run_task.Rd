@@ -29,7 +29,7 @@ run_task(
 }}
 
 \item{fitter}{S7 Fitter object that implements the fit(), predict_fit(),
-log_lik(), and loo() methods}
+log_lik(), and loo_fit() methods}
 
 \item{metrics}{List of S7 Metric objects to compute}
 

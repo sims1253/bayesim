@@ -38,3 +38,4 @@ fingerprint <- compute_config_fingerprint(config)
 # Use fingerprint for caching or deduplication
 }
 }
+\keyword{internal}

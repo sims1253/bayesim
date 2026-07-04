@@ -63,7 +63,6 @@ NULL
 #' @seealso [write_checkpoint()], [read_checkpoint()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' result_path <- init_checkpoint_dir(
@@ -132,7 +131,6 @@ init_checkpoint_dir <- function(
 #' directories and returns the maximum ID + 1.
 #'
 #' @keywords internal
-#' @export
 get_next_checkpoint_id <- function(result_path) {
   checkpoints_dir <- file.path(result_path, "checkpoints")
 
@@ -204,7 +202,6 @@ get_next_checkpoint_id <- function(result_path) {
 #' @seealso [read_checkpoint()], [init_checkpoint_dir()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' checkpoint_id <- write_checkpoint(
@@ -389,7 +386,6 @@ write_checkpoint <- function(
 #' @seealso [write_checkpoint()], [list_checkpoints()], [validate_checkpoint_fingerprint()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' # Read latest checkpoint
@@ -481,7 +477,6 @@ read_checkpoint <- function(result_path, checkpoint_id = NULL) {
 #' @seealso [read_checkpoint()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' checkpoint <- read_checkpoint("/path/to/results")
@@ -519,7 +514,6 @@ validate_checkpoint_fingerprint <- function(checkpoint, config_fingerprint) {
 #' @seealso [read_checkpoint()], [get_latest_valid_checkpoint()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' checkpoint_ids <- list_checkpoints("/path/to/results")
@@ -585,7 +579,6 @@ list_checkpoints <- function(result_path) {
 #' @seealso [read_checkpoint()], [list_checkpoints()]
 #'
 #' @keywords internal
-#' @export
 #' @examples
 #' \dontrun{
 #' # Find latest valid checkpoint (any fingerprint)
@@ -654,7 +647,6 @@ get_latest_valid_checkpoint <- function(
 #' columns. NULL task results are skipped.
 #'
 #' @keywords internal
-#' @export
 results_to_dataframe <- function(task_results) {
   if (is.null(task_results) || length(task_results) == 0) {
     return(data.frame(task_id = character(), status = character()))
@@ -703,9 +695,17 @@ results_to_dataframe <- function(task_results) {
     return(data.frame(task_id = character(), status = character()))
   }
 
-  # Use dplyr::bind_rows() which handles different columns gracefully
-  # by filling missing columns with NA
-  dplyr::bind_rows(rows)
+  # Combine rows: base-R row-binding that fills missing columns with NA,
+  # matching dplyr::bind_rows() semantics without the dplyr dependency.
+  all_cols <- unique(unlist(lapply(rows, names)))
+  for (i in seq_along(rows)) {
+    missing <- setdiff(all_cols, names(rows[[i]]))
+    if (length(missing) > 0L) {
+      rows[[i]][missing] <- rep(NA, length(missing))
+    }
+    rows[[i]] <- rows[[i]][all_cols]
+  }
+  do.call(rbind, rows)
 }
 
 # =============================================================================
@@ -820,7 +820,6 @@ validate_schema_compatibility <- function(manifest) {
 #' any checkpoints that are more recent than the keep_n threshold.
 #'
 #' @keywords internal
-#' @export
 clean_old_checkpoints <- function(result_path, keep_n = 5) {
   if (is.null(result_path)) {
     return(invisible(0))

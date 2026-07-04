@@ -15,3 +15,4 @@ TRUE if x is a SimulationConfig, FALSE otherwise.
 \description{
 Check if Object is a SimulationConfig
 }
+\keyword{internal}

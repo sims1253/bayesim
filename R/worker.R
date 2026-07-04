@@ -29,7 +29,6 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #'   re-thrown and will stop the simulation.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -90,7 +89,7 @@ run_task_safe <- function(
 #'     \item Other configuration parameters
 #'   }
 #' @param fitter S7 Fitter object that implements the fit(), predict_fit(),
-#'   log_lik(), and loo() methods
+#'   log_lik(), and loo_fit() methods
 #' @param metrics List of S7 Metric objects to compute
 #' @param retain Character vector of what to retain in results. Options:
 #'   \itemize{
@@ -132,7 +131,6 @@ run_task_safe <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -317,7 +315,6 @@ run_task <- function(
 #' in NULL values for that context element.
 #'
 #' @keywords internal
-#' @export
 build_metric_context <- function(
   fit_result,
   fitter,
@@ -360,13 +357,110 @@ build_metric_context <- function(
   }
 
   if ("loo" %in% all_needs && fitter@supports_loo) {
-    context$loo <- tryCatch(
-      loo(fitter, fit_result),
+    loo_ctx <- tryCatch(
+      build_loo_context(fitter, fit_result),
+      error = function(e) NULL
+    )
+    if (!is.null(loo_ctx)) {
+      context$loo <- loo_ctx$loo
+      # F3: PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
+      # here so both metrics share it. May be absent (NULL) if the fitter does
+      # not provide epred/log_lik or the build failed.
+      context$loo_psis <- loo_ctx$psis
+      context$loo_psis_ll <- loo_ctx$log_lik
+      context$loo_epred <- loo_ctx$epred
+    }
+  }
+
+  context
+}
+
+#' Build the LOO context (elpd summary + PSIS object + epred)
+#'
+#' Constructs the full LOO context for F3's rmse_loo / r2_loo metrics. Computes
+#' the elpd/p_loo/pareto_k summary (as the legacy `loo_fit()` did), the PSIS
+#' object (for `loo::E_loo()` weighted predictions), the pointwise log-likelihood
+#' matrix, and the posterior expectation predictions (epred) — all once, shared
+#' across metrics.
+#'
+#' The PSIS object uses `loo::psis(-ll, r_eff)` with per-observation
+#' relative-efficiency factors derived from the fit's chain structure via
+#' `posterior::as_draws_df(fit)$.chain` (matches brms' internal `r_eff_log_lik`
+#' exactly). Falls back to `r_eff = NULL` (with a captured warning) when chain
+#' structure is unavailable, which is mathematically valid but slightly less
+#' accurate.
+#'
+#' epred must be the posterior expectation (mu, no observation noise); for brms
+#' this is `brms::posterior_epred`. The Fitter must expose this via
+#' `predict_epred()`; fitters that cannot return NULL (the metrics then NA).
+#'
+#' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, or NULL on
+#'   failure. `psis`/`log_lik`/`epred` may be individually NULL if unavailable.
+#' @keywords internal
+build_loo_context <- function(fitter, fit_result) {
+  loo_result <- loo_fit(fitter, fit_result)
+  if (is.null(loo_result)) return(NULL)
+
+  # Pointwise log-likelihood matrix (S x N, draws x observations).
+  ll <- tryCatch(log_lik(fitter, fit_result), error = function(e) NULL)
+  if (!is.matrix(ll)) {
+    return(list(loo = loo_result, psis = NULL, log_lik = NULL, epred = NULL))
+  }
+
+  # Per-observation relative-efficiency via chain structure.
+  r_eff <- tryCatch(
+    relative_eff_from_chains(fitter, fit_result, ll),
+    error = function(e) NULL
+  )
+
+  # PSIS object. If r_eff is NULL (no chain info) loo::psis warns and proceeds
+  # without the efficiency correction — mathematically valid, slightly less
+  # accurate. Capture the warning so it doesn't surface per-task.
+  psis_obj <- if (!is.null(r_eff)) {
+    tryCatch(loo::psis(-ll, r_eff = r_eff), error = function(e) NULL)
+  } else {
+    tryCatch(
+      suppressWarnings(loo::psis(-ll)),
       error = function(e) NULL
     )
   }
 
-  context
+  # Posterior expectation predictions (mu, no noise). Required for r2_loo;
+  # rmse_loo also degrades to NA when epred is absent.
+  epred <- tryCatch(
+    predict_epred(fitter, fit_result),
+    error = function(e) NULL
+  )
+
+  list(
+    loo = loo_result,
+    psis = psis_obj,
+    log_lik = ll,
+    epred = epred
+  )
+}
+
+#' Per-observation relative efficiency from the fit's chain structure
+#'
+#' Mirrors brms' internal `r_eff_log_lik()` by deriving the chain id per draw
+#' from `posterior::as_draws_df(fit)$.chain` and passing it to
+#' `loo::relative_eff(exp(ll), chain_id = ...)`. `ll` here is S x N (draws x
+#' observations, matching brms' log_lik orientation): `relative_eff` wants the
+#' draws dimension as rows so chain_id (length S) matches `nrow(ll)`. Returns
+#' one r_eff per observation (length N). Returns NULL when chain information is
+#' unavailable (e.g. MockFitter or a fitter whose fit lacks a `.chain`
+#' variable), in which case the caller falls back to `r_eff = NULL`.
+#' @keywords internal
+relative_eff_from_chains <- function(fitter, fit_result, ll) {
+  fit <- fit_result$fit
+  if (is.null(fit)) return(NULL)
+  chain_id <- tryCatch(
+    posterior::as_draws_df(fit)$.chain,
+    error = function(e) NULL
+  )
+  # ll is S x N (draws x observations); chain_id has length S (one per draw).
+  if (is.null(chain_id) || length(chain_id) != nrow(ll)) return(NULL)
+  loo::relative_eff(exp(ll), chain_id = chain_id)
 }
 
 #' Compute all metrics for a task
@@ -397,7 +491,6 @@ build_metric_context <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 compute_all_metrics <- function(
   fit_result,
   data_bundle,

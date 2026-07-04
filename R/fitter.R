@@ -19,13 +19,13 @@
 #'   \item{`extract_draws(fitter, fit_result, variables = NULL)`}{Extract posterior draws}
 #'   \item{`predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)`}{Generate predictions}
 #'   \item{`log_lik(fitter, fit_result, newdata = NULL)`}{Pointwise log-likelihood}
-#'   \item{`loo(fitter, fit_result)`}{LOO-CV computation}
+#'   \item{`loo_fit(fitter, fit_result)`}{LOO-CV computation}
 #'   \item{`diagnostics(fitter, fit_result)`}{Extract fit diagnostics}
 #' }
 #'
 #' @section Creating Custom Fitters:
 #' To create a custom fitter, extend this class and implement methods for the
-#' S7 generics: `fit()`, `extract_draws()`, `predict()`, `log_lik()`, `loo()`, `diagnostics()`.
+#' S7 generics: `fit()`, `extract_draws()`, `predict()`, `log_lik()`, `loo_fit()`, `diagnostics()`.
 #'
 #' @return An S7 class object representing the abstract Fitter
 #' @export
@@ -142,6 +142,36 @@ predict_fit <- S7::new_generic(
   }
 )
 
+#' @title Compute Posterior Expectation Predictions
+#' @description
+#' Compute posterior draws of the expected value of the response distribution
+#' (mu, without observation noise). This is the `epred` quantity used by brms'
+#' `loo_R2()` and bayesim's `r2_loo_metric()` (F3). It must NOT include
+#' observation-level noise — only the model's conditional mean.
+#'
+#' Fitters that cannot provide expectation predictions should return `NULL`; the
+#' `r2_loo` metric then degrades to NA. The default Fitter method returns NULL.
+#'
+#' @param fitter An S7 Fitter object
+#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param newdata Data frame with observations. If NULL, uses training data.
+#'
+#' @return A matrix with dimensions S x N (draws x observations), or NULL if
+#'   not supported by the fitter.
+#' @export
+predict_epred <- S7::new_generic(
+  "predict_epred",
+  "fitter",
+  function(fitter, fit_result, newdata = NULL) {
+    S7::S7_dispatch()
+  }
+)
+
+# Default: fitters that don't override return NULL (metric degrades to NA).
+S7::method(predict_epred, S7::class_any) <- function(fitter, fit_result, newdata = NULL) {
+  NULL
+}
+
 #' @title Compute Pointwise Log-Likelihood
 #' @description
 #' Compute pointwise log-likelihood values.
@@ -150,12 +180,15 @@ predict_fit <- S7::new_generic(
 #' @param fit_result A `bayesim_fit_result` object from [fit()]
 #' @param newdata Data frame with observations. If NULL, uses training data.
 #'
-#' @return A matrix with dimensions N x S where:
+#' @return A matrix with dimensions S x N where:
 #'   \itemize{
-#'     \item N = number of observations
-#'     \item S = number of posterior draws
-#'     \item Entry (i, s) is log p(y_i | parameters_s)
+#'     \item S = number of posterior draws (rows)
+#'     \item N = number of observations (columns)
+#'     \item Entry (s, i) is log p(y_i | parameters_s)
 #'   }
+#'   This is the brms/loo convention (draws as rows), matching
+#'   `brms::log_lik` and what `loo::psis`/`loo::E_loo`/`loo::relative_eff`
+#'   expect.
 #' @export
 log_lik <- S7::new_generic(
   "log_lik",
@@ -168,7 +201,7 @@ log_lik <- S7::new_generic(
 #' @title Compute LOO-CV
 #' @description
 #' Compute leave-one-out cross-validation using Pareto-smoothed importance
-#' sampling (PSIS-LOO).
+#' sampling (PSIS-LOO). Named `loo_fit` to avoid clashing with [loo::loo()].
 #'
 #' @param fitter An S7 Fitter object
 #' @param fit_result A `bayesim_fit_result` object from [fit()]
@@ -182,7 +215,7 @@ log_lik <- S7::new_generic(
 #'     \item Additional loo-specific diagnostics
 #'   }
 #' @export
-loo <- S7::new_generic("loo", "fitter", function(fitter, fit_result) {
+loo_fit <- S7::new_generic("loo_fit", "fitter", function(fitter, fit_result) {
   S7::S7_dispatch()
 })
 
@@ -229,9 +262,15 @@ diagnostics <- S7::new_generic(
 #' For a lightweight no-Stan alternative, see the `LinearFitter` example
 #' in `vignette("custom-fitters")`.
 #'
+#' @param name Character string identifying the fitter
+#' @param supports_predictions Logical; whether predictions are supported
+#' @param supports_log_lik Logical; whether log-likelihood is supported
+#' @param supports_loo Logical; whether LOO-CV is supported
+#' @param n_draws Integer; number of posterior draws to simulate
+#' @param n_chains Integer; number of chains to simulate
+#'
 #' @return An S7 class object representing a MockFitter
 #' @export
-#' @keywords internal
 #' @seealso [Fitter] for the abstract base class, [BrmsFitter] for real inference
 MockFitter <- S7::new_class(
   "MockFitter",
@@ -514,18 +553,19 @@ S7::method(log_lik, MockFitter) <- function(
     draws <- extract_draws(fitter, fit_result)
     n_draws <- nrow(draws)
 
-    # Simple normal log-likelihood
+    # Simple normal log-likelihood.
+    # Convention: S x N matrix (draws x observations), matching brms/loo.
     ll <- matrix(
       rnorm(n_obs * n_draws, mean = -2, sd = 0.5), # Mock log-lik values
-      nrow = n_obs,
-      ncol = n_draws
+      nrow = n_draws,
+      ncol = n_obs
     )
 
     ll
   })
 }
 
-S7::method(loo, MockFitter) <- function(fitter, fit_result) {
+S7::method(loo_fit, MockFitter) <- function(fitter, fit_result) {
   if (is.null(fit_result) || is.null(fit_result$fit)) {
     return(list(
       elpd = NA_real_,
@@ -593,7 +633,7 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - `extract_draws()` method is implemented
 #' - `predict_fit()` method is implemented
 #' - `log_lik()` method is implemented
-#' - `loo()` method is implemented
+#' - `loo_fit()` method is implemented
 #' - `diagnostics()` method is implemented
 #'
 #' **Smoke Test (when smoke_test = TRUE):**
@@ -604,10 +644,11 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - If `supports_log_lik`, calls `log_lik()` and verifies matrix output
 #' - Calls `diagnostics()` and verifies list output
 #'
-#' @export
+#' @keywords internal
 #' @seealso [Fitter], [MockFitter]
 #'
 #' @examples
+#' \dontrun{
 #' # Validate the built-in MockFitter (basic check only)
 #' validate_fitter(MockFitter())
 #'
@@ -615,7 +656,6 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' validate_fitter(MockFitter(), smoke_test = TRUE, verbose = TRUE)
 #'
 #' # Use in your fitter tests
-#' \dontrun{
 #' my_fitter <- MyCustomFitter()
 #' validate_fitter(my_fitter, smoke_test = TRUE)
 #' cat("Fitter is valid!\n")
@@ -688,7 +728,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     "extract_draws",
     "predict_fit",
     "log_lik",
-    "loo",
+    "loo_fit",
     "diagnostics"
   )
   fitter_class <- S7::S7_class(fitter)
@@ -887,7 +927,13 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       msg("  [SKIP] predict_fit() (supports_predictions is FALSE)")
     }
 
-    # Test log_lik() if supported
+    # Test log_lik() if supported.
+    # Convention: log_lik() must return an S x N matrix (draws x observations),
+    # matching the brms/loo orientation. We check that the number of columns
+    # equals n_obs (one column per observation). The S rows are posterior
+    # draws and their count is fitter-specific, so the row count is not
+    # checked here; this is robust to fitters whose n_draws happens to equal
+    # n_obs only by coincidence.
     if (isTRUE(fitter@supports_log_lik)) {
       msg("  Testing log_lik()...")
       ll <- tryCatch(
@@ -907,7 +953,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         rlang::abort(
           c(
             "log_lik() returned NULL but supports_log_lik is TRUE",
-            i = "Return an N x S matrix of pointwise log-likelihoods"
+            i = "Return an S x N matrix of pointwise log-likelihoods (draws x observations)"
           ),
           class = "bayesim_validation_error"
         )
@@ -923,15 +969,16 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         )
       }
 
-      if (nrow(ll) != n) {
+      if (ncol(ll) != n) {
         rlang::abort(
           c(
-            "log_lik() returned wrong number of rows",
+            "log_lik() returned wrong number of columns",
             i = paste0(
-              "Expected ",
+              "Expected N columns (one per observation), got ",
+              ncol(ll),
+              " (expected ",
               n,
-              " rows (one per observation), got ",
-              nrow(ll)
+              ")"
             )
           ),
           class = "bayesim_validation_error"

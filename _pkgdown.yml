@@ -54,28 +54,17 @@ navbar:
 
 # Reference organization by function purpose
 reference:
-  - title: Configuration
+  - title: Design and run studies
     desc: >
-      Functions for configuring simulation studies
+      Configure and execute simulation studies
     contents:
       - simulation_config
-      - is_simulation_config
-      - validate_config_completeness
-      - get_total_tasks
-      - compute_config_fingerprint
-      - as_config_spec
-
-  - title: Running Simulations
-    desc: >
-      Functions for executing simulation studies
-    contents:
       - run_simulation
       - resume_simulation
-      - can_resume
 
   - title: Fitters
     desc: >
-      Classes for fitting Bayesian models
+      Classes and generics for fitting Bayesian models
     contents:
       - Fitter
       - BrmsFitter
@@ -84,9 +73,16 @@ reference:
       - extract_draws
       - predict_fit
       - log_lik
-      - loo
+      - loo_fit
       - diagnostics
-      - validate_fitter
+
+  - title: Generators
+    desc: >
+      Factory constructors for simulation data generators
+    contents:
+      - fixed_truth_generator
+      - prior_predictive_generator
+      - ifs_generator
 
   - title: Metrics
     desc: >
@@ -97,45 +93,48 @@ reference:
       - rmse_metric
       - bias_metric
       - coverage_metric
-      - posterior_mean_metric
-      - validate_metric_output
-      - flatten_metric_output
+      - mae_metric
+      - mse_metric
+      - pos_prob_metric
+      - posterior_summary_metric
+      - convergence_metric
+      - sampler_diagnostics_metric
+      - rank_metric
+      - rstar_metric
+      - elpd_loo_metric
+      - rmse_loo_metric
+      - r2_loo_metric
+      - elpd_test_metric
+      - rmse_test_metric
+      - r2_test_metric
 
-  - title: Results
+  - title: Analysis and reporting
     desc: >
-      Functions for working with simulation results
+      Summaries, SBC diagnostics, and plotting functions for simulation results
     contents:
-      - is_bayesim_fit_result
-      - validate_bayesim_fit_result
-      - new_fit_result
-      - new_task_result
-      - new_simulation_result
+      - summarize_simulation
+      - sbc_ranks
+      - plot_rank_hist
+      - plot_rank_ecdf
+      - plot_recovery
+      - plot_coverage
+      - plot_metric
 
-  - title: Checkpointing
+  - title: Extension support
     desc: >
-      Functions for checkpoint and resume functionality
+      Validators, error constructors, and classifiers for extending bayesim
     contents:
-      - init_checkpoint_dir
-      - write_checkpoint
-      - read_checkpoint
-      - get_resume_summary
-      - load_for_resume
-
-  - title: Retention
-    desc: >
-      Control what artifacts are retained in results
-    contents:
-      - resolve_retention
-      - RETENTION_PROFILES
-
-  - title: Utilities
-    desc: >
-      Helper functions and utilities
-    contents:
-      - "%||%"
-      - format_task_id
-      - make_task_id
-      - resolve_retention
+      - validate_data_bundle
+      - validate_fitter_interface
+      - validate_metric_interface
+      - bayesim_error
+      - bayesim_config_error
+      - bayesim_contract_error
+      - bayesim_data_error
+      - bayesim_fit_error
+      - is_bayesim_error
+      - is_fatal_error
+      - is_recoverable_error
 
 # Articles organization
 articles:

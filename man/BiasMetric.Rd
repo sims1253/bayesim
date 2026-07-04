@@ -26,3 +26,4 @@ Mean bias of predictions.
 
 Constructor for BiasMetric.
 }
+\keyword{internal}

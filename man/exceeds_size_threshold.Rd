@@ -19,8 +19,10 @@ Determines whether a task result exceeds a specified memory threshold,
 useful for deciding whether to externalize large artifacts.
 }
 \examples{
+\dontrun{
 result <- list(metrics = list(rmse = 0.1), diagnostics = list(rhat = 1.01))
 exceeds_size_threshold(result)
 exceeds_size_threshold(result, threshold_bytes = 10)
+}
 }
 \keyword{internal}

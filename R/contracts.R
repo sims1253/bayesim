@@ -369,11 +369,11 @@ validate_data_bundle <- function(data_bundle) {
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [validate_bayesim_fit_result()], [new_fit_result()]
 #'
 #' @examples
+#' \dontrun{
 #' # Create a valid fit result
 #' draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
 #' colnames(draws) <- c("alpha", "beta")
@@ -384,6 +384,7 @@ validate_data_bundle <- function(data_bundle) {
 #'   timing = list(total = 5.0, warmup = 2.5, sample = 2.5)
 #' )
 #' validate_fit_result_interface(result)
+#' }
 validate_fit_result_interface <- function(fit_result) {
   tryCatch(
     {
@@ -431,14 +432,15 @@ validate_fit_result_interface <- function(fit_result) {
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [Fitter], [validate_fitter()]
 #'
 #' @examples
+#' \dontrun{
 #' # Validate the mock fitter
 #' mock_fitter <- MockFitter()
-#' check_fitter_class(mock_fitter)
+#' validate_fitter_interface(mock_fitter)
+#' }
 check_fitter_class <- function(fitter) {
   if (!S7::S7_inherits(fitter)) {
     stop(
@@ -564,7 +566,6 @@ validate_metric_interface <- function(metric) {
 #' Throws a `bayesim_config_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [simulation_config()], [validate_fitter_interface()], [validate_metric_interface()]
 #'

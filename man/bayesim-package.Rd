@@ -19,6 +19,7 @@ processing.
 
 Authors:
 \itemize{
+  \item Maximilian Scholz \email{research.scholz@mailbox.org}
   \item Paul-Christian Bürkner \email{paul.buerkner@gmail.com}
 }
 

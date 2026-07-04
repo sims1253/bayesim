@@ -131,6 +131,10 @@ SimulationConfig <- S7::new_class(
           "max_errors must be Inf or a non-negative number"
         }
       }
+    ),
+    daemon_setup = S7::new_property(
+      class = S7::new_union(S7::class_function, NULL),
+      default = NULL
     )
   )
 )
@@ -164,6 +168,9 @@ SimulationConfig <- S7::new_class(
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
 #' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no limit.
+#' @param daemon_setup Optional function run once per mirai daemon (via
+#'   `mirai::everywhere()`) before tasks start, e.g. to configure cmdstan
+#'   paths or load a model bank. Ignored when no daemons are set. Default NULL.
 #'
 #' @return An S7 SimulationConfig object.
 #'
@@ -197,7 +204,8 @@ simulation_config <- function(
   chunk_size = NULL,
   max_in_memory = lifecycle::deprecated(),
   retain = c("metrics", "diagnostics"),
-  max_errors = Inf
+  max_errors = Inf,
+  daemon_setup = NULL
 ) {
   if (!is.null(task_grid)) {
     if (!is.data.frame(task_grid)) {
@@ -349,7 +357,8 @@ simulation_config <- function(
     checkpoint_format = checkpoint_format,
     chunk_size = chunk_size,
     retain = retain,
-    max_errors = max_errors
+    max_errors = max_errors,
+    daemon_setup = daemon_setup
   )
 }
 
@@ -364,7 +373,6 @@ simulation_config <- function(
 #' @return A list of Metric objects, or NULL if input was NULL.
 #'
 #' @keywords internal
-#' @export
 resolve_metrics <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -409,7 +417,7 @@ resolve_metrics <- function(metrics) {
 #'
 #' @return A named list containing the configuration specification.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -452,7 +460,6 @@ as_config_spec <- function(config) {
 #' @return A character string representing the function signature.
 #'
 #' @keywords internal
-#' @export
 capture_function_signature <- function(fn) {
   if (!is.function(fn)) {
     return(NA_character_)
@@ -518,7 +525,6 @@ capture_function_signature <- function(fn) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
-#' @export
 capture_fitter_spec <- function(fitter) {
   if (is.null(fitter)) {
     return(NA)
@@ -548,7 +554,6 @@ capture_fitter_spec <- function(fitter) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
-#' @export
 capture_metrics_spec <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -587,7 +592,7 @@ capture_metrics_spec <- function(metrics) {
 #'
 #' @return A character string containing the SHA256 hash of the configuration.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -609,13 +614,23 @@ compute_config_fingerprint <- function(config) {
 
   spec <- as_config_spec(config)
 
-  # Convert to JSON for stable serialization, then hash
-  json_str <- jsonlite::toJSON(
-    spec,
-    auto_unbox = TRUE,
-    digits = NA,
-    null = "null"
+  # Convert to JSON for stable serialization, then hash. JSON cannot encode
+  # arbitrary R objects (e.g. brms formula/family objects in fit_grid), so fall
+  # back to a serialized digest when toJSON fails. The serialized digest is
+  # still stable across sessions for the same object structure.
+  json_str <- tryCatch(
+    jsonlite::toJSON(
+      spec,
+      auto_unbox = TRUE,
+      digits = NA,
+      null = "null"
+    ),
+    error = function(e) NULL
   )
+
+  if (is.null(json_str)) {
+    return(digest::digest(spec, algo = "sha256"))
+  }
 
   digest::digest(json_str, algo = "sha256", serialize = FALSE)
 }
@@ -626,7 +641,7 @@ compute_config_fingerprint <- function(config) {
 #'
 #' @return TRUE if x is a SimulationConfig, FALSE otherwise.
 #'
-#' @export
+#' @keywords internal
 is_simulation_config <- function(x) {
   S7::S7_inherits(x, SimulationConfig)
 }
@@ -670,7 +685,7 @@ validate_config_completeness <- function(config) {
 #'
 #' @return Integer. Total number of tasks.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{

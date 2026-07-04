@@ -27,3 +27,4 @@ config <- simulation_config(
 get_total_tasks(config)  # Returns 400 (2 * 2 * 100)
 }
 }
+\keyword{internal}

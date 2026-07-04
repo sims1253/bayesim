@@ -8,10 +8,11 @@
 #' @return The initial `.Random.seed` state (invisibly)
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' setup_global_rng(42)
+#' }
 setup_global_rng <- function(seed) {
   RNGkind("L'Ecuyer-CMRG")
   set.seed(seed)
@@ -28,7 +29,6 @@ setup_global_rng <- function(seed) {
 #' @return NULL (invisibly). Side effect: sets `.Random.seed` in global environment.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -57,7 +57,6 @@ set_task_rng <- function(rng_stream) {
 #' the returned state if needed (e.g., via `set_task_rng()`).
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -65,8 +64,12 @@ set_task_rng <- function(rng_stream) {
 #' advanced <- advance_rng_stream(streams[[1]], n = 5)
 #' }
 advance_rng_stream <- function(rng_stream, n = 1L) {
-  old_seed <- get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   seed_existed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  old_seed <- if (seed_existed) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  } else {
+    NULL
+  }
 
   on.exit(
     if (seed_existed) {

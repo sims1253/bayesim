@@ -140,6 +140,7 @@ compute <- S7::new_generic(
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' # Valid output
 #' validate_metric_output(list(rmse = 0.5, n_obs = 100L), "rmse")
 #'
@@ -157,7 +158,8 @@ compute <- S7::new_generic(
 #' validate_metric_output(list(nested = list(a = 1)), "rmse")  # Error
 #' }
 #'
-#' @export
+#' }
+#' @keywords internal
 validate_metric_output <- function(output, metric_name) {
   if (!is.list(output)) {
     stop(
@@ -284,6 +286,7 @@ validate_metric_output <- function(output, metric_name) {
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' # Scalar values
 #' flatten_metric_output(list(rmse = 0.5, n_obs = 100L), "my_metric")
 #' # Returns: list(my_metric__rmse = 0.5, my_metric__n_obs = 100L)
@@ -299,7 +302,8 @@ validate_metric_output <- function(output, metric_name) {
 #' #   estimates__params__gamma = 0.3
 #' # )
 #'
-#' @export
+#' }
+#' @keywords internal
 flatten_metric_output <- function(output, metric_name) {
   validate_metric_output(output, metric_name)
 
@@ -308,7 +312,16 @@ flatten_metric_output <- function(output, metric_name) {
   for (nm in names(output)) {
     val <- output[[nm]]
 
-    if (length(val) == 1) {
+    # A named numeric vector is expanded to <metric>__<field>__<subname> per
+    # element, EVEN when length 1 — so single-parameter results (e.g. a
+    # one-variable rank/coverage by_param) still carry the <param> suffix and
+    # downstream consumers grepping for <metric>__<field>__<param> find them.
+    # Bare scalars (no names) collapse to <metric>__<field>.
+    if (!is.null(names(val)) && is.numeric(val) && length(val) >= 1L) {
+      for (sub_nm in names(val)) {
+        result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
+      }
+    } else if (length(val) == 1) {
       result[[paste0(metric_name, "__", nm)]] <- val
     } else {
       for (sub_nm in names(val)) {

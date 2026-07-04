@@ -17,6 +17,8 @@ Sets RNG kind to L'Ecuyer-CMRG and initializes with global seed.
 Must be called once at simulation start.
 }
 \examples{
+\dontrun{
 setup_global_rng(42)
+}
 }
 \keyword{internal}

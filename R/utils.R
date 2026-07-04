@@ -14,7 +14,6 @@ NULL
 #' @return Concatenated string
 #'
 #' @name string-concat
-#' @export
 #' @keywords internal
 `%+%` <- function(x, y) {
   paste0(x, y)
@@ -29,11 +28,7 @@ NULL
 #' @return `x` if not NULL, otherwise `y`
 #'
 #' @name null-coalescing
-#' @export
-#'
-#' @examples
-#' NULL %||% "default"  # returns "default"
-#' "value" %||% "default"  # returns "value"
+#' @keywords internal
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # Atomic File Operations --------------------------------------------------
@@ -54,7 +49,6 @@ NULL
 #' `bayesim_checkpoint_error` is thrown.
 #'
 #' @keywords internal
-#' @export
 write_json_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
 
@@ -81,7 +75,6 @@ write_json_atomic <- function(x, path) {
 #' @return Invisible NULL. Called for side effect.
 #'
 #' @keywords internal
-#' @export
 write_rds_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
 
@@ -109,7 +102,6 @@ write_rds_atomic <- function(x, path) {
 #' @return Character string containing the hash value.
 #'
 #' @keywords internal
-#' @export
 compute_hash <- function(x) {
   digest::digest(x, algo = "xxhash64")
 }
@@ -125,7 +117,6 @@ compute_hash <- function(x) {
 #' @return Character string containing the MD5 checksum.
 #'
 #' @keywords internal
-#' @export
 compute_file_checksum <- function(path) {
   digest::digest(file = path, algo = "md5")
 }
@@ -141,7 +132,6 @@ compute_file_checksum <- function(path) {
 #' @return Invisible NULL. Called for side effect.
 #'
 #' @keywords internal
-#' @export
 write_checksums <- function(dir_path, files) {
   checksums <- list()
 
@@ -167,7 +157,6 @@ write_checksums <- function(dir_path, files) {
 #' @return Logical. TRUE if all checksums match, FALSE otherwise.
 #'
 #' @keywords internal
-#' @export
 verify_checksums <- function(dir_path) {
   checksums_path <- file.path(dir_path, "checksums.json")
 
@@ -207,14 +196,15 @@ verify_checksums <- function(dir_path) {
 #'     \item `elapsed()` - Get elapsed time in seconds
 #'   }
 #'
-#' @export
 #' @keywords internal
 #' @examples
+#' \dontrun{
 #' timer <- make_timer()
 #' timer$start()
 #' Sys.sleep(0.1)
 #' timer$stop()
 #' timer$elapsed()
+#' }
 make_timer <- function() {
   start_time <- NULL
   stop_time <- NULL
@@ -261,7 +251,6 @@ make_timer <- function() {
 #'   }
 #'
 #' @keywords internal
-#' @export
 capture_error_info <- function(e) {
   # Get traceback and trim it
   tb <- tryCatch(
@@ -314,10 +303,12 @@ capture_error_info <- function(e) {
 #'
 #' @return Character string in format "dXXX_fXXX_rXXXXX"
 #'
-#' @export
+#' @keywords internal
 #' @examples
+#' \dontrun{
 #' format_task_id(1, 2, 100)
 #' # Returns: "d001_f002_r00100"
+#' }
 format_task_id <- function(data_idx, fit_idx, rep_idx) {
   lifecycle::deprecate_warn(
     "1.1",
@@ -354,12 +345,13 @@ format_task_id <- function(data_idx, fit_idx, rep_idx) {
 #' is used internally by checkpointing code where the metric name already
 #' serves as the outer namespace.
 #'
-#' @export
 #' @keywords internal
 #' @examples
+#' \dontrun{
 #' x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
 #' flatten_with_prefix(x, "param")
 #' # Returns: list(a = 1, param__b__x = 2, param__b__y = 3, c = 4)
+#' }
 flatten_with_prefix <- function(x, prefix) {
   result <- list()
 

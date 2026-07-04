@@ -27,3 +27,4 @@ Constructor for RmseMetric.
 \examples{
 rmse_metric()
 }
+\keyword{internal}
