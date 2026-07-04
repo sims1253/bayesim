@@ -307,7 +307,8 @@ new_task_result <- function(
   diagnostics = NULL,
   timing = list(total = 0),
   error = NULL,
-  warnings = character()
+  warnings = character(),
+  truth = NULL
 ) {
   # Ensure warnings is character vector
   if (is.null(warnings)) {
@@ -330,7 +331,10 @@ new_task_result <- function(
       diagnostics = diagnostics,
       timing = timing,
       error = error,
-      warnings = warnings
+      warnings = warnings,
+      # E1: data-generating truth (named numeric or NULL), always retained and
+      # flattened to truth__<param> summary columns for recovery analysis.
+      truth = truth
     ),
     class = "bayesim_task_result"
   )

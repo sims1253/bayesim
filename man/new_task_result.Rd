@@ -11,7 +11,8 @@ new_task_result(
   diagnostics = NULL,
   timing = list(total = 0),
   error = NULL,
-  warnings = character()
+  warnings = character(),
+  truth = NULL
 )
 }
 \arguments{

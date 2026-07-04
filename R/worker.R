@@ -295,7 +295,8 @@ run_task <- function(
     diagnostics = fit_result$diagnostics,
     timing = list(total = timer$elapsed()),
     warnings = c(fit_result$warnings, metrics_result$warnings),
-    error = NULL
+    error = NULL,
+    truth = data_bundle$true_params
   )
 
   apply_task_retention(task_result, fit_result, data_bundle, task_retain)

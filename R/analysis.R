@@ -318,19 +318,22 @@ plot_recovery <- function(result, var) {
   mean_col <- paste0("posterior_summary__mean__", var)
   lower_col <- paste0("posterior_summary__q_lower__", var)
   upper_col <- paste0("posterior_summary__q_upper__", var)
-  truth_col <- "truth"
   if (!(mean_col %in% names(df))) {
     stop(bayesim_config_error(
       "Posterior summary column " %+% mean_col %+% " not found; "
         %+% "compute posterior_summary_metric() first."
     ))
   }
-  # Truth column: look for a true_params-derived column or accept a `truth` arg.
-  if (!(truth_col %in% names(df))) {
-    truth_col <- grep(paste0("true_params__", var, "$|^truth"), names(df), value = TRUE)[1]
-  }
+  # Truth column (E1): prefer truth__<var>, then a legacy true_params__<var>,
+  # then a bare `truth` column.
+  truth_candidates <- c(
+    paste0("truth__", var),
+    paste0("true_params__", var),
+    "truth"
+  )
+  truth_col <- truth_candidates[truth_candidates %in% names(df)][1]
   plot_df <- data.frame(
-    truth = if (!is.null(truth_col) && truth_col %in% names(df)) df[[truth_col]] else NA_real_,
+    truth = if (!is.na(truth_col) && truth_col %in% names(df)) df[[truth_col]] else NA_real_,
     estimate = df[[mean_col]],
     lower = if (lower_col %in% names(df)) df[[lower_col]] else NA_real_,
     upper = if (upper_col %in% names(df)) df[[upper_col]] else NA_real_

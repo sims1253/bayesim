@@ -668,6 +668,16 @@ results_to_dataframe <- function(task_results) {
       row <- c(row, flatten_with_prefix(tr$metrics, ""))
     }
 
+    # E1: data-generating truth, flattened as truth__<param> columns (always
+    # retained — tiny, enables parameter-recovery analysis and plot_recovery()).
+    if (!is.null(tr$truth) && length(tr$truth) > 0) {
+      tp <- tr$truth
+      nm <- if (!is.null(names(tp))) names(tp) else paste0("param", seq_along(tp))
+      truth_cols <- as.list(unname(tp))
+      names(truth_cols) <- paste0("truth__", nm)
+      row <- c(row, truth_cols)
+    }
+
     # Add diagnostics if present (flattening named numeric vectors)
     if (!is.null(tr$diagnostics) && length(tr$diagnostics) > 0) {
       row <- c(row, flatten_with_prefix(tr$diagnostics, ""))

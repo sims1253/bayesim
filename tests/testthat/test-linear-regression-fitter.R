@@ -144,3 +144,37 @@ describe("LinearRegressionFitter coverage", {
     expect_true(cov > 0.80 && cov < 0.97)
   })
 })
+
+describe("E1: truth recorded in summary", {
+  it("summary contains truth__<param> columns from the generator", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 50L, beta = 0.5),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 100L),
+      metrics = list(),
+      n_replicates = 3L,
+      seed = 11L
+    )
+    result <- run_simulation(config, resume = "never", progress = FALSE)
+    expect_true("truth__x" %in% names(result$summary))
+    expect_true("truth__sigma" %in% names(result$summary))
+    expect_true(all(result$summary$truth__x == 0.5))
+  })
+
+  it("plot_recovery returns a ggplot using truth__ columns", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    config <- simulation_config(
+      data_grid = data.frame(n = 50L, beta = 0.5),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 200L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 4L,
+      seed = 12L
+    )
+    result <- run_simulation(config, resume = "never", progress = FALSE)
+    p <- plot_recovery(result, "x")
+    expect_s3_class(p, "ggplot")
+  })
+})
