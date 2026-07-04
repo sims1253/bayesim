@@ -88,3 +88,16 @@ describe("rmse_loo / r2_loo degradation", {
     expect_true(is.na(out_r2$value))
   })
 })
+
+# A4: loo_fit(BrmsFitter) must use chain-aware r_eff, matching brms::loo().
+describe("loo_fit(BrmsFitter) parity with brms::loo (A4)", {
+  it("matches brms::loo elpd_loo within 1e-6 (chain-aware r_eff)", {
+    fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
+    out <- loo_fit(fitter, fit_result)
+    brms_loo <- suppressWarnings(brms::loo(fit))
+    expect_false(is.na(out$elpd))
+    expect_lt(abs(out$elpd - brms_loo$estimates["elpd_loo", "Estimate"]), 1e-6)
+    expect_lt(abs(out$p_loo - brms_loo$estimates["p_loo", "Estimate"]), 1e-6)
+    expect_lt(abs(out$elpd_se - brms_loo$estimates["elpd_loo", "SE"]), 1e-6)
+  })
+})

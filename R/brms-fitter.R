@@ -476,7 +476,10 @@ S7::method(loo_fit, BrmsFitter) <- function(fitter, fit_result) {
   }
 
   ll <- brms::log_lik(fit_result$fit)
-  loo_result <- loo::loo(ll)
+  # Chain-aware relative efficiency (A4): consistent with build_loo_context()
+  # and brms::loo(). ll is S x N (draws x observations).
+  r_eff <- relative_eff_from_chains(fitter, fit_result, ll)
+  loo_result <- loo::loo(ll, r_eff = r_eff)
 
   list(
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
@@ -497,40 +500,63 @@ S7::method(diagnostics, BrmsFitter) <- function(fitter, fit_result) {
 
 #' Extract brms diagnostics
 #'
+#' Computes rhat/ESS extrema over **all** parameters (fixed, group-level,
+#' distributional, sigma) via `posterior::summarise_draws`, not just the fixed
+#' effects from `summary(fit)` (A3). Divergences and max-treedepth hits come
+#' from the sampler diagnostics. `lp__` is excluded as it is not a parameter of
+#' interest.
+#'
 #' @param fit brms fit object
 #'
-#' @return Named list of diagnostics
+#' @return Named list of diagnostics with `rhat_max`, `ess_bulk_min`,
+#'   `ess_tail_min`, `divergent`, `max_treedepth`.
 #' @keywords internal
 extract_brms_diagnostics <- function(fit) {
-  summary <- summary(fit)
+  # rhat/ESS extrema over all parameters (excluding lp__).
+  draw_summary <- tryCatch(
+    {
+      draws <- posterior::as_draws_array(fit)
+      vars <- setdiff(posterior::variables(draws), "lp__")
+      posterior::summarise_draws(
+        posterior::subset_draws(draws, variable = vars),
+        rhat = posterior::rhat,
+        ess_bulk = posterior::ess_bulk,
+        ess_tail = posterior::ess_tail
+      )
+    },
+    error = function(e) NULL
+  )
 
-  # Rhat and ESS - handle models without fixed effects
-  if (!is.null(summary$fixed) && nrow(summary$fixed) > 0) {
-    rhat_values <- summary$fixed[, "Rhat"]
-    ess_bulk_values <- summary$fixed[, "Bulk_ESS"]
-    ess_tail_values <- summary$fixed[, "Tail_ESS"]
+  if (is.null(draw_summary) || nrow(draw_summary) == 0) {
+    rhat_values <- ess_bulk_values <- ess_tail_values <- NA_real_
   } else {
-    rhat_values <- NA_real_
-    ess_bulk_values <- NA_real_
-    ess_tail_values <- NA_real_
+    rhat_values <- draw_summary$rhat
+    ess_bulk_values <- draw_summary$ess_bulk
+    ess_tail_values <- draw_summary$ess_tail
   }
 
   # Divergences
   sampler_diag <- brms::nuts_params(fit)
   divergent <- sum(sampler_diag$value[sampler_diag$Parameter == "divergent__"])
 
-  # max_treedepth - try to get from fit, default to 10
-  max_treedepth <- tryCatch(
+  # max_treedepth: read the control setting actually used for this fit via the
+  # stored stan_args, with a documented fallback of 10 (A3). The previous
+  # `get("control_args", asNamespace("brms"))` reach-in was brittle across
+  # brms versions.
+  max_treedepth_limit <- tryCatch(
     {
-      # Try to access control_args from brms namespace
-      control_args_fn <- get("control_args", envir = asNamespace("brms"))
-      td <- control_args_fn(fit)$max_treedepth
-      if (is.null(td)) {
-        td <- 10
-      } # default
-      sum(sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >= td)
+      stan_args <- fit$fit@stan_args[[1]]
+      td <- NULL
+      if (!is.null(stan_args$control)) {
+        td <- stan_args$control$max_treedepth
+      }
+      if (is.null(td)) td <- 10L
+      td
     },
-    error = function(e) NA_integer_
+    error = function(e) 10L
+  )
+  max_treedepth <- sum(
+    sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >= max_treedepth_limit
   )
 
   list(

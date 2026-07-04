@@ -163,6 +163,35 @@ describe("BrmsFitter model bank", {
       "divergent" %in% names(result$diagnostics))
   })
 
+  it("computes diagnostics over all parameters incl. group-level (A3)", {
+    # A varying-intercept model fit with deliberately few iterations so the
+    # group-level SD is poorly estimated. extract_brms_diagnostics must look
+    # beyond summary()$fixed, else rhat_max would miss a bad group-level SD.
+    df <- data.frame(
+      y = stats::rnorm(40),
+      x = stats::rnorm(40),
+      g = factor(rep(1:4, each = 10))
+    )
+    fit <- suppressWarnings(brms::brm(
+      y ~ x + (1 | g), data = df, family = gaussian(),
+      backend = "cmdstanr", chains = 1L, iter = 20L, warmup = 10L,
+      silent = 2L, refresh = 0L
+    ))
+
+    diag <- bayesim:::extract_brms_diagnostics(fit)
+    expect_true(is.list(diag))
+    expect_true(all(c("rhat_max", "ess_bulk_min", "ess_tail_min",
+                      "divergent", "max_treedepth") %in% names(diag)))
+    # sd(Intercept) is a parameter; the all-parameter max rhat must be finite.
+    expect_false(is.na(diag$rhat_max))
+    # The all-parameter ESS must reflect the group-level SD too: cross-check by
+    # comparing against the fixed-effects-only rhat from summary(fit)$fixed.
+    fixed_rhat <- max(summary(fit)$fixed[, "Rhat"], na.rm = TRUE)
+    # rhat_max over all params is >= the fixed-effects-only max (it covers a
+    # superset of parameters), and never NA when fixed-effects is finite.
+    expect_gte(diag$rhat_max, fixed_rhat - 1e-9)
+  })
+
   it("falls back to a fresh brm() when precompile is FALSE", {
     fitter <- tiny_fitter()
     fitter@precompile <- FALSE
