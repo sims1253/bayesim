@@ -13,3 +13,5 @@
 ^PLAN.*\.md$
 ^docs$
 ^ROADMAP\.md$
+# Ignore compiled cmdstan binaries (extensionless) shipped next to .stan sources.
+^inst/stan/[^/.]+$
