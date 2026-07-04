@@ -100,11 +100,16 @@ validate_data_bundle <- function(data_bundle) {
     }
   }
 
-  # response is optional - only validated when present
-  if (!is.null(data_bundle$response) && !is.character(data_bundle$response)) {
+  # response is required (a data bundle must name the outcome column).
+  if (is.null(data_bundle$response)) {
+    stop(bayesim_data_error(
+      "data_bundle$response is required (the name of the response column)"
+    ))
+  }
+  if (!is.character(data_bundle$response)) {
     stop(
       bayesim_data_error(
-        "data_bundle$response must be NULL or a character vector, got " %+%
+        "data_bundle$response must be a character vector, got " %+%
           typeof(data_bundle$response)
       )
     )
