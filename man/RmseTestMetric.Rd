@@ -5,7 +5,12 @@
 \alias{rmse_test_metric}
 \title{RMSE Test-Set Metric}
 \usage{
-RmseTestMetric(name = character(0), needs = character(0), required = FALSE)
+RmseTestMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 rmse_test_metric(name = "rmse_test")
 }

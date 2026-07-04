@@ -5,7 +5,12 @@
 \alias{pred_bias_metric}
 \title{Bias Metric}
 \usage{
-BiasMetric(name = character(0), needs = character(0), required = FALSE)
+BiasMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 pred_bias_metric(name = "bias")
 }

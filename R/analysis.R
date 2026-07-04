@@ -102,15 +102,16 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       out[[paste0(m, "_median")]] <- if (n > 0L) stats::median(vals) else NA_real_
       sd_v <- if (n > 1L) stats::sd(vals) else NA_real_
       out[[paste0(m, "_sd")]] <- sd_v
-      # MCSE: sd/sqrt(n) for general metrics; sqrt(p(1-p)/n) for coverage-like.
+      # E4: MCSE by summary_type. Coverage-like columns (binary 0/1 or a column
+      # the metric declares as "proportion") use sqrt(p(1-p)/n). Everything
+      # else (including pred-RMSE means) uses the plain sd/sqrt(n) MCSE for what
+      # is reported (the mean of per-task values) — the previous delta-method
+      # rmse branch re-squared per-task RMSEs, producing an MCSE for a quantity
+      # (sqrt-mean-MSE) that is not the reported _mean column.
       if (n > 1L) {
         if (is_coverage_like(m, vals)) {
           p <- mean(vals)
           out[[paste0(m, "_mcse")]] <- sqrt(p * (1 - p) / n)
-        } else if (is_rmse_like(m)) {
-          # Delta-method MCSE for RMSE = sqrt(mean(e^2)):
-          # Var(sqrt(M)) approx Var(e^2) / (4 * M), M = mean(e^2).
-          out[[paste0(m, "_mcse")]] <- rmse_mcse(vals)
         } else {
           out[[paste0(m, "_mcse")]] <- sd_v / sqrt(n)
         }
@@ -352,34 +353,44 @@ plot_recovery <- function(result, var) {
   p
 }
 
-#' Plot coverage rates per condition
+#' Plot coverage rates per condition/parameter
 #'
-#' @description Bar plot of mean credible-interval coverage per condition,
-#'   with a reference line at the nominal rate. Requires `coverage_metric`.
+#' @description Point-range plot of credible-interval coverage with MCSE error
+#'   bars (E7 redesign: was a bar plot of a continuous coverage_mean). Coverage
+#'   and its MCSE come from [performance_measures()]; each point is a
+#'   condition x estimand cell, with a dashed reference line at the nominal
+#'   rate. Requires `posterior_summary_metric()` (and recorded truths, E1).
 #' @param result A `bayesim_simulation_result`.
 #' @param nominal Nominal coverage rate (default 0.95).
+#' @param by Character vector of condition columns (passed to
+#'   [performance_measures()]).
 #' @return A ggplot object.
 #' @export
 #' @examples
 #' \dontrun{
 #' plot_coverage(result)
 #' }
-plot_coverage <- function(result, nominal = 0.95) {
+plot_coverage <- function(result, nominal = 0.95, by = NULL) {
   rlang::check_installed("ggplot2", "to use plot_coverage()")
-  agg <- summarize_simulation(result)
-  mean_col <- grep("coverage__mean$|coverage_mean$", names(agg), value = TRUE)[1]
-  if (is.na(mean_col)) {
-    stop(bayesim_config_error("coverage mean column not found; use coverage_metric()"))
+  pm <- performance_measures(result, by = by)
+  cov <- pm[pm$measure == "coverage", , drop = FALSE]
+  if (nrow(cov) == 0L) {
+    stop(bayesim_config_error(paste(
+      "No coverage rows: performance_measures() needs truth__ and",
+      "posterior_summary__ columns (compute posterior_summary_metric(), E1 truths)."
+    )))
   }
-  agg$coverage_mean <- agg[[mean_col]]
-  ggplot2::ggplot(agg, ggplot2::aes(.data$coverage_mean)) +
-    ggplot2::geom_vline(xintercept = nominal, color = "red", linetype = "dashed") +
-    ggplot2::geom_bar() +
+  p <- ggplot2::ggplot(cov, ggplot2::aes(.data$estimand, .data$value)) +
+    ggplot2::geom_hline(yintercept = nominal, color = "grey50", linetype = "dashed") +
+    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$value - .data$mcse,
+                                        ymax = .data$value + .data$mcse), width = 0.2) +
+    ggplot2::geom_point() +
     ggplot2::labs(
-      x = "mean coverage", y = "count of conditions",
-      title = paste0("Credible-interval coverage (nominal ", nominal, ")")
+      x = "estimand", y = paste0("coverage (nominal ", nominal, ")"),
+      title = "Credible-interval coverage with MCSE"
     ) +
     ggplot2::theme_minimal()
+  p
 }
 
 #' Plot a metric across conditions

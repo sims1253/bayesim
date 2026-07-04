@@ -5,7 +5,12 @@
 \alias{r2_test_metric}
 \title{R-squared Test-Set Metric}
 \usage{
-R2TestMetric(name = character(0), needs = character(0), required = FALSE)
+R2TestMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 r2_test_metric(name = "r2_test")
 }

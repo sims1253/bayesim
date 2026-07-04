@@ -35,7 +35,7 @@ describe("M5 extended metrics", {
   it("pred_mae_metric computes mean absolute error", {
     fx <- make_fixture(predictions = list(predicted_mean = 1:10))
     fx$data_bundle$response <- "y"
-    fx$data_bundle$train$y <- 2:11
+    fx$data_bundle$test <- data.frame(y = 2:11)
     out <- compute_metric(pred_mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, 1)
     expect_equal(out$n_obs, 10)
@@ -49,7 +49,8 @@ describe("M5 extended metrics", {
 
   it("pred_mse_metric computes mean squared error", {
     fx <- make_fixture(predictions = list(predicted_mean = rep(0, 5)))
-    fx$data_bundle$train$y <- c(1, 2, 3, 4, 5)
+    fx$data_bundle$response <- "y"
+    fx$data_bundle$test <- data.frame(y = c(1, 2, 3, 4, 5))
     out <- compute_metric(pred_mse_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, mean((1:5)^2))
   })

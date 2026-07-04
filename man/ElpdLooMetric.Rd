@@ -5,7 +5,12 @@
 \alias{elpd_loo_metric}
 \title{ELPD-LOO Metric}
 \usage{
-ElpdLooMetric(name = character(0), needs = character(0), required = FALSE)
+ElpdLooMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 elpd_loo_metric(name = "elpd_loo")
 }

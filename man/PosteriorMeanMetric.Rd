@@ -8,7 +8,8 @@
 PosteriorMeanMetric(
   name = character(0),
   needs = character(0),
-  required = FALSE
+  required = FALSE,
+  summary_type = "mean"
 )
 
 posterior_mean_metric(name = "posterior_mean")

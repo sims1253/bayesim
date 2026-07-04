@@ -2,21 +2,27 @@
 % Please edit documentation in R/analysis.R
 \name{plot_coverage}
 \alias{plot_coverage}
-\title{Plot coverage rates per condition}
+\title{Plot coverage rates per condition/parameter}
 \usage{
-plot_coverage(result, nominal = 0.95)
+plot_coverage(result, nominal = 0.95, by = NULL)
 }
 \arguments{
 \item{result}{A \code{bayesim_simulation_result}.}
 
 \item{nominal}{Nominal coverage rate (default 0.95).}
+
+\item{by}{Character vector of condition columns (passed to
+\code{\link[=performance_measures]{performance_measures()}}).}
 }
 \value{
 A ggplot object.
 }
 \description{
-Bar plot of mean credible-interval coverage per condition,
-with a reference line at the nominal rate. Requires \code{coverage_metric}.
+Point-range plot of credible-interval coverage with MCSE error
+bars (E7 redesign: was a bar plot of a continuous coverage_mean). Coverage
+and its MCSE come from \code{\link[=performance_measures]{performance_measures()}}; each point is a
+condition x estimand cell, with a dashed reference line at the nominal
+rate. Requires \code{posterior_summary_metric()} (and recorded truths, E1).
 }
 \examples{
 \dontrun{

@@ -5,7 +5,12 @@
 \alias{r2_loo_metric}
 \title{R-squared LOO Metric}
 \usage{
-R2LooMetric(name = character(0), needs = character(0), required = FALSE)
+R2LooMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 r2_loo_metric(name = "r2_loo")
 }

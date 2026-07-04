@@ -5,7 +5,12 @@
 \alias{pred_rmse_metric}
 \title{RMSE Metric}
 \usage{
-RmseMetric(name = character(0), needs = character(0), required = FALSE)
+RmseMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 pred_rmse_metric(name = "rmse")
 }

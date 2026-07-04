@@ -5,7 +5,12 @@
 \alias{elpd_test_metric}
 \title{ELPD Test-Set Metric}
 \usage{
-ElpdTestMetric(name = character(0), needs = character(0), required = FALSE)
+ElpdTestMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 elpd_test_metric(name = "elpd_test")
 }

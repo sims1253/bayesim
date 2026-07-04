@@ -8,7 +8,8 @@
 SamplerDiagnosticsMetric(
   name = character(0),
   needs = character(0),
-  required = FALSE
+  required = FALSE,
+  summary_type = "mean"
 )
 
 sampler_diagnostics_metric(name = "sampler_diagnostics")

@@ -4,7 +4,12 @@
 \alias{Metric}
 \title{Metric Abstract Class}
 \usage{
-Metric(name = character(0), needs = character(0), required = FALSE)
+Metric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 }
 \arguments{
 \item{name}{Character identifier for the metric. Used as a prefix when

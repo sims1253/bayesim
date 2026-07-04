@@ -5,7 +5,12 @@
 \alias{pos_prob_metric}
 \title{Positivity Probability Metric}
 \usage{
-PosProbMetric(name = character(0), needs = character(0), required = FALSE)
+PosProbMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 pos_prob_metric(name = "pos_prob")
 }

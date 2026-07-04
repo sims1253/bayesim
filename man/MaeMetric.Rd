@@ -5,7 +5,12 @@
 \alias{pred_mae_metric}
 \title{MAE Metric}
 \usage{
-MaeMetric(name = character(0), needs = character(0), required = FALSE)
+MaeMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 pred_mae_metric(name = "mae")
 }

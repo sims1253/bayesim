@@ -5,7 +5,12 @@
 \alias{convergence_metric}
 \title{Convergence Metric}
 \usage{
-ConvergenceMetric(name = character(0), needs = character(0), required = FALSE)
+ConvergenceMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 convergence_metric(name = "convergence")
 }

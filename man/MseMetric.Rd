@@ -5,7 +5,12 @@
 \alias{pred_mse_metric}
 \title{MSE Metric}
 \usage{
-MseMetric(name = character(0), needs = character(0), required = FALSE)
+MseMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 pred_mse_metric(name = "mse")
 }

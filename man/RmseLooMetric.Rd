@@ -5,7 +5,12 @@
 \alias{rmse_loo_metric}
 \title{RMSE-LOO Metric}
 \usage{
-RmseLooMetric(name = character(0), needs = character(0), required = FALSE)
+RmseLooMetric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean"
+)
 
 rmse_loo_metric(name = "rmse_loo")
 }

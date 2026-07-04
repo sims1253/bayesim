@@ -9,6 +9,7 @@ PosteriorSummaryMetric(
   name = character(0),
   needs = character(0),
   required = FALSE,
+  summary_type = "mean",
   prob = 0.95
 )
 
