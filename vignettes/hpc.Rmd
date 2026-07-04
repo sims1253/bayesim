@@ -1,0 +1,274 @@
+---
+title: "HPC and remote daemons"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{HPC and remote daemons}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{bayesim}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(bayesim)
+```
+
+# Introduction
+
+bayesim parallelizes simulation tasks across [mirai](https://mirai.r-lib.org/)
+daemons. The `workers=` argument to `run_simulation()` covers the common case of
+local multi-core parallelism: it sets up `mirai::daemons(workers)` for the run
+and tears them down on exit.
+
+High-performance computing (HPC) clusters are different. Compute happens across
+many nodes, the dispatcher and the workers do not share a process, and the
+dispatcher must reach its workers over a network. For that, mirai exposes a URL
+scheme that lets daemons live on remote nodes and connect back to a dispatcher
+on the head node. bayesim is designed to slot into that workflow: set up your own
+daemons before calling `run_simulation()`, pass `workers = NULL`, and bayesim
+will dispatch its task grid over them.
+
+This vignette walks through the moving parts: the local-recap, the mirai URL
+scheme on SLURM, TLS configuration, the `daemon_setup` hook for per-daemon
+initialization (e.g. the cmdstan path), and checkpoint/resume across SLURM
+submissions.
+
+# Local parallelism
+
+For local multi-core work, pass `workers` to `run_simulation()`:
+
+```{r, eval=FALSE}
+result <- run_simulation(config, workers = 4)
+# mirai::daemons(4) is called for you and torn down on exit.
+```
+
+This is the simplest path and is also the recommended path for development and
+for moderate task counts. The rest of this vignette is only relevant when you
+need daemons that the `workers=` argument cannot manage itself: daemons on
+remote nodes, behind TLS, or with per-daemon setup.
+
+# Remote daemons (mirai URL scheme)
+
+mirai's URL scheme splits the work into two roles:
+
+- A **dispatcher** (the controller process) that calls `mirai::daemons(url, n)`
+  to advertise `n` worker slots at a URL.
+- **Daemons** (the workers), launched separately, that each call
+  `mirai::daemon(def, url, ...)` to connect back to the dispatcher and pull
+  tasks.
+
+This split maps cleanly onto a batch scheduler: the dispatcher runs on the head
+node (or wherever `srun` puts the driver), and the daemons run on the compute
+nodes.
+
+```{r, eval=FALSE}
+library(bayesim)
+library(mirai)
+
+# On the dispatcher: advertise 16 worker slots at a TLS-secured URL.
+url <- "tls://10.0.0.1:5555"
+daemons(url = url, n = 16)
+
+# Now run bayesim with workers = NULL so it uses the daemons you set up.
+result <- run_simulation(config, workers = NULL)
+
+# Tear down when finished.
+daemons(0)
+```
+
+## A SLURM submission script
+
+A typical pattern is one SLURM job that launches `N` daemon workers across
+nodes, then runs the dispatcher R script on the head node. The script below uses
+`tasks` (one task per CPU) and `srun` to launch a daemon on each task slot.
+
+```bash
+#!/bin/bash
+#SBATCH --job-name=bayesim-sim
+#SBATCH --nodes=4
+#SBATCH --tasks-per-node=4
+#SBATCH --cpus-per-task=1
+#SBATCH --time=12:00:00
+#SBATCH --output=sim-%j.out
+
+module load R
+module load gcc
+
+# TLS material (see "TLS configuration" below).
+export BAYESIM_TLS=/scratch/$USER/bayesim-tls
+
+# Dispatcher URL: the head node's primary address, on a fixed port.
+DISPATCHER_URL="tls://$(hostname -I | awk '{print $1}'):5555"
+N_DAEMONS=$((SLURM_NTASKS - 1))   # reserve one task for the dispatcher
+
+# Launch one daemon per remaining task, across all allocated nodes.
+srun --ntasks=$N_DAEMONS --overlap Rscript -e "
+  mirai::daemon('dispatcher.R', url = '$DISPATCHER_URL',
+                tls = mirai::tls_config(
+                  ca = '$BAYESIM_TLS/ca.pem',
+                  key = '$BAYESIM_TLS/server-key.pem',
+                  cert = '$BAYESIM_TLS/server.pem'))
+" &
+
+# Give the daemons a moment to connect.
+sleep 10
+
+# Run the dispatcher on the head node.
+Rscript dispatcher.R "$DISPATCHER_URL" "$N_DAEMONS"
+
+wait
+```
+
+And the dispatcher R script:
+
+```{r, eval=FALSE}
+# dispatcher.R
+args <- commandArgs(trailingOnly = TRUE)
+url <- args[1]
+n <- as.integer(args[2])
+
+library(bayesim)
+library(mirai)
+
+mirai::daemons(url = url, n = n)
+
+config <- simulation_config(
+  data_grid = my_data_grid,
+  fit_grid = my_fit_grid,
+  data_generator = my_data_generator,
+  fitter = BrmsFitter(...),
+  metrics = list(pred_rmse_metric(), coverage_metric()),
+  n_replicates = 500L,
+  seed = 42L,
+  result_path = "sim-checkpoints"
+)
+
+result <- run_simulation(config, workers = NULL)
+
+mirai::daemons(0)
+```
+
+The exact `srun`/socket plumbing depends on your cluster's network topology;
+the load-bearing idea is the dispatcher/daemon split.
+
+# TLS configuration
+
+Remote daemons should connect over TLS. mirai uses standard PEM material; see
+the [mirai security
+documentation](https://mirai.r-lib.org/articles/tls.html#secure-connections-1)
+for the full reference. A self-signed CA plus server/client certs is enough to
+get started:
+
+```{r, eval=FALSE}
+# Run once, on a trusted host. Keep the private keys private.
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout ca-key.pem -out ca.pem \
+  -subj "/CN=bayesim-CA"
+
+openssl req -newkey rsa:2048 -nodes \
+  -keyout server-key.pem -out server-csr.pem \
+  -subj "/CN=$(hostname)"
+
+openssl x509 -req -in server-csr.pem -CA ca.pem -CAkey ca-key.pem \
+  -CAcreateserial -out server.pem -days 365
+
+# Distribute ca.pem, server.pem, and server-key.pem to every node
+# that will run a daemon or the dispatcher.
+```
+
+Then pass the material into both sides:
+
+```{r, eval=FALSE}
+# Dispatcher
+tls <- mirai::tls_config(
+  ca = "ca.pem",
+  key = "server-key.pem",
+  cert = "server.pem"
+)
+mirai::daemons(url = "tls://...", n = 16, tls = tls)
+
+# Each daemon
+mirai::daemon(url = "tls://...", tls = tls)
+```
+
+# The daemon_setup hook
+
+Daemons start from a fresh R process. Anything the workers need at run time ---
+the cmdstan install path, environment modules, a warm model cache --- must be
+set up on each daemon before tasks start. bayesim exposes this through the
+`daemon_setup` argument of `simulation_config()`, which is run once per daemon
+via `mirai::everywhere()` before the task grid ships.
+
+```{r, eval=FALSE}
+config <- simulation_config(
+  data_grid = my_data_grid,
+  fit_grid = my_fit_grid,
+  data_generator = my_data_generator,
+  fitter = BrmsFitter(precompile = TRUE),
+  metrics = list(pred_rmse_metric(), coverage_metric()),
+  n_replicates = 500L,
+  seed = 42L,
+  result_path = "sim-checkpoints",
+  daemon_setup = function() {
+    # Point cmdstanr at the cluster's cmdstan install (modules are usually
+    # loaded by the SLURM environment; the path still needs to be set in R).
+    cmdstanr::cmdstan_path_set("/opt/cmdstan-2.35.0")
+    # Optionally seed package-level caches, set options, etc.
+  }
+)
+
+# With daemons already set up via mirai::daemons(url = "tls://...", n = 16):
+result <- run_simulation(config, workers = NULL)
+```
+
+`daemon_setup` is ignored when no daemons are set, so the same config works for
+local and HPC runs.
+
+# Checkpointing across submissions
+
+SLURM jobs can be preempted or hit a wall-clock limit mid-run. Point
+`result_path` at a directory on shared scratch and pass `resume = "auto"` so an
+interrupted run picks up where it left off:
+
+```{r, eval=FALSE}
+config <- simulation_config(
+  data_grid = my_data_grid,
+  fit_grid = my_fit_grid,
+  data_generator = my_data_generator,
+  fitter = BrmsFitter(precompile = TRUE),
+  metrics = list(pred_rmse_metric(), coverage_metric()),
+  n_replicates = 2000L,
+  seed = 42L,
+  result_path = "/scratch/$USER/bayesim-sim",
+  checkpoint_every = 50L,
+  daemon_setup = function() cmdstanr::cmdstan_path_set("/opt/cmdstan-2.35.0")
+)
+
+# Each submission either starts fresh or resumes from the shared checkpoint.
+result <- run_simulation(config, resume = "auto", workers = NULL)
+```
+
+The config fingerprint is written into the checkpoint manifest, so a resumed run
+is rejected if you change the design (data/fit grid, seed, generator signature)
+between submissions. For a forced resume from a specific directory, use
+`resume_simulation()`:
+
+```{r, eval=FALSE}
+result <- resume_simulation("/scratch/$USER/bayesim-sim")
+```
+
+# Next steps
+
+- `vignette("getting-started")` for the basics of `simulation_config()` and
+  `run_simulation()`.
+- `vignette("reproducibility")` for why resuming produces identical results to
+  an uninterrupted run.
+- `vignette("memory-management")` for keeping memory flat across very large
+  task grids.
+- `vignette("targets")` for running bayesim as a step in a `targets` pipeline.

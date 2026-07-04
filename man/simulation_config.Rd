@@ -19,7 +19,8 @@ simulation_config(
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL,
-  stop_on = NULL
+  stop_on = NULL,
+  summary_format = c("rds", "parquet")
 )
 }
 \arguments{
@@ -76,6 +77,13 @@ Once the MCSE of \code{measure} for \code{estimand} falls below \code{target_mcs
 at least \code{min_reps} replicates have completed, remaining pending tasks
 are marked \code{"skipped"} and the run stops. (I3: excluded from the config
 fingerprint — it is runtime policy.)}
+
+\item{summary_format}{Character scalar. Output format for the final summary.
+\code{"rds"} (default) writes nothing extra -- the canonical rds checkpoint
+carries the summary and remains the resume artifact. \code{"parquet"}
+additionally writes \verb{<result_path>/summary.parquet} using the suggested
+\code{nanoparquet} package, for downstream consumption (pandas, arrow, polars).
+(I8: excluded from the config fingerprint -- runtime policy.)}
 }
 \value{
 An S7 SimulationConfig object.

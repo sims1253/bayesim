@@ -5,6 +5,13 @@ NULL
 
 VALID_CHECKPOINT_FORMATS <- c("rds")
 
+# I8: valid formats for the optional summary sidecar. "rds" is the default and
+# writes nothing extra (the canonical rds checkpoint carries the summary). When
+# set to "parquet", the final summary is ALSO written to
+# `<result_path>/summary.parquet` for downstream (pandas/arrow/polars) use. The
+# rds checkpoint remains the canonical resume artifact either way.
+VALID_SUMMARY_FORMATS <- c("rds", "parquet")
+
 # S7 class definition for SimulationConfig
 SimulationConfig <- S7::new_class(
   name = "SimulationConfig",
@@ -131,6 +138,23 @@ SimulationConfig <- S7::new_class(
     stop_on = S7::new_property(
       class = S7::new_union(S7::class_any, NULL),
       default = NULL
+    ),
+    # I8: optional parquet sidecar for the summary. Default "rds" writes nothing
+    # extra. "parquet" additionally writes `<result_path>/summary.parquet` for
+    # downstream consumption. Runtime policy: excluded from the config fingerprint.
+    summary_format = S7::new_property(
+      class = S7::class_character,
+      default = "rds",
+      validator = function(value) {
+        if (length(value) != 1 || is.na(value)) {
+          "summary_format must be a single character string"
+        } else if (!value %in% VALID_SUMMARY_FORMATS) {
+          paste0(
+            "summary_format must be one of: ",
+            paste(VALID_SUMMARY_FORMATS, collapse = ", ")
+          )
+        }
+      }
     )
   )
 )
@@ -180,6 +204,12 @@ SimulationConfig <- S7::new_class(
 #'   at least `min_reps` replicates have completed, remaining pending tasks
 #'   are marked `"skipped"` and the run stops. (I3: excluded from the config
 #'   fingerprint — it is runtime policy.)
+#' @param summary_format Character scalar. Output format for the final summary.
+#'   `"rds"` (default) writes nothing extra -- the canonical rds checkpoint
+#'   carries the summary and remains the resume artifact. `"parquet"`
+#'   additionally writes `<result_path>/summary.parquet` using the suggested
+#'   `nanoparquet` package, for downstream consumption (pandas, arrow, polars).
+#'   (I8: excluded from the config fingerprint -- runtime policy.)
 #'
 #' @return An S7 SimulationConfig object.
 #'
@@ -213,7 +243,8 @@ simulation_config <- function(
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL,
-  stop_on = NULL
+  stop_on = NULL,
+  summary_format = c("rds", "parquet")
 ) {
   if (!is.null(task_grid)) {
     if (!is.data.frame(task_grid)) {
@@ -337,6 +368,9 @@ simulation_config <- function(
   # I3: validate optional adaptive-stopping policy.
   stop_on <- validate_stop_on(stop_on)
 
+  # I8: resolve summary_format.
+  summary_format <- match.arg(summary_format, VALID_SUMMARY_FORMATS)
+
   # Create and return S7 object
   SimulationConfig(
     data_grid = data_grid,
@@ -353,7 +387,8 @@ simulation_config <- function(
     retain = retain,
     max_errors = max_errors,
     daemon_setup = daemon_setup,
-    stop_on = stop_on
+    stop_on = stop_on,
+    summary_format = summary_format
   )
 }
 

@@ -541,3 +541,449 @@ brms_response_sequence.default <- function(x) {
   # fragility from the 0.x port; hardened here.
   character(0)
 }
+
+
+# Fitter-agnostic generators --------------------------------------------------
+#
+# prior_draws_generator() and forward_sim_generator() are the fitter-agnostic
+# counterparts of prior_predictive_generator() / ifs_generator(). Instead of
+# requiring a brmsfit, they drive parameter/data generation through the S7
+# Fitter interface (extract_draws(), predict_fit()), so they work with
+# LinearRegressionFitter, BrmsFitter, CmdStanFitter, or any custom Fitter.
+#
+# Both factories fit ONCE on a pilot data_bundle supplied by the caller, store
+# the resulting draws matrix, and then on each task pick a deterministic draw
+# (indexed by task_ctx$rep_idx, wrapped modulo n_draws) and forward-simulate y
+# for the predictors in data_spec.
+#
+# IMPORTANT (limitation): a true model prior is only directly available for
+# brms (via brms::prior_draws). For other fitters there is no generic
+# "prior_draws" S7 method, so prior_draws_generator() uses the DRAWS STORED ON
+# THE FIT — for LinearRegressionFitter these are NIG-prior-posterior draws from
+# the pilot (with a weak default prior, prior_precision = 1e-6), which is an
+# APPROXIMATION of the prior predictive (concentrated on the pilot's posterior
+# region, like IFS). For BrmsFitter, prior_draws_generator() first tries
+# brms::prior_draws(); if unavailable, it degrades to the fit's posterior
+# draws. Brms users who want the full prior predictive should use the
+# brms-specific prior_predictive_generator().
+
+
+#' Construct a fitter-agnostic prior-draws data generator
+#'
+#' `prior_draws_generator()` is the fitter-agnostic analogue of
+#' [prior_predictive_generator()]. It works through the S7 [Fitter] interface
+#' rather than brms-specific functions, so it can be used with
+#' [LinearRegressionFitter], [BrmsFitter], [CmdStanFitter], or any custom
+#' Fitter.
+#'
+#' The factory fits the model ONCE on `pilot_bundle` (provided by the caller),
+#' extracts parameter draws via [extract_draws()], and stores them. The returned
+#' closure, on each call, picks a draw deterministically indexed by
+#' `task_ctx$rep_idx` (wrapped modulo the number of stored draws), uses it as
+#' `true_params`, and forward-simulates `y` from the supplied predictors.
+#'
+#' Forward simulation: the response is drawn from a Gaussian with mean equal to
+#' the linear predictor `X theta` (using the coefficient columns of the draw)
+#' and standard deviation equal to the `sigma` column of the draw (if present,
+#' else 1). This is the natural data-generating process for Gaussian linear
+#' models — the common case for [LinearRegressionFitter].
+#'
+#' @section Limitations (non-brms):
+#' A true model prior is directly accessible only for brms fits
+#' ([brms::prior_draws()]). For other fitters there is no generic
+#' "prior_draws" S7 method, so this factory falls back to the draws stored on
+#' the pilot fit. For [LinearRegressionFitter] those are NIG-prior-conditioned
+#' posterior draws (the prior is weak by default, `prior_precision = 1e-6`),
+#' which makes this an *approximate* prior-predictive path concentrated on the
+#' pilot's posterior region. Brms users who need full prior-predictive coverage
+#' should prefer the brms-specific [prior_predictive_generator()].
+#'
+#' @param fitter An S7 [Fitter] object (e.g. [LinearRegressionFitter]).
+#' @param fit_spec A list (single-row fit_grid entry) carrying at least
+#'   `formula` (a base R formula). For [LinearRegressionFitter] a formula like
+#'   `y ~ x` is expected.
+#' @param pilot_bundle A `data_bundle` list (`train`, `response`, etc.) used for
+#'   the one-time preconditioning fit. The caller is responsible for providing a
+#'   representative pilot dataset. Must contain a `train` data.frame whose
+#'   column names match the design implied by `fit_spec$formula`.
+#' @param predictor_generator Function `(data_spec, task_ctx) -> data.frame`
+#'   producing the design matrix of predictors (everything except the response).
+#'   Must consume the ambient RNG state.
+#' @param response Name of the response column. Defaults to
+#'   `pilot_bundle$response`, falling back to the LHS of `fit_spec$formula`,
+#'   then to `"y"`.
+#' @param n_draws Optional integer override for the number of draws to store; if
+#'   `NULL` (default), uses the number of draws returned by [extract_draws()].
+#'
+#' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
+#' @export
+#' @seealso [prior_predictive_generator()], [forward_sim_generator()],
+#'   [Fitter], [LinearRegressionFitter]
+prior_draws_generator <- function(fitter, fit_spec, pilot_bundle,
+                                  predictor_generator, response = NULL,
+                                  n_draws = NULL) {
+  if (!S7::S7_inherits(fitter, Fitter)) {
+    stop(bayesim_config_error(
+      "fitter must be an S7 Fitter object, got " %+% class(fitter)[1]
+    ))
+  }
+  if (!is.function(predictor_generator)) {
+    stop(bayesim_config_error("predictor_generator must be a function"))
+  }
+  if (is.null(pilot_bundle) || is.null(pilot_bundle$train)) {
+    stop(bayesim_config_error(
+      "pilot_bundle$train is required for the preconditioning fit"
+    ))
+  }
+
+  resp <- response %||%
+    pilot_bundle$response %||%
+    .fit_spec_response_name(fit_spec) %||%
+    "y"
+
+  # BrmsFitter shortcut: if the fit is a sample_prior="only" brmsfit,
+  # prefer true prior draws via brms::prior_draws() when available.
+  draws_mat <- NULL
+  prior_source <- "posterior_degraded"
+  if (inherits(fitter, "BrmsFitter")) {
+    fr <- .pilot_fit(fitter, pilot_bundle, fit_spec)
+    prior_d <- tryCatch(
+      {
+        pd <- brms::prior_draws(fr$fit)
+        if (is.null(pd) || nrow(pd) < 1L) NULL else pd
+      },
+      error = function(e) NULL
+    )
+    if (!is.null(prior_d)) {
+      # Coerce prior_draws (a data.frame, one column per prior parameter) to a
+      # draws matrix. Strip the "b_" prefix from population-level effects so
+      # names line up with the cleaned convention used elsewhere.
+      draws_mat <- as.matrix(prior_d)
+      cn <- colnames(draws_mat)
+      cleaned <- sub("^b_", "", cn)
+      colnames(draws_mat) <- cleaned
+      prior_source <- "prior"
+    } else {
+      draws_mat <- extract_draws(fitter, fr)
+      prior_source <- "posterior_degraded"
+    }
+  } else {
+    fr <- .pilot_fit(fitter, pilot_bundle, fit_spec)
+    draws_mat <- extract_draws(fitter, fr)
+  }
+
+  if (is.null(draws_mat) || nrow(draws_mat) < 1L) {
+    stop(bayesim_config_error(
+      "pilot fit produced no usable draws for prior_draws_generator"
+    ))
+  }
+  if (!is.null(n_draws)) {
+    n_draws <- as.integer(n_draws)
+    if (n_draws > 0L && n_draws < nrow(draws_mat)) {
+      draws_mat <- draws_mat[seq_len(n_draws), , drop = FALSE]
+    }
+  }
+
+  # vars_of_interest = the fitter's draw column names. Coefficient + scale
+  # columns are reported as the truth; forward simulation uses them directly.
+  voi <- colnames(draws_mat)
+  if (is.null(voi) || length(voi) < 1L) {
+    stop(bayesim_config_error(
+      "pilot fit's draws matrix has no column names; cannot name true_params"
+    ))
+  }
+  stored_n <- nrow(draws_mat)
+
+  function(data_spec, task_ctx) {
+    rep_idx <- task_ctx$rep_idx %||% 1L
+    draw_id <- ((as.integer(rep_idx) - 1L) %% stored_n) + 1L
+
+    newdata <- predictor_generator(data_spec, task_ctx)
+
+    theta <- draws_mat[draw_id, , drop = FALSE]
+    theta_vec <- as.numeric(theta)
+    names(theta_vec) <- voi
+
+    # Forward-simulate y from theta. Coefficient columns are everything except
+    # sigma; the linear predictor is built by multiplying the design columns by
+    # their coefficients (intercept column "Intercept" handled implicitly — it
+    # is just another additive column with value 1 in the design matrix).
+    sigma_col <- "sigma"
+    coef_names <- setdiff(voi, sigma_col)
+    mu <- .linear_predictor(newdata, theta_vec, coef_names, resp)
+    sigma_val <- if (sigma_col %in% voi) theta_vec[[sigma_col]] else 1
+    y <- mu + stats::rnorm(length(mu)) * sigma_val
+
+    train <- newdata
+    train[[resp]] <- y
+
+    list(
+      train = train,
+      test = NULL,
+      response = resp,
+      true_params = theta_vec,
+      vars_of_interest = voi,
+      meta = list(
+        generator = "prior_draws",
+        truth_draw_id = draw_id,
+        prior_source = prior_source
+      )
+    )
+  }
+}
+
+
+#' Construct a fitter-agnostic forward-simulation (IFS) data generator
+#'
+#' `forward_sim_generator()` is the fitter-agnostic analogue of
+#' [ifs_generator()]. It fits the model ONCE on `pilot_bundle`, draws theta from
+#' the posterior (via [extract_draws()]), and forward-simulates `y` via the
+#' fitter's [predict_fit()] (posterior-predictive) at the chosen draw's
+#' parameters. Works with any Fitter that supports [predict_fit()]
+#' (LinearRegressionFitter, BrmsFitter, ...).
+#'
+#' Unlike [prior_draws_generator()] (which targets the prior), this generator
+#' concentrates the truth draw in a region of high posterior mass — the
+#' canonical SBC generator for models with diffuse or improper priors.
+#'
+#' Because forward simulation here relies on [predict_fit()], the response is
+#' drawn exactly as the fitter implements its posterior-predictive sampling,
+#' which respects the fitter's response distribution and link function. Each
+#' task uses a distinct draw, deterministically indexed by `task_ctx$rep_idx`.
+#'
+#' @section Limitations:
+#' The `true_params` reported by this generator are the [extract_draws()]
+#' columns for the selected draw; for [LinearRegressionFitter] these are
+#' `Intercept`, `<coef>`, `sigma`. The response is forward-simulated via the
+#' fitter's [predict_fit()] applied to the predictor design (a single Gaussian
+#' draw for Gaussian fitters). Fitters without [predict_fit()] support are not
+#' supported (e.g. raw [CmdStanFitter], which has no newdata semantics).
+#'
+#' @param fitter An S7 [Fitter] object supporting [predict_fit()].
+#' @param fit_spec A list (single-row fit_grid entry) with at least `formula`.
+#' @param pilot_bundle A `data_bundle` list used for the one-time
+#'   preconditioning fit.
+#' @param predictor_generator Function `(data_spec, task_ctx) -> data.frame`
+#'   producing predictor covariates. Must consume the ambient RNG state.
+#' @param response Name of the response column. Defaults to
+#'   `pilot_bundle$response`, falling back to the LHS of `fit_spec$formula`,
+#'   then to `"y"`.
+#' @param n_draws Optional integer override for the number of draws to store.
+#'
+#' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
+#' @export
+#' @seealso [ifs_generator()], [prior_draws_generator()], [Fitter],
+#'   [LinearRegressionFitter]
+forward_sim_generator <- function(fitter, fit_spec, pilot_bundle,
+                                  predictor_generator, response = NULL,
+                                  n_draws = NULL) {
+  if (!S7::S7_inherits(fitter, Fitter)) {
+    stop(bayesim_config_error(
+      "fitter must be an S7 Fitter object, got " %+% class(fitter)[1]
+    ))
+  }
+  if (!is.function(predictor_generator)) {
+    stop(bayesim_config_error("predictor_generator must be a function"))
+  }
+  if (is.null(pilot_bundle) || is.null(pilot_bundle$train)) {
+    stop(bayesim_config_error(
+      "pilot_bundle$train is required for the preconditioning fit"
+    ))
+  }
+
+  resp <- response %||%
+    pilot_bundle$response %||%
+    .fit_spec_response_name(fit_spec) %||%
+    "y"
+
+  fr <- .pilot_fit(fitter, pilot_bundle, fit_spec)
+  draws_mat <- extract_draws(fitter, fr)
+  if (is.null(draws_mat) || nrow(draws_mat) < 1L) {
+    stop(bayesim_config_error(
+      "pilot fit produced no usable draws for forward_sim_generator"
+    ))
+  }
+  if (!is.null(n_draws)) {
+    n_draws <- as.integer(n_draws)
+    if (n_draws > 0L && n_draws < nrow(draws_mat)) {
+      draws_mat <- draws_mat[seq_len(n_draws), , drop = FALSE]
+    }
+  }
+
+  voi <- colnames(draws_mat)
+  if (is.null(voi) || length(voi) < 1L) {
+    stop(bayesim_config_error(
+      "pilot fit's draws matrix has no column names; cannot name true_params"
+    ))
+  }
+  stored_n <- nrow(draws_mat)
+
+  function(data_spec, task_ctx) {
+    rep_idx <- task_ctx$rep_idx %||% 1L
+    draw_id <- ((as.integer(rep_idx) - 1L) %% stored_n) + 1L
+
+    newdata <- predictor_generator(data_spec, task_ctx)
+
+    theta_vec <- as.numeric(draws_mat[draw_id, , drop = FALSE])
+    names(theta_vec) <- voi
+
+    # Forward-simulate y from theta via the fitter's predict_fit(). We build a
+    # single-draw fit_result slice so predict_fit() produces a draw for this
+    # theta. For LinearRegressionFitter (and any fitter whose predict_fit reads
+    # fit_result$draws) we construct the slice directly; for BrmsFitter we
+    # forward to brms::posterior_predict with a single draw index.
+    y <- .forward_sim_y(fitter, fr, newdata, draw_id, theta_vec, voi, resp)
+
+    train <- newdata
+    train[[resp]] <- y
+
+    list(
+      train = train,
+      test = NULL,
+      response = resp,
+      true_params = theta_vec,
+      vars_of_interest = voi,
+      meta = list(
+        generator = "forward_sim",
+        truth_draw_id = draw_id
+      )
+    )
+  }
+}
+
+
+# Internal helpers for the fitter-agnostic generators ----------------------
+
+#' Run the one-time preconditioning pilot fit via fit_model().
+#'
+#' Uses the fitter's fit_model() with a fixed seed so the preconditioning fit is
+#' reproducible across tasks (the worker's ambient RNG stream is independent of
+#' the seed passed here, which only governs the MCMC/NIG draw generation for the
+#' pilot). Returns the bayesim_fit_result.
+#' @keywords internal
+.pilot_fit <- function(fitter, pilot_bundle, fit_spec) {
+  seed <- pilot_bundle$.pilot_seed %||% 0L
+  fit_model(
+    fitter,
+    data_bundle = pilot_bundle,
+    fit_spec = fit_spec,
+    seed = seed,
+    task_ctx = list(task_id = "pilot", rep_idx = 1L)
+  )
+}
+
+#' Resolve the response name from a fit_spec (LHS of fit_spec$formula).
+#' Returns NA_character_ if it cannot be resolved.
+#' @keywords internal
+.fit_spec_response_name <- function(fit_spec) {
+  out <- tryCatch(
+    {
+      fml <- fit_spec$formula
+      if (is.null(fml)) NA_character_ else all.vars(fml)[1L]
+    },
+    error = function(e) NA_character_
+  )
+  if (is.na(out) || !nzchar(out)) NA_character_ else out
+}
+
+#' Compute the linear predictor X theta for a design data.frame and a draw.
+#'
+#' coef_names names the additive coefficient columns; the intercept is named
+#' "Intercept" and contributes a constant 1 (since predictor designs do not
+#' include it as a column). Remaining coef_names must match columns of newdata.
+#' Returns a length-nrow(newdata) numeric vector.
+#' @keywords internal
+.linear_predictor <- function(newdata, theta_vec, coef_names, resp) {
+  n <- nrow(newdata)
+  if (is.null(n) || n < 1L) {
+    stop(bayesim_config_error(
+      "predictor_generator returned an empty or invalid data.frame"
+    ))
+  }
+  mu <- rep(0, n)
+  for (cn in coef_names) {
+    val <- theta_vec[[cn]]
+    if (cn == "Intercept") {
+      mu <- mu + val
+    } else {
+      if (!cn %in% names(newdata)) {
+        stop(bayesim_config_error(
+          "predictor_generator is missing column '" %+% cn %+%
+            "' required by the stored draw"
+        ))
+      }
+      mu <- mu + val * newdata[[cn]]
+    }
+  }
+  mu
+}
+
+#' Forward-simulate the response for a single draw across fitters.
+#'
+#' Dispatches by fitter class:
+#'   - LinearRegressionFitter (and fitters that expose fit_result$draws):
+#'     reconstruct a one-draw fit_result and call predict_fit(); since
+#'     predict_fit consumes the ambient RNG state for noise, this is a single
+#'     fresh Gaussian draw at the selected theta.
+#'   - BrmsFitter: call brms::posterior_predict(fit, newdata, draw_ids) for a
+#'     single draw.
+#'   - Fallback: try predict_fit() with a sliced fit_result; error on failure.
+#'
+#' Returns a numeric vector of length nrow(newdata).
+#' @keywords internal
+.forward_sim_y <- function(fitter, fit_result, newdata, draw_id, theta_vec,
+                           voi, resp) {
+  n <- nrow(newdata)
+
+  if (inherits(fitter, "BrmsFitter")) {
+    pp <- tryCatch(
+      as.numeric(brms::posterior_predict(
+        fit_result$fit,
+        newdata = newdata,
+        draw_ids = draw_id
+      )),
+      error = function(e) NULL
+    )
+    if (is.null(pp) || length(pp) != n) {
+      stop(bayesim_config_error(
+        "BrmsFitter posterior_predict failed during forward_sim_generator"
+      ))
+    }
+    return(pp)
+  }
+
+  # Generic path: slice fit_result to the selected draw and ask predict_fit().
+  # predict_fit's seed argument is left NULL so it uses the ambient RNG state.
+  # Some fitters (e.g. LinearRegressionFitter) build their design matrix from
+  # newdata + formula via model.frame(), which requires the response column to
+  # be present even though predict_fit only consumes X. Inject a zero
+  # placeholder for resp when missing; predict_fit ignores the response values.
+  pp_newdata <- newdata
+  if (!is.null(resp) && !(resp %in% names(pp_newdata))) {
+    pp_newdata[[resp]] <- 0
+  }
+  sliced <- fit_result
+  if (!is.null(fit_result$draws)) {
+    sliced$draws <- fit_result$draws[draw_id, , drop = FALSE]
+  }
+  preds <- predict_fit(fitter, sliced, newdata = pp_newdata, seed = NULL)
+  if (is.null(preds) || is.null(preds$predicted_samples)) {
+    stop(bayesim_config_error(
+      "fitter's predict_fit() returned NULL; fitter does not support " %+%
+        "posterior-predictive sampling for forward_sim_generator"
+    ))
+  }
+  ps <- preds$predicted_samples
+  # predict_fit returns S x N (draws x observations); we sliced to one draw so
+  # S == 1. Take the first (and only) row.
+  if (is.matrix(ps)) {
+    if (nrow(ps) < 1L || ncol(ps) != n) {
+      stop(bayesim_config_error(
+        "predict_fit() returned a predicted_samples matrix with wrong " %+%
+          "dimensions during forward_sim_generator"
+      ))
+    }
+    return(as.numeric(ps[1L, ]))
+  }
+  as.numeric(ps)
+}

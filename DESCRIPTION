@@ -38,6 +38,7 @@ Collate:
     'worker.R'
     'simulate.R'
     'checkpoint.R'
+    'io-parquet.R'
     'resume.R'
     'retention.R'
     'model-bank.R'
@@ -74,9 +75,11 @@ Suggests:
     cmdstanr (>= 0.7.0),
     ggplot2,
     MASS,
+    nanoparquet,
     rstan (>= 2.32.0),
     testthat (>= 3.1.0),
     knitr,
+    quarto,
     rmarkdown
 Remotes:
     stan-dev/cmdstanr,

@@ -638,6 +638,25 @@ build_simulation_result <- function(
     )
   }
 
+  # I8: optional parquet sidecar for the summary. The rds checkpoint remains
+  # the canonical resume artifact; this parquet file is for downstream
+  # consumption (pandas/arrow/polars). Best-effort: warn on failure.
+  if (
+    identical(config@summary_format, "parquet") &&
+      !is.null(checkpoint_path)
+  ) {
+    summary_parquet_path <- file.path(checkpoint_path, "summary.parquet")
+    tryCatch(
+      write_results_parquet(summary, summary_parquet_path),
+      error = function(e) {
+        cli::cli_warn(c(
+          "Failed to write parquet summary to {.file {summary_parquet_path}}.",
+          i = conditionMessage(e)
+        ))
+      }
+    )
+  }
+
   new_simulation_result(
     config_fingerprint = compute_config_fingerprint(config),
     task_results = task_results,

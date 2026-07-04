@@ -1,0 +1,96 @@
+---
+title: "bayesim simulation report"
+format: html
+params:
+  result_path: NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+stopifnot(!is.null(params$result_path))
+result <- readRDS(params$result_path)
+```
+
+# Study design
+
+```{r study-design}
+tryCatch({
+  cat("Config fingerprint:", result$config_fingerprint, "\n\n")
+  cat("Total tasks:", length(result$task_results), "\n\n")
+  if (!is.null(result$task_grid)) {
+    cat("Task grid:", nrow(result$task_grid), "rows x",
+        ncol(result$task_grid), "cols\n\n")
+    print(knitr::kable(head(result$task_grid)))
+  }
+  if (!is.null(result$timing) && !is.null(result$timing$total)) {
+    cat("\nTotal compute time:", round(result$timing$total, 2), "s\n")
+  }
+}, error = function(e) {
+  cat("Study design section failed:", conditionMessage(e), "\n")
+})
+```
+
+# Performance measures
+
+```{r performance-measures}
+tryCatch({
+  pm <- bayesim::performance_measures(result)
+  if (!is.null(pm) && nrow(pm) > 0L) {
+    print(knitr::kable(pm))
+  } else {
+    cat("No performance measures available.\n")
+  }
+}, error = function(e) {
+  cat("Performance measures section failed:", conditionMessage(e), "\n")
+})
+```
+
+# Parameter recovery
+
+```{r parameter-recovery}
+tryCatch({
+  df <- result$summary
+  truth_cols <- grep("^truth__", names(df), value = TRUE)
+  estimands <- sub("^truth__", "", truth_cols)
+  estimands <- estimands[vapply(estimands, function(p) {
+    paste0("posterior_summary__mean__", p) %in% names(df)
+  }, logical(1))]
+  if (length(estimands) == 0L) {
+    cat("No estimands with truth + posterior summary available.\n")
+  }
+  for (est in estimands) {
+    cat("\n##", est, "\n\n")
+    p <- bayesim::plot_recovery(result, est)
+    print(p)
+  }
+}, error = function(e) {
+  cat("Parameter recovery section failed:", conditionMessage(e), "\n")
+})
+```
+
+# Coverage
+
+```{r coverage}
+tryCatch({
+  p <- bayesim::plot_coverage(result)
+  print(p)
+}, error = function(e) {
+  cat("Coverage section failed:", conditionMessage(e), "\n")
+})
+```
+
+# SBC
+
+```{r sbc}
+tryCatch({
+  ranks <- bayesim::sbc_ranks(result)
+  if (!is.null(ranks) && nrow(ranks) > 0L) {
+    p <- bayesim::plot_rank_ecdf(ranks)
+    print(p)
+  } else {
+    cat("No rank metric was computed; skipping SBC section.\n")
+  }
+}, error = function(e) {
+  cat("SBC section failed:", conditionMessage(e), "\n")
+})
+```

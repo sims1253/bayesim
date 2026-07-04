@@ -42,6 +42,10 @@ navbar:
           href: articles/reproducibility.html
         - text: Memory Management
           href: articles/memory-management.html
+        - text: HPC and Remote Daemons
+          href: articles/hpc.html
+        - text: Running bayesim with targets
+          href: articles/targets.html
         - text: -------
         - text: Case Studies
           href: articles/case-studies.html
@@ -128,6 +132,7 @@ reference:
       - plot_recovery
       - plot_coverage
       - plot_metric
+      - report
 
   - title: Extension support
     desc: >
@@ -162,6 +167,8 @@ articles:
     contents:
       - reproducibility
       - memory-management
+      - hpc
+      - targets
 
   - title: Case Studies
     contents:

@@ -677,3 +677,83 @@ n_replicates_for_target <- function(target_mcse,
 
   as.integer(ceiling(n))
 }
+
+# report (Workstream I4) ---------------------------------------------------
+
+#' Render a simulation-study report
+#'
+#' @description
+#' Renders a standard Quarto HTML report for a `bayesim_simulation_result`,
+#' covering the study design table, [performance_measures()], parameter
+#' recovery plots per estimand, credible-interval coverage, and SBC rank ECDF
+#' panels (when a rank metric was computed). The report template lives at
+#' `inst/report/simulation-report.qmd`.
+#'
+#' Each section is wrapped in `tryCatch`, so a missing metric (e.g. no rank
+#' data, no recorded truths) degrades gracefully instead of failing the whole
+#' render.
+#'
+#' Requires the `quarto` R package AND the Quarto CLI. If the CLI is not
+#' available, an informative error is thrown pointing to <https://quarto.org>.
+#'
+#' @param result A `bayesim_simulation_result` from [run_simulation()].
+#' @param output_file Path to the rendered HTML output file (default
+#'   `"bayesim-report.html"`).
+#' @param open Logical scalar. When `TRUE` (the default in interactive
+#'   sessions) the rendered report is opened in a viewer/browser. Forwarded to
+#'   [quarto::quarto_render()] via its `open` handling where supported; on
+#'   systems without that argument the file path is still returned.
+#' @param estimands Optional character vector of estimands (parameter names) to
+#'   restrict the report to. Currently informational; the template auto-detects
+#'   estimands from the summary when `NULL` (default).
+#'
+#' @return The path to the rendered HTML file (invisibly).
+#' @export
+#' @seealso [performance_measures()], [plot_recovery()], [plot_coverage()],
+#'   [plot_rank_ecdf()].
+#' @examples
+#' \dontrun{
+#' result <- run_simulation(config, progress = FALSE)
+#' report(result, output_file = "my-study.html")
+#' }
+report <- function(result, output_file = "bayesim-report.html",
+                   open = interactive(), estimands = NULL) {
+  if (!inherits(result, "bayesim_simulation_result")) {
+    stop(bayesim_config_error(
+      "report() requires a bayesim_simulation_result object"
+    ))
+  }
+
+  rlang::check_installed("quarto", "to render simulation reports")
+  if (is.null(quarto::quarto_path())) {
+    stop(bayesim_config_error(paste(
+      "The Quarto CLI was not found. Install it from https://quarto.org",
+      "and ensure it is on your PATH, then call report() again."
+    )))
+  }
+
+  template <- system.file("report", "simulation-report.qmd", package = "bayesim")
+  if (!nzchar(template)) {
+    stop(bayesim_config_error(
+      "Report template 'inst/report/simulation-report.qmd' is not installed."
+    ))
+  }
+
+  # Persist the result to a temp rds the template will read via params.
+  result_path <- tempfile(fileext = ".rds")
+  saveRDS(result, result_path)
+  on.exit(unlink(result_path), add = TRUE)
+
+  quarto::quarto_render(
+    input = template,
+    output_file = output_file,
+    execute_params = list(result_path = result_path)
+  )
+
+  out <- normalizePath(output_file, mustWork = FALSE)
+  if (isTRUE(open) && file.exists(out)) {
+    tryCatch(utils::browseURL(out), error = function(e) NULL)
+  }
+
+  invisible(out)
+}
