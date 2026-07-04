@@ -36,35 +36,35 @@ describe("M5 extended metrics", {
     fx <- make_fixture(predictions = list(predicted_mean = 1:10))
     fx$data_bundle$response <- "y"
     fx$data_bundle$train$y <- 2:11
-    out <- compute(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, 1)
     expect_equal(out$n_obs, 10)
   })
 
   it("mae_metric returns NA when predictions absent", {
     fx <- make_fixture(predictions = NULL)
-    out <- compute(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
   })
 
   it("mse_metric computes mean squared error", {
     fx <- make_fixture(predictions = list(predicted_mean = rep(0, 5)))
     fx$data_bundle$train$y <- c(1, 2, 3, 4, 5)
-    out <- compute(mse_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(mse_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, mean((1:5)^2))
   })
 
   it("pos_prob_metric computes fraction of positive draws", {
     draws <- matrix(c(rep(1, 80), rep(-1, 120)), ncol = 1, dimnames = list(NULL, "b_x"))
     fx <- make_fixture(draws = draws, true_params = c(b_x = 0), vars_of_interest = "b_x")
-    out <- compute(pos_prob_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(pos_prob_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$by_param[["b_x"]], 0.4)
     expect_equal(out$mean, 0.4)
   })
 
   it("posterior_summary_metric returns mean/median/sd/quantiles", {
     fx <- make_fixture()
-    out <- compute(posterior_summary_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(posterior_summary_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(all(c("b_x", "b_Intercept") %in% names(out$mean)))
     expect_equal(out$mean[["b_x"]], mean(fx$fit_result$draws[, "b_x"]))
     expect_equal(out$median[["b_Intercept"]], median(fx$fit_result$draws[, "b_Intercept"]))
@@ -75,7 +75,7 @@ describe("M5 extended metrics", {
     fx <- make_fixture(diagnostics = list(
       rhat_max = 1.01, ess_bulk_min = 100, ess_tail_min = 90, divergent = 0L
     ))
-    out <- compute(convergence_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(convergence_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$rhat_max, 1.01)
     expect_equal(out$ess_bulk_min, 100)
     expect_equal(out$divergent, 0L)
@@ -83,13 +83,13 @@ describe("M5 extended metrics", {
 
   it("convergence_metric returns NAs when diagnostics absent", {
     fx <- make_fixture(diagnostics = NULL)
-    out <- compute(convergence_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(convergence_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$rhat_max))
   })
 
   it("sampler_diagnostics_metric surfaces divergences/treedepth", {
     fx <- make_fixture(diagnostics = list(divergent = 3L, max_treedepth = 5L))
-    out <- compute(sampler_diagnostics_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(sampler_diagnostics_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$divergent, 3L)
     expect_equal(out$max_treedepth, 5L)
   })
@@ -98,7 +98,7 @@ describe("M5 extended metrics", {
     # 200 draws of b_x centered at 1; true b_x = 0 -> all draws above -> rank 0
     draws <- matrix(rnorm(200, mean = 5, sd = 0.1), ncol = 1, dimnames = list(NULL, "b_x"))
     fx <- make_fixture(draws = draws, true_params = c(b_x = 0), vars_of_interest = "b_x")
-    out <- compute(rank_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rank_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$by_param[["b_x"]], 0L)
     expect_equal(out$n_draws, 200)
     # F4: n_ranks per variable present (post-thinning sample size + 1).
@@ -109,7 +109,7 @@ describe("M5 extended metrics", {
   it("rank_metric thin=FALSE disables thinning (stride 1)", {
     draws <- matrix(rnorm(200, mean = 5, sd = 0.1), ncol = 1, dimnames = list(NULL, "b_x"))
     fx <- make_fixture(draws = draws, true_params = c(b_x = 0), vars_of_interest = "b_x")
-    out <- compute(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$stride, 1L)
     expect_equal(out$n_ranks[["b_x"]], 201L)  # 200 draws + 1 possible ranks
   })
@@ -117,7 +117,7 @@ describe("M5 extended metrics", {
   it("rank_metric integer thin uses the stride directly", {
     draws <- matrix(rnorm(300, mean = 5, sd = 0.1), ncol = 1, dimnames = list(NULL, "b_x"))
     fx <- make_fixture(draws = draws, true_params = c(b_x = 0), vars_of_interest = "b_x")
-    out <- compute(rank_metric(thin = 10L), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rank_metric(thin = 10L), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$stride, 10L)
     expect_equal(out$n_ranks[["b_x"]], 31L)  # floor(300/10)=30 kept + 1
   })
@@ -131,8 +131,8 @@ describe("M5 extended metrics", {
     for (i in seq_len(n - 1L)) x[i + 1L] <- ar * x[i] + rnorm(1)
     draws <- matrix(x, ncol = 1, dimnames = list(NULL, "b_x"))
     fx <- make_fixture(draws = draws, true_params = c(b_x = 0), vars_of_interest = "b_x")
-    out_auto <- compute(rank_metric(thin = "auto"), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
-    out_none <- compute(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out_auto <- compute_metric(rank_metric(thin = "auto"), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out_none <- compute_metric(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(out_auto$stride > 1L)
     expect_true(out_auto$n_ranks[["b_x"]] < out_none$n_ranks[["b_x"]])
   })
@@ -145,7 +145,7 @@ describe("M5 extended metrics", {
     fx <- make_fixture(draws = draws,
                        true_params = c(x = 0, Intercept = 0),
                        vars_of_interest = c("x", "Intercept"))
-    out <- compute(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     flat <- flatten_metric_output(out, "rank")
     expect_true("rank__by_param__x" %in% names(flat))
     expect_true("rank__by_param__Intercept" %in% names(flat))
@@ -164,7 +164,7 @@ describe("M5 extended metrics", {
     ranks <- vapply(truth, function(tv) {
       draws <- matrix(rnorm(S), ncol = 1, dimnames = list(NULL, "b_x"))
       fx <- make_fixture(draws = draws, true_params = c(b_x = tv), vars_of_interest = "b_x")
-      out <- compute(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+      out <- compute_metric(rank_metric(thin = FALSE), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
       as.integer(out$by_param[["b_x"]])
     }, integer(1))
     # Chi-square uniformity: bin into 10 bins over 0..S.
@@ -185,19 +185,19 @@ describe("M5 extended metrics", {
       train = data.frame(y = rnorm(10), x = rnorm(10)), test = NULL,
       response = "y", true_params = NULL, vars_of_interest = "b_x"
     )
-    out <- compute(rank_metric(), fit_result, data_bundle, list(), list(task_id = "t1"))
+    out <- compute_metric(rank_metric(), fit_result, data_bundle, list(), list(task_id = "t1"))
     expect_true(is.na(out$mean))
   })
 
   it("rstar_metric returns NA (per-chain structure unavailable)", {
     fx <- make_fixture()
-    out <- compute(rstar_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rstar_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
   })
 
   it("elpd_loo_metric surfaces loo context fields", {
     fx <- make_fixture(loo = list(elpd = -10.5, p_loo = 2.1, elpd_se = 1.3, pareto_k = c(0.1, 0.7)))
-    out <- compute(elpd_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(elpd_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$elpd, -10.5)
     expect_equal(out$p_loo, 2.1)
     expect_equal(out$pareto_k_max, 0.7)
@@ -205,7 +205,7 @@ describe("M5 extended metrics", {
 
   it("elpd_loo_metric returns NAs when loo absent", {
     fx <- make_fixture(loo = NULL)
-    out <- compute(elpd_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(elpd_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$elpd))
   })
 
@@ -214,21 +214,21 @@ describe("M5 extended metrics", {
     # the PSIS object + pointwise log_lik + a prediction matrix from the
     # metric context. With only the loo summary present, it must NA gracefully.
     fx <- make_fixture(loo = list(elpd = -6, pointwise = cbind(elpd_loo = c(-1, -2, -3))))
-    out <- compute(rmse_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rmse_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
     expect_true(is.na(out$pareto_k_max))
   })
 
   it("r2_loo_metric degrades to NA without PSIS/epred context (F3)", {
     fx <- make_fixture(loo = list(elpd = -10, pointwise = cbind(elpd_loo = rep(-1, 10))))
-    out <- compute(r2_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(r2_loo_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
   })
 
   it("elpd_test_metric computes log-sum-exp elpd on log_lik", {
     ll <- matrix(c(-1, -2, -1.5, -2.5), nrow = 2) # 2 draws x 2 obs
     fx <- make_fixture(log_lik = ll, test = data.frame(y = c(1, 2)))
-    out <- compute(elpd_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(elpd_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     # obs1: max(-1,-1.5)=-1, log(mean(exp(0,-.5)))=log(mean(1,0.607))=log(0.803)=-0.219
     expect_equal(out$n_obs, 2)
     expect_true(is.numeric(out$value))
@@ -236,7 +236,7 @@ describe("M5 extended metrics", {
 
   it("elpd_test_metric returns NA when test absent", {
     fx <- make_fixture(test = NULL)
-    out <- compute(elpd_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(elpd_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
   })
 
@@ -245,7 +245,7 @@ describe("M5 extended metrics", {
       predictions = list(predicted_mean = c(1, 2, 3)),
       test = data.frame(y = c(2, 2, 2))
     )
-    out <- compute(rmse_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(rmse_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, sqrt(mean((c(1, 2, 3) - c(2, 2, 2))^2)))
     expect_equal(out$n_obs, 3)
   })
@@ -255,7 +255,7 @@ describe("M5 extended metrics", {
       predictions = list(predicted_mean = c(1, 2, 3)),
       test = data.frame(y = c(1, 2, 3))
     )
-    out <- compute(r2_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(r2_test_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, 1) # perfect prediction
   })
 })

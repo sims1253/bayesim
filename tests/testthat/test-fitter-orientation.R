@@ -1,7 +1,7 @@
 # test-fitter-orientation.R
 # Tests for the S x N (draws x observations) log_lik matrix convention (step A1).
 #
-# The brms/loo convention is that log_lik() returns an S x N matrix: S rows
+# The brms/loo convention is that log_lik_matrix() returns an S x N matrix: S rows
 # (one per posterior draw) and N columns (one per observation). These tests
 # verify (a) MockFitter honors the convention, (b) validate_fitter() rejects a
 # fitter that returns the transposed (N x S) orientation, and (c) downstream
@@ -18,7 +18,7 @@ describe("log_lik S x N orientation convention", {
       test = NULL,
       response = "y"
     )
-    fit_result <- fit(
+    fit_result <- fit_model(
       fitter,
       data_bundle,
       fit_spec = data.frame(model = "test"),
@@ -26,7 +26,7 @@ describe("log_lik S x N orientation convention", {
       task_ctx = list(task_id = "test")
     )
 
-    ll <- log_lik(fitter, fit_result)
+    ll <- log_lik_matrix(fitter, fit_result)
     expect_true(is.matrix(ll))
     # N observations => N columns.
     expect_equal(ncol(ll), n_obs)
@@ -60,7 +60,7 @@ describe("log_lik S x N orientation convention", {
       )
     )
 
-    S7::method(fit, TransposedFitter) <- function(
+    S7::method(fit_model, TransposedFitter) <- function(
       fitter, data_bundle, fit_spec, seed, task_ctx
     ) {
       n_obs <- nrow(data_bundle$train)
@@ -91,19 +91,20 @@ describe("log_lik S x N orientation convention", {
     S7::method(predict_fit, TransposedFitter) <- function(
       fitter, fit_result, newdata = NULL, seed = NULL
     ) {
+      # Correct S x N orientation for predictions (only log_lik is wrong here).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
       n_obs <- nrow(data)
       n_draws <- as.integer(fitter@n_draws)
-      predicted_samples <- matrix(rnorm(n_obs * n_draws), nrow = n_obs, ncol = n_draws)
+      predicted_samples <- matrix(rnorm(n_obs * n_draws), nrow = n_draws, ncol = n_obs)
       list(
-        predicted_mean = rowMeans(predicted_samples),
+        predicted_mean = colMeans(predicted_samples),
         predicted_samples = predicted_samples,
-        predicted_sd = apply(predicted_samples, 1, sd)
+        predicted_sd = apply(predicted_samples, 2, sd)
       )
     }
 
-    S7::method(log_lik, TransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
+    S7::method(log_lik_matrix, TransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
       # DELIBERATELY WRONG: N x S (observations in rows, draws in columns).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
@@ -116,7 +117,7 @@ describe("log_lik S x N orientation convention", {
       list(elpd = -10, p_loo = 1, elpd_se = 1, pareto_k = numeric())
     }
 
-    S7::method(diagnostics, TransposedFitter) <- function(fitter, fit_result) {
+    S7::method(fit_diagnostics, TransposedFitter) <- function(fitter, fit_result) {
       list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L)
     }
 
@@ -134,7 +135,7 @@ describe("log_lik S x N orientation convention", {
 
   it("elpd_test_metric reports n_obs from log_lik columns (S x N)", {
     # Build a real fit_result with a non-square (n_obs != n_draws) log_lik via
-    # MockFitter, then feed it to elpd_test_metric through compute().
+    # MockFitter, then feed it to elpd_test_metric through compute_metric().
     fitter <- MockFitter()
     n_obs <- 18L
     data_bundle <- list(
@@ -142,7 +143,7 @@ describe("log_lik S x N orientation convention", {
       test = data.frame(x = seq_len(n_obs), y = rnorm(n_obs)),
       response = "y"
     )
-    fit_result <- fit(
+    fit_result <- fit_model(
       fitter,
       data_bundle,
       fit_spec = data.frame(model = "test"),
@@ -150,14 +151,14 @@ describe("log_lik S x N orientation convention", {
       task_ctx = list(task_id = "test")
     )
 
-    ll <- log_lik(fitter, fit_result)
+    ll <- log_lik_matrix(fitter, fit_result)
     # Orientation sanity before computing the metric.
     expect_equal(ncol(ll), n_obs)
     s_expected <- as.integer(fitter@n_draws) * as.integer(fitter@n_chains)
     expect_true(nrow(ll) != n_obs)
 
     context <- list(log_lik = ll)
-    out <- compute(
+    out <- compute_metric(
       elpd_test_metric(),
       fit_result,
       data_bundle,
@@ -181,7 +182,7 @@ describe("predict_fit S x N orientation convention", {
       test = NULL,
       response = "y"
     )
-    fit_result <- fit(
+    fit_result <- fit_model(
       fitter,
       data_bundle,
       fit_spec = data.frame(model = "test"),
@@ -219,7 +220,7 @@ describe("predict_fit S x N orientation convention", {
       )
     )
 
-    S7::method(fit, PredictTransposedFitter) <- function(
+    S7::method(fit_model, PredictTransposedFitter) <- function(
       fitter, data_bundle, fit_spec, seed, task_ctx
     ) {
       n_obs <- nrow(data_bundle$train)
@@ -263,7 +264,7 @@ describe("predict_fit S x N orientation convention", {
       )
     }
 
-    S7::method(log_lik, PredictTransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
+    S7::method(log_lik_matrix, PredictTransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
       # Correct S x N orientation (draws x observations).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
@@ -276,7 +277,7 @@ describe("predict_fit S x N orientation convention", {
       list(elpd = -10, p_loo = 1, elpd_se = 1, pareto_k = numeric())
     }
 
-    S7::method(diagnostics, PredictTransposedFitter) <- function(fitter, fit_result) {
+    S7::method(fit_diagnostics, PredictTransposedFitter) <- function(fitter, fit_result) {
       list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L)
     }
 

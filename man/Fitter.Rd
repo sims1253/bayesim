@@ -35,19 +35,19 @@ model diagnostics.
 
 The following S7 generics must be implemented by subclasses:
 \describe{
-\item{\code{fit(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
+\item{\code{fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
 \item{\code{predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
-\item{\code{log_lik(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
+\item{\code{log_lik_matrix(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
 \item{\code{loo_fit(fitter, fit_result)}}{LOO-CV computation}
-\item{\code{diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
+\item{\code{fit_diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
 }
 }
 
 \section{Creating Custom Fitters}{
 
 To create a custom fitter, extend this class and implement methods for the
-S7 generics: \code{fit()}, \code{extract_draws()}, \code{predict()}, \code{log_lik()}, \code{loo_fit()}, \code{diagnostics()}.
+S7 generics: \code{fit_model()}, \code{extract_draws()}, \code{predict()}, \code{log_lik_matrix()}, \code{loo_fit()}, \code{fit_diagnostics()}.
 }
 
 \seealso{

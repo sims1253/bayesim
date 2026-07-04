@@ -33,7 +33,7 @@ mae_metric <- function(name = "mae") {
   MaeMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute, MaeMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, MaeMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(context$predictions)) return(list(value = NA_real_))
   test_data <- data_bundle$test %||% data_bundle$train
   actual <- test_data[[data_bundle$response]]
@@ -67,7 +67,7 @@ mse_metric <- function(name = "mse") {
   MseMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute, MseMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, MseMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(context$predictions)) return(list(value = NA_real_))
   test_data <- data_bundle$test %||% data_bundle$train
   actual <- test_data[[data_bundle$response]]
@@ -101,7 +101,7 @@ pos_prob_metric <- function(name = "pos_prob") {
   PosProbMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute, PosProbMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, PosProbMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(fit_result$draws)) return(list(mean = NA_real_))
   draws <- fit_result$draws
   voi <- data_bundle$vars_of_interest %||% colnames(draws)
@@ -144,7 +144,7 @@ posterior_summary_metric <- function(name = "posterior_summary", prob = 0.95) {
   PosteriorSummaryMetric(name = name, needs = character(), required = FALSE, prob = prob)
 }
 
-S7::method(compute, PosteriorSummaryMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, PosteriorSummaryMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(fit_result$draws)) {
     return(list(mean = NA_real_, sd = NA_real_, q_lower = NA_real_, q_upper = NA_real_))
   }
@@ -195,7 +195,7 @@ convergence_metric <- function(name = "convergence") {
   ConvergenceMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute, ConvergenceMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ConvergenceMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   d <- fit_result$diagnostics
   if (is.null(d)) {
     return(list(rhat_max = NA_real_, ess_bulk_min = NA_real_, ess_tail_min = NA_real_, divergent = NA_integer_))
@@ -234,7 +234,7 @@ sampler_diagnostics_metric <- function(name = "sampler_diagnostics") {
   SamplerDiagnosticsMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute, SamplerDiagnosticsMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   d <- fit_result$diagnostics
   if (is.null(d)) {
     return(list(divergent = NA_integer_, max_treedepth = NA_integer_))
@@ -310,7 +310,7 @@ rank_metric <- function(name = "rank", thin = "auto") {
   as.integer(stride)
 }
 
-S7::method(compute, RankMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(fit_result$draws) || is.null(data_bundle$true_params)) {
     # Keep a (deprecated) `mean` field for back-compat with downstream code
     # that still reads it; it is NA when no ranks are computable.
@@ -387,7 +387,7 @@ rstar_metric <- function(name = "rstar") {
   RstarMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute, RstarMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   list(value = NA_real_)
 }
 
@@ -418,7 +418,7 @@ elpd_loo_metric <- function(name = "elpd_loo") {
   ElpdLooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute, ElpdLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ElpdLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   loo <- context$loo
   if (is.null(loo)) {
     return(list(elpd = NA_real_, p_loo = NA_real_, se = NA_real_, pareto_k_max = NA_real_))
@@ -461,7 +461,7 @@ rmse_loo_metric <- function(name = "rmse_loo") {
   RmseLooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute, RmseLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RmseLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   loo <- context$loo
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
@@ -524,7 +524,7 @@ r2_loo_metric <- function(name = "r2_loo") {
   R2LooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute, R2LooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, R2LooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   loo <- context$loo
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
@@ -594,7 +594,7 @@ elpd_test_metric <- function(name = "elpd_test") {
   ElpdTestMetric(name = name, needs = "log_lik", required = FALSE)
 }
 
-S7::method(compute, ElpdTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ElpdTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$log_lik)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
@@ -634,7 +634,7 @@ rmse_test_metric <- function(name = "rmse_test") {
   RmseTestMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute, RmseTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RmseTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
@@ -671,7 +671,7 @@ r2_test_metric <- function(name = "r2_test") {
   R2TestMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute, R2TestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, R2TestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))

@@ -9,7 +9,7 @@ predict_epred(fitter, fit_result, newdata = NULL)
 \arguments{
 \item{fitter}{An S7 Fitter object}
 
-\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit]{fit()}}}
+\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit_model]{fit_model()}}}
 
 \item{newdata}{Data frame with observations. If NULL, uses training data.}
 }

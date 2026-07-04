@@ -36,22 +36,22 @@ The validation performs the following checks:
 
 \strong{Method Checks:}
 \itemize{
-\item \code{fit()} method is implemented
+\item \code{fit_model()} method is implemented
 \item \code{extract_draws()} method is implemented
 \item \code{predict_fit()} method is implemented
-\item \code{log_lik()} method is implemented
+\item \code{log_lik_matrix()} method is implemented
 \item \code{loo_fit()} method is implemented
-\item \code{diagnostics()} method is implemented
+\item \code{fit_diagnostics()} method is implemented
 }
 
 \strong{Smoke Test (when smoke_test = TRUE):}
 \itemize{
 \item Creates simple lm-like test data
-\item Calls \code{fit()} and verifies \code{bayesim_fit_result} structure
+\item Calls \code{fit_model()} and verifies \code{bayesim_fit_result} structure
 \item Calls \code{extract_draws()} and verifies matrix with colnames
 \item If \code{supports_predictions}, calls \code{predict_fit()} and verifies output
-\item If \code{supports_log_lik}, calls \code{log_lik()} and verifies matrix output
-\item Calls \code{diagnostics()} and verifies list output
+\item If \code{supports_log_lik}, calls \code{log_lik_matrix()} and verifies matrix output
+\item Calls \code{fit_diagnostics()} and verifies list output
 }
 }
 \examples{

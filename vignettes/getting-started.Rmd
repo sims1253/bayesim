@@ -177,7 +177,7 @@ MyMetric <- S7::new_class(
   )
 )
 
-S7::method(compute, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   list(value = 0.5)
 }
 

@@ -88,8 +88,8 @@ run_task_safe <- function(
 #'     \item `data_generator`: Function to generate data
 #'     \item Other configuration parameters
 #'   }
-#' @param fitter S7 Fitter object that implements the fit(), predict_fit(),
-#'   log_lik(), and loo_fit() methods
+#' @param fitter S7 Fitter object that implements the fit_model(), predict_fit(),
+#'   log_lik_matrix(), and loo_fit() methods
 #' @param metrics List of S7 Metric objects to compute
 #' @param retain Character vector of what to retain in results. Options:
 #'   \itemize{
@@ -212,7 +212,7 @@ run_task <- function(
   # Step 2: Fit model
   fit_result <- tryCatch(
     {
-      fit(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
+      fit_model(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
     },
     error = function(e) {
       # Normalize to bayesim_fit_error if not already a bayesim error
@@ -351,7 +351,7 @@ build_metric_context <- function(
 
   if ("log_lik" %in% all_needs && fitter@supports_log_lik) {
     context$log_lik <- tryCatch(
-      log_lik(fitter, fit_result),
+      log_lik_matrix(fitter, fit_result),
       error = function(e) NULL
     )
   }
@@ -402,7 +402,7 @@ build_loo_context <- function(fitter, fit_result) {
   if (is.null(loo_result)) return(NULL)
 
   # Pointwise log-likelihood matrix (S x N, draws x observations).
-  ll <- tryCatch(log_lik(fitter, fit_result), error = function(e) NULL)
+  ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
   if (!is.matrix(ll)) {
     return(list(loo = loo_result, psis = NULL, log_lik = NULL, epred = NULL))
   }
@@ -518,7 +518,7 @@ compute_all_metrics <- function(
 
     metric_result <- tryCatch(
       {
-        compute(metric, fit_result, data_bundle, context, task_ctx)
+        compute_metric(metric, fit_result, data_bundle, context, task_ctx)
       },
       error = function(e) {
         if (is_required) {

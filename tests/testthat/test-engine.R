@@ -42,7 +42,7 @@ create_test_metric <- function(
     }
   }
 
-  S7::method(compute, TestMetric) <- compute_fn
+  S7::method(compute_metric, TestMetric) <- compute_fn
   # Pass properties explicitly when creating the instance
   TestMetric(name = name, needs = needs, required = required)
 }
@@ -816,7 +816,7 @@ describe("Worker", {
           name = S7::new_property(S7::class_character, default = "failing")
         )
       )
-      S7::method(fit, FailingFitter) <- function(
+      S7::method(fit_model, FailingFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -900,7 +900,7 @@ describe("Worker", {
           name = S7::new_property(S7::class_character, default = "seed_capture")
         )
       )
-      S7::method(fit, SeedCapturingFitter) <- function(
+      S7::method(fit_model, SeedCapturingFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -1033,7 +1033,7 @@ describe("Worker", {
           supports_loo = S7::new_property(S7::class_logical, default = TRUE)
         )
       )
-      S7::method(fit, NoPredFitter) <- function(
+      S7::method(fit_model, NoPredFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,

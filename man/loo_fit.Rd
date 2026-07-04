@@ -9,7 +9,7 @@ loo_fit(fitter, fit_result)
 \arguments{
 \item{fitter}{An S7 Fitter object}
 
-\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit]{fit()}}}
+\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit_model]{fit_model()}}}
 }
 \value{
 A list containing:

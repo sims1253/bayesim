@@ -59,7 +59,7 @@ LinearFitter <- S7::new_class(
 )
 
 # fit(): estimate the model and package draws
-S7::method(fit, LinearFitter) <- function(fitter, data_bundle, fit_spec, seed, task_ctx) {
+S7::method(fit_model, LinearFitter) <- function(fitter, data_bundle, fit_spec, seed, task_ctx) {
   train <- data_bundle$train
   fit <- lm(y ~ x, data = train)
   coefs <- coef(fit)
@@ -106,7 +106,7 @@ S7::method(predict_fit, LinearFitter) <- function(fitter, fit_result, newdata = 
 }
 
 # log_lik(): per-observation log-likelihood of each draw
-S7::method(log_lik, LinearFitter) <- function(fitter, fit_result, newdata = NULL) {
+S7::method(log_lik_matrix, LinearFitter) <- function(fitter, fit_result, newdata = NULL) {
   data <- newdata %||% fit_result$data_bundle$train
   fit <- fit_result$fit
   sigma2 <- sum(residuals(fit)^2) / fit$df.residual
@@ -122,7 +122,7 @@ S7::method(loo_fit, LinearFitter) <- function(fitter, fit_result) {
 }
 
 # diagnostics()
-S7::method(diagnostics, LinearFitter) <- function(fitter, fit_result) {
+S7::method(fit_diagnostics, LinearFitter) <- function(fitter, fit_result) {
   fit_result$diagnostics
 }
 ```
@@ -181,7 +181,7 @@ MADMetric <- S7::new_class(
   )
 )
 
-S7::method(compute, MADMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, MADMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(context$predictions)) return(list(value = NA_real_))
   test_data <- data_bundle$test %||% data_bundle$train
   actual <- test_data[[data_bundle$response]]

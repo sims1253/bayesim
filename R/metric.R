@@ -71,7 +71,7 @@
 #'   )
 #' )
 #'
-#' S7::method(compute, RMSEMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+#' S7::method(compute_metric, RMSEMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
 #'   preds <- context$predictions
 #'   actual <- data_bundle$test[[data_bundle$response]]
 #'   list(
@@ -97,7 +97,8 @@ Metric <- S7::new_class(
 #' @title Compute Metric Values
 #' @description
 #' Compute metric values from a fitted model result. This generic must be
-#' implemented by Metric subclasses.
+#' implemented by Metric subclasses. Named `compute_metric` (rather than
+#' `compute`) so that bayesim does not mask [dplyr::compute].
 #'
 #' @param metric An S7 Metric object
 #' @param fit_result A bayesim_fit_result object containing the fitted model output
@@ -107,8 +108,8 @@ Metric <- S7::new_class(
 #'
 #' @return A named list with metric values conforming to the metric output schema
 #' @export
-compute <- S7::new_generic(
-  "compute",
+compute_metric <- S7::new_generic(
+  "compute_metric",
   "metric",
   function(metric, fit_result, data_bundle, context, task_ctx) {
     S7::S7_dispatch()

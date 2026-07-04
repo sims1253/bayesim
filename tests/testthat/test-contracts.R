@@ -682,7 +682,7 @@ describe("Fitter Class", {
       expect_equal(fitter@name, "mock")
     })
 
-    it("fit() returns bayesim_fit_result", {
+    it("fit_model() returns bayesim_fit_result", {
       fitter <- MockFitter()
       data_bundle <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
@@ -692,7 +692,7 @@ describe("Fitter Class", {
       fit_spec <- data.frame(model = "test")
       task_ctx <- list(task_id = "test_task")
 
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -712,7 +712,7 @@ describe("Fitter Class", {
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -734,7 +734,7 @@ describe("Fitter Class", {
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -754,7 +754,7 @@ describe("Fitter Class", {
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -774,14 +774,14 @@ describe("Fitter Class", {
       expect_equal(ncol(preds$predicted_samples), 10)
     })
 
-    it("log_lik() returns matrix", {
+    it("log_lik_matrix() returns matrix", {
       fitter <- MockFitter()
       data_bundle <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -789,7 +789,7 @@ describe("Fitter Class", {
         task_ctx = list(task_id = "test")
       )
 
-      ll <- log_lik(fitter, fit_result)
+      ll <- log_lik_matrix(fitter, fit_result)
 
       expect_true(is.matrix(ll))
       # S x N convention (draws x observations): 10 observations => 10 columns.
@@ -805,7 +805,7 @@ describe("Fitter Class", {
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -822,14 +822,14 @@ describe("Fitter Class", {
       expect_true("pareto_k" %in% names(loo_result))
     })
 
-    it("diagnostics() returns named list", {
+    it("fit_diagnostics() returns named list", {
       fitter <- MockFitter()
       data_bundle <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = NULL,
         response = "y"
       )
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         fit_spec = data.frame(model = "test"),
@@ -837,7 +837,7 @@ describe("Fitter Class", {
         task_ctx = list(task_id = "test")
       )
 
-      diag <- diagnostics(fitter, fit_result)
+      diag <- fit_diagnostics(fitter, fit_result)
 
       expect_true(is.list(diag))
       expect_true("rhat_max" %in% names(diag))
@@ -857,7 +857,7 @@ describe("Fitter Class", {
         )
       )
       # Register method separately using S7 generics-based system
-      S7::method(fit, TestFitter) <- function(
+      S7::method(fit_model, TestFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -887,7 +887,7 @@ describe("Fitter Class", {
           name = S7::new_property(S7::class_character, default = "test")
         )
       )
-      S7::method(fit, TestFitter) <- function(
+      S7::method(fit_model, TestFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -905,7 +905,7 @@ describe("Fitter Class", {
       }
 
       fitter <- TestFitter()
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data.frame(x = 1),
         data.frame(),
@@ -935,7 +935,7 @@ describe("Metric Class", {
       expect_true("required" %in% names(Metric@properties))
     })
 
-    it("compute() throws S7 method not found error for unimplemented methods", {
+    it("compute_metric() throws S7 method not found error for unimplemented methods", {
       TestMetric <- S7::new_class(
         "TestMetric",
         parent = Metric,
@@ -947,7 +947,7 @@ describe("Metric Class", {
 
       # S7 throws "Can't find method for" error when method is not implemented
       expect_error(
-        compute(metric, NULL, NULL, NULL, NULL),
+        compute_metric(metric, NULL, NULL, NULL, NULL),
         "Can't find method"
       )
     })
@@ -1099,7 +1099,7 @@ describe("Metric Class", {
         )
       )
       # Register method separately using S7 generics-based system
-      S7::method(compute, RMSEMetric) <- function(
+      S7::method(compute_metric, RMSEMetric) <- function(
         metric,
         fit_result,
         data_bundle,
@@ -1120,7 +1120,7 @@ describe("Metric Class", {
       expect_true(is.character(metric@name))
     })
 
-    it("compute() returns valid output", {
+    it("compute_metric() returns valid output", {
       RMSEMetric <- S7::new_class(
         "RMSEMetric",
         parent = Metric,
@@ -1133,7 +1133,7 @@ describe("Metric Class", {
           required = S7::new_property(S7::class_logical, default = FALSE)
         )
       )
-      S7::method(compute, RMSEMetric) <- function(
+      S7::method(compute_metric, RMSEMetric) <- function(
         metric,
         fit_result,
         data_bundle,
@@ -1157,7 +1157,7 @@ describe("Metric Class", {
       context <- list(predictions = list(predicted_mean = c(1.1, 1.9, 3.2)))
       task_ctx <- list(task_id = "test")
 
-      output <- compute(metric, fit_result, data_bundle, context, task_ctx)
+      output <- compute_metric(metric, fit_result, data_bundle, context, task_ctx)
 
       expect_silent(validate_metric_output(output, "rmse"))
       expect_true("value" %in% names(output))

@@ -69,12 +69,13 @@ reference:
       - Fitter
       - BrmsFitter
       - MockFitter
-      - fit
+      - fit_model
       - extract_draws
       - predict_fit
-      - log_lik
+      - predict_epred
+      - log_lik_matrix
       - loo_fit
-      - diagnostics
+      - fit_diagnostics
 
   - title: Generators
     desc: >
@@ -89,7 +90,7 @@ reference:
       Classes and built-in metrics for computing simulation results
     contents:
       - Metric
-      - compute
+      - compute_metric
       - rmse_metric
       - bias_metric
       - coverage_metric

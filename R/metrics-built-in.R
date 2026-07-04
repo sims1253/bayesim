@@ -82,7 +82,7 @@ rmse_metric <- function(name = "rmse") {
   )
 }
 
-S7::method(compute, RmseMetric) <- function(
+S7::method(compute_metric, RmseMetric) <- function(
   metric,
   fit_result,
   data_bundle,
@@ -135,7 +135,7 @@ bias_metric <- function(name = "bias") {
   )
 }
 
-S7::method(compute, BiasMetric) <- function(
+S7::method(compute_metric, BiasMetric) <- function(
   metric,
   fit_result,
   data_bundle,
@@ -188,7 +188,7 @@ coverage_metric <- function(name = "coverage", prob = 0.95) {
   )
 }
 
-S7::method(compute, CoverageMetric) <- function(
+S7::method(compute_metric, CoverageMetric) <- function(
   metric,
   fit_result,
   data_bundle,
@@ -251,7 +251,7 @@ posterior_mean_metric <- function(name = "posterior_mean") {
   )
 }
 
-S7::method(compute, PosteriorMeanMetric) <- function(
+S7::method(compute_metric, PosteriorMeanMetric) <- function(
   metric,
   fit_result,
   data_bundle,

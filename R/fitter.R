@@ -15,17 +15,17 @@
 #' @section Methods:
 #' The following S7 generics must be implemented by subclasses:
 #' \describe{
-#'   \item{`fit(fitter, data_bundle, fit_spec, seed, task_ctx)`}{Main fitting method}
+#'   \item{`fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)`}{Main fitting method}
 #'   \item{`extract_draws(fitter, fit_result, variables = NULL)`}{Extract posterior draws}
 #'   \item{`predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)`}{Generate predictions}
-#'   \item{`log_lik(fitter, fit_result, newdata = NULL)`}{Pointwise log-likelihood}
+#'   \item{`log_lik_matrix(fitter, fit_result, newdata = NULL)`}{Pointwise log-likelihood}
 #'   \item{`loo_fit(fitter, fit_result)`}{LOO-CV computation}
-#'   \item{`diagnostics(fitter, fit_result)`}{Extract fit diagnostics}
+#'   \item{`fit_diagnostics(fitter, fit_result)`}{Extract fit diagnostics}
 #' }
 #'
 #' @section Creating Custom Fitters:
 #' To create a custom fitter, extend this class and implement methods for the
-#' S7 generics: `fit()`, `extract_draws()`, `predict()`, `log_lik()`, `loo_fit()`, `diagnostics()`.
+#' S7 generics: `fit_model()`, `extract_draws()`, `predict()`, `log_lik_matrix()`, `loo_fit()`, `fit_diagnostics()`.
 #'
 #' @return An S7 class object representing the abstract Fitter
 #' @export
@@ -84,8 +84,8 @@ Fitter <- S7::new_class(
 #'     \item error: NULL or condition
 #'   }
 #' @export
-fit <- S7::new_generic(
-  "fit",
+fit_model <- S7::new_generic(
+  "fit_model",
   "fitter",
   function(fitter, data_bundle, fit_spec, seed, task_ctx) {
     S7::S7_dispatch()
@@ -97,7 +97,7 @@ fit <- S7::new_generic(
 #' Extract posterior draws from a fitted model.
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #' @param variables Character vector of variable names to extract.
 #'   If NULL, extracts all variables.
 #'
@@ -121,7 +121,7 @@ extract_draws <- S7::new_generic(
 #' Generate predictions from a fitted model.
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #' @param newdata Data frame with new observations for prediction.
 #'   If NULL, predictions are generated for the original training data.
 #' @param seed Optional integer seed for reproducible predictions
@@ -136,7 +136,7 @@ extract_draws <- S7::new_generic(
 #'   }
 #'
 #'   `predicted_samples` follows the same orientation convention as
-#'   [log_lik()] and [predict_epred()]: all matrices are draws x observations
+#'   [log_lik_matrix()] and [predict_epred()]: all matrices are draws x observations
 #'   (S rows, N columns).
 #' @export
 predict_fit <- S7::new_generic(
@@ -158,7 +158,7 @@ predict_fit <- S7::new_generic(
 #' `r2_loo` metric then degrades to NA. The default Fitter method returns NULL.
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #' @param newdata Data frame with observations. If NULL, uses training data.
 #'
 #' @return A matrix with dimensions S x N (draws x observations), or NULL if
@@ -179,10 +179,12 @@ S7::method(predict_epred, S7::class_any) <- function(fitter, fit_result, newdata
 
 #' @title Compute Pointwise Log-Likelihood
 #' @description
-#' Compute pointwise log-likelihood values.
+#' Compute pointwise log-likelihood values. Named `log_lik_matrix` (rather than
+#' `log_lik`) so that bayesim does not mask [brms::log_lik] / [loo::log_lik]
+#' `rstantools`-style generics for users who load bayesim alongside brms.
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #' @param newdata Data frame with observations. If NULL, uses training data.
 #'
 #' @return A matrix with dimensions S x N where:
@@ -195,8 +197,8 @@ S7::method(predict_epred, S7::class_any) <- function(fitter, fit_result, newdata
 #'   `brms::log_lik` and what `loo::psis`/`loo::E_loo`/`loo::relative_eff`
 #'   expect.
 #' @export
-log_lik <- S7::new_generic(
-  "log_lik",
+log_lik_matrix <- S7::new_generic(
+  "log_lik_matrix",
   "fitter",
   function(fitter, fit_result, newdata = NULL) {
     S7::S7_dispatch()
@@ -209,7 +211,7 @@ log_lik <- S7::new_generic(
 #' sampling (PSIS-LOO). Named `loo_fit` to avoid clashing with [loo::loo()].
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #'
 #' @return A list containing:
 #'   \itemize{
@@ -226,10 +228,12 @@ loo_fit <- S7::new_generic("loo_fit", "fitter", function(fitter, fit_result) {
 
 #' @title Extract Fit Diagnostics
 #' @description
-#' Extract convergence and fit diagnostics.
+#' Extract convergence and fit diagnostics. Named `fit_diagnostics` (rather
+#' than `diagnostics`) to avoid exporting a generic-noun that collides with
+#' other packages.
 #'
 #' @param fitter An S7 Fitter object
-#' @param fit_result A `bayesim_fit_result` object from [fit()]
+#' @param fit_result A `bayesim_fit_result` object from [fit_model()]
 #'
 #' @return A named list of scalar diagnostic values, which may include:
 #'   \itemize{
@@ -241,8 +245,8 @@ loo_fit <- S7::new_generic("loo_fit", "fitter", function(fitter, fit_result) {
 #'     \item Fitter-specific diagnostics
 #'   }
 #' @export
-diagnostics <- S7::new_generic(
-  "diagnostics",
+fit_diagnostics <- S7::new_generic(
+  "fit_diagnostics",
   "fitter",
   function(fitter, fit_result) {
     S7::S7_dispatch()
@@ -295,7 +299,7 @@ MockFitter <- S7::new_class(
 # MockFitter method implementations
 # =============================================================================
 
-S7::method(fit, MockFitter) <- function(
+S7::method(fit_model, MockFitter) <- function(
   fitter,
   data_bundle,
   fit_spec,
@@ -547,7 +551,7 @@ S7::method(predict_fit, MockFitter) <- function(
   })
 }
 
-S7::method(log_lik, MockFitter) <- function(
+S7::method(log_lik_matrix, MockFitter) <- function(
   fitter,
   fit_result,
   newdata = NULL
@@ -599,7 +603,7 @@ S7::method(loo_fit, MockFitter) <- function(fitter, fit_result) {
   })
 }
 
-S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
+S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
   # Return diagnostics from fit_result if available, otherwise mock values
   if (!is.null(fit_result$diagnostics) && length(fit_result$diagnostics) > 0) {
     fit_result$diagnostics
@@ -639,20 +643,20 @@ S7::method(diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - `supports_loo` property exists and is logical
 #'
 #' **Method Checks:**
-#' - `fit()` method is implemented
+#' - `fit_model()` method is implemented
 #' - `extract_draws()` method is implemented
 #' - `predict_fit()` method is implemented
-#' - `log_lik()` method is implemented
+#' - `log_lik_matrix()` method is implemented
 #' - `loo_fit()` method is implemented
-#' - `diagnostics()` method is implemented
+#' - `fit_diagnostics()` method is implemented
 #'
 #' **Smoke Test (when smoke_test = TRUE):**
 #' - Creates simple lm-like test data
-#' - Calls `fit()` and verifies `bayesim_fit_result` structure
+#' - Calls `fit_model()` and verifies `bayesim_fit_result` structure
 #' - Calls `extract_draws()` and verifies matrix with colnames
 #' - If `supports_predictions`, calls `predict_fit()` and verifies output
-#' - If `supports_log_lik`, calls `log_lik()` and verifies matrix output
-#' - Calls `diagnostics()` and verifies list output
+#' - If `supports_log_lik`, calls `log_lik_matrix()` and verifies matrix output
+#' - Calls `fit_diagnostics()` and verifies list output
 #'
 #' @keywords internal
 #' @seealso [Fitter], [MockFitter]
@@ -734,12 +738,12 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
   msg("Checking required S7 methods...")
 
   required_methods <- c(
-    "fit",
+    "fit_model",
     "extract_draws",
     "predict_fit",
-    "log_lik",
+    "log_lik_matrix",
     "loo_fit",
-    "diagnostics"
+    "fit_diagnostics"
   )
   fitter_class <- S7::S7_class(fitter)
 
@@ -797,10 +801,10 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       rep_idx = 1L
     )
 
-    # Test fit()
-    msg("  Testing fit()...")
+    # Test fit_model()
+    msg("  Testing fit_model()...")
     fit_result <- tryCatch(
-      fit(
+      fit_model(
         fitter,
         test_data_bundle,
         test_fit_spec,
@@ -810,7 +814,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       error = function(e) {
         rlang::abort(
           c(
-            "fit() method failed during smoke test",
+            "fit_model() method failed during smoke test",
             x = conditionMessage(e)
           ),
           class = "bayesim_validation_error"
@@ -822,7 +826,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     if (!inherits(fit_result, "bayesim_fit_result")) {
       rlang::abort(
         c(
-          "fit() did not return a bayesim_fit_result object",
+          "fit_model() did not return a bayesim_fit_result object",
           i = paste0(
             "Returned class: ",
             paste(class(fit_result), collapse = ", ")
@@ -835,7 +839,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     if (!isTRUE(fit_result$success)) {
       rlang::abort(
         c(
-          "fit() returned unsuccessful result during smoke test",
+          "fit_model() returned unsuccessful result during smoke test",
           i = if (!is.null(fit_result$error)) {
             conditionMessage(fit_result$error)
           } else {
@@ -845,7 +849,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         class = "bayesim_validation_error"
       )
     }
-    msg("    [OK] fit() returns valid bayesim_fit_result")
+    msg("    [OK] fit_model() returns valid bayesim_fit_result")
 
     # Test extract_draws()
     msg("  Testing extract_draws()...")
@@ -956,21 +960,21 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       msg("  [SKIP] predict_fit() (supports_predictions is FALSE)")
     }
 
-    # Test log_lik() if supported.
-    # Convention: log_lik() must return an S x N matrix (draws x observations),
+    # Test log_lik_matrix() if supported.
+    # Convention: log_lik_matrix() must return an S x N matrix (draws x observations),
     # matching the brms/loo orientation. We check that the number of columns
     # equals n_obs (one column per observation). The S rows are posterior
     # draws and their count is fitter-specific, so the row count is not
     # checked here; this is robust to fitters whose n_draws happens to equal
     # n_obs only by coincidence.
     if (isTRUE(fitter@supports_log_lik)) {
-      msg("  Testing log_lik()...")
+      msg("  Testing log_lik_matrix()...")
       ll <- tryCatch(
-        log_lik(fitter, fit_result),
+        log_lik_matrix(fitter, fit_result),
         error = function(e) {
           rlang::abort(
             c(
-              "log_lik() method failed during smoke test",
+              "log_lik_matrix() method failed during smoke test",
               x = conditionMessage(e)
             ),
             class = "bayesim_validation_error"
@@ -981,7 +985,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       if (is.null(ll)) {
         rlang::abort(
           c(
-            "log_lik() returned NULL but supports_log_lik is TRUE",
+            "log_lik_matrix() returned NULL but supports_log_lik is TRUE",
             i = "Return an S x N matrix of pointwise log-likelihoods (draws x observations)"
           ),
           class = "bayesim_validation_error"
@@ -991,7 +995,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       if (!is.matrix(ll)) {
         rlang::abort(
           c(
-            "log_lik() did not return a matrix",
+            "log_lik_matrix() did not return a matrix",
             i = paste0("Returned class: ", paste(class(ll), collapse = ", "))
           ),
           class = "bayesim_validation_error"
@@ -1001,7 +1005,7 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
       if (ncol(ll) != n) {
         rlang::abort(
           c(
-            "log_lik() returned wrong number of columns",
+            "log_lik_matrix() returned wrong number of columns",
             i = paste0(
               "Expected N columns (one per observation), got ",
               ncol(ll),
@@ -1013,19 +1017,19 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
           class = "bayesim_validation_error"
         )
       }
-      msg("    [OK] log_lik() returns valid matrix")
+      msg("    [OK] log_lik_matrix() returns valid matrix")
     } else {
-      msg("  [SKIP] log_lik() (supports_log_lik is FALSE)")
+      msg("  [SKIP] log_lik_matrix() (supports_log_lik is FALSE)")
     }
 
-    # Test diagnostics()
-    msg("  Testing diagnostics()...")
+    # Test fit_diagnostics()
+    msg("  Testing fit_diagnostics()...")
     diag <- tryCatch(
-      diagnostics(fitter, fit_result),
+      fit_diagnostics(fitter, fit_result),
       error = function(e) {
         rlang::abort(
           c(
-            "diagnostics() method failed during smoke test",
+            "fit_diagnostics() method failed during smoke test",
             x = conditionMessage(e)
           ),
           class = "bayesim_validation_error"
@@ -1036,13 +1040,13 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     if (!is.list(diag)) {
       rlang::abort(
         c(
-          "diagnostics() did not return a list",
+          "fit_diagnostics() did not return a list",
           i = paste0("Returned class: ", paste(class(diag), collapse = ", "))
         ),
         class = "bayesim_validation_error"
       )
     }
-    msg("    [OK] diagnostics() returns list")
+    msg("    [OK] fit_diagnostics() returns list")
 
     msg("Smoke test completed successfully!")
   }

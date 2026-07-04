@@ -55,7 +55,7 @@ describe("r2_loo_metric parity with brms::loo_R2", {
     # Exp(1) weights, so exact equality is impossible. Tolerance 0.05 reflects
     # this Monte-Carlo variance on a tiny (100-iteration, 1-chain) fit.
     brms_r2 <- as.numeric(suppressWarnings(brms::loo_R2(fit, summary = TRUE))["R2", "Estimate"])
-    out <- compute(r2_loo_metric(), fit_result, data_bundle, ctx,
+    out <- compute_metric(r2_loo_metric(), fit_result, data_bundle, ctx,
                    list(task_id = "t1"))
     expect_false(is.na(out$value))
     expect_lt(abs(out$value - brms_r2), 0.05)
@@ -70,7 +70,7 @@ describe("rmse_loo_metric parity with brms loo_predict", {
     # expectation. Compute the E_loo(epred) RMSE directly and compare.
     yloo <- loo::E_loo(epred, psis_obj, log_ratios = -ll, type = "mean")$value
     expected <- sqrt(mean((y - yloo)^2))
-    out <- compute(rmse_loo_metric(), fit_result, data_bundle, ctx,
+    out <- compute_metric(rmse_loo_metric(), fit_result, data_bundle, ctx,
                    list(task_id = "t1"))
     expect_false(is.na(out$value))
     expect_lt(abs(out$value - expected), 1e-6)
@@ -80,9 +80,9 @@ describe("rmse_loo_metric parity with brms loo_predict", {
 
 describe("rmse_loo / r2_loo degradation", {
   it("both NA when PSIS/epred context absent", {
-    out_r <- compute(rmse_loo_metric(), fit_result, data_bundle,
+    out_r <- compute_metric(rmse_loo_metric(), fit_result, data_bundle,
                      list(loo = ctx$loo), list(task_id = "t1"))
-    out_r2 <- compute(r2_loo_metric(), fit_result, data_bundle,
+    out_r2 <- compute_metric(r2_loo_metric(), fit_result, data_bundle,
                       list(loo = ctx$loo), list(task_id = "t1"))
     expect_true(is.na(out_r$value))
     expect_true(is.na(out_r2$value))

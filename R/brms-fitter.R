@@ -261,7 +261,7 @@ update_prefit <- function(prefit, fitter, data_bundle, seed, formula,
 }
 
 #' @export
-S7::method(fit, BrmsFitter) <- function(
+S7::method(fit_model, BrmsFitter) <- function(
   fitter,
   data_bundle,
   fit_spec,
@@ -444,7 +444,7 @@ S7::method(predict_fit, BrmsFitter) <- function(
 }
 
 #' @export
-S7::method(log_lik, BrmsFitter) <- function(
+S7::method(log_lik_matrix, BrmsFitter) <- function(
   fitter,
   fit_result,
   newdata = NULL
@@ -490,7 +490,7 @@ S7::method(loo_fit, BrmsFitter) <- function(fitter, fit_result) {
 }
 
 #' @export
-S7::method(diagnostics, BrmsFitter) <- function(fitter, fit_result) {
+S7::method(fit_diagnostics, BrmsFitter) <- function(fitter, fit_result) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(list())
   }

@@ -55,7 +55,7 @@ describe("metrics against a real (tiny) brmsfit", {
   ctx <- list(task_id = "t1")
 
   it("coverage_metric gives 0/1 (not NA) for x/Intercept/sigma", {
-    out <- compute(coverage_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(coverage_metric(), fit_result, data_bundle, list(), ctx)
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out$by_param),
                   info = paste("missing", v))
@@ -67,7 +67,7 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("posterior_mean_metric returns finite values for x/Intercept/sigma", {
-    out <- compute(posterior_mean_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(posterior_mean_metric(), fit_result, data_bundle, list(), ctx)
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out), info = paste("missing", v))
       expect_true(is.finite(out[[v]]), info = paste("non-finite for", v))
@@ -75,7 +75,7 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("pos_prob_metric returns in-range non-NA probabilities", {
-    out <- compute(pos_prob_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(pos_prob_metric(), fit_result, data_bundle, list(), ctx)
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out$by_param), info = paste("missing", v))
       expect_false(is.na(out$by_param[[v]]), info = paste("NA for", v))
@@ -85,7 +85,7 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("posterior_summary_metric returns non-NA mean/sd/q_lower/q_upper", {
-    out <- compute(posterior_summary_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(posterior_summary_metric(), fit_result, data_bundle, list(), ctx)
     for (field in c("mean", "sd", "q_lower", "q_upper")) {
       for (v in c("x", "Intercept", "sigma")) {
         expect_true(v %in% names(out[[field]]),
@@ -97,7 +97,7 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("rank_metric returns integer non-NA ranks", {
-    out <- compute(rank_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(rank_metric(), fit_result, data_bundle, list(), ctx)
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out$by_param), info = paste("missing", v))
       expect_false(is.na(out$by_param[[v]]), info = paste("NA for", v))
@@ -110,7 +110,7 @@ describe("metrics against a real (tiny) brmsfit", {
     bad_bundle$vars_of_interest <- c("x", "nonexistent")
     bad_bundle$true_params <- c(x = 0.5, nonexistent = 0.5)
     expect_error(
-      compute(coverage_metric(), fit_result, bad_bundle, list(), ctx),
+      compute_metric(coverage_metric(), fit_result, bad_bundle, list(), ctx),
       class = "bayesim_config_error"
     )
   })
