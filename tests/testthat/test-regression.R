@@ -517,7 +517,7 @@ describe("Serialization Safety", {
     })
 
     it("never digests S7 objects - returns list of plain lists", {
-      metrics <- list(rmse_metric())
+      metrics <- list(pred_rmse_metric())
       result <- capture_metrics_spec(metrics)
 
       # Result should be a list of lists
@@ -532,7 +532,7 @@ describe("Serialization Safety", {
     })
 
     it("captures S7 metric specs as plain metadata", {
-      metrics <- list(rmse_metric(), bias_metric())
+      metrics <- list(pred_rmse_metric(), pred_bias_metric())
       result <- capture_metrics_spec(metrics)
 
       expect_type(result, "list")

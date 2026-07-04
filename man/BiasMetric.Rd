@@ -2,12 +2,12 @@
 % Please edit documentation in R/metrics-built-in.R
 \name{BiasMetric}
 \alias{BiasMetric}
-\alias{bias_metric}
+\alias{pred_bias_metric}
 \title{Bias Metric}
 \usage{
 BiasMetric(name = character(0), needs = character(0), required = FALSE)
 
-bias_metric(name = "bias")
+pred_bias_metric(name = "bias")
 }
 \arguments{
 \item{name}{Character string naming the metric. Defaults to "bias".}

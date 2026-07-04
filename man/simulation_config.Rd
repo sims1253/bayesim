@@ -81,7 +81,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = c("baseline", "full")),
   data_generator = my_data_gen,
   fitter = my_fitter,
-  metrics = list(rmse_metric(), bias_metric()),
+  metrics = list(pred_rmse_metric(), pred_bias_metric()),
   n_replicates = 100L,
   seed = 42L,
   checkpoint_format = "rds"

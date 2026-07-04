@@ -631,8 +631,8 @@ describe("Task Grid", {
 describe("Metric Resolution", {
   describe("built-in metric constructors", {
     it("return S7 Metric objects", {
-      expect_s7_object(rmse_metric())
-      expect_s7_object(bias_metric())
+      expect_s7_object(pred_rmse_metric())
+      expect_s7_object(pred_bias_metric())
       expect_s7_object(coverage_metric())
       expect_s7_object(posterior_mean_metric())
     })
@@ -1493,7 +1493,7 @@ describe("run_simulation()", {
         fit_grid = data.frame(model = "baseline"),
         data_generator = bayesim:::bayesim_example_data_generator,
         fitter = MockFitter(),
-        metrics = list(rmse_metric()),
+        metrics = list(pred_rmse_metric()),
         n_replicates = 1L,
         seed = 42L,
         result_path = result_path
@@ -1519,7 +1519,7 @@ describe("run_simulation()", {
         fit_grid = data.frame(model = "baseline"),
         data_generator = mock_data_generator,
         fitter = MockFitter(),
-        metrics = list(rmse_metric()),
+        metrics = list(pred_rmse_metric()),
         n_replicates = 2L,
         seed = 42L
       )
@@ -1562,7 +1562,7 @@ describe("run_simulation()", {
         fit_grid = data.frame(model = "baseline"),
         data_generator = mock_data_generator,
         fitter = MockFitter(),
-        metrics = list(rmse_metric()),
+        metrics = list(pred_rmse_metric()),
         n_replicates = 6L,
         seed = 42L,
         checkpoint_every = 2L

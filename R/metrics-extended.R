@@ -28,14 +28,19 @@ MaeMetric <- S7::new_class(
 #' @return A `MaeMetric` object.
 #' @export
 #' @examples
-#' mae_metric()
-mae_metric <- function(name = "mae") {
+#' pred_mae_metric()
+pred_mae_metric <- function(name = "mae") {
   MaeMetric(name = name, needs = "predictions", required = FALSE)
 }
 
 S7::method(compute_metric, MaeMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(context$predictions)) return(list(value = NA_real_))
-  test_data <- data_bundle$test %||% data_bundle$train
+  if (is.null(context$predictions)) return(list(value = NA_real_, n_obs = NA_integer_))
+  # E2: no silent training-set fallback.
+  if (is.null(data_bundle$test)) {
+    .warn_no_test("pred_mae_metric")
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
+  test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
   list(value = mean(abs(predicted - actual)), n_obs = length(actual))
@@ -62,14 +67,19 @@ MseMetric <- S7::new_class(
 #' @return An `MseMetric` object.
 #' @export
 #' @examples
-#' mse_metric()
-mse_metric <- function(name = "mse") {
+#' pred_mse_metric()
+pred_mse_metric <- function(name = "mse") {
   MseMetric(name = name, needs = "predictions", required = FALSE)
 }
 
 S7::method(compute_metric, MseMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(context$predictions)) return(list(value = NA_real_))
-  test_data <- data_bundle$test %||% data_bundle$train
+  if (is.null(context$predictions)) return(list(value = NA_real_, n_obs = NA_integer_))
+  # E2: no silent training-set fallback.
+  if (is.null(data_bundle$test)) {
+    .warn_no_test("pred_mse_metric")
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
+  test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
   list(value = mean((predicted - actual)^2), n_obs = length(actual))
@@ -312,9 +322,8 @@ rank_metric <- function(name = "rank", thin = "auto") {
 
 S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
   if (is.null(fit_result$draws) || is.null(data_bundle$true_params)) {
-    # Keep a (deprecated) `mean` field for back-compat with downstream code
-    # that still reads it; it is NA when no ranks are computable.
-    return(list(mean = NA_real_))
+    # No draws or no truth: ranks undefined. Return an empty (but valid) result.
+    return(list(n_draws = NA_integer_, stride = NA_integer_))
   }
   draws <- fit_result$draws
   true_params <- data_bundle$true_params
@@ -322,7 +331,7 @@ S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bund
   mapped <- resolve_draw_columns(voi, colnames(draws))
   # Restrict to vars that also have a truth value.
   mapped <- mapped[names(mapped) %in% names(true_params)]
-  if (length(mapped) == 0L) return(list(mean = NA_real_))
+  if (length(mapped) == 0L) return(list(n_draws = as.integer(nrow(draws)), stride = 1L))
 
   # Determine the thinning stride (F4). auto -> toward min bulk-ESS; integer
   # -> direct stride; FALSE -> no thinning (stride 1).
@@ -353,43 +362,14 @@ S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bund
     n_draws = as.integer(nrow(draws)),
     stride = as.integer(stride),
     by_param = by_param_d,
-    n_ranks = n_ranks_d,
-    mean = mean(ranks)
+    n_ranks = n_ranks_d
   )
 }
 
 # R* metric --------------------------------------------------------------
-
-#' @title R* Diagnostic Metric
-#' @description The R* classification-tree diagnostic (Talts et al., 2018).
-#'   Requires per-chain draw structure not available in the flattened draws
-#'   matrix, so returns NA unless chain information is recovered.
-#' @param name Character string naming the metric. Defaults to "rstar".
-#' @return An `RstarMetric` object.
-#' @keywords internal
-RstarMetric <- S7::new_class(
-  "RstarMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "rstar"),
-    needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE)
-  )
-)
-
-#' @rdname RstarMetric
-#' @description Constructor for RstarMetric.
-#' @return An `RstarMetric` object.
-#' @export
-#' @examples
-#' rstar_metric()
-rstar_metric <- function(name = "rstar") {
-  RstarMetric(name = name, needs = character(), required = FALSE)
-}
-
-S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  list(value = NA_real_)
-}
+# E5: rstar_metric was deleted (it returned NA unconditionally — a placebo
+# export). R* needs caret+ranger and per-chain draws; it is on the backlog
+# (ROADMAP I2), to be re-added once the draws contract carries .chain.
 
 # LOO-based metrics ------------------------------------------------------
 

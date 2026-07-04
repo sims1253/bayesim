@@ -146,7 +146,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = "linear"),
   data_generator = my_generator,
   fitter = LinearFitter(),
-  metrics = list(rmse_metric(), bias_metric(), posterior_summary_metric()),
+  metrics = list(pred_rmse_metric(), pred_bias_metric(), posterior_summary_metric()),
   n_replicates = 4L,
   seed = 42L
 )
@@ -194,7 +194,7 @@ mad_metric <- function(name = "mad") MADMetric(name = name, needs = "predictions
 
 The `needs` property tells the engine which fitter capabilities to precompute
 into `context`: `"predictions"`, `"log_lik"`, `"loo"` (or `character()` for
-none). Built-in metrics (`rmse_metric`, `bias_metric`, `coverage_metric`,
+none). Built-in metrics (`pred_rmse_metric`, `pred_bias_metric`, `coverage_metric`,
 `posterior_summary_metric`, ...) cover the common surface; see
 `?Metric` and the getting-started vignette for the full list.
 

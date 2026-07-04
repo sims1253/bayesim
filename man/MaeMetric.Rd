@@ -2,12 +2,12 @@
 % Please edit documentation in R/metrics-extended.R
 \name{MaeMetric}
 \alias{MaeMetric}
-\alias{mae_metric}
+\alias{pred_mae_metric}
 \title{MAE Metric}
 \usage{
 MaeMetric(name = character(0), needs = character(0), required = FALSE)
 
-mae_metric(name = "mae")
+pred_mae_metric(name = "mae")
 }
 \arguments{
 \item{name}{Character string naming the metric. Defaults to "mae".}
@@ -24,6 +24,6 @@ response on the test set (or training set when no test set).
 Constructor for MaeMetric.
 }
 \examples{
-mae_metric()
+pred_mae_metric()
 }
 \keyword{internal}

@@ -2,13 +2,17 @@
 % Please edit documentation in R/generators.R
 \name{.default_prior_vars}
 \alias{.default_prior_vars}
-\title{Default vars_of_interest for a brmsfit: population-level effects.
-brms names them "b_\if{html}{\out{<coefname>}}"; strip the "b_" prefix for true_params names.}
+\title{Default vars_of_interest for a brmsfit: population-level effects, plus the
+residual scale \code{sigma} when present (E5: previously defaulted to population
+effects only, silently excluding sigma/auxiliary parameters from SBC).
+brms names effects "b_\if{html}{\out{<coefname>}}"; strip the "b_" prefix for true_params names.}
 \usage{
 .default_prior_vars(fit)
 }
 \description{
-Default vars_of_interest for a brmsfit: population-level effects.
-brms names them "b_\if{html}{\out{<coefname>}}"; strip the "b_" prefix for true_params names.
+Default vars_of_interest for a brmsfit: population-level effects, plus the
+residual scale \code{sigma} when present (E5: previously defaulted to population
+effects only, silently excluding sigma/auxiliary parameters from SBC).
+brms names effects "b_\if{html}{\out{<coefname>}}"; strip the "b_" prefix for true_params names.
 }
 \keyword{internal}

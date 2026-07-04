@@ -179,7 +179,7 @@ SimulationConfig <- S7::new_class(
 #'   fit_grid = data.frame(model = c("baseline", "full")),
 #'   data_generator = my_data_gen,
 #'   fitter = my_fitter,
-#'   metrics = list(rmse_metric(), bias_metric()),
+#'   metrics = list(pred_rmse_metric(), pred_bias_metric()),
 #'   n_replicates = 100L,
 #'   seed = 42L,
 #'   checkpoint_format = "rds"
@@ -354,7 +354,7 @@ resolve_metrics <- function(metrics) {
     cli::cli_abort(
       paste(
         "metrics must be Metric objects, not character names.",
-        "Use metric constructors such as list(rmse_metric(), bias_metric())."
+        "Use metric constructors such as list(pred_rmse_metric(), pred_bias_metric())."
       )
     )
   }

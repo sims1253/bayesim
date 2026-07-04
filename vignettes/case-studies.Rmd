@@ -49,7 +49,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = "linear"),
   data_generator = power_generator,
   fitter = MockFitter(),
-  metrics = list(rmse_metric(), bias_metric(), posterior_summary_metric()),
+  metrics = list(pred_rmse_metric(), pred_bias_metric(), posterior_summary_metric()),
   n_replicates = 4L,
   seed = 7L
 )
@@ -103,8 +103,8 @@ config <- simulation_config(
   data_generator = skew_generator,
   fitter = BrmsFitter(chains = 2L, iter = 1000L, warmup = 500L),
   metrics = list(
-    rmse_metric(),
-    bias_metric(),
+    pred_rmse_metric(),
+    pred_bias_metric(),
     posterior_summary_metric(),
     elpd_loo_metric()
   ),

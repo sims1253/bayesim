@@ -59,8 +59,8 @@ config <- simulation_config(
   data_generator = my_generator,
   fitter = MockFitter(),
   metrics = list(
-    rmse_metric(),
-    bias_metric(),
+    pred_rmse_metric(),
+    pred_bias_metric(),
     posterior_summary_metric(),
     convergence_metric()
   ),

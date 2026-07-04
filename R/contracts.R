@@ -152,72 +152,73 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  if (is.null(data_bundle$true_params)) {
-    stop(bayesim_data_error(
-      "data_bundle$true_params is required and cannot be NULL"
-    ))
-  }
-  if (!is.numeric(data_bundle$true_params)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$true_params must be a numeric vector, got " %+%
-          typeof(data_bundle$true_params)
+  # E6: true_params and vars_of_interest are OPTIONAL (jointly NULL). Pure
+  # model-comparison / predictive studies on truth-free data have no truths;
+  # truth-dependent metrics already degrade to NA. Keep the integrity checks
+  # when present.
+  if (!is.null(data_bundle$true_params)) {
+    if (!is.numeric(data_bundle$true_params)) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$true_params must be a numeric vector, got " %+%
+            typeof(data_bundle$true_params)
+        )
       )
-    )
-  }
-  if (is.null(names(data_bundle$true_params))) {
-    stop(bayesim_data_error("data_bundle$true_params must have names"))
-  }
-  if (anyDuplicated(names(data_bundle$true_params)) > 0) {
-    dup_names <- names(data_bundle$true_params)[duplicated(names(
-      data_bundle$true_params
-    ))]
-    stop(
-      bayesim_data_error(
-        "data_bundle$true_params has duplicate names: " %+%
-          paste(unique(dup_names), collapse = ", ")
+    }
+    if (is.null(names(data_bundle$true_params))) {
+      stop(bayesim_data_error("data_bundle$true_params must have names"))
+    }
+    if (anyDuplicated(names(data_bundle$true_params)) > 0) {
+      dup_names <- names(data_bundle$true_params)[duplicated(names(
+        data_bundle$true_params
+      ))]
+      stop(
+        bayesim_data_error(
+          "data_bundle$true_params has duplicate names: " %+%
+            paste(unique(dup_names), collapse = ", ")
+        )
       )
-    )
+    }
   }
 
-  if (is.null(data_bundle$vars_of_interest)) {
-    stop(bayesim_data_error(
-      "data_bundle$vars_of_interest is required and cannot be NULL"
-    ))
-  }
-  if (!is.character(data_bundle$vars_of_interest)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$vars_of_interest must be a character vector, got " %+%
-          typeof(data_bundle$vars_of_interest)
+  if (!is.null(data_bundle$vars_of_interest)) {
+    if (!is.character(data_bundle$vars_of_interest)) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$vars_of_interest must be a character vector, got " %+%
+            typeof(data_bundle$vars_of_interest)
+        )
       )
-    )
-  }
-  if (length(data_bundle$vars_of_interest) < 1) {
-    stop(bayesim_data_error("data_bundle$vars_of_interest must be non-empty"))
-  }
-  if (anyDuplicated(data_bundle$vars_of_interest) > 0) {
-    dup_vars <- data_bundle$vars_of_interest[duplicated(
-      data_bundle$vars_of_interest
-    )]
-    stop(
-      bayesim_data_error(
-        "data_bundle$vars_of_interest has duplicate values: " %+%
-          paste(unique(dup_vars), collapse = ", ")
+    }
+    if (length(data_bundle$vars_of_interest) < 1) {
+      stop(bayesim_data_error("data_bundle$vars_of_interest must be non-empty"))
+    }
+    if (anyDuplicated(data_bundle$vars_of_interest) > 0) {
+      dup_vars <- data_bundle$vars_of_interest[duplicated(
+        data_bundle$vars_of_interest
+      )]
+      stop(
+        bayesim_data_error(
+          "data_bundle$vars_of_interest has duplicate values: " %+%
+            paste(unique(dup_vars), collapse = ", ")
+        )
       )
-    )
+    }
+    if (
+      anyNA(data_bundle$vars_of_interest) ||
+        any(data_bundle$vars_of_interest == "")
+    ) {
+      stop(bayesim_data_error(
+        "data_bundle$vars_of_interest cannot contain NA or empty strings"
+      ))
+    }
   }
+
+  # Validate true_params names match vars_of_interest (only when BOTH present).
   if (
-    anyNA(data_bundle$vars_of_interest) ||
-      any(data_bundle$vars_of_interest == "")
+    !is.null(data_bundle$true_params) && !is.null(data_bundle$vars_of_interest) &&
+      !setequal(names(data_bundle$true_params), data_bundle$vars_of_interest)
   ) {
-    stop(bayesim_data_error(
-      "data_bundle$vars_of_interest cannot contain NA or empty strings"
-    ))
-  }
-
-  # Validate true_params names match vars_of_interest
-  if (!setequal(names(data_bundle$true_params), data_bundle$vars_of_interest)) {
     in_params_not_vars <- setdiff(
       names(data_bundle$true_params),
       data_bundle$vars_of_interest

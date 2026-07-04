@@ -310,21 +310,24 @@ ifs_generator <- function(prefit,
   "y"
 }
 
-#' Default vars_of_interest for a brmsfit: population-level effects.
-#' brms names them "b_<coefname>"; strip the "b_" prefix for true_params names.
+#' Default vars_of_interest for a brmsfit: population-level effects, plus the
+#' residual scale `sigma` when present (E5: previously defaulted to population
+#' effects only, silently excluding sigma/auxiliary parameters from SBC).
+#' brms names effects "b_<coefname>"; strip the "b_" prefix for true_params names.
 #' @keywords internal
 .default_prior_vars <- function(fit) {
   vars <- brms::variables(fit)
   b_vars <- vars[grepl("^b_", vars)]
-  if (length(b_vars) == 0L) {
+  out <- if (length(b_vars) > 0L) {
+    sub("^b_", "", b_vars)
+  } else {
     # Fall back to all variables if no population-level effects (rare).
-    return(vars)
+    vars
   }
-  # Strip the "b_" prefix, but keep the intercept distinguishable.
-  out <- sub("^b_", "", b_vars)
-  # Rename the intercept: brms stores it as "b_Intercept" (dense) or
-  # "b_<resp>_Intercept" (sparse); keep the cleaned form.
-  out
+  # Include sigma (and other auxiliary scales) when present, so distributional
+  # parameters are recovered/SBC-checked by default.
+  aux <- vars[vars %in% c("sigma")]
+  unique(c(out, aux))
 }
 
 #' Extract a named parameter vector from a draws matrix at a given draw index.

@@ -263,7 +263,7 @@ describe("BrmsFitter model bank", {
       fit_grid = fit_grid,
       data_generator = gaussian_data_generator,
       fitter = tiny_fitter(),
-      metrics = list(rmse_metric()),
+      metrics = list(pred_rmse_metric()),
       n_replicates = 2L,
       seed = 42L
     )

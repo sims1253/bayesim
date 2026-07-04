@@ -1,3 +1,18 @@
+# E2: prediction-error metrics refuse to silently fall back to the training
+# set. Warn once per metric name per session, naming the fix (provide a test
+# set). In-sample prediction error presented as "rmse" is a trap.
+.warn_no_test_env <- new.env(parent = emptyenv())
+.warn_no_test <- function(metric_name) {
+  if (is.null(.warn_no_test_env[[metric_name]])) {
+    .warn_no_test_env[[metric_name]] <- TRUE
+    cli::cli_warn(c(
+      "{metric_name}: no test set in data_bundle; returning NA.",
+      i = "Provide a test set via the data generator to measure predictive error."
+    ))
+  }
+  invisible(NULL)
+}
+
 #' Resolve requested cleaned var names to actual draws-matrix columns
 #'
 #' Maps each name in `vars` to itself, then to `b_<name>`, in the set of
@@ -73,8 +88,8 @@ RmseMetric <- S7::new_class(
 #' @return An RmseMetric object.
 #' @export
 #' @examples
-#' rmse_metric()
-rmse_metric <- function(name = "rmse") {
+#' pred_rmse_metric()
+pred_rmse_metric <- function(name = "rmse") {
   RmseMetric(
     name = name,
     needs = "predictions",
@@ -90,10 +105,16 @@ S7::method(compute_metric, RmseMetric) <- function(
   task_ctx
 ) {
   if (is.null(context$predictions)) {
-    return(list(value = NA_real_))
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
+  # E2: prediction-error metrics must NOT silently fall back to the training
+  # set — in-sample error presented as "rmse" is a trap for this audience.
+  if (is.null(data_bundle$test)) {
+    .warn_no_test("pred_rmse_metric")
+    return(list(value = NA_real_, n_obs = NA_integer_))
   }
 
-  test_data <- data_bundle$test %||% data_bundle$train
+  test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
 
@@ -127,7 +148,7 @@ BiasMetric <- S7::new_class(
 #' @param name Character string naming the metric. Defaults to "bias".
 #' @return A BiasMetric object.
 #' @export
-bias_metric <- function(name = "bias") {
+pred_bias_metric <- function(name = "bias") {
   BiasMetric(
     name = name,
     needs = "predictions",
@@ -145,8 +166,13 @@ S7::method(compute_metric, BiasMetric) <- function(
   if (is.null(context$predictions)) {
     return(list(value = NA_real_))
   }
+  # E2: no silent training-set fallback.
+  if (is.null(data_bundle$test)) {
+    .warn_no_test("pred_bias_metric")
+    return(list(value = NA_real_))
+  }
 
-  test_data <- data_bundle$test %||% data_bundle$train
+  test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
 

@@ -32,25 +32,25 @@ make_fixture <- function(draws = NULL,
 }
 
 describe("M5 extended metrics", {
-  it("mae_metric computes mean absolute error", {
+  it("pred_mae_metric computes mean absolute error", {
     fx <- make_fixture(predictions = list(predicted_mean = 1:10))
     fx$data_bundle$response <- "y"
     fx$data_bundle$train$y <- 2:11
-    out <- compute_metric(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(pred_mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, 1)
     expect_equal(out$n_obs, 10)
   })
 
-  it("mae_metric returns NA when predictions absent", {
+  it("pred_mae_metric returns NA when predictions absent", {
     fx <- make_fixture(predictions = NULL)
-    out <- compute_metric(mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(pred_mae_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_true(is.na(out$value))
   })
 
-  it("mse_metric computes mean squared error", {
+  it("pred_mse_metric computes mean squared error", {
     fx <- make_fixture(predictions = list(predicted_mean = rep(0, 5)))
     fx$data_bundle$train$y <- c(1, 2, 3, 4, 5)
-    out <- compute_metric(mse_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
+    out <- compute_metric(pred_mse_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
     expect_equal(out$value, mean((1:5)^2))
   })
 
@@ -177,7 +177,7 @@ describe("M5 extended metrics", {
       info = paste("chi-square", round(chisq, 2), "exceeds uniformity threshold"))
   })
 
-  it("rank_metric returns NA when true_params absent", {
+  it("rank_metric returns no ranks when true_params absent (E5: no mean field)", {
     # Build a fixture with explicitly NULL true_params (bypass make_fixture defaults).
     draws <- matrix(rnorm(200), ncol = 1, dimnames = list(NULL, "b_x"))
     fit_result <- list(draws = draws, diagnostics = NULL)
@@ -186,13 +186,8 @@ describe("M5 extended metrics", {
       response = "y", true_params = NULL, vars_of_interest = "b_x"
     )
     out <- compute_metric(rank_metric(), fit_result, data_bundle, list(), list(task_id = "t1"))
-    expect_true(is.na(out$mean))
-  })
-
-  it("rstar_metric returns NA (per-chain structure unavailable)", {
-    fx <- make_fixture()
-    out <- compute_metric(rstar_metric(), fx$fit_result, fx$data_bundle, fx$context, fx$task_ctx)
-    expect_true(is.na(out$value))
+    expect_null(out$mean)
+    expect_true(is.na(out$n_draws))
   })
 
   it("elpd_loo_metric surfaces loo context fields", {

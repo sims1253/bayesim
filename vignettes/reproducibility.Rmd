@@ -60,7 +60,7 @@ config <- simulation_config(
     )
   },
   fitter = MockFitter(),
-  metrics = list(rmse_metric()),
+  metrics = list(pred_rmse_metric()),
   n_replicates = 2L,
   seed = 42L
 )

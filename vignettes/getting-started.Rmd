@@ -82,8 +82,8 @@ config <- simulation_config(
   data_generator = my_data_generator,
   fitter = MockFitter(),
   metrics = list(
-    rmse_metric(),
-    bias_metric(),
+    pred_rmse_metric(),
+    pred_bias_metric(),
     posterior_summary_metric(),
     convergence_metric()
   ),
@@ -147,7 +147,7 @@ config <- simulation_config(
   fit_grid = fit_grid,
   data_generator = my_data_generator,
   fitter = MockFitter(),
-  metrics = list(rmse_metric()),
+  metrics = list(pred_rmse_metric()),
   n_replicates = 1000L,
   seed = 42L,
   result_path = "my_simulation",
@@ -192,8 +192,8 @@ config <- simulation_config(
 )
 ```
 
-The built-in metric library covers the standard surface: `bias_metric`,
-`rmse_metric`, `mae_metric`, `mse_metric`, `coverage_metric`,
+The built-in metric library covers the standard surface: `pred_bias_metric`,
+`pred_rmse_metric`, `pred_mae_metric`, `pred_mse_metric`, `coverage_metric`,
 `pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
 `sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`, and
 LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,

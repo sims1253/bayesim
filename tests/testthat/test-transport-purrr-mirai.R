@@ -59,7 +59,7 @@ describe("C1: purrr/mirai transport", {
       fit_grid = data.frame(model = "baseline"),
       data_generator = .gen,
       fitter = MockFitter(),
-      metrics = list(rmse_metric()),
+      metrics = list(pred_rmse_metric()),
       n_replicates = 2L,
       seed = 42L
     )
@@ -84,7 +84,7 @@ describe("C2: workers convenience argument", {
       fit_grid = data.frame(model = "baseline"),
       data_generator = .gen,
       fitter = MockFitter(),
-      metrics = list(rmse_metric()),
+      metrics = list(pred_rmse_metric()),
       n_replicates = 2L,
       seed = 42L
     )

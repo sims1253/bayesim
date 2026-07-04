@@ -2,12 +2,12 @@
 % Please edit documentation in R/metrics-extended.R
 \name{MseMetric}
 \alias{MseMetric}
-\alias{mse_metric}
+\alias{pred_mse_metric}
 \title{MSE Metric}
 \usage{
 MseMetric(name = character(0), needs = character(0), required = FALSE)
 
-mse_metric(name = "mse")
+pred_mse_metric(name = "mse")
 }
 \arguments{
 \item{name}{Character string naming the metric. Defaults to "mse".}
@@ -24,6 +24,6 @@ response on the test set (or training set when no test set).
 Constructor for MseMetric.
 }
 \examples{
-mse_metric()
+pred_mse_metric()
 }
 \keyword{internal}
