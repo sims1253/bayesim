@@ -72,15 +72,18 @@ Imports:
 Suggests:
     bayesfam,
     brms (>= 2.22.0),
+    caret,
     cmdstanr (>= 0.7.0),
     ggplot2,
+    knitr,
     MASS,
     nanoparquet,
-    rstan (>= 2.32.0),
-    testthat (>= 3.1.0),
-    knitr,
     quarto,
-    rmarkdown
+    randomForest,
+    ranger,
+    rmarkdown,
+    rstan (>= 2.32.0),
+    testthat (>= 3.1.0)
 Remotes:
     stan-dev/cmdstanr,
     sims1253/bayesfam
