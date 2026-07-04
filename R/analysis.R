@@ -303,17 +303,20 @@ plot_rank_ecdf <- function(ranks) {
 #' Plot parameter recovery (truth vs posterior estimate)
 #'
 #' @description Scatter of posterior-mean estimates against true parameter
-#'   values, per task, with optional credible intervals. Requires
-#'   `posterior_summary_metric` to have been computed.
+#'   values, per task, with credible-interval segments. Faceted by a condition
+#'   column when `by` is supplied. Requires `posterior_summary_metric` to have
+#'   been computed and the truth recorded (E1).
 #' @param result A `bayesim_simulation_result`.
 #' @param var Parameter name (a vars_of_interest entry).
+#' @param by Optional name of a condition column to facet by (E7).
 #' @return A ggplot object.
 #' @export
 #' @examples
 #' \dontrun{
 #' plot_recovery(result, "b_x")
+#' plot_recovery(result, "b_x", by = "data_n")
 #' }
-plot_recovery <- function(result, var) {
+plot_recovery <- function(result, var, by = NULL) {
   rlang::check_installed("ggplot2", "to use plot_recovery()")
   df <- result$summary
   mean_col <- paste0("posterior_summary__mean__", var)
@@ -337,8 +340,13 @@ plot_recovery <- function(result, var) {
     truth = if (!is.na(truth_col) && truth_col %in% names(df)) df[[truth_col]] else NA_real_,
     estimate = df[[mean_col]],
     lower = if (lower_col %in% names(df)) df[[lower_col]] else NA_real_,
-    upper = if (upper_col %in% names(df)) df[[upper_col]] else NA_real_
+    upper = if (upper_col %in% names(df)) df[[upper_col]] else NA_real_,
+    stringsAsFactors = FALSE
   )
+  # Attach the facet column when requested (E7).
+  if (!is.null(by) && by %in% names(df)) {
+    plot_df$.facet <- df[[by]]
+  }
   p <- ggplot2::ggplot(plot_df, ggplot2::aes(.data$truth, .data$estimate)) +
     ggplot2::geom_abline(slope = 1, intercept = 0, color = "grey50", linetype = "dashed") +
     ggplot2::geom_point(alpha = 0.6) +
@@ -347,8 +355,12 @@ plot_recovery <- function(result, var) {
       title = paste0("Parameter recovery: ", var)
     ) +
     ggplot2::theme_minimal()
+  # Posterior-interval segments by default (E7).
   if (lower_col %in% names(df)) {
     p <- p + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = 0.2)
+  }
+  if (!is.null(by) && by %in% names(df)) {
+    p <- p + ggplot2::facet_wrap(~ .data$.facet)
   }
   p
 }

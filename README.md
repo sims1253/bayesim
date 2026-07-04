@@ -1,131 +1,263 @@
+
+<!-- README.md is generated from README.Rmd. Please edit README.Rmd and run
+     devtools::build_readme(). -->
+
 # bayesim
 
 <!-- badges: start -->
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+
+[![License: GPL
+v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 [![R-CMD-check](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/R-CMD-check.yaml)
-[![Tests](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/test-coverage.yaml)
-[![Codecov test coverage](https://codecov.io/gh/sims1253/bayesim/graph/badge.svg)](https://app.codecov.io/gh/sims1253/bayesim)
-[![GH-Pages](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/sims1253/bayesim/actions/workflows/pkgdown.yaml)
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
+[![Codecov test
+coverage](https://codecov.io/gh/sims1253/bayesim/graph/badge.svg)](https://app.codecov.io/gh/sims1253/bayesim)
+[![Lifecycle:
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges: end -->
 
-bayesim provides a simulation framework for reproducible Bayesian modeling studies. It handles task planning, checkpointing, and memory-bounded execution so you can focus on your research questions.
+bayesim is a framework for **Bayesian simulation studies**: parameter
+recovery, calibration checking (SBC), model comparison, and method
+evaluation — designed for teaching, practicing, and publishing
+principled Bayesian workflows.
+
+You declare a study as *data-generating conditions x models x
+replicates*; bayesim plans the tasks, runs them (in parallel, resumably,
+with bounded memory), and reports the performance measures a methods
+paper actually needs — bias, empirical SE, MSE, and coverage, each with
+its Monte Carlo standard error, following Morris, White & Crowther
+(2019).
+
+## Why bayesim
+
+  - **Deterministic by construction.** Every task gets its own
+    L’Ecuyer-CMRG RNG stream derived from one study seed. Sequential,
+    parallel, and interrupted-then-resumed runs produce identical
+    results.
+  - **Calibration is a first-class citizen.** Simulation-based
+    calibration with prior-predictive and inverse-forward-sampling
+    generators, ESS-aware rank thinning, and ECDF plots with
+    simultaneous confidence bands (Säilynoja, Bürkner & Vehtari, 2022).
+  - **The right summaries, honestly computed.** `performance_measures()`
+    reports estimator performance with MCSEs; LOO-based metrics match
+    their loo/brms reference implementations (with parity tests to prove
+    it).
+  - **Compile once, fit thousands of times.** For brms studies, a model
+    bank compiles each distinct Stan model a single time and reuses the
+    binary across all replicates — with a structural guard that fails
+    loudly instead of silently mis-fitting.
+  - **Practical at scale.** Parallel execution via purrr’s mirai
+    integration, checkpoint/resume for long runs, and retention profiles
+    that keep memory flat no matter how large the posteriors are.
+  - **Runs everywhere, including your laptop and your classroom.** The
+    built-in `LinearRegressionFitter()` does exact conjugate Bayesian
+    inference in milliseconds — every example in the documentation is
+    *real* inference, no Stan installation required to learn the
+    workflow.
 
 ## Installation
 
-You can install the development version of bayesim from GitHub:
-
-```r
+``` r
 # install.packages("pak")
 pak::pak("sims1253/bayesim")
 ```
 
-## Example
+For brms- or Stan-backed studies you additionally need
+[brms](https://paulbuerkner.com/brms/) and/or
+[cmdstanr](https://mc-stan.org/cmdstanr/) with a working CmdStan.
 
-The basic workflow has three steps:
+## A complete study in under a minute
 
-1. Create a simulation config with `simulation_config()`
-2. Run it with `run_simulation()`
-3. Resume interrupted runs with `run_simulation(..., resume = "auto")` or `resume_simulation()`
+Does a 90% credible interval cover the truth 90% of the time, and how
+does estimation error shrink with sample size? Real Bayesian inference,
+no Stan:
 
-```r
+``` r
 library(bayesim)
 
-# Define a data generator
-data_gen <- function(data_spec, seed, task_ctx) {
-  n <- data_spec$n
-  x <- rnorm(n)
-  y <- data_spec$intercept + data_spec$slope * x + rnorm(n, sd = data_spec$sigma)
-
+# 1. How data is generated. The engine restores a per-task RNG stream before
+#    each call, so just consume the ambient RNG state.
+gen <- function(data_spec, task_ctx) {
+  x <- rnorm(data_spec$n)
+  y <- 1 + 0.5 * x + rnorm(data_spec$n, sd = data_spec$sigma %||% 1)
   list(
     train = data.frame(y = y, x = x),
-    test = NULL,
     response = "y",
-    true_params = c(
-      intercept = data_spec$intercept,
-      slope = data_spec$slope,
-      sigma = data_spec$sigma
-    ),
-    vars_of_interest = c("intercept", "slope", "sigma"),
-    references = c(intercept = 0, slope = 0, sigma = 1),
-    meta = list()
+    true_params = c(Intercept = 1, x = 0.5, sigma = data_spec$sigma %||% 1),
+    vars_of_interest = c("Intercept", "x", "sigma")
   )
 }
 
-# Create the config
+# 2. The study: 3 sample sizes x 1 model x 100 replicates = 300 tasks.
 config <- simulation_config(
-  data_grid = data.frame(
-    n = c(100, 500),
-    intercept = 1,
-    slope = 2,
-    sigma = 1
+  data_grid = data.frame(n = c(20, 50, 200), sigma = 1),
+  fit_grid = data.frame(model = "linear"),
+  data_generator = gen,
+  fitter = LinearRegressionFitter(),          # exact conjugate posterior
+  metrics = list(
+    posterior_summary_metric(prob = 0.90),
+    coverage_metric(prob = 0.90)
   ),
-  fit_grid = data.frame(model = "baseline"),
-  data_generator = data_gen,
-  fitter = MockFitter(),
-  metrics = list(rmse_metric(), bias_metric()),
-  n_replicates = 10L,
+  n_replicates = 100L,
   seed = 42L
 )
 
-# Run the simulation
-result <- run_simulation(config, progress = FALSE)
-head(result$summary)
+# 3. Run it (drop `workers` to run sequentially).
+result <- run_simulation(config, workers = 2, progress = FALSE)
+#> ℹ Starting simulation with 300 tasks
+
+# 4. Estimator performance with Monte Carlo standard errors.
+performance_measures(result, by = "data_n")
+#> # A tibble: 54 × 6
+#>    data_n estimand  measure     value     mcse n_sim
+#>     <dbl> <chr>     <chr>       <dbl>    <dbl> <int>
+#>  1     20 Intercept bias      -0.0235  0.0239    100
+#>  2     20 Intercept emp_se     0.239   0.0170    100
+#>  3     20 Intercept mse        0.0573  0.00856   100
+#>  4     20 Intercept model_se   0.204   0.00366   100
+#>  5     20 Intercept coverage   0.83    0.0376    100
+#>  6     20 Intercept n_sim    100      NA         100
+#>  7     50 Intercept bias       0.0178  0.0125    100
+#>  8     50 Intercept emp_se     0.125   0.00889   100
+#>  9     50 Intercept mse        0.0158  0.00191   100
+#> 10     50 Intercept model_se   0.137   0.00158   100
+#> # ℹ 44 more rows
 ```
 
-The engine restores the task RNG state before each call, so repeated, resumed, and parallel runs produce identical results.
+Truths are recorded per task, so parameter recovery is one call:
 
-## Features
+``` r
+plot_recovery(result, "x", by = "data_n")
+```
 
-- **Deterministic task planning**: A single study seed determines all task seeds
-- **Checkpoint and resume**: Long-running studies can resume after interruption
-- **Memory-bounded execution**: `chunk_size` controls how many results stay in memory
-- **Extensible design**: S7 classes for fitters and metrics
-- **Explicit metrics**: Pass Metric objects instead of string names
+<img src="man/figures/README-recovery-1.png" alt="Posterior mean estimates against true parameter values, faceted by sample size" width="70%" />
 
-## Checkpointing
+## Calibration checking (SBC)
 
-Set `result_path` and `checkpoint_every` to make runs resumable:
+Is your model self-consistent — does it recover parameters drawn from
+its own prior? bayesim ships the full simulation-based calibration loop:
 
-```r
+``` r
+sbc_config <- simulation_config(
+  data_grid = data.frame(n = 50),
+  fit_grid = data.frame(model = "linear"),
+  data_generator = gen,
+  fitter = LinearRegressionFitter(),
+  metrics = list(rank_metric()),   # ESS-aware thinned SBC ranks
+  n_replicates = 200L,
+  seed = 1L
+)
+sbc_result <- run_simulation(sbc_config, workers = 2, progress = FALSE)
+#> ℹ Starting simulation with 200 tasks
+
+plot_rank_ecdf(sbc_ranks(sbc_result))
+```
+
+<img src="man/figures/README-sbc-1.png" alt="SBC rank ECDF with simultaneous 95% confidence bands" width="70%" />
+
+For brms models, `prior_predictive_generator()` and `ifs_generator()`
+draw the truth from the prior (or a preconditioning posterior) and
+forward-simulate the data — including dependency-ordered simulation for
+multivariate models. See `vignette("sbc-and-calibration")`.
+
+## Model backends
+
+| fitter                     | inference                                       | use it for                                                                                                   |
+| -------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `LinearRegressionFitter()` | exact conjugate (NIG) posterior                 | learning the workflow, method studies with analytic baselines, fast pipelines                                |
+| `BrmsFitter()`             | Stan via brms, with the compile-once model bank | most applied studies; formula/family/prior grids via `model_grid()`                                          |
+| `CmdStanFitter()`          | your own `.stan` files via cmdstanr             | full control over the model; supply a `log_lik` generated quantity and LOO metrics work out of the box       |
+| your own                   | anything                                        | subclass `Fitter`, implement six generics, check with `validate_fitter()` — see `vignette("custom-fitters")` |
+
+Comparing brms models is declarative:
+
+``` r
 config <- simulation_config(
-  data_grid = data.frame(n = c(100, 500)),
-  fit_grid = data.frame(model = "baseline"),
-  data_generator = data_gen,
-  fitter = MockFitter(),
-  metrics = list(rmse_metric()),
-  n_replicates = 100L,
-  seed = 42L,
-  result_path = "results/demo-study",
-  checkpoint_every = 25L,
-  chunk_size = 25L
+  data_grid = data.frame(n = 200),
+  fit_grid = model_grid(
+    gaussian  = brms_model(y ~ x, brms::brmsfamily("gaussian")),
+    student   = brms_model(y ~ x, brms::brmsfamily("student")),
+    lognormal = brms_model(y ~ x, brms::brmsfamily("lognormal"))
+  ),
+  data_generator = skewed_gen,
+  fitter = BrmsFitter(chains = 2L),
+  metrics = list(elpd_loo_metric(), posterior_summary_metric()),
+  n_replicates = 50L,
+  seed = 42L
+)
+```
+
+Each of the three models compiles exactly once; all 150 fits reuse the
+binaries.
+
+## Long runs: parallel, resumable, memory-bounded
+
+``` r
+config <- simulation_config(
+  ...,
+  result_path = "results/my-study",  # checkpoints + artifacts live here
+  checkpoint_every = 50L,            # batch size for checkpoint/memory cycling
+  retain = "metrics"                 # keep memory flat: drop fits and draws
 )
 
-run_simulation(config, resume = "auto")
+preflight(config)                    # task count, compile count, time estimate
+result <- run_simulation(config, workers = 8, resume = "auto")
+
+# After an interruption, pick up exactly where it stopped:
+result <- resume_simulation("results/my-study")
 ```
 
-Use `resume_simulation("results/demo-study")` to resume from an existing checkpoint.
+Parallelism uses purrr’s [mirai](https://mirai.r-lib.org/) integration;
+for clusters, set daemons yourself (`mirai::daemons()`, including
+remote/TLS daemons) instead of passing `workers` — see
+`vignette("parallel-and-hpc")`.
 
-## Fitters
+## How it compares
 
-bayesim includes:
+  - **[SimDesign](https://cran.r-project.org/package=SimDesign)** /
+    **[simhelpers](https://cran.r-project.org/package=simhelpers)**:
+    excellent general-purpose simulation harnesses, frequentist-first.
+    bayesim is Bayes-native: posteriors, calibration, LOO, and
+    Stan-aware execution (model bank, per-daemon setup) are built in.
+  - **[rsimsum](https://cran.r-project.org/package=rsimsum)**: analyzes
+    simulation results you already have. bayesim runs the study *and*
+    reports the same Morris et al. performance measures (and its MCSE
+    formulas follow rsimsum).
+  - **[SBC](https://hyunjimoon.github.io/SBC/)**: focused on calibration
+    checking. bayesim embeds SBC as one metric inside a general study
+    engine with checkpointing, grids, and model comparison.
 
-- `MockFitter()` for testing and examples
-- `BrmsFitter()` for brms workflows (default backend: "cmdstanr")
+## Learn more
 
-Custom fitters should subclass the `Fitter` S7 class.
+The documentation is organized as a course:
 
-## Documentation
+1.  `vignette("getting-started")` — your first study, end to end.
+2.  `vignette("design-of-simulation-studies")` — aims, estimands,
+    choosing the number of replicates from a target MCSE, reporting.
+3.  `vignette("sbc-and-calibration")` — the calibration workflow,
+    including a deliberately miscalibrated model so you can see what
+    failure looks like.
+4.  `vignette("brms-studies")` — the model bank, `model_grid()`, family
+    comparison case study.
+5.  `vignette("custom-fitters")` / `vignette("custom-metrics")` —
+    extending the framework, including raw Stan via `CmdStanFitter()`.
+6.  `vignette("parallel-and-hpc")` and `vignette("reproducibility")` —
+    running large studies and understanding the determinism guarantees.
 
-See the vignettes for detailed guides:
+## References
 
-- `vignette("getting-started")`
-- `vignette("simulation-study")`
-- `vignette("reproducibility")`
-- `vignette("memory-management")`
-- `vignette("custom-fitters")`
-- `vignette("case-studies")`
+  - Morris, White & Crowther (2019). Using simulation studies to
+    evaluate statistical methods. *Statistics in Medicine*, 38(11).
+  - Talts, Betancourt, Simpson, Vehtari & Gelman (2018). Validating
+    Bayesian inference algorithms with simulation-based calibration.
+    arXiv:1804.06788.
+  - Säilynoja, Bürkner & Vehtari (2022). Graphical test for discrete
+    uniformity and its applications in goodness-of-fit evaluation.
+    *Statistics and Computing*, 32(2).
+  - Vehtari, Gelman & Gabry (2017). Practical Bayesian model evaluation
+    using leave-one-out cross-validation and WAIC. *Statistics and
+    Computing*, 27(5).
 
 ## Getting help
 
-If you encounter a bug or have a feature request, please file an issue on [GitHub](https://github.com/sims1253/bayesim/issues).
+Bug reports and feature requests:
+[github.com/sims1253/bayesim/issues](https://github.com/sims1253/bayesim/issues).

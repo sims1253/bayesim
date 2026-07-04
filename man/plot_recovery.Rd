@@ -4,23 +4,27 @@
 \alias{plot_recovery}
 \title{Plot parameter recovery (truth vs posterior estimate)}
 \usage{
-plot_recovery(result, var)
+plot_recovery(result, var, by = NULL)
 }
 \arguments{
 \item{result}{A \code{bayesim_simulation_result}.}
 
 \item{var}{Parameter name (a vars_of_interest entry).}
+
+\item{by}{Optional name of a condition column to facet by (E7).}
 }
 \value{
 A ggplot object.
 }
 \description{
 Scatter of posterior-mean estimates against true parameter
-values, per task, with optional credible intervals. Requires
-\code{posterior_summary_metric} to have been computed.
+values, per task, with credible-interval segments. Faceted by a condition
+column when \code{by} is supplied. Requires \code{posterior_summary_metric} to have
+been computed and the truth recorded (E1).
 }
 \examples{
 \dontrun{
 plot_recovery(result, "b_x")
+plot_recovery(result, "b_x", by = "data_n")
 }
 }
