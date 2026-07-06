@@ -427,7 +427,9 @@ build_metric_context <- function(
 #' @keywords internal
 build_loo_context <- function(fitter, fit_result) {
   loo_result <- loo_fit(fitter, fit_result)
-  if (is.null(loo_result)) return(NULL)
+  if (is.null(loo_result)) {
+    return(NULL)
+  }
 
   # Pointwise log-likelihood matrix (S x N, draws x observations).
   ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
@@ -481,13 +483,17 @@ build_loo_context <- function(fitter, fit_result) {
 #' @keywords internal
 relative_eff_from_chains <- function(fitter, fit_result, ll) {
   fit <- fit_result$fit
-  if (is.null(fit)) return(NULL)
+  if (is.null(fit)) {
+    return(NULL)
+  }
   chain_id <- tryCatch(
     posterior::as_draws_df(fit)$.chain,
     error = function(e) NULL
   )
   # ll is S x N (draws x observations); chain_id has length S (one per draw).
-  if (is.null(chain_id) || length(chain_id) != nrow(ll)) return(NULL)
+  if (is.null(chain_id) || length(chain_id) != nrow(ll)) {
+    return(NULL)
+  }
   loo::relative_eff(exp(ll), chain_id = chain_id)
 }
 

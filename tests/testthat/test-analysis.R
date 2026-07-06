@@ -44,7 +44,8 @@ describe("summarize_simulation", {
   it("coverage MCSE uses sqrt(p(1-p)/n)", {
     # coverage values all 1 -> p=1 -> MCSE = sqrt(1*0/n) = 0
     df <- data.frame(
-      model = "x", status = "success",
+      model = "x",
+      status = "success",
       coverage__mean = rep(1, 10)
     )
     agg <- summarize_simulation(df, by = "model", metrics = "coverage__mean")
@@ -53,7 +54,8 @@ describe("summarize_simulation", {
 
   it("coverage MCSE for p=0.5, n=100 is sqrt(0.25/100) = 0.05", {
     df <- data.frame(
-      model = "x", status = "success",
+      model = "x",
+      status = "success",
       coverage__mean = rep(c(0, 1), 50)
     )
     agg <- summarize_simulation(df, by = "model", metrics = "coverage__mean")
@@ -102,7 +104,8 @@ describe("sbc_ranks", {
     # `rank__by_param`; sbc_ranks must still extract it.
     df <- data.frame(
       task_id = c("t1", "t2"),
-      model = "x", status = "success",
+      model = "x",
+      status = "success",
       rank__n_draws = c(100L, 100L),
       rank__by_param = c(40L, 60L),
       check.names = FALSE

@@ -25,7 +25,9 @@ describe("C1: purrr/mirai transport", {
     # they call must be namespace-qualified to resolve on daemons (bayesim is
     # installed there; bayesim_config_error is exported).
     fatal_gen <- function(data_spec, task_ctx) {
-      stop(bayesim::bayesim_config_error("deliberate fatal failure inside a task"))
+      stop(bayesim::bayesim_config_error(
+        "deliberate fatal failure inside a task"
+      ))
     }
 
     config <- simulation_config(
@@ -90,7 +92,12 @@ describe("C2: workers convenience argument", {
     seq_res <- run_simulation(config, resume = "never", progress = FALSE)
 
     expect_false(mirai::daemons_set())
-    par_res <- run_simulation(config, resume = "never", progress = FALSE, workers = 2)
+    par_res <- run_simulation(
+      config,
+      resume = "never",
+      progress = FALSE,
+      workers = 2
+    )
     expect_false(mirai::daemons_set())
 
     norm <- function(x) {

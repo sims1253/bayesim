@@ -4,11 +4,14 @@ library(bayesim)
 
 # Conjugate linear regression generator (mirrors test-performance-measures.R).
 .gen <- function(data_spec, task_ctx) {
-  n <- data_spec$n; b <- data_spec$beta
+  n <- data_spec$n
+  b <- data_spec$beta
   x <- stats::rnorm(n)
   y <- 1 + b * x + stats::rnorm(n)
   list(
-    train = data.frame(y = y, x = x), test = NULL, response = "y",
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
     true_params = c(Intercept = 1, x = b, sigma = 1),
     vars_of_interest = c("Intercept", "x", "sigma"),
     meta = list()
@@ -29,8 +32,11 @@ describe("adaptive stopping (stop_on)", {
       seed = 11L,
       checkpoint_every = 2L,
       stop_on = list(
-        estimand = "x", measure = "bias",
-        target_mcse = 0.5, min_reps = 2L, check_every = 2L
+        estimand = "x",
+        measure = "bias",
+        target_mcse = 0.5,
+        min_reps = 2L,
+        check_every = 2L
       )
     )
     res <- run_simulation(cfg, resume = "never", progress = FALSE)
@@ -74,7 +80,8 @@ describe("adaptive stopping (stop_on)", {
         data_generator = .gen,
         fitter = LinearRegressionFitter(n_draws = 10L),
         metrics = list(posterior_summary_metric()),
-        n_replicates = 2L, seed = 1L,
+        n_replicates = 2L,
+        seed = 1L,
         stop_on = list(estimand = "x", measure = "bias") # missing target_mcse
       ),
       class = "bayesim_config_error"
@@ -86,7 +93,8 @@ describe("adaptive stopping (stop_on)", {
         data_generator = .gen,
         fitter = LinearRegressionFitter(n_draws = 10L),
         metrics = list(posterior_summary_metric()),
-        n_replicates = 2L, seed = 1L,
+        n_replicates = 2L,
+        seed = 1L,
         stop_on = list(estimand = "x", measure = "bogus", target_mcse = 0.1)
       ),
       class = "bayesim_config_error"

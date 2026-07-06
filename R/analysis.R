@@ -57,11 +57,17 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   # metric name. Unknown/user columns default to "mean"; a "coverage"-prefixed
   # column defaults to "proportion" so bare data.frame input still gets the
   # right MCSE.
-  summary_types <- if (!is.data.frame(result)) result$metric_summary_types else NULL
+  summary_types <- if (!is.data.frame(result)) {
+    result$metric_summary_types
+  } else {
+    NULL
+  }
   type_for <- function(col) {
     metric_name <- sub("__.*$", "", col)
     declared <- summary_types[[metric_name]]
-    if (!is.null(declared)) return(declared)
+    if (!is.null(declared)) {
+      return(declared)
+    }
     if (grepl("^coverage(__|$)", col)) "proportion" else "mean"
   }
 
@@ -76,15 +82,28 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   }
   by <- intersect(by, names(df))
 
-  meta_cols <- c("task_id", "rep_idx", "status", "timing_total", "timing_warmup", "timing_sample")
+  meta_cols <- c(
+    "task_id",
+    "rep_idx",
+    "status",
+    "timing_total",
+    "timing_warmup",
+    "timing_sample"
+  )
   numeric_cols <- names(df)[vapply(df, is.numeric, logical(1))]
   # exclude timing/pure-metadata numeric columns from default metrics
   exclude_meta <- numeric_cols[grepl("^(timing|n_)|(_timing)$", numeric_cols)]
   metric_cols <- setdiff(numeric_cols, c(meta_cols, exclude_meta, by))
   # summary_type = "none" opts a metric out of aggregation (e.g. SBC ranks).
-  metric_cols <- metric_cols[vapply(metric_cols, function(m) type_for(m) != "none", logical(1))]
+  metric_cols <- metric_cols[vapply(
+    metric_cols,
+    function(m) type_for(m) != "none",
+    logical(1)
+  )]
 
-  if (!is.null(metrics)) metric_cols <- intersect(metric_cols, metrics)
+  if (!is.null(metrics)) {
+    metric_cols <- intersect(metric_cols, metrics)
+  }
   if (length(metric_cols) == 0L) {
     warning("No metric columns found to summarize")
     return(tibble::as_tibble(df[0, , drop = FALSE]))
@@ -117,7 +136,11 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       vals <- vals[is.finite(vals)]
       n <- length(vals)
       out[[paste0(m, "_mean")]] <- if (n > 0L) mean(vals) else NA_real_
-      out[[paste0(m, "_median")]] <- if (n > 0L) stats::median(vals) else NA_real_
+      out[[paste0(m, "_median")]] <- if (n > 0L) {
+        stats::median(vals)
+      } else {
+        NA_real_
+      }
       sd_v <- if (n > 1L) stats::sd(vals) else NA_real_
       out[[paste0(m, "_sd")]] <- sd_v
       # E4: MCSE by declared summary_type. "proportion" (coverage-style)
@@ -160,26 +183,43 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
 sbc_ranks <- function(result) {
   df <- if (is.data.frame(result)) result else result$summary
   empty <- tibble::tibble(
-    task_id = character(0), param = character(0),
-    rank = integer(0), n_draws = integer(0), n_ranks = integer(0)
+    task_id = character(0),
+    param = character(0),
+    rank = integer(0),
+    n_draws = integer(0),
+    n_ranks = integer(0)
   )
-  if (is.null(df)) return(empty)
+  if (is.null(df)) {
+    return(empty)
+  }
   # rank__by_param__<param> columns hold the per-task per-parameter rank counts.
   # For the single-parameter case the flattener collapses the length-1 named
   # vector to a scalar `rank__by_param` (no __<param> suffix); handle both.
   rank_cols_multi <- grep("^rank__by_param__", names(df), value = TRUE)
-  rank_cols_single <- if ("rank__by_param" %in% names(df)) "rank__by_param" else character(0)
+  rank_cols_single <- if ("rank__by_param" %in% names(df)) {
+    "rank__by_param"
+  } else {
+    character(0)
+  }
   rank_cols <- c(rank_cols_multi, rank_cols_single)
   n_draws_col <- grep("^rank__n_draws$", names(df), value = TRUE)
-  if (length(rank_cols) == 0L) return(empty)
+  if (length(rank_cols) == 0L) {
+    return(empty)
+  }
   n_draws <- if (length(n_draws_col) == 1L) df[[n_draws_col]] else NA_integer_
   rows <- list()
   for (col in rank_cols) {
     param <- sub("^rank__by_param__?", "", col)
-    if (param == "") param <- "(single)"
+    if (param == "") {
+      param <- "(single)"
+    }
     # Per-variable n_ranks when present (F4); fall back to n_draws + 1.
     n_ranks_col <- paste0("rank__n_ranks__", param)
-    n_ranks <- if (n_ranks_col %in% names(df)) as.integer(df[[n_ranks_col]]) else NA_integer_
+    n_ranks <- if (n_ranks_col %in% names(df)) {
+      as.integer(df[[n_ranks_col]])
+    } else {
+      NA_integer_
+    }
     rows[[param]] <- tibble::tibble(
       task_id = df$task_id,
       param = param,
@@ -203,8 +243,12 @@ sbc_ranks <- function(result) {
 #' }
 plot_rank_hist <- function(ranks) {
   rlang::check_installed("ggplot2", "to use plot_rank_hist()")
-  if (inherits(ranks, "bayesim_simulation_result")) ranks <- sbc_ranks(ranks)
-  if (nrow(ranks) == 0L) stop(bayesim_config_error("No rank data; was rank_metric() used?"))
+  if (inherits(ranks, "bayesim_simulation_result")) {
+    ranks <- sbc_ranks(ranks)
+  }
+  if (nrow(ranks) == 0L) {
+    stop(bayesim_config_error("No rank data; was rank_metric() used?"))
+  }
   ggplot2::ggplot(ranks, ggplot2::aes(.data$rank)) +
     ggplot2::geom_histogram(bins = 20, color = "white") +
     ggplot2::facet_wrap(~param, scales = "free_x") +
@@ -212,18 +256,20 @@ plot_rank_hist <- function(ranks) {
     ggplot2::theme_minimal()
 }
 
-#' Plot SBC rank ECDF with uniformity band
+#' Plot SBC rank ECDF with simultaneous confidence band
 #'
 #' @description Plots the empirical CDF of SBC ranks against the uniform CDF
-#'   (the diagonal), with a pointwise alpha-uniformity band following Talts
-#'   et al. (2018). The band is the pointwise coverage interval for the ECDF
-#'   of a uniform sample, derived from the beta distribution of order
-#'   statistics: at the i-th of n ordered points the lower bound is
-#'   `qbeta((1-alpha)/2, i, n+1-i)` and the upper bound is
-#'   `qbeta(1-(1-alpha)/2, i, n+1-i)`. Under correct calibration the ECDF
-#'   should stay within the band at level alpha.
+#'   (the diagonal), with a simultaneous confidence band following
+#'   Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
+#'   under correct calibration, the *entire* ECDF stays within it with
+#'   probability alpha; deviations anywhere along the band therefore indicate
+#'   miscalibration at level 1 - alpha.
 #' @param ranks A tibble from [sbc_ranks()], or a `bayesim_simulation_result`.
-#' @param alpha Coverage level of the pointwise uniformity band (default 0.95).
+#' @param alpha Coverage level of the simultaneous confidence band
+#'   (default 0.95).
+#' @references Säilynoja T, Bürkner PC, Vehtari A (2022). Graphical test for
+#'   discrete uniformity and its applications in goodness-of-fit evaluation.
+#'   *Statistics and Computing*, 32(2).
 #' @return A ggplot object.
 #' @export
 #' @examples
@@ -233,56 +279,96 @@ plot_rank_hist <- function(ranks) {
 #' }
 plot_rank_ecdf <- function(ranks, alpha = 0.95) {
   rlang::check_installed("ggplot2", "to use plot_rank_ecdf()")
-  if (inherits(ranks, "bayesim_simulation_result")) ranks <- sbc_ranks(ranks)
-  if (nrow(ranks) == 0L) stop(bayesim_config_error("No rank data; was rank_metric() used?"))
+  if (inherits(ranks, "bayesim_simulation_result")) {
+    ranks <- sbc_ranks(ranks)
+  }
+  if (nrow(ranks) == 0L) {
+    stop(bayesim_config_error("No rank data; was rank_metric() used?"))
+  }
   if (
-    !is.numeric(alpha) || length(alpha) != 1L || is.na(alpha) ||
-      alpha <= 0 || alpha >= 1
+    !is.numeric(alpha) ||
+      length(alpha) != 1L ||
+      is.na(alpha) ||
+      alpha <= 0 ||
+      alpha >= 1
   ) {
-    stop(bayesim_config_error("alpha must be a scalar in (0, 1), got " %+% alpha))
+    stop(bayesim_config_error(
+      "alpha must be a scalar in (0, 1), got " %+% alpha
+    ))
   }
 
-  plot_data <- do.call(rbind, lapply(unique(ranks$param), function(p) {
-    sub <- ranks[ranks$param == p, , drop = FALSE]
-    n <- nrow(sub)
-    # Prefer post-thinning n_ranks (F4); fall back to n_draws for old results.
-    S <- NA
-    if ("n_ranks" %in% names(sub) && any(is.finite(sub$n_ranks))) {
-      S <- max(sub$n_ranks - 1L, na.rm = TRUE)
-    }
-    if (!is.finite(S) || S < 1L) S <- max(sub$n_draws, na.rm = TRUE)
-    if (!is.finite(S) || S < 1L) S <- max(sub$rank, na.rm = TRUE)
-    # Normalized rank on [0,1]: rank in 0..S, map to (rank+0.5)/(S+1).
-    r <- (sort(sub$rank) + 0.5) / (S + 1)
-    ecdf_y <- seq_len(n) / n
-    # Pointwise alpha-uniformity band (Talts et al. 2018): the ECDF of a
-    # uniform sample of size n has pointwise coverage via the beta distribution
-    # of order statistics -- the i-th order statistic is Beta(i, n+1-i).
-    lo_q <- (1 - alpha) / 2
-    hi_q <- 1 - lo_q
-    i <- seq_len(n)
-    lower <- stats::qbeta(lo_q, i, n + 1L - i)
-    upper <- stats::qbeta(hi_q, i, n + 1L - i)
-    tibble::tibble(
-      param = p,
-      rank_norm = r,
-      ecdf = ecdf_y,
-      lower = pmax(0, lower),
-      upper = pmin(1, upper)
-    )
-  }))
+  params <- unique(ranks$param)
 
-  ggplot2::ggplot(plot_data, ggplot2::aes(.data$rank_norm)) +
+  ecdf_data <- do.call(
+    rbind,
+    lapply(params, function(p) {
+      sub <- ranks[ranks$param == p, , drop = FALSE]
+      n <- nrow(sub)
+      # Prefer post-thinning n_ranks (F4); fall back to n_draws for old results.
+      S <- NA
+      if ("n_ranks" %in% names(sub) && any(is.finite(sub$n_ranks))) {
+        S <- max(sub$n_ranks - 1L, na.rm = TRUE)
+      }
+      if (!is.finite(S) || S < 1L) {
+        S <- max(sub$n_draws, na.rm = TRUE)
+      }
+      if (!is.finite(S) || S < 1L) {
+        S <- max(sub$rank, na.rm = TRUE)
+      }
+      # Normalized rank on [0,1]: rank in 0..S, map to (rank+0.5)/(S+1).
+      r <- (sort(sub$rank) + 0.5) / (S + 1)
+      tibble::tibble(
+        param = p,
+        rank_norm = r,
+        ecdf = seq_len(n) / n,
+        n = n,
+        S = S
+      )
+    })
+  )
+
+  # Simultaneous confidence band (Säilynoja et al. 2022) for the ECDF of a
+  # uniform sample of size n, evaluated at K = min(n, S + 1) points.
+  band_data <- do.call(
+    rbind,
+    lapply(params, function(p) {
+      sub <- ecdf_data[ecdf_data$param == p, , drop = FALSE]
+      n <- sub$n[1L]
+      K <- max(1L, min(n, sub$S[1L] + 1L))
+      band <- sbc_band(n, K = K, conf_level = alpha)
+      tibble::tibble(
+        param = p,
+        x = band$x,
+        lower = pmax(0, band$lower),
+        upper = pmin(1, band$upper)
+      )
+    })
+  )
+
+  ggplot2::ggplot(ecdf_data, ggplot2::aes(.data$rank_norm)) +
     ggplot2::geom_ribbon(
-      ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
-      alpha = 0.2, fill = "grey70"
+      data = band_data,
+      ggplot2::aes(x = .data$x, ymin = .data$lower, ymax = .data$upper),
+      alpha = 0.2,
+      fill = "grey70",
+      inherit.aes = FALSE
     ) +
-    ggplot2::geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "red") +
+    ggplot2::geom_abline(
+      slope = 1,
+      intercept = 0,
+      linetype = "dashed",
+      color = "red"
+    ) +
     ggplot2::geom_line(ggplot2::aes(y = .data$ecdf)) +
     ggplot2::facet_wrap(~param) +
     ggplot2::labs(
-      x = "normalized rank", y = "ECDF",
-      title = paste0("SBC rank ECDF with ", round(alpha * 100), "% uniformity band")
+      x = "normalized rank",
+      y = "ECDF",
+      title = paste0(
+        "SBC rank ECDF with ",
+        round(alpha * 100),
+        "% simultaneous confidence band"
+      )
     ) +
     ggplot2::theme_minimal()
 }
@@ -311,8 +397,10 @@ plot_recovery <- function(result, var, by = NULL) {
   upper_col <- paste0("posterior_summary__q_upper__", var)
   if (!(mean_col %in% names(df))) {
     stop(bayesim_config_error(
-      "Posterior summary column " %+% mean_col %+% " not found; "
-        %+% "compute posterior_summary_metric() first."
+      "Posterior summary column " %+%
+        mean_col %+%
+        " not found; " %+%
+        "compute posterior_summary_metric() first."
     ))
   }
   # Truth column (E1): prefer truth__<var>, then a legacy true_params__<var>,
@@ -324,7 +412,11 @@ plot_recovery <- function(result, var, by = NULL) {
   )
   truth_col <- truth_candidates[truth_candidates %in% names(df)][1]
   plot_df <- data.frame(
-    truth = if (!is.na(truth_col) && truth_col %in% names(df)) df[[truth_col]] else NA_real_,
+    truth = if (!is.na(truth_col) && truth_col %in% names(df)) {
+      df[[truth_col]]
+    } else {
+      NA_real_
+    },
     estimate = df[[mean_col]],
     lower = if (lower_col %in% names(df)) df[[lower_col]] else NA_real_,
     upper = if (upper_col %in% names(df)) df[[upper_col]] else NA_real_,
@@ -335,16 +427,26 @@ plot_recovery <- function(result, var, by = NULL) {
     plot_df$.facet <- df[[by]]
   }
   p <- ggplot2::ggplot(plot_df, ggplot2::aes(.data$truth, .data$estimate)) +
-    ggplot2::geom_abline(slope = 1, intercept = 0, color = "grey50", linetype = "dashed") +
+    ggplot2::geom_abline(
+      slope = 1,
+      intercept = 0,
+      color = "grey50",
+      linetype = "dashed"
+    ) +
     ggplot2::geom_point(alpha = 0.6) +
     ggplot2::labs(
-      x = paste0("true ", var), y = paste0("posterior mean ", var),
+      x = paste0("true ", var),
+      y = paste0("posterior mean ", var),
       title = paste0("Parameter recovery: ", var)
     ) +
     ggplot2::theme_minimal()
   # Posterior-interval segments by default (E7).
   if (lower_col %in% names(df)) {
-    p <- p + ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$lower, ymax = .data$upper), alpha = 0.2)
+    p <- p +
+      ggplot2::geom_errorbar(
+        ggplot2::aes(ymin = .data$lower, ymax = .data$upper),
+        alpha = 0.2
+      )
   }
   if (!is.null(by) && by %in% names(df)) {
     p <- p + ggplot2::facet_wrap(~ .data$.facet)
@@ -380,12 +482,22 @@ plot_coverage <- function(result, nominal = 0.95, by = NULL) {
     )))
   }
   p <- ggplot2::ggplot(cov, ggplot2::aes(.data$estimand, .data$value)) +
-    ggplot2::geom_hline(yintercept = nominal, color = "grey50", linetype = "dashed") +
-    ggplot2::geom_errorbar(ggplot2::aes(ymin = .data$value - .data$mcse,
-                                        ymax = .data$value + .data$mcse), width = 0.2) +
+    ggplot2::geom_hline(
+      yintercept = nominal,
+      color = "grey50",
+      linetype = "dashed"
+    ) +
+    ggplot2::geom_errorbar(
+      ggplot2::aes(
+        ymin = .data$value - .data$mcse,
+        ymax = .data$value + .data$mcse
+      ),
+      width = 0.2
+    ) +
     ggplot2::geom_point() +
     ggplot2::labs(
-      x = "estimand", y = paste0("coverage (nominal ", nominal, ")"),
+      x = "estimand",
+      y = paste0("coverage (nominal ", nominal, ")"),
       title = "Credible-interval coverage with MCSE"
     ) +
     ggplot2::theme_minimal()
@@ -410,15 +522,21 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
   rlang::check_installed("ggplot2", "to use plot_metric()")
   df <- if (is.data.frame(result)) result else result$summary
   if (!(metric %in% names(df))) {
-    stop(bayesim_config_error("Metric column " %+% metric %+% " not found in summary"))
+    stop(bayesim_config_error(
+      "Metric column " %+% metric %+% " not found in summary"
+    ))
   }
   df$.metric <- df[[metric]]
-  if (is.null(x)) x <- "task_id"
+  if (is.null(x)) {
+    x <- "task_id"
+  }
   p <- ggplot2::ggplot(df, ggplot2::aes(.data[[x]], .data$.metric)) +
     ggplot2::geom_point(alpha = 0.5) +
     ggplot2::labs(y = metric, title = metric) +
     ggplot2::theme_minimal()
-  if (!is.null(facets)) p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facets)))
+  if (!is.null(facets)) {
+    p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facets)))
+  }
   p
 }
 
@@ -473,8 +591,12 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #' performance_measures(result)
 #' performance_measures(result, estimand = "x", by = "model")
 #' }
-performance_measures <- function(result, estimand = NULL, estimator = c("mean", "median"),
-                                 by = NULL) {
+performance_measures <- function(
+  result,
+  estimand = NULL,
+  estimator = c("mean", "median"),
+  by = NULL
+) {
   estimator <- match.arg(estimator)
   df <- if (is.data.frame(result)) result else result$summary
   if (is.null(df) || !is.data.frame(df)) {
@@ -490,18 +612,29 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
     by <- grep("^(data_|fit_)", names(df), value = TRUE)
     by <- by[!grepl("__", by, fixed = TRUE)]
     # Keep only atomic condition columns (drop e.g. fit_formula list-columns).
-    by <- by[vapply(df[, by, drop = FALSE], function(col) {
-      is.numeric(col) || is.character(col) || is.factor(col) || is.logical(col)
-    }, logical(1))]
+    by <- by[vapply(
+      df[, by, drop = FALSE],
+      function(col) {
+        is.numeric(col) ||
+          is.character(col) ||
+          is.factor(col) ||
+          is.logical(col)
+      },
+      logical(1)
+    )]
   }
 
   # Discover estimands: parameters with both truth__ and posterior_summary__mean__.
   truth_cols <- grep("^truth__", names(df), value = TRUE)
   est_col_tmpl <- paste0("posterior_summary__", estimator, "__")
-  available_estimands <- vapply(truth_cols, function(tc) {
-    param <- sub("^truth__", "", tc)
-    paste0(est_col_tmpl, param) %in% names(df)
-  }, logical(1))
+  available_estimands <- vapply(
+    truth_cols,
+    function(tc) {
+      param <- sub("^truth__", "", tc)
+      paste0(est_col_tmpl, param) %in% names(df)
+    },
+    logical(1)
+  )
   estimands <- if (is.null(estimand)) {
     sub("^truth__", "", truth_cols[available_estimands])
   } else {
@@ -524,9 +657,15 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
     hi_col <- paste0("posterior_summary__q_upper__", param)
     cov_col <- paste0("coverage__by_param__", param)
 
-    if (!truth_col %in% names(df) || !est_col %in% names(df)) next
+    if (!truth_col %in% names(df) || !est_col %in% names(df)) {
+      next
+    }
 
-    split_cols <- if (length(by)) df[, by, drop = FALSE] else data.frame(.group = rep(1, nrow(df)))
+    split_cols <- if (length(by)) {
+      df[, by, drop = FALSE]
+    } else {
+      data.frame(.group = rep(1, nrow(df)))
+    }
     splits <- interaction(split_cols, drop = TRUE)
 
     for (lev in levels(splits)) {
@@ -534,37 +673,64 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
       est <- df[[est_col]][sel]
       truth <- df[[truth_col]][sel]
       ok <- !is.na(est) & !is.na(truth)
-      est <- est[ok]; truth <- truth[ok]
+      est <- est[ok]
+      truth <- truth[ok]
       n <- length(est)
-      if (n == 0L) next
+      if (n == 0L) {
+        next
+      }
       errs <- est - truth
 
       # Condition cell values for the `by` columns (empty when no conditions).
       cond <- if (length(by)) as.list(df[sel[1L], by, drop = FALSE]) else list()
 
       add <- function(measure, value, mcse) {
-        row <- c(cond, list(estimand = param, measure = measure,
-                            value = value, mcse = mcse, n_sim = n))
+        row <- c(
+          cond,
+          list(
+            estimand = param,
+            measure = measure,
+            value = value,
+            mcse = mcse,
+            n_sim = n
+          )
+        )
         rows[[length(rows) + 1L]] <<- row
       }
 
       # bias = mean(est - truth); MCSE = sd(est)/sqrt(n)
-      add("bias", mean(errs), if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_)
+      add(
+        "bias",
+        mean(errs),
+        if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_
+      )
       # empirical SE = sd(est); MCSE = sd/sqrt(2(n-1))
       emp_se <- if (n > 1L) stats::sd(est) else NA_real_
-      add("emp_se", emp_se, if (n > 2L) emp_se / sqrt(2 * (n - 1L)) else NA_real_)
+      add(
+        "emp_se",
+        emp_se,
+        if (n > 2L) emp_se / sqrt(2 * (n - 1L)) else NA_real_
+      )
       # MSE = mean((est-truth)^2); MCSE = sqrt(Var(err^2)/n)
       sq <- errs^2
       add("mse", mean(sq), if (n > 1L) sqrt(stats::var(sq) / n) else NA_real_)
       # average model SE = mean(posterior_sd); MCSE = sd(posterior_sd)/sqrt(n)
       if (sd_col %in% names(df)) {
         pse <- df[[sd_col]][sel][ok]
-        add("model_se", mean(pse, na.rm = TRUE),
-            if (sum(!is.na(pse)) > 1L) stats::sd(pse, na.rm = TRUE) / sqrt(sum(!is.na(pse))) else NA_real_)
+        add(
+          "model_se",
+          mean(pse, na.rm = TRUE),
+          if (sum(!is.na(pse)) > 1L) {
+            stats::sd(pse, na.rm = TRUE) / sqrt(sum(!is.na(pse)))
+          } else {
+            NA_real_
+          }
+        )
       }
       # coverage = P(truth in [lo, hi]); MCSE = sqrt(p(1-p)/n)
       if (lo_col %in% names(df) && hi_col %in% names(df)) {
-        lo <- df[[lo_col]][sel][ok]; hi <- df[[hi_col]][sel][ok]
+        lo <- df[[lo_col]][sel][ok]
+        hi <- df[[hi_col]][sel][ok]
         covered <- (truth >= lo) & (truth <= hi)
         p <- mean(covered, na.rm = TRUE)
         ncv <- sum(!is.na(covered))
@@ -578,7 +744,10 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
     }
   }
 
-  tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame, stringsAsFactors = FALSE)))
+  tibble::as_tibble(do.call(
+    rbind,
+    lapply(rows, as.data.frame, stringsAsFactors = FALSE)
+  ))
 }
 
 # n_replicates_for_target (Workstream I5) ----------------------------------
@@ -631,14 +800,20 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
 #' # Continuous metric (e.g. bias) with assumed sd of the point estimate.
 #' n_replicates_for_target(0.05, "continuous", assumed_sd = 0.5)
 #' }
-n_replicates_for_target <- function(target_mcse,
-                                    metric_type = c("coverage", "continuous"),
-                                    p = 0.5,
-                                    assumed_sd = NULL) {
+n_replicates_for_target <- function(
+  target_mcse,
+  metric_type = c("coverage", "continuous"),
+  p = 0.5,
+  assumed_sd = NULL
+) {
   metric_type <- match.arg(metric_type)
 
-  if (!is.numeric(target_mcse) || length(target_mcse) != 1L ||
-        is.na(target_mcse) || target_mcse <= 0) {
+  if (
+    !is.numeric(target_mcse) ||
+      length(target_mcse) != 1L ||
+      is.na(target_mcse) ||
+      target_mcse <= 0
+  ) {
     stop(bayesim_config_error(
       "target_mcse must be a single positive numeric value"
     ))
@@ -652,9 +827,13 @@ n_replicates_for_target <- function(target_mcse,
     }
     n <- p * (1 - p) / target_mcse^2
   } else {
-    if (is.null(assumed_sd) ||
-          !is.numeric(assumed_sd) || length(assumed_sd) != 1L ||
-          is.na(assumed_sd) || assumed_sd <= 0) {
+    if (
+      is.null(assumed_sd) ||
+        !is.numeric(assumed_sd) ||
+        length(assumed_sd) != 1L ||
+        is.na(assumed_sd) ||
+        assumed_sd <= 0
+    ) {
       stop(bayesim_config_error(
         "assumed_sd must be a single positive numeric value for metric_type 'continuous'"
       ))
@@ -703,8 +882,12 @@ n_replicates_for_target <- function(target_mcse,
 #' result <- run_simulation(config, progress = FALSE)
 #' report(result, output_file = "my-study.html")
 #' }
-report <- function(result, output_file = "bayesim-report.html",
-                   open = interactive(), estimands = NULL) {
+report <- function(
+  result,
+  output_file = "bayesim-report.html",
+  open = interactive(),
+  estimands = NULL
+) {
   if (!inherits(result, "bayesim_simulation_result")) {
     stop(bayesim_config_error(
       "report() requires a bayesim_simulation_result object"
@@ -719,7 +902,11 @@ report <- function(result, output_file = "bayesim-report.html",
     )))
   }
 
-  template <- system.file("report", "simulation-report.qmd", package = "bayesim")
+  template <- system.file(
+    "report",
+    "simulation-report.qmd",
+    package = "bayesim"
+  )
   if (!nzchar(template)) {
     stop(bayesim_config_error(
       "Report template 'inst/report/simulation-report.qmd' is not installed."
@@ -747,7 +934,9 @@ report <- function(result, output_file = "bayesim-report.html",
 
   rendered <- file.path(render_dir, basename(output_file))
   if (!file.exists(rendered)) {
-    stop(bayesim_config_error("Quarto did not produce the expected report file"))
+    stop(bayesim_config_error(
+      "Quarto did not produce the expected report file"
+    ))
   }
   out <- normalizePath(output_file, mustWork = FALSE)
   file.copy(rendered, out, overwrite = TRUE)

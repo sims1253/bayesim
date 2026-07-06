@@ -10,6 +10,7 @@ NULL
 # carrier is used at runtime by purrr::in_parallel() (it crates the task
 # lambda shipped to mirai daemons); this reference keeps the declared Import
 # visible to R CMD check.
+# jarl-ignore unused_function: deliberate no-op reference for R CMD check
 .reference_unused_imports <- function() {
   carrier::crate
 }

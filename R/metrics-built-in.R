@@ -66,10 +66,10 @@ resolve_draw_columns <- function(vars, draws_colnames) {
   }
   if (length(missing) > 0L) {
     stop(bayesim_config_error(
-      "vars_of_interest not found in model draws: "
-        %+% paste(missing, collapse = ", ")
-        %+% ". Available: "
-        %+% paste(utils::head(draws_colnames, 20), collapse = ", ")
+      "vars_of_interest not found in model draws: " %+%
+        paste(missing, collapse = ", ") %+%
+        ". Available: " %+%
+        paste(utils::head(draws_colnames, 20), collapse = ", ")
     ))
   }
   hits
@@ -205,7 +205,10 @@ CoverageMetric <- S7::new_class(
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
     # E4: coverage columns are proportions -> sqrt(p(1-p)/n) MCSE.
-    summary_type = S7::new_property(S7::class_character, default = "proportion"),
+    summary_type = S7::new_property(
+      S7::class_character,
+      default = "proportion"
+    ),
     prob = S7::new_property(S7::class_numeric, default = 0.95)
   )
 )
@@ -244,14 +247,19 @@ S7::method(compute_metric, CoverageMetric) <- function(
   upper_q <- 1 - lower_q
 
   mapped <- resolve_draw_columns(vars_of_interest, colnames(draws))
-  coverage <- vapply(names(mapped), function(vname) {
-    if (!(vname %in% names(true_params))) {
-      return(NA_real_)
-    }
-    col <- mapped[[vname]]
-    ci <- quantile(draws[, col], c(lower_q, upper_q))
-    as.numeric(true_params[[vname]] >= ci[1] && true_params[[vname]] <= ci[2])
-  }, FUN.VALUE = numeric(1), USE.NAMES = TRUE)
+  coverage <- vapply(
+    names(mapped),
+    function(vname) {
+      if (!(vname %in% names(true_params))) {
+        return(NA_real_)
+      }
+      col <- mapped[[vname]]
+      ci <- quantile(draws[, col], c(lower_q, upper_q))
+      as.numeric(true_params[[vname]] >= ci[1] && true_params[[vname]] <= ci[2])
+    },
+    FUN.VALUE = numeric(1),
+    USE.NAMES = TRUE
+  )
 
   list(
     mean = mean(coverage, na.rm = TRUE),

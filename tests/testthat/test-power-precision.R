@@ -34,30 +34,51 @@ describe("n_replicates_for_target", {
   })
 
   it("errors on bad target_mcse", {
-    expect_error(n_replicates_for_target(0, "coverage"), class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(-1, "coverage"), class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(NA_real_, "coverage"), class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(c(0.01, 0.02), "coverage"), class = "bayesim_config_error")
+    expect_error(
+      n_replicates_for_target(0, "coverage"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(-1, "coverage"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(NA_real_, "coverage"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(c(0.01, 0.02), "coverage"),
+      class = "bayesim_config_error"
+    )
   })
 
   it("errors on bad p for coverage", {
-    expect_error(n_replicates_for_target(0.01, "coverage", p = 1.5),
-                 class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(0.01, "coverage", p = -0.1),
-                 class = "bayesim_config_error")
+    expect_error(
+      n_replicates_for_target(0.01, "coverage", p = 1.5),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(0.01, "coverage", p = -0.1),
+      class = "bayesim_config_error"
+    )
   })
 
   it("errors when assumed_sd missing/invalid for continuous", {
-    expect_error(n_replicates_for_target(0.01, "continuous"),
-                 class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(0.01, "continuous", assumed_sd = 0),
-                 class = "bayesim_config_error")
-    expect_error(n_replicates_for_target(0.01, "continuous", assumed_sd = -1),
-                 class = "bayesim_config_error")
+    expect_error(
+      n_replicates_for_target(0.01, "continuous"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(0.01, "continuous", assumed_sd = 0),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      n_replicates_for_target(0.01, "continuous", assumed_sd = -1),
+      class = "bayesim_config_error"
+    )
   })
 
   it("errors on unknown metric_type", {
-    expect_error(n_replicates_for_target(0.01, "nope"),
-                 class = "simpleError")
+    expect_error(n_replicates_for_target(0.01, "nope"), class = "simpleError")
   })
 })

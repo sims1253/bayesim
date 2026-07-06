@@ -33,8 +33,16 @@ pred_mae_metric <- function(name = "mae") {
   MaeMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute_metric, MaeMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(context$predictions)) return(list(value = NA_real_, n_obs = NA_integer_))
+S7::method(compute_metric, MaeMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
+  if (is.null(context$predictions)) {
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
   # E2: no silent training-set fallback.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_mae_metric")
@@ -72,8 +80,16 @@ pred_mse_metric <- function(name = "mse") {
   MseMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute_metric, MseMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(context$predictions)) return(list(value = NA_real_, n_obs = NA_integer_))
+S7::method(compute_metric, MseMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
+  if (is.null(context$predictions)) {
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
   # E2: no silent training-set fallback.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_mse_metric")
@@ -111,15 +127,29 @@ pos_prob_metric <- function(name = "pos_prob") {
   PosProbMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute_metric, PosProbMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(fit_result$draws)) return(list(mean = NA_real_))
+S7::method(compute_metric, PosProbMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
+  if (is.null(fit_result$draws)) {
+    return(list(mean = NA_real_))
+  }
   draws <- fit_result$draws
   voi <- data_bundle$vars_of_interest %||% colnames(draws)
   mapped <- resolve_draw_columns(voi, colnames(draws))
-  if (length(mapped) == 0L) return(list(mean = NA_real_))
-  probs <- vapply(names(mapped), function(vname) {
-    mean(draws[, mapped[[vname]]] > 0)
-  }, numeric(1))
+  if (length(mapped) == 0L) {
+    return(list(mean = NA_real_))
+  }
+  probs <- vapply(
+    names(mapped),
+    function(vname) {
+      mean(draws[, mapped[[vname]]] > 0)
+    },
+    numeric(1)
+  )
   list(mean = mean(probs), by_param = probs)
 }
 
@@ -151,18 +181,39 @@ PosteriorSummaryMetric <- S7::new_class(
 #' @examples
 #' posterior_summary_metric()
 posterior_summary_metric <- function(name = "posterior_summary", prob = 0.95) {
-  PosteriorSummaryMetric(name = name, needs = character(), required = FALSE, prob = prob)
+  PosteriorSummaryMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    prob = prob
+  )
 }
 
-S7::method(compute_metric, PosteriorSummaryMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, PosteriorSummaryMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   if (is.null(fit_result$draws)) {
-    return(list(mean = NA_real_, sd = NA_real_, q_lower = NA_real_, q_upper = NA_real_))
+    return(list(
+      mean = NA_real_,
+      sd = NA_real_,
+      q_lower = NA_real_,
+      q_upper = NA_real_
+    ))
   }
   draws <- fit_result$draws
   voi <- data_bundle$vars_of_interest %||% colnames(draws)
   mapped <- resolve_draw_columns(voi, colnames(draws))
   if (length(mapped) == 0L) {
-    return(list(mean = NA_real_, sd = NA_real_, q_lower = NA_real_, q_upper = NA_real_))
+    return(list(
+      mean = NA_real_,
+      sd = NA_real_,
+      q_lower = NA_real_,
+      q_upper = NA_real_
+    ))
   }
   sub <- draws[, mapped, drop = FALSE]
   colnames(sub) <- names(mapped)
@@ -205,10 +256,21 @@ convergence_metric <- function(name = "convergence") {
   ConvergenceMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute_metric, ConvergenceMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ConvergenceMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   d <- fit_result$diagnostics
   if (is.null(d)) {
-    return(list(rhat_max = NA_real_, ess_bulk_min = NA_real_, ess_tail_min = NA_real_, divergent = NA_integer_))
+    return(list(
+      rhat_max = NA_real_,
+      ess_bulk_min = NA_real_,
+      ess_tail_min = NA_real_,
+      divergent = NA_integer_
+    ))
   }
   list(
     rhat_max = as.numeric(d$rhat_max %||% NA_real_),
@@ -228,7 +290,10 @@ SamplerDiagnosticsMetric <- S7::new_class(
   "SamplerDiagnosticsMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "sampler_diagnostics"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "sampler_diagnostics"
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE)
   )
@@ -244,7 +309,13 @@ sampler_diagnostics_metric <- function(name = "sampler_diagnostics") {
   SamplerDiagnosticsMetric(name = name, needs = character(), required = FALSE)
 }
 
-S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   d <- fit_result$diagnostics
   if (is.null(d)) {
     return(list(divergent = NA_integer_, max_treedepth = NA_integer_))
@@ -288,8 +359,14 @@ RankMetric <- S7::new_class(
     # averaging across replicates.
     summary_type = S7::new_property(S7::class_character, default = "none"),
     thin = S7::new_property(
-      S7::new_union(S7::class_character, S7::class_logical, S7::class_integer, S7::class_double),
-      default = "auto")
+      S7::new_union(
+        S7::class_character,
+        S7::class_logical,
+        S7::class_integer,
+        S7::class_double
+      ),
+      default = "auto"
+    )
   )
 )
 
@@ -310,20 +387,36 @@ rank_metric <- function(name = "rank", thin = "auto") {
 # if unavailable or degenerate, returns 1L.
 .rank_thin_stride <- function(draws, mapped) {
   ess <- tryCatch(
-    vapply(names(mapped), function(vname) {
-      as.numeric(posterior::ess_bulk(draws[, mapped[[vname]]]))
-    }, numeric(1)),
+    vapply(
+      names(mapped),
+      function(vname) {
+        as.numeric(posterior::ess_bulk(draws[, mapped[[vname]]]))
+      },
+      numeric(1)
+    ),
     error = function(e) NA_real_
   )
-  if (length(ess) == 0L || all(is.na(ess))) return(1L)
+  if (length(ess) == 0L || all(is.na(ess))) {
+    return(1L)
+  }
   min_ess <- min(ess, na.rm = TRUE)
-  if (!is.finite(min_ess) || min_ess < 1L) return(1L)
+  if (!is.finite(min_ess) || min_ess < 1L) {
+    return(1L)
+  }
   stride <- floor(nrow(draws) / min_ess)
-  if (!is.finite(stride) || stride < 1L) return(1L)
+  if (!is.finite(stride) || stride < 1L) {
+    return(1L)
+  }
   as.integer(stride)
 }
 
-S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RankMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   if (is.null(fit_result$draws) || is.null(data_bundle$true_params)) {
     # No draws or no truth: ranks undefined. Return an empty (but valid) result.
     return(list(n_draws = NA_integer_, stride = NA_integer_))
@@ -334,7 +427,9 @@ S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bund
   mapped <- resolve_draw_columns(voi, colnames(draws))
   # Restrict to vars that also have a truth value.
   mapped <- mapped[names(mapped) %in% names(true_params)]
-  if (length(mapped) == 0L) return(list(n_draws = as.integer(nrow(draws)), stride = 1L))
+  if (length(mapped) == 0L) {
+    return(list(n_draws = as.integer(nrow(draws)), stride = 1L))
+  }
 
   # Determine the thinning stride (F4). auto -> toward min bulk-ESS; integer
   # -> direct stride; FALSE -> no thinning (stride 1).
@@ -348,12 +443,20 @@ S7::method(compute_metric, RankMetric) <- function(metric, fit_result, data_bund
   } else {
     1L
   }
-  thinned <- if (stride > 1L) draws[seq.int(1L, nrow(draws), by = stride), , drop = FALSE] else draws
+  thinned <- if (stride > 1L) {
+    draws[seq.int(1L, nrow(draws), by = stride), , drop = FALSE]
+  } else {
+    draws
+  }
   n_kept <- nrow(thinned)
 
-  ranks <- vapply(names(mapped), function(vname) {
-    sum(thinned[, mapped[[vname]]] < true_params[[vname]])
-  }, integer(1))
+  ranks <- vapply(
+    names(mapped),
+    function(vname) {
+      sum(thinned[, mapped[[vname]]] < true_params[[vname]])
+    },
+    integer(1)
+  )
   # n_ranks per variable: post-thinning sample size + 1 possible ranks (0..S).
   n_ranks <- setNames(rep(n_kept + 1L, length(mapped)), names(mapped))
   # Coerce to double (validate_metric_output requires is.double for named
@@ -426,8 +529,13 @@ RstarMetric <- S7::new_class(
 #' rstar_metric()
 #' rstar_metric(uncertainty = FALSE)
 rstar_metric <- function(name = "rstar", uncertainty = FALSE, method = "rf") {
-  RstarMetric(name = name, needs = character(), required = FALSE,
-              uncertainty = uncertainty, method = method)
+  RstarMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    uncertainty = uncertainty,
+    method = method
+  )
 }
 
 # Extract a per-chain draws_df from a fit_result, or NULL when unavailable.
@@ -437,7 +545,9 @@ rstar_metric <- function(name = "rstar", uncertainty = FALSE, method = "rf") {
 # info exists.
 .rstar_extract_chain_draws <- function(fit_result) {
   fit <- fit_result$fit
-  if (is.null(fit)) return(NULL)
+  if (is.null(fit)) {
+    return(NULL)
+  }
   # brmsfit: as_draws_df on the brmsfit carries .chain/.iteration.
   if (inherits(fit, "brmsfit")) {
     draws_df <- tryCatch(
@@ -472,7 +582,13 @@ rstar_metric <- function(name = "rstar", uncertainty = FALSE, method = "rf") {
   NULL
 }
 
-S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RstarMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   draws_df <- .rstar_extract_chain_draws(fit_result)
   # No per-chain draws available (e.g. LinearRegressionFitter). R* is undefined
   # without multiple chains: degrade to NA with a warning.
@@ -511,8 +627,11 @@ S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bun
       }
     },
     error = function(e) {
-      warning("rstar_metric failed: ", conditionMessage(e),
-              ". Returning NA_real_.")
+      warning(
+        "rstar_metric failed: ",
+        conditionMessage(e),
+        ". Returning NA_real_."
+      )
       NA_real_
     }
   )
@@ -547,10 +666,21 @@ elpd_loo_metric <- function(name = "elpd_loo") {
   ElpdLooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute_metric, ElpdLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ElpdLooMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   loo <- context$loo
   if (is.null(loo)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, se = NA_real_, pareto_k_max = NA_real_))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      se = NA_real_,
+      pareto_k_max = NA_real_
+    ))
   }
   list(
     elpd = as.numeric(loo$elpd %||% NA_real_),
@@ -590,7 +720,13 @@ rmse_loo_metric <- function(name = "rmse_loo") {
   RmseLooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute_metric, RmseLooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RmseLooMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   loo <- context$loo
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
@@ -615,7 +751,11 @@ S7::method(compute_metric, RmseLooMetric) <- function(metric, fit_result, data_b
   pareto_k_max <- suppressWarnings(
     as.numeric(max(eloo$pareto_k, na.rm = TRUE))
   )
-  if (!is.numeric(pareto_k_max) || length(pareto_k_max) == 0L || is.infinite(pareto_k_max)) {
+  if (
+    !is.numeric(pareto_k_max) ||
+      length(pareto_k_max) == 0L ||
+      is.infinite(pareto_k_max)
+  ) {
     pareto_k_max <- NA_real_
   }
   list(
@@ -655,7 +795,13 @@ r2_loo_metric <- function(name = "r2_loo") {
   R2LooMetric(name = name, needs = "loo", required = FALSE)
 }
 
-S7::method(compute_metric, R2LooMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, R2LooMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   loo <- context$loo
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
@@ -679,14 +825,12 @@ S7::method(compute_metric, R2LooMetric) <- function(metric, fit_result, data_bun
   # brms .loo_R2 variance construction: expectation over Exp(1)-weighted draws.
   exp_draws <- matrix(rexp(S * N, rate = 1), nrow = S, ncol = N)
   weights <- exp_draws / rowSums(exp_draws)
-  var_y <- (N / (N - 1)) * (
-    rowSums(sweep(weights, 2, y^2, FUN = "*")) -
-      rowSums(sweep(weights, 2, y, FUN = "*"))^2
-  )
-  var_err_loo <- (N / (N - 1)) * (
-    rowSums(sweep(weights, 2, err_loo^2, FUN = "*")) -
-      rowSums(sweep(weights, 2, err_loo, FUN = "*"))^2
-  )
+  var_y <- (N / (N - 1)) *
+    (rowSums(sweep(weights, 2, y^2, FUN = "*")) -
+      rowSums(sweep(weights, 2, y, FUN = "*"))^2)
+  var_err_loo <- (N / (N - 1)) *
+    (rowSums(sweep(weights, 2, err_loo^2, FUN = "*")) -
+      rowSums(sweep(weights, 2, err_loo, FUN = "*"))^2)
   r2 <- 1 - var_err_loo / var_y
   r2[r2 < -1] <- -1
   r2[r2 > 1] <- 1
@@ -725,13 +869,21 @@ elpd_test_metric <- function(name = "elpd_test") {
   ElpdTestMetric(name = name, needs = "log_lik", required = FALSE)
 }
 
-S7::method(compute_metric, ElpdTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, ElpdTestMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$log_lik)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
   }
   ll <- context$log_lik
-  if (!is.matrix(ll)) return(list(value = NA_real_, n_obs = NA_integer_))
+  if (!is.matrix(ll)) {
+    return(list(value = NA_real_, n_obs = NA_integer_))
+  }
   elpd <- sum(apply(ll, 2, function(col) {
     m <- max(col)
     m + log(mean(exp(col - m)))
@@ -765,7 +917,13 @@ rmse_test_metric <- function(name = "rmse_test") {
   RmseTestMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute_metric, RmseTestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, RmseTestMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
@@ -773,7 +931,10 @@ S7::method(compute_metric, RmseTestMetric) <- function(metric, fit_result, data_
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
   n <- min(length(actual), length(predicted))
-  list(value = sqrt(mean((predicted[seq_len(n)] - actual[seq_len(n)])^2)), n_obs = n)
+  list(
+    value = sqrt(mean((predicted[seq_len(n)] - actual[seq_len(n)])^2)),
+    n_obs = n
+  )
 }
 
 #' @title R-squared Test-Set Metric
@@ -802,7 +963,13 @@ r2_test_metric <- function(name = "r2_test") {
   R2TestMetric(name = name, needs = "predictions", required = FALSE)
 }
 
-S7::method(compute_metric, R2TestMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+S7::method(compute_metric, R2TestMetric) <- function(
+  metric,
+  fit_result,
+  data_bundle,
+  context,
+  task_ctx
+) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))

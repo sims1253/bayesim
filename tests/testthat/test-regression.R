@@ -627,7 +627,13 @@ describe("NULL Safety in MockFitter", {
   describe("fit_model() with NULL data_bundle", {
     it("throws error for NULL data_bundle$train", {
       expect_error(
-        fit_model(fitter, list(train = NULL), list(), seed = 123L, task_ctx = list()),
+        fit_model(
+          fitter,
+          list(train = NULL),
+          list(),
+          seed = 123L,
+          task_ctx = list()
+        ),
         class = "bayesim_contract_error"
       )
     })

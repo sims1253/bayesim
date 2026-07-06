@@ -622,8 +622,12 @@ print.bayesim_simulation_result <- function(x, ...) {
   if (!is.null(x$summary) && is.data.frame(x$summary) && nrow(x$summary) > 0) {
     metric_preview <- grep("__", names(x$summary), value = TRUE)
     if (length(metric_preview)) {
-      cat("  Metrics:", paste(utils::head(metric_preview, 6L), collapse = ", "),
-          if (length(metric_preview) > 6L) " ..." else "", "\n")
+      cat(
+        "  Metrics:",
+        paste(utils::head(metric_preview, 6L), collapse = ", "),
+        if (length(metric_preview) > 6L) " ..." else "",
+        "\n"
+      )
     }
   }
   if (!is.null(x$task_grid) && nrow(x$task_grid) > 0) {

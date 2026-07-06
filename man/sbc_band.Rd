@@ -14,8 +14,8 @@ sbc_band(N, K = N, conf_level = 0.95)
 \item{conf_level}{Numeric in (0,1); confidence level.}
 }
 \value{
-A list with \code{lower} and \code{upper} numeric vectors of length K + 1 over
-the grid 0:K / K.
+A list with \code{x} (the grid 0:K / K) and \code{lower} and \code{upper} numeric
+vectors of length K + 1 over that grid.
 }
 \description{
 Returns the lower/upper bounds of the simultaneous ECDF confidence envelope

@@ -171,9 +171,17 @@ normalize_family <- function(family) {
   )
   # Include any extra brmsfamily flags (e.g. thresholds) if present as
   # non-environment slots. Bound vars/environments are intentionally dropped.
-  extra <- family[names(family) %in% c(
-    "threshold", "threshold_fixed", "nlpar", "dyad", "resp", "dpar"
-  )]
+  extra <- family[
+    names(family) %in%
+      c(
+        "threshold",
+        "threshold_fixed",
+        "nlpar",
+        "dyad",
+        "resp",
+        "dpar"
+      )
+  ]
   if (length(extra) > 0L) {
     out$extra <- capture.output(print(extra))
   }
@@ -335,7 +343,9 @@ build_model_bank <- function(
     # downstream.
     if (!"formula" %in% names(row) || is.null(row$formula)) {
       stop(bayesim_config_error(
-        "fit_grid row " %+% i %+% " has no 'formula' column; every fit_grid row must specify a formula."
+        "fit_grid row " %+%
+          i %+%
+          " has no 'formula' column; every fit_grid row must specify a formula."
       ))
     }
     formula <- row$formula[[1]] %||% row$formula
@@ -344,12 +354,20 @@ build_model_bank <- function(
     stanvars <- row$stanvars[[1]] %||% row$stanvars
 
     # list-columns wrap scalars in a length-1 list; unwrap once more if needed.
-    if (length(formula) == 1L && is.list(formula)) formula <- formula[[1]]
-    if (length(family) == 1L && is.list(family)) family <- family[[1]]
-    if (length(prior) == 1L && is.list(prior) && !"data.frame" %in% class(prior)) {
+    if (length(formula) == 1L && is.list(formula)) {
+      formula <- formula[[1]]
+    }
+    if (length(family) == 1L && is.list(family)) {
+      family <- family[[1]]
+    }
+    if (
+      length(prior) == 1L && is.list(prior) && !"data.frame" %in% class(prior)
+    ) {
       prior <- prior[[1]]
     }
-    if (length(stanvars) == 1L && is.list(stanvars)) stanvars <- stanvars[[1]]
+    if (length(stanvars) == 1L && is.list(stanvars)) {
+      stanvars <- stanvars[[1]]
+    }
 
     h <- model_spec_hash(
       formula = formula,
@@ -406,8 +424,14 @@ build_model_bank <- function(
       error = function(e) NULL
     )
     struct_sig <- if (!is.null(prefit_struct)) {
-      list(fields = names(prefit_struct), K = prefit_struct$K, X_ncol = ncol(prefit_struct$X))
-    } else NULL
+      list(
+        fields = names(prefit_struct),
+        K = prefit_struct$K,
+        X_ncol = ncol(prefit_struct$X)
+      )
+    } else {
+      NULL
+    }
 
     model_bank[[h]] <- list(prefit = prefit, struct_sig = struct_sig)
   }
@@ -423,8 +447,12 @@ build_model_bank <- function(
 #'
 #' @keywords internal
 stan_threads_arg <- function(stan_args) {
-  if (is.null(stan_args)) return(NULL)
-  if (!is.null(stan_args$threads)) return(stan_args$threads)
+  if (is.null(stan_args)) {
+    return(NULL)
+  }
+  if (!is.null(stan_args$threads)) {
+    return(stan_args$threads)
+  }
   NULL
 }
 
@@ -448,7 +476,14 @@ stan_threads_arg <- function(stan_args) {
 #' @return A `brmsfit` prefit object, or NULL.
 #'
 #' @keywords internal
-lookup_prefit <- function(model_bank, formula, family, prior, stanvars, backend) {
+lookup_prefit <- function(
+  model_bank,
+  formula,
+  family,
+  prior,
+  stanvars,
+  backend
+) {
   if (is.null(model_bank) || length(model_bank) == 0L) {
     return(NULL)
   }

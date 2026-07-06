@@ -45,11 +45,15 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
       if (isTRUE(fitter@supports_log_lik)) "log_lik",
       if (isTRUE(fitter@supports_loo)) "loo"
     )
-  } else character()
+  } else {
+    character()
+  }
   unmet <- setdiff(metric_needs, caps)
 
   daemons_set <- isTRUE(mirai::daemons_set())
-  n_compile <- if (inherits(fitter, "BrmsFitter") && !is.null(config@fit_grid)) {
+  n_compile <- if (
+    inherits(fitter, "BrmsFitter") && !is.null(config@fit_grid)
+  ) {
     # Distinct model specs (formula/family combinations) → bank compiles each.
     nrow(config@fit_grid)
   } else if (S7::S7_inherits(fitter, CmdStanFitter_class)) {
@@ -60,20 +64,39 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
 
   info <- list(
     n_tasks = n_tasks,
-    data_grid = n_data, fit_grid = n_fit, n_replicates = n_rep,
-    metrics = metric_names, metric_needs = metric_needs,
-    fitter_capabilities = caps, unmet_needs = unmet,
-    daemons_set = daemons_set, n_compile = n_compile
+    data_grid = n_data,
+    fit_grid = n_fit,
+    n_replicates = n_rep,
+    metrics = metric_names,
+    metric_needs = metric_needs,
+    fitter_capabilities = caps,
+    unmet_needs = unmet,
+    daemons_set = daemons_set,
+    n_compile = n_compile
   )
 
   if (condensed) {
-    workers_str <- if (daemons_set) paste0("; ", mirai::daemons()$daemons, " daemons") else ""
-    compile_str <- if (n_compile > 0L) paste0("; ", n_compile, " models to compile") else ""
-    cli::cli_inform("{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} reps{compile_str}{workers_str}")
+    workers_str <- if (daemons_set) {
+      paste0("; ", mirai::daemons()$daemons, " daemons")
+    } else {
+      ""
+    }
+    compile_str <- if (n_compile > 0L) {
+      paste0("; ", n_compile, " models to compile")
+    } else {
+      ""
+    }
+    cli::cli_inform(
+      "{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} reps{compile_str}{workers_str}"
+    )
   } else {
     cli::cli_h1("bayesim preflight")
-    cli::cli_text("{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} replicates")
-    if (n_compile > 0L) cli::cli_text("Models to compile: {n_compile}")
+    cli::cli_text(
+      "{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} replicates"
+    )
+    if (n_compile > 0L) {
+      cli::cli_text("Models to compile: {n_compile}")
+    }
     cli::cli_text("Metrics: {.val {metric_names}}")
     if (length(unmet)) {
       cli::cli_warn(c(
@@ -81,7 +104,9 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
         i = paste("unmet needs:", paste(unmet, collapse = ", "))
       ))
     } else if (length(metric_needs)) {
-      cli::cli_text("Metric needs ({.val {metric_needs}}) all satisfied by the fitter.")
+      cli::cli_text(
+        "Metric needs ({.val {metric_needs}}) all satisfied by the fitter."
+      )
     }
     cli::cli_text("Daemons set: {daemons_set}")
     if (pilot) cli::cli_text("(pilot timing not implemented in this build)")
@@ -108,28 +133,42 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
 failed_tasks <- function(result) {
   df <- if (is.data.frame(result)) result else result$summary
   if (is.null(df) || !is.data.frame(df)) {
-    stop(bayesim_config_error("failed_tasks requires a simulation result or summary"))
+    stop(bayesim_config_error(
+      "failed_tasks requires a simulation result or summary"
+    ))
   }
   failed <- df[!is.na(df$status) & df$status == "failed", , drop = FALSE]
   if (nrow(failed) == 0L) {
     return(tibble::tibble())
   }
-  cols <- intersect(c("task_id", "error_class", "error_message",
-                      grep("^(data_|fit_|rep_idx)", names(failed), value = TRUE)),
-                    names(failed))
+  cols <- intersect(
+    c(
+      "task_id",
+      "error_class",
+      "error_message",
+      grep("^(data_|fit_|rep_idx)", names(failed), value = TRUE)
+    ),
+    names(failed)
+  )
   tibble::as_tibble(failed[, cols, drop = FALSE])
 }
 
 # Compact failure summary printer (used internally by run_simulation).
 print_failure_summary <- function(result) {
   ft <- failed_tasks(result)
-  if (nrow(ft) == 0L) return(invisible(NULL))
+  if (nrow(ft) == 0L) {
+    return(invisible(NULL))
+  }
   cli::cli_alert_warning("{nrow(ft)} task(s) failed:")
   by_class <- split(ft, ft$error_class)
   for (cl in names(by_class)) {
     sub <- by_class[[cl]]
     first_msg <- sub$error_message[1]
-    extra <- if (nrow(sub) > 1L) paste0(" (and ", nrow(sub) - 1L, " more)") else ""
+    extra <- if (nrow(sub) > 1L) {
+      paste0(" (and ", nrow(sub) - 1L, " more)")
+    } else {
+      ""
+    }
     cli::cli_text("  {.val {cl}}: {first_msg}{extra}")
   }
   invisible(NULL)

@@ -31,13 +31,22 @@ describe("rstar_metric against a chain-less fitter (LinearRegressionFitter)", {
   # with no chain info: rstar_metric must degrade to NA with a warning.
   it("returns NA_real_ when no per-chain draws are available", {
     fit_result <- list(
-      fit = list(fitter = "linear_regression"),  # no draws() method, no $fit
-      draws = matrix(rnorm(200), ncol = 2, dimnames = list(NULL, c("b_x", "sigma")))
+      fit = list(fitter = "linear_regression"), # no draws() method, no $fit
+      draws = matrix(
+        rnorm(200),
+        ncol = 2,
+        dimnames = list(NULL, c("b_x", "sigma"))
+      )
     )
     data_bundle <- list(response = "y")
     expect_warning(
-      out <- compute_metric(rstar_metric(), fit_result, data_bundle, list(),
-                            list(task_id = "t")),
+      out <- compute_metric(
+        rstar_metric(),
+        fit_result,
+        data_bundle,
+        list(),
+        list(task_id = "t")
+      ),
       regexp = "no chain info|>= 2 chains"
     )
     expect_true(is.na(out$value))
@@ -52,16 +61,21 @@ describe("rstar_metric against a real brmsfit", {
   skip_if_not(requireNamespace("caret", quietly = TRUE))
   skip_if_not(requireNamespace("ranger", quietly = TRUE))
   skip_if_not(requireNamespace("randomForest", quietly = TRUE))
-  skip_if_not(nzchar(Sys.which("cmdstan")) ||
-              !is.null(tryCatch(cmdstanr::cmdstan_version(), error = function(e) NULL)))
+  skip_if_not(
+    nzchar(Sys.which("cmdstan")) ||
+      !is.null(tryCatch(cmdstanr::cmdstan_version(), error = function(e) NULL))
+  )
 
   fit <- brms::brm(
     y ~ x,
     data = data.frame(y = rnorm(40), x = rnorm(40)),
     family = gaussian(),
     backend = "cmdstanr",
-    chains = 2L, iter = 200L, warmup = 100L,
-    silent = 2L, refresh = 0L
+    chains = 2L,
+    iter = 200L,
+    warmup = 100L,
+    silent = 2L,
+    refresh = 0L
   )
 
   fit_result <- list(
@@ -72,12 +86,21 @@ describe("rstar_metric against a real brmsfit", {
   ctx <- list(task_id = "t1")
 
   it("returns a finite numeric R* value in a reasonable range", {
-    out <- compute_metric(rstar_metric(), fit_result, data_bundle, ctx,
-                          list(task_id = "t1"))
-    expect_true(is.numeric(out$value),
-                info = paste("value:", paste(head(out$value), collapse = ",")))
-    expect_true(is.finite(out$value),
-                info = paste("non-finite value:", out$value))
+    out <- compute_metric(
+      rstar_metric(),
+      fit_result,
+      data_bundle,
+      ctx,
+      list(task_id = "t1")
+    )
+    expect_true(
+      is.numeric(out$value),
+      info = paste("value:", paste(head(out$value), collapse = ","))
+    )
+    expect_true(
+      is.finite(out$value),
+      info = paste("non-finite value:", out$value)
+    )
     # R* is 2x classifier accuracy; ~1 for converged chains, but sampling
     # noise in the classifier can push it slightly below 1.
     expect_gte(out$value, 0.8)
@@ -86,8 +109,13 @@ describe("rstar_metric against a real brmsfit", {
 
   it("averages the uncertainty vector when uncertainty = TRUE", {
     set.seed(123)
-    out <- compute_metric(rstar_metric(uncertainty = TRUE), fit_result,
-                          data_bundle, ctx, list(task_id = "t1"))
+    out <- compute_metric(
+      rstar_metric(uncertainty = TRUE),
+      fit_result,
+      data_bundle,
+      ctx,
+      list(task_id = "t1")
+    )
     expect_true(is.numeric(out$value))
     expect_true(is.finite(out$value))
     expect_gte(out$value, 0.8)

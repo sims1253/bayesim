@@ -78,7 +78,13 @@ describe("BrmsFitter model bank", {
     # Capture warnings: a recompile warning would indicate the bank was bypassed.
     recompiled <- FALSE
     result1 <- withCallingHandlers(
-      fit_model(fitter, data_bundle, fit_spec, seed = 100L, task_ctx = list(task_id = "t1")),
+      fit_model(
+        fitter,
+        data_bundle,
+        fit_spec,
+        seed = 100L,
+        task_ctx = list(task_id = "t1")
+      ),
       warning = function(w) {
         if (grepl("recompil", conditionMessage(w), ignore.case = TRUE)) {
           recompiled <<- TRUE
@@ -89,7 +95,13 @@ describe("BrmsFitter model bank", {
     expect_false(recompiled)
     expect_true(result1$success)
 
-    result2 <- fit_model(fitter, data_bundle, fit_spec, seed = 200L, task_ctx = list(task_id = "t2"))
+    result2 <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 200L,
+      task_ctx = list(task_id = "t2")
+    )
     expect_true(result2$success)
 
     # Both results reference the same underlying compiled binary (same Stan model
@@ -118,9 +130,27 @@ describe("BrmsFitter model bank", {
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
-    r1 <- fit_model(fitter, data_bundle, fit_spec, seed = 777L, task_ctx = list(task_id = "a"))
-    r2 <- fit_model(fitter, data_bundle, fit_spec, seed = 777L, task_ctx = list(task_id = "b"))
-    r3 <- fit_model(fitter, data_bundle, fit_spec, seed = 888L, task_ctx = list(task_id = "c"))
+    r1 <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 777L,
+      task_ctx = list(task_id = "a")
+    )
+    r2 <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 777L,
+      task_ctx = list(task_id = "b")
+    )
+    r3 <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 888L,
+      task_ctx = list(task_id = "c")
+    )
 
     d1 <- brms::as_draws_matrix(r1$fit)
     d2 <- brms::as_draws_matrix(r2$fit)
@@ -151,7 +181,13 @@ describe("BrmsFitter model bank", {
 
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
-    result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "t"))
+    result <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
 
     # Timings from the updated fit's stanfit (non-zero warmup/sample).
     expect_true(is.numeric(result$timing$warmup) || is.na(result$timing$warmup))
@@ -159,8 +195,11 @@ describe("BrmsFitter model bank", {
     expect_false(is.na(result$timing$total))
 
     # Diagnostics present.
-    expect_true("rhat_max" %in% names(result$diagnostics) ||
-      "divergent" %in% names(result$diagnostics))
+    expect_true(
+      "rhat_max" %in%
+        names(result$diagnostics) ||
+        "divergent" %in% names(result$diagnostics)
+    )
   })
 
   it("computes diagnostics over all parameters incl. group-level (A3)", {
@@ -173,15 +212,29 @@ describe("BrmsFitter model bank", {
       g = factor(rep(1:4, each = 10))
     )
     fit <- suppressWarnings(brms::brm(
-      y ~ x + (1 | g), data = df, family = gaussian(),
-      backend = "cmdstanr", chains = 1L, iter = 20L, warmup = 10L,
-      silent = 2L, refresh = 0L
+      y ~ x + (1 | g),
+      data = df,
+      family = gaussian(),
+      backend = "cmdstanr",
+      chains = 1L,
+      iter = 20L,
+      warmup = 10L,
+      silent = 2L,
+      refresh = 0L
     ))
 
     diag <- bayesim:::extract_brms_diagnostics(fit)
     expect_true(is.list(diag))
-    expect_true(all(c("rhat_max", "ess_bulk_min", "ess_tail_min",
-                      "divergent", "max_treedepth") %in% names(diag)))
+    expect_true(all(
+      c(
+        "rhat_max",
+        "ess_bulk_min",
+        "ess_tail_min",
+        "divergent",
+        "max_treedepth"
+      ) %in%
+        names(diag)
+    ))
     # sd(Intercept) is a parameter; the all-parameter max rhat must be finite.
     expect_false(is.na(diag$rhat_max))
     # The all-parameter ESS must reflect the group-level SD too: cross-check by
@@ -216,7 +269,13 @@ describe("BrmsFitter model bank", {
     bayesim:::set_model_bank(NULL)
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
-    result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "t"))
+    result <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
     expect_true(result$success)
   })
 
@@ -226,10 +285,21 @@ describe("BrmsFitter model bank", {
     fitter <- tiny_fitter()
     template_data <- data.frame(y = rnorm(20), x = rnorm(20))
     prefit <- brms::brm(
-      y ~ x, data = template_data, family = gaussian(),
-      chains = 0L, backend = "cmdstanr", silent = 2L, refresh = 0L
+      y ~ x,
+      data = template_data,
+      family = gaussian(),
+      chains = 0L,
+      backend = "cmdstanr",
+      silent = 2L,
+      refresh = 0L
     )
-    spec_hash <- bayesim:::model_spec_hash(y ~ x, gaussian(), NULL, NULL, "cmdstanr")
+    spec_hash <- bayesim:::model_spec_hash(
+      y ~ x,
+      gaussian(),
+      NULL,
+      NULL,
+      "cmdstanr"
+    )
     bank <- setNames(list(prefit), spec_hash)
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
@@ -239,14 +309,22 @@ describe("BrmsFitter model bank", {
     # dummy columns), a genuine structural incompatibility: the compiled binary
     # expects 2 predictors but would receive 3. brms with recompile=FALSE would
     # silently mis-fit; the design-matrix guard must catch this and raise fatal.
-    mismatched_bundle <- list(train = data.frame(
-      y = rnorm(20),
-      x = factor(sample(c("a", "b", "c"), 20, replace = TRUE))
-    ))
+    mismatched_bundle <- list(
+      train = data.frame(
+        y = rnorm(20),
+        x = factor(sample(c("a", "b", "c"), 20, replace = TRUE))
+      )
+    )
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
     expect_error(
-      fit_model(fitter, mismatched_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "m")),
+      fit_model(
+        fitter,
+        mismatched_bundle,
+        fit_spec,
+        seed = 1L,
+        task_ctx = list(task_id = "m")
+      ),
       class = "bayesim_internal_error"
     )
   })
@@ -301,7 +379,13 @@ describe("BrmsFitter warning capture (F5)", {
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
-    result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "w1"))
+    result <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 1L,
+      task_ctx = list(task_id = "w1")
+    )
 
     expect_true(result$success)
     expect_vector(result$warnings, character())
@@ -329,7 +413,13 @@ describe("BrmsFitter warning capture (F5)", {
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
     fit_spec <- list(formula = y ~ x, family = gaussian())
 
-    result <- fit_model(fitter, data_bundle, fit_spec, seed = 1L, task_ctx = list(task_id = "w2"))
+    result <- fit_model(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed = 1L,
+      task_ctx = list(task_id = "w2")
+    )
 
     expect_true(result$success)
     expect_vector(result$warnings, character())

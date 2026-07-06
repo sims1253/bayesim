@@ -48,15 +48,6 @@ create_test_metric <- function(
 }
 
 # =============================================================================
-# Helper: Check if run_simulation exists and is functional
-# =============================================================================
-
-run_sim_available <- function() {
-  exists("run_simulation", mode = "function") &&
-    exists("is_simulation_config", mode = "function")
-}
-
-# =============================================================================
 # 1. RNG Management (from rng.R)
 # =============================================================================
 
@@ -1578,10 +1569,13 @@ describe("run_simulation()", {
       }
       unlockBinding("everywhere", asNamespace("mirai"))
       assign("everywhere", mock_everywhere, envir = asNamespace("mirai"))
-      on.exit({
-        assign("everywhere", orig_everywhere, envir = asNamespace("mirai"))
-        lockBinding("everywhere", asNamespace("mirai"))
-      }, add = TRUE)
+      on.exit(
+        {
+          assign("everywhere", orig_everywhere, envir = asNamespace("mirai"))
+          lockBinding("everywhere", asNamespace("mirai"))
+        },
+        add = TRUE
+      )
 
       execute_tasks(
         task_grid = task_grid,

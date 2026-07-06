@@ -33,13 +33,20 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
       prior = brms::prior(normal(0, 5), class = "b"),
       sample_prior = "only",
       backend = "cmdstanr",
-      chains = 1L, iter = 60L, warmup = 30L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 60L,
+      warmup = 30L,
+      silent = 2L,
+      refresh = 0L
     )
 
     fitter <- BrmsFitter(
-      chains = 1L, iter = 100L, warmup = 50L,
-      cores = 1L, silent = 2L, precompile = TRUE
+      chains = 1L,
+      iter = 100L,
+      warmup = 50L,
+      cores = 1L,
+      silent = 2L,
+      precompile = TRUE
     )
 
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
@@ -71,8 +78,10 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
     result <- run_simulation(config, resume = "never", progress = FALSE)
 
     # 1. Every task succeeded.
-    expect_true(all(result$summary$status == "success"),
-      info = paste("failed tasks:", sum(result$summary$status != "success")))
+    expect_true(
+      all(result$summary$status == "success"),
+      info = paste("failed tasks:", sum(result$summary$status != "success"))
+    )
 
     # 2. Ranks present, non-NA, and roughly uniform. Use a chi-square test with
     # a simulated p-value (valid for small expected counts) across few bins so
@@ -80,17 +89,35 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
     rank_col <- grep("^rank__by_param__", names(result$summary), value = TRUE)
     expect_length(rank_col, 1L)
     ranks <- as.integer(result$summary[[rank_col]])
-    expect_false(any(is.na(ranks)))
+    expect_false(anyNA(ranks))
     n_ranks_col <- grep("^rank__n_ranks__", names(result$summary), value = TRUE)
-    S <- if (length(n_ranks_col) == 1L) max(result$summary[[n_ranks_col]] - 1L, na.rm = TRUE) else max(ranks, na.rm = TRUE)
+    S <- if (length(n_ranks_col) == 1L) {
+      max(result$summary[[n_ranks_col]] - 1L, na.rm = TRUE)
+    } else {
+      max(ranks, na.rm = TRUE)
+    }
     # 5 bins keeps expected counts high enough for the chi-square approximation
     # to have power against a miscalibrated rank distribution.
-    bins <- cut(ranks, breaks = seq(0, S + 1L, length.out = 6L), include.lowest = TRUE)
+    bins <- cut(
+      ranks,
+      breaks = seq(0, S + 1L, length.out = 6L),
+      include.lowest = TRUE
+    )
     obs <- as.numeric(table(bins))
-    ct <- suppressWarnings(stats::chisq.test(obs, simulate.p.value = TRUE, B = 2000))
-    expect_true(ct$p.value > 0.001,
-      info = paste("rank chi-square (simulated) p =", signif(ct$p.value, 3),
-                   "X-squared =", signif(ct$statistic, 4)))
+    ct <- suppressWarnings(stats::chisq.test(
+      obs,
+      simulate.p.value = TRUE,
+      B = 2000
+    ))
+    expect_true(
+      ct$p.value > 0.001,
+      info = paste(
+        "rank chi-square (simulated) p =",
+        signif(ct$p.value, 3),
+        "X-squared =",
+        signif(ct$statistic, 4)
+      )
+    )
 
     # 3. Coverage within [0.7, 1.0] at the 0.9 level (sanity band).
     cov_col <- grep("^coverage__mean$", names(result$summary), value = TRUE)
@@ -102,7 +129,7 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
     # 4. rmse_loo non-NA for ALL tasks (the PSIS path must work everywhere).
     rmse_col <- grep("^rmse_loo__value$", names(result$summary), value = TRUE)
     expect_length(rmse_col, 1L)
-    expect_false(any(is.na(result$summary[[rmse_col]])))
+    expect_false(anyNA(result$summary[[rmse_col]]))
 
     # 5. Exactly one Stan compilation (model bank hit for all tasks). The bank
     # holds one entry per distinct spec; with one fit_grid row there must be
@@ -142,13 +169,20 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 60L, warmup = 30L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 60L,
+      warmup = 30L,
+      silent = 2L,
+      refresh = 0L
     )
 
     fitter <- BrmsFitter(
-      chains = 1L, iter = 80L, warmup = 40L,
-      cores = 1L, silent = 2L, precompile = TRUE
+      chains = 1L,
+      iter = 80L,
+      warmup = 40L,
+      cores = 1L,
+      silent = 2L,
+      precompile = TRUE
     )
 
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
@@ -178,7 +212,7 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
     rank_col <- grep("^rank__by_param__", names(result$summary), value = TRUE)
     expect_length(rank_col, 1L)
     ranks <- as.integer(result$summary[[rank_col]])
-    expect_false(any(is.na(ranks)))
+    expect_false(anyNA(ranks))
 
     # F1 core guarantee: the simulated response differs from the pilot data.
     # Drive the generator directly for two replicates and confirm the response
@@ -191,7 +225,9 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
     b1 <- gen(list(n = 20L), task_ctx = list(task_id = "a", rep_idx = 1L))
     expect_true("y" %in% names(b1$train))
     expect_false(all(is.na(b1$train$y)))
-    expect_false(identical(b1$train$y, prefit$data$y),
-      info = "IFS response equals the pilot data — F1 regression")
+    expect_false(
+      identical(b1$train$y, prefit$data$y),
+      info = "IFS response equals the pilot data — F1 regression"
+    )
   })
 })

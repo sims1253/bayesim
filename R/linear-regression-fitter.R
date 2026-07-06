@@ -58,7 +58,8 @@ LinearRegressionFitter <- S7::new_class(
     supports_loo = S7::new_property(S7::class_logical, default = TRUE),
     n_draws = S7::new_property(S7::class_integer, default = 1000L),
     prior_mean = S7::new_property(
-      S7::new_union(S7::class_numeric, NULL), default = 0
+      S7::new_union(S7::class_numeric, NULL),
+      default = 0
     ),
     prior_precision = S7::new_property(S7::class_numeric, default = 1e-6),
     a0 = S7::new_property(S7::class_numeric, default = 2),
@@ -106,15 +107,28 @@ LinearRegressionFitter <- S7::new_class(
   Lambda_n_inv <- solve(Lambda_n)
   mu_n <- drop(Lambda_n_inv %*% (Lambda0 %*% mu0 + Xty))
   a_n <- a0 + n / 2
-  b_n <- b0 + 0.5 * (
-    sum(y^2) + crossprod(mu0, Lambda0 %*% mu0) - crossprod(mu_n, Lambda_n %*% mu_n)
+  b_n <- b0 +
+    0.5 *
+      (sum(y^2) +
+        crossprod(mu0, Lambda0 %*% mu0) -
+        crossprod(mu_n, Lambda_n %*% mu_n))
+  list(
+    mu_n = mu_n,
+    Lambda_n_inv = Lambda_n_inv,
+    a_n = a_n,
+    b_n = b_n,
+    n = n,
+    p = p
   )
-  list(mu_n = mu_n, Lambda_n_inv = Lambda_n_inv, a_n = a_n, b_n = b_n, n = n, p = p)
 }
 
 # fit_model ----------------------------------------------------------------
 S7::method(fit_model, LinearRegressionFitter) <- function(
-  fitter, data_bundle, fit_spec, seed, task_ctx
+  fitter,
+  data_bundle,
+  fit_spec,
+  seed,
+  task_ctx
 ) {
   timer <- make_timer()
   timer$start()
@@ -126,16 +140,25 @@ S7::method(fit_model, LinearRegressionFitter) <- function(
     ))
   }
   response <- data_bundle$response %||%
-    all.vars(fit_spec$formula)[1L] %||% "y"
+    all.vars(fit_spec$formula)[1L] %||%
+    "y"
   formula <- fit_spec$formula
 
   des <- .lm_design(data, response, formula)
   post <- .nig_posterior(
-    des$X, des$y, fitter@prior_mean, fitter@prior_precision, fitter@a0, fitter@b0
+    des$X,
+    des$y,
+    fitter@prior_mean,
+    fitter@prior_precision,
+    fitter@a0,
+    fitter@b0
   )
 
   n_draws <- as.integer(fitter@n_draws)
-  draws <- withr::with_seed(seed %||% 0L, .nig_draws(post, n_draws, des$coef_names))
+  draws <- withr::with_seed(
+    seed %||% 0L,
+    .nig_draws(post, n_draws, des$coef_names)
+  )
 
   timer$stop()
   # Store everything needed by the other methods in `fit`.
@@ -161,7 +184,11 @@ S7::method(fit_model, LinearRegressionFitter) <- function(
       divergent = 0L,
       max_treedepth = 0L
     ),
-    timing = list(total = timer$elapsed(), warmup = 0, sample = timer$elapsed()),
+    timing = list(
+      total = timer$elapsed(),
+      warmup = 0,
+      sample = timer$elapsed()
+    ),
     warnings = character(),
     error = NULL,
     data_bundle = data_bundle
@@ -177,7 +204,8 @@ S7::method(fit_model, LinearRegressionFitter) <- function(
   beta_draws <- matrix(NA_real_, nrow = n_draws, ncol = p)
   chol_inv <- t(chol(post$Lambda_n_inv))
   for (s in seq_len(n_draws)) {
-    beta_draws[s, ] <- post$mu_n + sqrt(sigma2[s]) * (chol_inv %*% stats::rnorm(p))
+    beta_draws[s, ] <- post$mu_n +
+      sqrt(sigma2[s]) * (chol_inv %*% stats::rnorm(p))
   }
   colnames(beta_draws) <- coef_names
   # Append sigma column.
@@ -187,24 +215,34 @@ S7::method(fit_model, LinearRegressionFitter) <- function(
 
 # extract_draws -----------------------------------------------------------
 S7::method(extract_draws, LinearRegressionFitter) <- function(
-  fitter, fit_result, variables = NULL
+  fitter,
+  fit_result,
+  variables = NULL
 ) {
   draws <- if (inherits(fit_result, "bayesim_fit_result")) {
     fit_result$draws
   } else {
     fit_result
   }
-  if (is.null(draws)) return(NULL)
-  if (!is.null(variables)) draws <- draws[, variables, drop = FALSE]
+  if (is.null(draws)) {
+    return(NULL)
+  }
+  if (!is.null(variables)) {
+    draws <- draws[, variables, drop = FALSE]
+  }
   draws
 }
 
 # predict_epred: X %*% t(beta_draws) => S x N --------------------------------
 S7::method(predict_epred, LinearRegressionFitter) <- function(
-  fitter, fit_result, newdata = NULL
+  fitter,
+  fit_result,
+  newdata = NULL
 ) {
   fit_obj <- fit_result$fit
-  data <- newdata %||% fit_result$data_bundle$train %||% fit_obj$data_bundle$train
+  data <- newdata %||%
+    fit_result$data_bundle$train %||%
+    fit_obj$data_bundle$train
   des <- .lm_design(data, fit_obj$response, fit_obj$formula)
   beta_draws <- fit_result$draws[, fit_obj$design$coef_names, drop = FALSE]
   # S x N: (S x P) %*% t(N x P)
@@ -213,18 +251,27 @@ S7::method(predict_epred, LinearRegressionFitter) <- function(
 
 # predict_fit: epred + noise -----------------------------------------------
 S7::method(predict_fit, LinearRegressionFitter) <- function(
-  fitter, fit_result, newdata = NULL, seed = NULL
+  fitter,
+  fit_result,
+  newdata = NULL,
+  seed = NULL
 ) {
   fit_obj <- fit_result$fit
-  data <- newdata %||% fit_result$data_bundle$train %||% fit_obj$data_bundle$train
+  data <- newdata %||%
+    fit_result$data_bundle$train %||%
+    fit_obj$data_bundle$train
   des <- .lm_design(data, fit_obj$response, fit_obj$formula)
   draws <- fit_result$draws
   beta_draws <- draws[, fit_obj$design$coef_names, drop = FALSE]
   sigma_draws <- draws[, "sigma"]
   n_obs <- nrow(des$X)
   draw_predictions <- function() {
-    mu <- beta_draws %*% t(des$X)   # S x N
-    noise <- matrix(stats::rnorm(n_obs * nrow(mu)), nrow = nrow(mu), ncol = n_obs)
+    mu <- beta_draws %*% t(des$X) # S x N
+    noise <- matrix(
+      stats::rnorm(n_obs * nrow(mu)),
+      nrow = nrow(mu),
+      ncol = n_obs
+    )
     predicted_samples <- mu + sigma_draws * noise
     list(
       predicted_mean = drop(colMeans(predicted_samples)),
@@ -235,21 +282,29 @@ S7::method(predict_fit, LinearRegressionFitter) <- function(
   # seed = NULL consumes the ambient RNG stream (required by the
   # forward-simulation generators, which need fresh noise per task); an
   # explicit seed gives reproducible predictions without touching that stream.
-  if (is.null(seed)) draw_predictions() else withr::with_seed(seed, draw_predictions())
+  if (is.null(seed)) {
+    draw_predictions()
+  } else {
+    withr::with_seed(seed, draw_predictions())
+  }
 }
 
 # log_lik_matrix: exact normal density, S x N ------------------------------
 S7::method(log_lik_matrix, LinearRegressionFitter) <- function(
-  fitter, fit_result, newdata = NULL
+  fitter,
+  fit_result,
+  newdata = NULL
 ) {
   fit_obj <- fit_result$fit
-  data <- newdata %||% fit_result$data_bundle$train %||% fit_obj$data_bundle$train
+  data <- newdata %||%
+    fit_result$data_bundle$train %||%
+    fit_obj$data_bundle$train
   des <- .lm_design(data, fit_obj$response, fit_obj$formula)
   draws <- fit_result$draws
   beta_draws <- draws[, fit_obj$design$coef_names, drop = FALSE]
   sigma_draws <- draws[, "sigma"]
-  mu <- beta_draws %*% t(des$X)                    # S x N
-  resid <- sweep(mu, 2, des$y, "-")               # subtract y from each column
+  mu <- beta_draws %*% t(des$X) # S x N
+  resid <- sweep(mu, 2, des$y, "-") # subtract y from each column
   # log N(y | mu, sigma^2); sigma_draws is length S, broadcast over columns
   ll <- -0.5 * log(2 * pi) - log(sigma_draws) - 0.5 * (resid / sigma_draws)^2
   ll
@@ -259,7 +314,12 @@ S7::method(log_lik_matrix, LinearRegressionFitter) <- function(
 S7::method(loo_fit, LinearRegressionFitter) <- function(fitter, fit_result) {
   ll <- log_lik_matrix(fitter, fit_result)
   if (is.null(ll)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      elpd_se = NA_real_,
+      pareto_k = numeric()
+    ))
   }
   # i.i.d. draws => no chains; relative_eff is degenerate. PSIS-LOO still valid.
   loo_result <- tryCatch(
@@ -267,7 +327,12 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(fitter, fit_result) {
     error = function(e) NULL
   )
   if (is.null(loo_result)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      elpd_se = NA_real_,
+      pareto_k = numeric()
+    ))
   }
   list(
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
@@ -278,8 +343,15 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(fitter, fit_result) {
 }
 
 # fit_diagnostics ----------------------------------------------------------
-S7::method(fit_diagnostics, LinearRegressionFitter) <- function(fitter, fit_result) {
-  n_draws <- if (!is.null(fit_result$draws)) nrow(fit_result$draws) else NA_integer_
+S7::method(fit_diagnostics, LinearRegressionFitter) <- function(
+  fitter,
+  fit_result
+) {
+  n_draws <- if (!is.null(fit_result$draws)) {
+    nrow(fit_result$draws)
+  } else {
+    NA_integer_
+  }
   list(
     rhat_max = 1,
     ess_bulk = n_draws,

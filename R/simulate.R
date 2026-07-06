@@ -138,7 +138,9 @@ run_simulation <- function(
   # daemons in execute_tasks(); fit() retrieves it via get_model_bank(). This
   # keeps the bank out of the S7 fitter (which would corrupt the config
   # fingerprint).
-  if (inherits(config@fitter, "BrmsFitter") && isTRUE(config@fitter@precompile)) {
+  if (
+    inherits(config@fitter, "BrmsFitter") && isTRUE(config@fitter@precompile)
+  ) {
     model_bank <- build_model_bank(
       fitter = config@fitter,
       fit_grid = config@fit_grid,
@@ -210,7 +212,10 @@ run_simulation <- function(
   )
 
   # F2: compact failure summary when any task failed.
-  if (!is.null(result$summary) && any(result$summary$status == "failed", na.rm = TRUE)) {
+  if (
+    !is.null(result$summary) &&
+      any(result$summary$status == "failed", na.rm = TRUE)
+  ) {
     print_failure_summary(result)
   }
 
@@ -286,7 +291,10 @@ execute_tasks <- function(
       }
       daemon_setup <- config@daemon_setup
       if (is.function(daemon_setup)) {
-        mirai::everywhere(daemon_setup(), .args = list(daemon_setup = daemon_setup))
+        mirai::everywhere(
+          daemon_setup(),
+          .args = list(daemon_setup = daemon_setup)
+        )
       }
     }
 
@@ -337,9 +345,13 @@ execute_tasks <- function(
       # captured them (rather than throwing across the daemon boundary) and
       # marked error$fatal with the full condition class chain.
       fatal_result <- batch_results[
-        vapply(batch_results, function(r) {
-          isTRUE(r$status == "failed") && isTRUE(r$error$fatal)
-        }, logical(1))
+        vapply(
+          batch_results,
+          function(r) {
+            isTRUE(r$status == "failed") && isTRUE(r$error$fatal)
+          },
+          logical(1)
+        )
       ]
       if (length(fatal_result) > 0L) {
         fr <- fatal_result[[1]]
@@ -362,7 +374,12 @@ execute_tasks <- function(
         min_reps <- as.integer(stop_on$min_reps %||% 50L)
         at_boundary <- (n_completed %% check_every) == 0L
         if (isTRUE(at_boundary) && n_completed >= min_reps) {
-          stop_now <- bayesim_adaptive_check(task_results, task_grid, stop_on, config)
+          stop_now <- bayesim_adaptive_check(
+            task_results,
+            task_grid,
+            stop_on,
+            config
+          )
           if (isTRUE(stop_now)) {
             cli::cli_alert_info(
               "Adaptive stop: MCSE of '{stop_on$measure}' for '{stop_on$estimand}' below {stop_on$target_mcse} after {n_completed} reps; skipping remaining tasks"
@@ -446,7 +463,6 @@ execute_tasks <- function(
 # failed task results with the full class chain), so transport carries only
 # bayesim_task_result objects; the controller re-raises fatal conditions after
 # collecting a batch (see execute_tasks()).
-
 
 #' Run one batch of tasks
 #'
@@ -665,9 +681,13 @@ build_simulation_result <- function(
     metric_summary_types <- lapply(metrics, function(m) {
       if (S7::S7_inherits(m)) m@summary_type else "mean"
     })
-    names(metric_summary_types) <- vapply(metrics, function(m) {
-      if (S7::S7_inherits(m)) m@name else "unknown"
-    }, character(1))
+    names(metric_summary_types) <- vapply(
+      metrics,
+      function(m) {
+        if (S7::S7_inherits(m)) m@name else "unknown"
+      },
+      character(1)
+    )
   }
 
   new_simulation_result(
@@ -779,14 +799,20 @@ enrich_summary_with_grid_columns <- function(
 # them, preserving numeric/integer/logical types; fall back to character only
 # when the values are genuinely non-numeric. NA-safe.
 simplify_to_atomic <- function(vals) {
-  if (length(vals) == 0L) return(character(0))
+  if (length(vals) == 0L) {
+    return(character(0))
+  }
   non_na <- vals[!is.na(vals)]
   if (length(non_na) == 0L || all(vapply(non_na, is.numeric, logical(1)))) {
     unlist(vals)
   } else if (all(vapply(non_na, is.logical, logical(1)))) {
     unlist(vals)
   } else {
-    vapply(vals, function(v) if (is.na(v)) NA_character_ else as.character(v), character(1))
+    vapply(
+      vals,
+      function(v) if (is.na(v)) NA_character_ else as.character(v),
+      character(1)
+    )
   }
 }
 
@@ -828,9 +854,13 @@ resume_simulation <- function(result_path, config = NULL, progress = TRUE) {
 #' @keywords internal
 bayesim_adaptive_summary <- function(task_results, task_grid, config) {
   non_null <- which(!vapply(task_results, is.null, logical(1)))
-  if (length(non_null) == 0L) return(NULL)
+  if (length(non_null) == 0L) {
+    return(NULL)
+  }
   df <- results_to_dataframe(task_results[non_null])
-  if (is.null(df) || nrow(df) == 0L) return(NULL)
+  if (is.null(df) || nrow(df) == 0L) {
+    return(NULL)
+  }
   enrich_summary_with_grid_columns(
     summary = df,
     task_grid = task_grid,
@@ -852,18 +882,34 @@ bayesim_adaptive_summary <- function(task_results, task_grid, config) {
 #' @param config A SimulationConfig.
 #' @return TRUE/FALSE. Never throws.
 #' @keywords internal
-bayesim_adaptive_check <- function(task_results_so_far, task_grid, stop_on, config) {
-  if (is.null(stop_on)) return(FALSE)
-  ok <- tryCatch({
-    df <- bayesim_adaptive_summary(task_results_so_far, task_grid, config)
-    if (is.null(df) || nrow(df) == 0L) return(FALSE)
-    pm <- performance_measures(df, estimand = stop_on$estimand)
-    if (is.null(pm) || nrow(pm) == 0L) return(FALSE)
-    sel <- pm$measure == stop_on$measure
-    if (!any(sel)) return(FALSE)
-    mcse <- pm$mcse[sel][1L]
-    target <- stop_on$target_mcse
-    isTRUE(is.finite(mcse)) && isTRUE(mcse < target)
-  }, error = function(e) FALSE)
+bayesim_adaptive_check <- function(
+  task_results_so_far,
+  task_grid,
+  stop_on,
+  config
+) {
+  if (is.null(stop_on)) {
+    return(FALSE)
+  }
+  ok <- tryCatch(
+    {
+      df <- bayesim_adaptive_summary(task_results_so_far, task_grid, config)
+      if (is.null(df) || nrow(df) == 0L) {
+        return(FALSE)
+      }
+      pm <- performance_measures(df, estimand = stop_on$estimand)
+      if (is.null(pm) || nrow(pm) == 0L) {
+        return(FALSE)
+      }
+      sel <- pm$measure == stop_on$measure
+      if (!any(sel)) {
+        return(FALSE)
+      }
+      mcse <- pm$mcse[sel][1L]
+      target <- stop_on$target_mcse
+      isTRUE(is.finite(mcse)) && isTRUE(mcse < target)
+    },
+    error = function(e) FALSE
+  )
   isTRUE(ok)
 }

@@ -453,7 +453,9 @@ VALID_STOP_MEASURES <- c("bias", "coverage", "emp_se", "mse", "model_se")
 #' @return NULL or a normalized list.
 #' @keywords internal
 validate_stop_on <- function(stop_on) {
-  if (is.null(stop_on)) return(NULL)
+  if (is.null(stop_on)) {
+    return(NULL)
+  }
   if (!is.list(stop_on)) {
     stop(bayesim_config_error("stop_on must be NULL or a list"))
   }
@@ -466,23 +468,35 @@ validate_stop_on <- function(stop_on) {
     )))
   }
   estimand <- stop_on$estimand
-  if (!is.character(estimand) || length(estimand) != 1L ||
-        is.na(estimand) || !nzchar(estimand)) {
+  if (
+    !is.character(estimand) ||
+      length(estimand) != 1L ||
+      is.na(estimand) ||
+      !nzchar(estimand)
+  ) {
     stop(bayesim_config_error(
       "stop_on$estimand must be a single non-empty character string"
     ))
   }
   measure <- stop_on$measure
-  if (!is.character(measure) || length(measure) != 1L || is.na(measure) ||
-        !measure %in% VALID_STOP_MEASURES) {
+  if (
+    !is.character(measure) ||
+      length(measure) != 1L ||
+      is.na(measure) ||
+      !measure %in% VALID_STOP_MEASURES
+  ) {
     stop(bayesim_config_error(paste(
       "stop_on$measure must be one of:",
       paste(VALID_STOP_MEASURES, collapse = ", ")
     )))
   }
   target_mcse <- stop_on$target_mcse
-  if (!is.numeric(target_mcse) || length(target_mcse) != 1L ||
-        is.na(target_mcse) || target_mcse <= 0) {
+  if (
+    !is.numeric(target_mcse) ||
+      length(target_mcse) != 1L ||
+      is.na(target_mcse) ||
+      target_mcse <= 0
+  ) {
     stop(bayesim_config_error(
       "stop_on$target_mcse must be a single positive numeric value"
     ))
@@ -748,35 +762,6 @@ is_simulation_config <- function(x) {
   S7::S7_inherits(x, SimulationConfig)
 }
 
-#' Validate SimulationConfig Completeness
-#'
-#' Checks that a SimulationConfig has all required components for running.
-#'
-#' @param config An S7 SimulationConfig object.
-#'
-#' @return TRUE if valid, otherwise raises an error.
-#'
-#' @keywords internal
-validate_config_completeness <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
-  }
-
-  # Check for required components
-  if (is.null(config@fitter)) {
-    cli::cli_warn("fitter is NULL - simulation may fail during model fitting")
-  }
-
-  if (is.null(config@metrics) || length(config@metrics) == 0) {
-    cli::cli_warn("No metrics specified - results will be empty")
-  }
-
-  if (is.null(config@data_generator)) {
-    cli::cli_abort("data_generator cannot be NULL")
-  }
-
-  TRUE
-}
 
 #' Get Total Number of Tasks in Configuration
 #'

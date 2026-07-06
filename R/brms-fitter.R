@@ -65,11 +65,19 @@ extract_brms_timings <- function(fit, fallback_total) {
   tryCatch(
     {
       if (is.null(fit) || is.null(fit$fit)) {
-        return(list(total = fallback_total, warmup = NA_real_, sample = NA_real_))
+        return(list(
+          total = fallback_total,
+          warmup = NA_real_,
+          sample = NA_real_
+        ))
       }
       stanfit <- fit$fit
       if (!inherits(stanfit, "stanfit")) {
-        return(list(total = fallback_total, warmup = NA_real_, sample = NA_real_))
+        return(list(
+          total = fallback_total,
+          warmup = NA_real_,
+          sample = NA_real_
+        ))
       }
       # rstan::get_elapsed_time works on the stanfit object that brms produces
       # for both the cmdstanr and rstan backends. Returns a chains x 2 matrix
@@ -77,7 +85,11 @@ extract_brms_timings <- function(fit, fallback_total) {
       # prefit (no chains were run).
       elapsed <- rstan::get_elapsed_time(stanfit)
       if (is.null(elapsed) || length(elapsed) == 0L) {
-        return(list(total = fallback_total, warmup = NA_real_, sample = NA_real_))
+        return(list(
+          total = fallback_total,
+          warmup = NA_real_,
+          sample = NA_real_
+        ))
       }
       warmup <- sum(elapsed[, "warmup"])
       sample <- sum(elapsed[, "sample"])
@@ -133,8 +145,16 @@ build_stan_args_call <- function(stan_args) {
 #' Shared helper for the fallback path (`precompile = FALSE` or bank miss).
 #'
 #' @keywords internal
-run_fresh_brms <- function(fitter, data_bundle, fit_spec, seed, formula,
-                           family, prior, stanvars) {
+run_fresh_brms <- function(
+  fitter,
+  data_bundle,
+  fit_spec,
+  seed,
+  formula,
+  family,
+  prior,
+  stanvars
+) {
   stan_call_args <- build_stan_args_call(fitter@stan_args)
 
   do.call(
@@ -179,15 +199,26 @@ run_fresh_brms <- function(fitter, data_bundle, fit_spec, seed, formula,
 #' compiled binary is reusable.
 #'
 #' @keywords internal
-update_prefit <- function(prefit, fitter, data_bundle, seed, formula,
-                          family, prior, stanvars) {
+update_prefit <- function(
+  prefit,
+  fitter,
+  data_bundle,
+  seed,
+  formula,
+  family,
+  prior,
+  stanvars
+) {
   stan_call_args <- build_stan_args_call(fitter@stan_args)
 
   # F6: bank entries are list(prefit, struct_sig). Unpack; the cached struct_sig
   # avoids recomputing brms::make_standata() on the prefit-side per task.
   cached_struct_sig <- NULL
-  if (is.list(prefit) && !inherits(prefit, "brmsfit") &&
-      "prefit" %in% names(prefit)) {
+  if (
+    is.list(prefit) &&
+      !inherits(prefit, "brmsfit") &&
+      "prefit" %in% names(prefit)
+  ) {
     cached_struct_sig <- prefit$struct_sig
     prefit <- prefit$prefit
   }
@@ -218,14 +249,24 @@ update_prefit <- function(prefit, fitter, data_bundle, seed, formula,
       error = function(e) NULL
     )
     cached_struct_sig <- if (!is.null(prefit_struct)) {
-      list(fields = names(prefit_struct), K = prefit_struct$K, X_ncol = ncol(prefit_struct$X))
-    } else NULL
+      list(
+        fields = names(prefit_struct),
+        K = prefit_struct$K,
+        X_ncol = ncol(prefit_struct$X)
+      )
+    } else {
+      NULL
+    }
   }
   if (!is.null(cached_struct_sig) && !is.null(task_struct)) {
     # K = number of regression predictors (including intercept); the canonical
     # signal for binary compatibility. Also compare the full field-name set in
     # case the family induces extra data blocks (e.g. shape, theta for ordinal).
-    task_sig <- list(fields = names(task_struct), K = task_struct$K, X_ncol = ncol(task_struct$X))
+    task_sig <- list(
+      fields = names(task_struct),
+      K = task_struct$K,
+      X_ncol = ncol(task_struct$X)
+    )
     if (!identical(cached_struct_sig, task_sig)) {
       stop(bayesim_internal_error(paste(
         "Model-bank structural mismatch: the task data has a different Stan",
@@ -291,7 +332,9 @@ S7::method(fit_model, BrmsFitter) <- function(
       stanvars <- fit_spec$stanvars
       # prior/stanvars may also be list-column-wrapped; unwrap if needed, but
       # preserve brmsprior (a data.frame) as-is.
-      if (length(prior) == 1L && is.list(prior) && !"data.frame" %in% class(prior)) {
+      if (
+        length(prior) == 1L && is.list(prior) && !"data.frame" %in% class(prior)
+      ) {
         prior <- prior[[1]]
       }
       if (length(stanvars) == 1L && is.list(stanvars)) {
@@ -373,7 +416,10 @@ S7::method(fit_model, BrmsFitter) <- function(
         fit = fit_obj,
         draws = draws,
         diagnostics = diag,
-        timing = extract_brms_timings(fit_obj, fallback_total = timer$elapsed()),
+        timing = extract_brms_timings(
+          fit_obj,
+          fallback_total = timer$elapsed()
+        ),
         warnings = warnings,
         error = NULL,
         data_bundle = data_bundle
@@ -459,7 +505,11 @@ S7::method(log_lik_matrix, BrmsFitter) <- function(
 }
 
 #' @export
-S7::method(predict_epred, BrmsFitter) <- function(fitter, fit_result, newdata = NULL) {
+S7::method(predict_epred, BrmsFitter) <- function(
+  fitter,
+  fit_result,
+  newdata = NULL
+) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(NULL)
   }
@@ -550,13 +600,16 @@ extract_brms_diagnostics <- function(fit) {
       if (!is.null(stan_args$control)) {
         td <- stan_args$control$max_treedepth
       }
-      if (is.null(td)) td <- 10L
+      if (is.null(td)) {
+        td <- 10L
+      }
       td
     },
     error = function(e) 10L
   )
   max_treedepth <- sum(
-    sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >= max_treedepth_limit
+    sampler_diag$value[sampler_diag$Parameter == "treedepth__"] >=
+      max_treedepth_limit
   )
 
   list(

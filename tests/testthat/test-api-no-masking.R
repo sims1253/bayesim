@@ -28,8 +28,11 @@ describe("B1: renamed generics do not mask foreign packages", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     ))
 
     # Attach brms then bayesim (the package under test) after it. log_lik must

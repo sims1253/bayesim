@@ -15,19 +15,40 @@ CmdStanFitter_class <- S7::new_class(
     supports_predictions = S7::new_property(S7::class_logical, default = FALSE),
     supports_log_lik = S7::new_property(S7::class_logical, default = FALSE),
     supports_loo = S7::new_property(S7::class_logical, default = FALSE),
-    stan_file = S7::new_property(S7::new_union(S7::class_character, NULL), default = NULL),
-    stan_code = S7::new_property(S7::new_union(S7::class_character, NULL), default = NULL),
+    stan_file = S7::new_property(
+      S7::new_union(S7::class_character, NULL),
+      default = NULL
+    ),
+    stan_code = S7::new_property(
+      S7::new_union(S7::class_character, NULL),
+      default = NULL
+    ),
     stan_data = S7::new_property(S7::class_function),
-    log_lik_name = S7::new_property(S7::new_union(S7::class_character, NULL), default = NULL),
-    epred_name = S7::new_property(S7::new_union(S7::class_character, NULL), default = NULL),
+    log_lik_name = S7::new_property(
+      S7::new_union(S7::class_character, NULL),
+      default = NULL
+    ),
+    epred_name = S7::new_property(
+      S7::new_union(S7::class_character, NULL),
+      default = NULL
+    ),
     chains = S7::new_property(S7::class_integer, default = 4L),
     iter_warmup = S7::new_property(S7::class_integer, default = 1000L),
     iter_sampling = S7::new_property(S7::class_integer, default = 1000L),
-    adapt_delta = S7::new_property(S7::new_union(S7::class_numeric, NULL), default = NULL),
-    max_treedepth = S7::new_property(S7::new_union(S7::class_integer, NULL), default = NULL),
+    adapt_delta = S7::new_property(
+      S7::new_union(S7::class_numeric, NULL),
+      default = NULL
+    ),
+    max_treedepth = S7::new_property(
+      S7::new_union(S7::class_integer, NULL),
+      default = NULL
+    ),
     parallel_chains = S7::new_property(S7::class_integer, default = 1L),
     init = S7::new_property(S7::class_any, default = NULL),
-    extra_args = S7::new_property(S7::new_union(S7::class_list, NULL), default = NULL)
+    extra_args = S7::new_property(
+      S7::new_union(S7::class_list, NULL),
+      default = NULL
+    )
   )
 )
 
@@ -97,7 +118,9 @@ CmdStanFitter <- function(
     stop(bayesim_config_error("One of stan_file or stan_code must be supplied"))
   }
   if (!is.function(stan_data)) {
-    stop(bayesim_config_error("stan_data must be a function(data_bundle, fit_spec) -> list"))
+    stop(bayesim_config_error(
+      "stan_data must be a function(data_bundle, fit_spec) -> list"
+    ))
   }
   dots <- list(...)
   CmdStanFitter_class(
@@ -110,7 +133,11 @@ CmdStanFitter <- function(
     iter_warmup = as.integer(iter_warmup),
     iter_sampling = as.integer(iter_sampling),
     adapt_delta = adapt_delta,
-    max_treedepth = if (is.null(max_treedepth)) NULL else as.integer(max_treedepth),
+    max_treedepth = if (is.null(max_treedepth)) {
+      NULL
+    } else {
+      as.integer(max_treedepth)
+    },
     parallel_chains = as.integer(parallel_chains),
     init = init,
     extra_args = if (length(dots)) dots else NULL,
@@ -128,7 +155,8 @@ CmdStanFitter <- function(
   drop_names <- drop_names[!vapply(drop_names, is.null, logical(1))]
   drop_names <- unique(c("lp__", unlist(drop_names)))
   pattern <- paste0(
-    "^(", paste(vapply(drop_names, .escape_regex, character(1)), collapse = "|"),
+    "^(",
+    paste(vapply(drop_names, .escape_regex, character(1)), collapse = "|"),
     ")(\\[|$)"
   )
   vars_all[!grepl(pattern, vars_all)]
@@ -141,7 +169,10 @@ CmdStanFitter <- function(
 .cmdstan_model <- function(fitter) {
   cached <- getOption("bayesim.cmdstan_models")
   key <- if (!is.null(fitter@stan_file)) {
-    digest::digest(list(file = normalizePath(fitter@stan_file, mustWork = FALSE), code = NULL))
+    digest::digest(list(
+      file = normalizePath(fitter@stan_file, mustWork = FALSE),
+      code = NULL
+    ))
   } else {
     digest::digest(list(file = NULL, code = fitter@stan_code))
   }
@@ -160,7 +191,11 @@ CmdStanFitter <- function(
 
 # fit_model ----------------------------------------------------------------
 S7::method(fit_model, CmdStanFitter_class) <- function(
-  fitter, data_bundle, fit_spec, seed, task_ctx
+  fitter,
+  data_bundle,
+  fit_spec,
+  seed,
+  task_ctx
 ) {
   timer <- make_timer()
   timer$start()
@@ -198,12 +233,18 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
   )
   # cmdstanr takes sampler controls as direct $sample() arguments (there is no
   # rstan-style `control` list).
-  if (!is.null(fitter@adapt_delta)) sample_args$adapt_delta <- fitter@adapt_delta
+  if (!is.null(fitter@adapt_delta)) {
+    sample_args$adapt_delta <- fitter@adapt_delta
+  }
   if (!is.null(fitter@max_treedepth)) {
     sample_args$max_treedepth <- as.integer(fitter@max_treedepth)
   }
-  if (!is.null(fitter@init)) sample_args$init <- fitter@init
-  if (!is.null(fitter@extra_args)) sample_args <- c(sample_args, fitter@extra_args)
+  if (!is.null(fitter@init)) {
+    sample_args$init <- fitter@init
+  }
+  if (!is.null(fitter@extra_args)) {
+    sample_args <- c(sample_args, fitter@extra_args)
+  }
 
   fit <- tryCatch(
     {
@@ -226,10 +267,14 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
   draws_obj <- fit$draws()
   vars_all <- posterior::variables(draws_obj)
   keep_vars <- .cmdstan_keep_vars(
-    vars_all, list(fitter@log_lik_name, fitter@epred_name)
+    vars_all,
+    list(fitter@log_lik_name, fitter@epred_name)
   )
   draws_mat <- if (length(keep_vars)) {
-    posterior::as_draws_matrix(posterior::subset_draws(draws_obj, variable = keep_vars))
+    posterior::as_draws_matrix(posterior::subset_draws(
+      draws_obj,
+      variable = keep_vars
+    ))
   } else {
     posterior::as_draws_matrix(draws_obj)
   }
@@ -252,7 +297,11 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
     fit = fit_obj,
     draws = draws_mat,
     diagnostics = diag,
-    timing = list(total = timer$elapsed(), warmup = NA_real_, sample = NA_real_),
+    timing = list(
+      total = timer$elapsed(),
+      warmup = NA_real_,
+      sample = NA_real_
+    ),
     warnings = warnings,
     error = NULL,
     data_bundle = data_bundle
@@ -261,21 +310,35 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
 
 # extract_draws -----------------------------------------------------------
 S7::method(extract_draws, CmdStanFitter_class) <- function(
-  fitter, fit_result, variables = NULL
+  fitter,
+  fit_result,
+  variables = NULL
 ) {
   fit_obj <- fit_result$fit
   cmdstan_fit <- fit_obj$fit
   draws_obj <- cmdstan_fit$draws()
   vars_all <- posterior::variables(draws_obj)
-  keep <- .cmdstan_keep_vars(vars_all, list(fitter@log_lik_name, fitter@epred_name))
-  if (!is.null(variables)) keep <- intersect(keep, variables)
-  if (!length(keep)) return(NULL)
-  posterior::as_draws_matrix(posterior::subset_draws(draws_obj, variable = keep))
+  keep <- .cmdstan_keep_vars(
+    vars_all,
+    list(fitter@log_lik_name, fitter@epred_name)
+  )
+  if (!is.null(variables)) {
+    keep <- intersect(keep, variables)
+  }
+  if (!length(keep)) {
+    return(NULL)
+  }
+  posterior::as_draws_matrix(posterior::subset_draws(
+    draws_obj,
+    variable = keep
+  ))
 }
 
 # log_lik_matrix ----------------------------------------------------------
 S7::method(log_lik_matrix, CmdStanFitter_class) <- function(
-  fitter, fit_result, newdata = NULL
+  fitter,
+  fit_result,
+  newdata = NULL
 ) {
   if (is.null(fitter@log_lik_name)) {
     stop(bayesim_config_error(paste(
@@ -288,34 +351,61 @@ S7::method(log_lik_matrix, CmdStanFitter_class) <- function(
   ll <- posterior::as_draws_matrix(
     posterior::subset_draws(draws_obj, variable = fitter@log_lik_name)
   )
-  if (is.null(dim(ll))) return(NULL)
+  if (is.null(dim(ll))) {
+    return(NULL)
+  }
   ll
 }
 
 # predict_epred: in-sample GQ matrix (S x N) --------------------------------
-S7::method(predict_epred, CmdStanFitter_class) <- function(fitter, fit_result, newdata = NULL) {
-  if (is.null(fitter@epred_name)) return(NULL)
+S7::method(predict_epred, CmdStanFitter_class) <- function(
+  fitter,
+  fit_result,
+  newdata = NULL
+) {
+  if (is.null(fitter@epred_name)) {
+    return(NULL)
+  }
   fit_obj <- fit_result$fit
   draws_obj <- fit_obj$fit$draws()
   ep <- posterior::as_draws_matrix(
     posterior::subset_draws(draws_obj, variable = fitter@epred_name)
   )
-  if (is.null(dim(ep))) return(NULL)
+  if (is.null(dim(ep))) {
+    return(NULL)
+  }
   ep
 }
 
 # loo_fit ------------------------------------------------------------------
 S7::method(loo_fit, CmdStanFitter_class) <- function(fitter, fit_result) {
   if (is.null(fitter@log_lik_name)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      elpd_se = NA_real_,
+      pareto_k = numeric()
+    ))
   }
   ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
   if (is.null(ll)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      elpd_se = NA_real_,
+      pareto_k = numeric()
+    ))
   }
-  loo_result <- tryCatch(suppressWarnings(loo::loo(ll)), error = function(e) NULL)
+  loo_result <- tryCatch(suppressWarnings(loo::loo(ll)), error = function(e) {
+    NULL
+  })
   if (is.null(loo_result)) {
-    return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
+    return(list(
+      elpd = NA_real_,
+      p_loo = NA_real_,
+      elpd_se = NA_real_,
+      pareto_k = numeric()
+    ))
   }
   list(
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
@@ -326,22 +416,41 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(fitter, fit_result) {
 }
 
 # fit_diagnostics ----------------------------------------------------------
-S7::method(fit_diagnostics, CmdStanFitter_class) <- function(fitter, fit_result) {
+S7::method(fit_diagnostics, CmdStanFitter_class) <- function(
+  fitter,
+  fit_result
+) {
   fit_obj <- fit_result$fit
   cmdstan_fit <- fit_obj$fit
 
   # Sampler diagnostics (divergences, treedepth, ebfmi).
-  sampler_diag <- tryCatch(cmdstan_fit$diagnostic_summary(), error = function(e) NULL)
-  divergent <- if (!is.null(sampler_diag)) sum(sampler_diag$divergent %||% 0L) else NA_integer_
-  max_treedepth <- if (!is.null(sampler_diag)) sum(sampler_diag$max_treedepth %||% 0L) else NA_integer_
+  sampler_diag <- tryCatch(
+    cmdstan_fit$diagnostic_summary(),
+    error = function(e) NULL
+  )
+  divergent <- if (!is.null(sampler_diag)) {
+    sum(sampler_diag$divergent %||% 0L)
+  } else {
+    NA_integer_
+  }
+  max_treedepth <- if (!is.null(sampler_diag)) {
+    sum(sampler_diag$max_treedepth %||% 0L)
+  } else {
+    NA_integer_
+  }
 
   # rhat/ESS extrema over all parameters (excluding lp__ and GQs).
-  rhat_max <- NA_real_; ess_bulk_min <- NA_real_; ess_tail_min <- NA_real_
+  rhat_max <- NA_real_
+  ess_bulk_min <- NA_real_
+  ess_tail_min <- NA_real_
   draw_summary <- tryCatch(
     {
       draws_obj <- cmdstan_fit$draws()
       vars_all <- posterior::variables(draws_obj)
-      keep <- .cmdstan_keep_vars(vars_all, list(fitter@log_lik_name, fitter@epred_name))
+      keep <- .cmdstan_keep_vars(
+        vars_all,
+        list(fitter@log_lik_name, fitter@epred_name)
+      )
       if (length(keep)) {
         posterior::summarise_draws(
           posterior::subset_draws(draws_obj, variable = keep),
@@ -349,7 +458,9 @@ S7::method(fit_diagnostics, CmdStanFitter_class) <- function(fitter, fit_result)
           ess_bulk = posterior::ess_bulk,
           ess_tail = posterior::ess_tail
         )
-      } else NULL
+      } else {
+        NULL
+      }
     },
     error = function(e) NULL
   )
@@ -370,7 +481,10 @@ S7::method(fit_diagnostics, CmdStanFitter_class) <- function(fitter, fit_result)
 
 # predict_fit: unsupported for raw Stan (no newdata semantics) -------------
 S7::method(predict_fit, CmdStanFitter_class) <- function(
-  fitter, fit_result, newdata = NULL, seed = NULL
+  fitter,
+  fit_result,
+  newdata = NULL,
+  seed = NULL
 ) {
   stop(bayesim_contract_error(paste(
     "CmdStanFitter does not support posterior-predictive sampling.",

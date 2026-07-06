@@ -672,7 +672,11 @@ results_to_dataframe <- function(task_results) {
     # retained — tiny, enables parameter-recovery analysis and plot_recovery()).
     if (!is.null(tr$truth) && length(tr$truth) > 0) {
       tp <- tr$truth
-      nm <- if (!is.null(names(tp))) names(tp) else paste0("param", seq_along(tp))
+      nm <- if (!is.null(names(tp))) {
+        names(tp)
+      } else {
+        paste0("param", seq_along(tp))
+      }
       truth_cols <- as.list(unname(tp))
       names(truth_cols) <- paste0("truth__", nm)
       row <- c(row, truth_cols)
@@ -776,86 +780,4 @@ assert_supported_checkpoint_format <- function(checkpoint_format) {
   }
 
   invisible(checkpoint_format)
-}
-
-# =============================================================================
-# Helper: Validate Schema Compatibility
-# =============================================================================
-
-#' Validate schema compatibility
-#'
-#' Checks whether the schema versions in a run manifest are compatible
-#' with the current package version.
-#'
-#' @param manifest A run manifest list from [read_run_manifest()].
-#'
-#' @return Logical. TRUE if schemas are compatible, FALSE otherwise.
-#'
-#' @details
-#' Currently, this function checks for exact version matches. In the future,
-#' it may support backward compatibility for certain version ranges.
-#'
-#' @keywords internal
-validate_schema_compatibility <- function(manifest) {
-  if (is.null(manifest)) {
-    return(FALSE)
-  }
-
-  run_version <- manifest$run_schema_version
-  result_version <- manifest$result_schema_version
-
-  # Currently require exact version match
-  # In the future, this could support backward compatibility
-  identical(run_version, RUN_SCHEMA_VERSION) &&
-    identical(result_version, RESULT_SCHEMA_VERSION)
-}
-
-# =============================================================================
-# Helper: Clean Old Checkpoints
-# =============================================================================
-
-#' Clean old checkpoints
-#'
-#' Removes old checkpoints, keeping only the N most recent ones.
-#'
-#' @param result_path Character string giving the base path for results.
-#' @param keep_n Integer. Number of most recent checkpoints to keep.
-#'   Default is 5.
-#'
-#' @return Invisible number of checkpoints removed.
-#'
-#' @details
-#' This function can be used to manage disk space by removing old checkpoints
-#' that are no longer needed. It always keeps the latest checkpoint and
-#' any checkpoints that are more recent than the keep_n threshold.
-#'
-#' @keywords internal
-clean_old_checkpoints <- function(result_path, keep_n = 5) {
-  if (is.null(result_path)) {
-    return(invisible(0))
-  }
-
-  checkpoint_ids <- list_checkpoints(result_path)
-
-  if (length(checkpoint_ids) <= keep_n) {
-    return(invisible(0))
-  }
-
-  # Identify checkpoints to remove (all but the keep_n most recent)
-  ids_to_remove <- sort(checkpoint_ids)[seq_len(
-    length(checkpoint_ids) - keep_n
-  )]
-
-  removed <- 0
-  for (id in ids_to_remove) {
-    checkpoint_name <- sprintf("cp_%06d", id)
-    checkpoint_dir <- file.path(result_path, "checkpoints", checkpoint_name)
-
-    if (dir.exists(checkpoint_dir)) {
-      unlink(checkpoint_dir, recursive = TRUE)
-      removed <- removed + 1
-    }
-  }
-
-  invisible(removed)
 }

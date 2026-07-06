@@ -413,7 +413,9 @@ normalize_manifest_df <- function(x) {
     all_cols <- unique(unlist(lapply(x, names)))
     rows <- lapply(x, function(r) {
       missing <- setdiff(all_cols, names(r))
-      if (length(missing) > 0L) r[missing] <- rep(NA, length(missing))
+      if (length(missing) > 0L) {
+        r[missing] <- rep(NA, length(missing))
+      }
       as.data.frame(r[all_cols], stringsAsFactors = FALSE)
     })
     return(do.call(rbind, rows))
@@ -521,28 +523,5 @@ get_resume_summary <- function(result_path) {
     n_total = meta$n_tasks,
     n_completed = meta$n_success + meta$n_failed,
     n_pending = meta$n_pending
-  )
-}
-
-#' Format Resume Summary for Display
-#'
-#' Creates a human-readable summary string of the resume state.
-#'
-#' @param summary A summary list from [get_resume_summary()].
-#'
-#' @return A character string suitable for display.
-#'
-#' @keywords internal
-format_resume_summary <- function(summary) {
-  if (is.null(summary)) {
-    return("No resumable state found")
-  }
-
-  sprintf(
-    "Checkpoint %s: %d/%d tasks completed (%d pending)",
-    summary$checkpoint_id,
-    summary$n_completed,
-    summary$n_total,
-    summary$n_pending
   )
 }

@@ -10,8 +10,10 @@ describe("resolve_draw_columns()", {
   })
 
   it("maps cleaned names to b_-prefixed columns", {
-    m <- resolve_draw_columns(c("x", "Intercept"),
-                              c("b_x", "b_Intercept", "sigma"))
+    m <- resolve_draw_columns(
+      c("x", "Intercept"),
+      c("b_x", "b_Intercept", "sigma")
+    )
     expect_equal(unname(m), c("b_x", "b_Intercept"))
     expect_equal(names(m), c("x", "Intercept"))
   })
@@ -40,8 +42,11 @@ describe("metrics against a real (tiny) brmsfit", {
     data = data.frame(y = rnorm(30), x = rnorm(30)),
     family = gaussian(),
     backend = "cmdstanr",
-    chains = 1L, iter = 100L, warmup = 50L,
-    silent = 2L, refresh = 0L
+    chains = 1L,
+    iter = 100L,
+    warmup = 50L,
+    silent = 2L,
+    refresh = 0L
   )
 
   fit_result <- list(draws = brms::as_draws_matrix(fit), diagnostics = NULL)
@@ -49,25 +54,37 @@ describe("metrics against a real (tiny) brmsfit", {
     train = data.frame(y = rnorm(10), x = rnorm(10)),
     test = NULL,
     response = "y",
-    vars_of_interest = c("x", "Intercept", "sigma"),  # cleaned names — the F2 condition
+    vars_of_interest = c("x", "Intercept", "sigma"), # cleaned names — the F2 condition
     true_params = c(x = 0.5, Intercept = 0.5, sigma = 1)
   )
   ctx <- list(task_id = "t1")
 
   it("coverage_metric gives 0/1 (not NA) for x/Intercept/sigma", {
-    out <- compute_metric(coverage_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(
+      coverage_metric(),
+      fit_result,
+      data_bundle,
+      list(),
+      ctx
+    )
     for (v in c("x", "Intercept", "sigma")) {
-      expect_true(v %in% names(out$by_param),
-                  info = paste("missing", v))
-      expect_false(is.na(out$by_param[[v]]),
-                   info = paste("NA for", v))
-      expect_true(out$by_param[[v]] %in% c(0, 1),
-                  info = paste("non-binary for", v))
+      expect_true(v %in% names(out$by_param), info = paste("missing", v))
+      expect_false(is.na(out$by_param[[v]]), info = paste("NA for", v))
+      expect_true(
+        out$by_param[[v]] %in% c(0, 1),
+        info = paste("non-binary for", v)
+      )
     }
   })
 
   it("posterior_mean_metric returns finite values for x/Intercept/sigma", {
-    out <- compute_metric(posterior_mean_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(
+      posterior_mean_metric(),
+      fit_result,
+      data_bundle,
+      list(),
+      ctx
+    )
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out), info = paste("missing", v))
       expect_true(is.finite(out[[v]]), info = paste("non-finite for", v))
@@ -75,7 +92,13 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("pos_prob_metric returns in-range non-NA probabilities", {
-    out <- compute_metric(pos_prob_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(
+      pos_prob_metric(),
+      fit_result,
+      data_bundle,
+      list(),
+      ctx
+    )
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out$by_param), info = paste("missing", v))
       expect_false(is.na(out$by_param[[v]]), info = paste("NA for", v))
@@ -85,13 +108,23 @@ describe("metrics against a real (tiny) brmsfit", {
   })
 
   it("posterior_summary_metric returns non-NA mean/sd/q_lower/q_upper", {
-    out <- compute_metric(posterior_summary_metric(), fit_result, data_bundle, list(), ctx)
+    out <- compute_metric(
+      posterior_summary_metric(),
+      fit_result,
+      data_bundle,
+      list(),
+      ctx
+    )
     for (field in c("mean", "sd", "q_lower", "q_upper")) {
       for (v in c("x", "Intercept", "sigma")) {
-        expect_true(v %in% names(out[[field]]),
-                    info = paste("missing", field, v))
-        expect_true(is.finite(out[[field]][[v]]),
-                    info = paste("non-finite", field, v))
+        expect_true(
+          v %in% names(out[[field]]),
+          info = paste("missing", field, v)
+        )
+        expect_true(
+          is.finite(out[[field]][[v]]),
+          info = paste("non-finite", field, v)
+        )
       }
     }
   })
@@ -101,7 +134,7 @@ describe("metrics against a real (tiny) brmsfit", {
     for (v in c("x", "Intercept", "sigma")) {
       expect_true(v %in% names(out$by_param), info = paste("missing", v))
       expect_false(is.na(out$by_param[[v]]), info = paste("NA for", v))
-      expect_true(is.integer(out$by_param) || is.numeric(out$by_param))
+      expect_true(is.numeric(out$by_param))
     }
   })
 

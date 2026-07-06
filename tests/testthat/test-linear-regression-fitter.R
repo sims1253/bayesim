@@ -33,12 +33,21 @@ describe("LinearRegressionFitter analytic posterior", {
       vars_of_interest = c("Intercept", "x", "sigma")
     )
     fitter <- LinearRegressionFitter(n_draws = 8000L)
-    res <- fit_model(fitter, data_bundle, list(formula = y ~ x), seed = 42L,
-                     task_ctx = list(task_id = "t"))
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 42L,
+      task_ctx = list(task_id = "t")
+    )
     draws <- res$draws
     ols <- lm(y ~ x)
     expect_equal(colnames(draws), c("Intercept", "x", "sigma"))
-    expect_equal(mean(draws[, "Intercept"]), unname(coef(ols)[1]), tolerance = 0.05)
+    expect_equal(
+      mean(draws[, "Intercept"]),
+      unname(coef(ols)[1]),
+      tolerance = 0.05
+    )
     expect_equal(mean(draws[, "x"]), unname(coef(ols)[2]), tolerance = 0.05)
     expect_equal(mean(draws[, "sigma"]), summary(ols)$sigma, tolerance = 0.05)
   })
@@ -52,13 +61,20 @@ describe("LinearRegressionFitter analytic posterior", {
     X <- cbind(1, x)
     y <- as.vector(X %*% c(0, 1) + stats::rnorm(n))
     data_bundle <- list(
-      train = data.frame(y = y, x = x), test = NULL, response = "y",
+      train = data.frame(y = y, x = x),
+      test = NULL,
+      response = "y",
       true_params = c(Intercept = 0, x = 1, sigma = 1),
       vars_of_interest = c("Intercept", "x", "sigma")
     )
     fitter <- LinearRegressionFitter(n_draws = 20000L)
-    res <- fit_model(fitter, data_bundle, list(formula = y ~ x), seed = 9L,
-                     task_ctx = list(task_id = "t"))
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 9L,
+      task_ctx = list(task_id = "t")
+    )
     sigma2_hat <- mean(res$draws[, "sigma"]^2)
     closed_var_x <- sigma2_hat * solve(crossprod(X))[2, 2]
     expect_equal(stats::var(res$draws[, "x"]), closed_var_x, tolerance = 0.1)
@@ -68,8 +84,11 @@ describe("LinearRegressionFitter analytic posterior", {
 describe("LinearRegressionFitter contract", {
   it("passes validate_fitter smoke test", {
     expect_silent(
-      validate_fitter(LinearRegressionFitter(n_draws = 100L),
-                      smoke_test = TRUE, verbose = FALSE)
+      validate_fitter(
+        LinearRegressionFitter(n_draws = 100L),
+        smoke_test = TRUE,
+        verbose = FALSE
+      )
     )
   })
 
@@ -78,11 +97,17 @@ describe("LinearRegressionFitter contract", {
     n <- 25L
     data_bundle <- list(
       train = data.frame(y = stats::rnorm(n), x = stats::rnorm(n)),
-      test = NULL, response = "y"
+      test = NULL,
+      response = "y"
     )
     fitter <- LinearRegressionFitter(n_draws = 100L)
-    res <- fit_model(fitter, data_bundle, list(formula = y ~ x), seed = 1L,
-                     task_ctx = list(task_id = "t"))
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
 
     ll <- log_lik_matrix(fitter, res)
     expect_equal(dim(ll), c(100L, n))
@@ -98,11 +123,18 @@ describe("LinearRegressionFitter contract", {
 
   it("fit_diagnostics reports rhat 1, ESS = n_draws, 0 divergences", {
     data_bundle <- list(
-      train = data.frame(y = 1:10, x = 1:10), test = NULL, response = "y"
+      train = data.frame(y = 1:10, x = 1:10),
+      test = NULL,
+      response = "y"
     )
     fitter <- LinearRegressionFitter(n_draws = 250L)
-    res <- fit_model(fitter, data_bundle, list(formula = y ~ x), seed = 1L,
-                     task_ctx = list(task_id = "t"))
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
     diag <- fit_diagnostics(fitter, res)
     expect_equal(diag$rhat_max, 1)
     expect_equal(diag$ess_bulk, 250L)

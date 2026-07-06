@@ -217,7 +217,8 @@ validate_data_bundle <- function(data_bundle) {
 
   # Validate true_params names match vars_of_interest (only when BOTH present).
   if (
-    !is.null(data_bundle$true_params) && !is.null(data_bundle$vars_of_interest) &&
+    !is.null(data_bundle$true_params) &&
+      !is.null(data_bundle$vars_of_interest) &&
       !setequal(names(data_bundle$true_params), data_bundle$vars_of_interest)
   ) {
     in_params_not_vars <- setdiff(
@@ -242,7 +243,6 @@ validate_data_bundle <- function(data_bundle) {
     }
     stop(bayesim_data_error(msg))
   }
-
 
   # Optional: validate meta is a named list of scalars
   if (!is.null(data_bundle$meta)) {

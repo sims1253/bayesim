@@ -53,7 +53,10 @@ describe("log_lik S x N orientation convention", {
       parent = Fitter,
       properties = list(
         name = S7::new_property(S7::class_character, default = "transposed"),
-        supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
+        supports_predictions = S7::new_property(
+          S7::class_logical,
+          default = TRUE
+        ),
         supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
         supports_loo = S7::new_property(S7::class_logical, default = TRUE),
         n_draws = S7::new_property(S7::class_integer, default = 50L)
@@ -61,7 +64,11 @@ describe("log_lik S x N orientation convention", {
     )
 
     S7::method(fit_model, TransposedFitter) <- function(
-      fitter, data_bundle, fit_spec, seed, task_ctx
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed,
+      task_ctx
     ) {
       n_obs <- nrow(data_bundle$train)
       n_draws <- as.integer(fitter@n_draws)
@@ -77,26 +84,44 @@ describe("log_lik S x N orientation convention", {
         success = TRUE,
         fit = mock_fit,
         draws = draws,
-        diagnostics = list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L),
+        diagnostics = list(
+          rhat_max = 1.0,
+          ess_bulk = 100,
+          ess_tail = 100,
+          divergent = 0L
+        ),
         timing = list(total = 1.0)
       )
     }
 
-    S7::method(extract_draws, TransposedFitter) <- function(fitter, fit_result, variables = NULL) {
+    S7::method(extract_draws, TransposedFitter) <- function(
+      fitter,
+      fit_result,
+      variables = NULL
+    ) {
       draws <- fit_result$draws
-      if (!is.null(variables)) draws <- draws[, variables, drop = FALSE]
+      if (!is.null(variables)) {
+        draws <- draws[, variables, drop = FALSE]
+      }
       draws
     }
 
     S7::method(predict_fit, TransposedFitter) <- function(
-      fitter, fit_result, newdata = NULL, seed = NULL
+      fitter,
+      fit_result,
+      newdata = NULL,
+      seed = NULL
     ) {
       # Correct S x N orientation for predictions (only log_lik is wrong here).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
       n_obs <- nrow(data)
       n_draws <- as.integer(fitter@n_draws)
-      predicted_samples <- matrix(rnorm(n_obs * n_draws), nrow = n_draws, ncol = n_obs)
+      predicted_samples <- matrix(
+        rnorm(n_obs * n_draws),
+        nrow = n_draws,
+        ncol = n_obs
+      )
       list(
         predicted_mean = colMeans(predicted_samples),
         predicted_samples = predicted_samples,
@@ -104,20 +129,31 @@ describe("log_lik S x N orientation convention", {
       )
     }
 
-    S7::method(log_lik_matrix, TransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
+    S7::method(log_lik_matrix, TransposedFitter) <- function(
+      fitter,
+      fit_result,
+      newdata = NULL
+    ) {
       # DELIBERATELY WRONG: N x S (observations in rows, draws in columns).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
       n_obs <- nrow(data)
       n_draws <- as.integer(fitter@n_draws)
-      matrix(rnorm(n_obs * n_draws, mean = -2, sd = 0.5), nrow = n_obs, ncol = n_draws)
+      matrix(
+        rnorm(n_obs * n_draws, mean = -2, sd = 0.5),
+        nrow = n_obs,
+        ncol = n_draws
+      )
     }
 
     S7::method(loo_fit, TransposedFitter) <- function(fitter, fit_result) {
       list(elpd = -10, p_loo = 1, elpd_se = 1, pareto_k = numeric())
     }
 
-    S7::method(fit_diagnostics, TransposedFitter) <- function(fitter, fit_result) {
+    S7::method(fit_diagnostics, TransposedFitter) <- function(
+      fitter,
+      fit_result
+    ) {
       list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L)
     }
 
@@ -212,8 +248,14 @@ describe("predict_fit S x N orientation convention", {
       "PredictTransposedFitter",
       parent = Fitter,
       properties = list(
-        name = S7::new_property(S7::class_character, default = "predict_transposed"),
-        supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
+        name = S7::new_property(
+          S7::class_character,
+          default = "predict_transposed"
+        ),
+        supports_predictions = S7::new_property(
+          S7::class_logical,
+          default = TRUE
+        ),
         supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
         supports_loo = S7::new_property(S7::class_logical, default = TRUE),
         n_draws = S7::new_property(S7::class_integer, default = 50L)
@@ -221,7 +263,11 @@ describe("predict_fit S x N orientation convention", {
     )
 
     S7::method(fit_model, PredictTransposedFitter) <- function(
-      fitter, data_bundle, fit_spec, seed, task_ctx
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed,
+      task_ctx
     ) {
       n_obs <- nrow(data_bundle$train)
       n_draws <- as.integer(fitter@n_draws)
@@ -237,26 +283,44 @@ describe("predict_fit S x N orientation convention", {
         success = TRUE,
         fit = mock_fit,
         draws = draws,
-        diagnostics = list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L),
+        diagnostics = list(
+          rhat_max = 1.0,
+          ess_bulk = 100,
+          ess_tail = 100,
+          divergent = 0L
+        ),
         timing = list(total = 1.0)
       )
     }
 
-    S7::method(extract_draws, PredictTransposedFitter) <- function(fitter, fit_result, variables = NULL) {
+    S7::method(extract_draws, PredictTransposedFitter) <- function(
+      fitter,
+      fit_result,
+      variables = NULL
+    ) {
       draws <- fit_result$draws
-      if (!is.null(variables)) draws <- draws[, variables, drop = FALSE]
+      if (!is.null(variables)) {
+        draws <- draws[, variables, drop = FALSE]
+      }
       draws
     }
 
     S7::method(predict_fit, PredictTransposedFitter) <- function(
-      fitter, fit_result, newdata = NULL, seed = NULL
+      fitter,
+      fit_result,
+      newdata = NULL,
+      seed = NULL
     ) {
       # DELIBERATELY WRONG: N x S (observations in rows, draws in columns).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
       n_obs <- nrow(data)
       n_draws <- as.integer(fitter@n_draws)
-      predicted_samples <- matrix(rnorm(n_obs * n_draws), nrow = n_obs, ncol = n_draws)
+      predicted_samples <- matrix(
+        rnorm(n_obs * n_draws),
+        nrow = n_obs,
+        ncol = n_draws
+      )
       list(
         predicted_mean = rowMeans(predicted_samples),
         predicted_samples = predicted_samples,
@@ -264,31 +328,53 @@ describe("predict_fit S x N orientation convention", {
       )
     }
 
-    S7::method(log_lik_matrix, PredictTransposedFitter) <- function(fitter, fit_result, newdata = NULL) {
+    S7::method(log_lik_matrix, PredictTransposedFitter) <- function(
+      fitter,
+      fit_result,
+      newdata = NULL
+    ) {
       # Correct S x N orientation (draws x observations).
       data_bundle <- fit_result$fit$data_bundle
       data <- newdata %||% data_bundle$train
       n_obs <- nrow(data)
       n_draws <- as.integer(fitter@n_draws)
-      matrix(rnorm(n_obs * n_draws, mean = -2, sd = 0.5), nrow = n_draws, ncol = n_obs)
+      matrix(
+        rnorm(n_obs * n_draws, mean = -2, sd = 0.5),
+        nrow = n_draws,
+        ncol = n_obs
+      )
     }
 
-    S7::method(loo_fit, PredictTransposedFitter) <- function(fitter, fit_result) {
+    S7::method(loo_fit, PredictTransposedFitter) <- function(
+      fitter,
+      fit_result
+    ) {
       list(elpd = -10, p_loo = 1, elpd_se = 1, pareto_k = numeric())
     }
 
-    S7::method(fit_diagnostics, PredictTransposedFitter) <- function(fitter, fit_result) {
+    S7::method(fit_diagnostics, PredictTransposedFitter) <- function(
+      fitter,
+      fit_result
+    ) {
       list(rhat_max = 1.0, ess_bulk = 100, ess_tail = 100, divergent = 0L)
     }
 
     # n_obs in the smoke test is 20; n_draws here is 50, so ncol = 50 != 20
     # must trigger the predicted_samples orientation check.
     expect_error(
-      validate_fitter(PredictTransposedFitter(), smoke_test = TRUE, verbose = FALSE),
+      validate_fitter(
+        PredictTransposedFitter(),
+        smoke_test = TRUE,
+        verbose = FALSE
+      ),
       class = "bayesim_validation_error"
     )
     expect_error(
-      validate_fitter(PredictTransposedFitter(), smoke_test = TRUE, verbose = FALSE),
+      validate_fitter(
+        PredictTransposedFitter(),
+        smoke_test = TRUE,
+        verbose = FALSE
+      ),
       "wrong orientation"
     )
   })

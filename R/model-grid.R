@@ -23,10 +23,18 @@
 #' \dontrun{
 #' brms_model(y ~ x, family = gaussian())
 #' }
-brms_model <- function(formula, family = NULL, prior = NULL, stanvars = NULL,
-                       stan_file = NULL) {
-  if (is.null(formula) || (!inherits(formula, "formula") &&
-      !inherits(formula, "brmsformula"))) {
+brms_model <- function(
+  formula,
+  family = NULL,
+  prior = NULL,
+  stanvars = NULL,
+  stan_file = NULL
+) {
+  if (
+    is.null(formula) ||
+      (!inherits(formula, "formula") &&
+        !inherits(formula, "brmsformula"))
+  ) {
     stop(bayesim_config_error(
       "formula must be a formula or brmsformula"
     ))
@@ -74,8 +82,11 @@ model_grid <- function(...) {
     spec <- specs[[nm]]
     if (!is.list(spec) || !all(components %in% names(spec))) {
       stop(bayesim_config_error(paste(
-        "spec", nm, "must be a brms_model() (or a list with components:",
-        paste(components, collapse = ", "), ")"
+        "spec",
+        nm,
+        "must be a brms_model() (or a list with components:",
+        paste(components, collapse = ", "),
+        ")"
       )))
     }
   }

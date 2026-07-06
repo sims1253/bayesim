@@ -13,7 +13,6 @@
 # one, but generators must NOT use it to re-seed; doing so would defeat
 # stream-based determinism.
 
-
 # Fixed-truth generator ---------------------------------------------------
 
 #' Construct a fixed-truth data generator
@@ -51,10 +50,10 @@
 fixed_truth_generator <- function(truth, draw_data) {
   if (!is.numeric(truth) || is.null(names(truth))) {
     stop(bayesim_config_error(
-      "truth must be a named numeric vector, got "
-        %+% class(truth)[1]
-        %+% " with "
-        %+% if (is.null(names(truth))) "no names" else "names"
+      "truth must be a named numeric vector, got " %+%
+        class(truth)[1] %+%
+        " with " %+%
+        if (is.null(names(truth))) "no names" else "names"
     ))
   }
   if (!is.function(draw_data)) {
@@ -72,7 +71,9 @@ fixed_truth_generator <- function(truth, draw_data) {
     bundle <- draw_data(data_spec, task_ctx)
     bundle$true_params <- truth
     bundle$vars_of_interest <- names(truth)
-    if (is.null(bundle$meta)) bundle$meta <- list()
+    if (is.null(bundle$meta)) {
+      bundle$meta <- list()
+    }
     bundle$meta$generator <- "fixed_truth"
     bundle
   }
@@ -108,10 +109,12 @@ fixed_truth_generator <- function(truth, draw_data) {
 #'
 #' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
-prior_predictive_generator <- function(prior_fit,
-                                       predictor_generator = NULL,
-                                       vars_of_interest = NULL,
-                                       response = NULL) {
+prior_predictive_generator <- function(
+  prior_fit,
+  predictor_generator = NULL,
+  vars_of_interest = NULL,
+  response = NULL
+) {
   if (!inherits(prior_fit, "brmsfit")) {
     stop(bayesim_config_error(
       "prior_fit must be a brmsfit compiled with sample_prior = 'only'"
@@ -209,13 +212,15 @@ prior_predictive_generator <- function(prior_fit,
 #'
 #' @return A generator function `(data_spec, task_ctx) -> data_bundle`.
 #' @export
-ifs_generator <- function(prefit,
-                          predictor_generator = NULL,
-                          vars_of_interest = NULL,
-                          response = NULL,
-                          lower_bound = NULL,
-                          upper_bound = NULL,
-                          truncate = FALSE) {
+ifs_generator <- function(
+  prefit,
+  predictor_generator = NULL,
+  vars_of_interest = NULL,
+  response = NULL,
+  lower_bound = NULL,
+  upper_bound = NULL,
+  truncate = FALSE
+) {
   if (!inherits(prefit, "brmsfit")) {
     stop(bayesim_config_error("prefit must be a brmsfit object"))
   }
@@ -261,8 +266,12 @@ ifs_generator <- function(prefit,
       } else {
         y <- sim_frame[[resp]]
         oob <- FALSE
-        if (!is.null(lower_bound) && any(y < lower_bound, na.rm = TRUE)) oob <- TRUE
-        if (!is.null(upper_bound) && any(y > upper_bound, na.rm = TRUE)) oob <- TRUE
+        if (!is.null(lower_bound) && any(y < lower_bound, na.rm = TRUE)) {
+          oob <- TRUE
+        }
+        if (!is.null(upper_bound) && any(y > upper_bound, na.rm = TRUE)) {
+          oob <- TRUE
+        }
         if (oob) {
           # Out-of-bounds policy: NA-out the response (NOT a draw-level
           # resample). This drops the replicate, biasing SBC ranks when
@@ -300,7 +309,9 @@ ifs_generator <- function(prefit,
     all.vars(fit$formula$formula)[1],
     error = function(e) NA_character_
   )
-  if (!is.na(resp) && nchar(resp) > 0L) return(resp)
+  if (!is.na(resp) && nchar(resp) > 0L) {
+    return(resp)
+  }
   # Fall back to the names of the original data.
   if (!is.null(fit$data) && ncol(fit$data) > 0L) {
     return(names(fit$data)[1L])
@@ -350,10 +361,10 @@ ifs_generator <- function(prefit,
   }
   if (length(missing) > 0L) {
     stop(bayesim_config_error(
-      "vars_of_interest not found in model draws: "
-        %+% paste(missing, collapse = ", ")
-        %+% ". Available: "
-        %+% paste(utils::head(available, 20), collapse = ", ")
+      "vars_of_interest not found in model draws: " %+%
+        paste(missing, collapse = ", ") %+%
+        ". Available: " %+%
+        paste(utils::head(available, 20), collapse = ", ")
     ))
   }
   vals <- draws_mat[draw_id, hits, drop = FALSE]
@@ -418,12 +429,12 @@ nodes_by_depth <- function(adj_matrix) {
   depth_list <- list()
   var_names <- rownames(adj_matrix)
   while (nrow(adj_matrix) > 0L) {
-    pos <- which(apply(adj_matrix, 1, sum) == 0)
+    pos <- which(rowSums(adj_matrix) == 0)
     if (length(pos) == 0L) {
       stop(bayesim_config_error(
-        "Unsolvable variable dependencies detected: cyclic response structure. "
-          %+% "The brms model has responses that depend on each other circularly; "
-          %+% "forward sampling cannot order them."
+        "Unsolvable variable dependencies detected: cyclic response structure. " %+%
+          "The brms model has responses that depend on each other circularly; " %+%
+          "forward sampling cannot order them."
       ))
     }
     depth_list <- c(depth_list, list(var_names[pos]))
@@ -567,7 +578,6 @@ brms_response_sequence.default <- function(x) {
 # draws. Brms users who want the full prior predictive should use the
 # brms-specific prior_predictive_generator().
 
-
 #' Construct a fitter-agnostic prior-draws data generator
 #'
 #' `prior_draws_generator()` is the fitter-agnostic analogue of
@@ -619,9 +629,14 @@ brms_response_sequence.default <- function(x) {
 #' @export
 #' @seealso [prior_predictive_generator()], [forward_sim_generator()],
 #'   [Fitter], [LinearRegressionFitter]
-prior_draws_generator <- function(fitter, fit_spec, pilot_bundle,
-                                  predictor_generator, response = NULL,
-                                  n_draws = NULL) {
+prior_draws_generator <- function(
+  fitter,
+  fit_spec,
+  pilot_bundle,
+  predictor_generator,
+  response = NULL,
+  n_draws = NULL
+) {
   if (!S7::S7_inherits(fitter, Fitter)) {
     stop(bayesim_config_error(
       "fitter must be an S7 Fitter object, got " %+% class(fitter)[1]
@@ -774,9 +789,14 @@ prior_draws_generator <- function(fitter, fit_spec, pilot_bundle,
 #' @export
 #' @seealso [ifs_generator()], [prior_draws_generator()], [Fitter],
 #'   [LinearRegressionFitter]
-forward_sim_generator <- function(fitter, fit_spec, pilot_bundle,
-                                  predictor_generator, response = NULL,
-                                  n_draws = NULL) {
+forward_sim_generator <- function(
+  fitter,
+  fit_spec,
+  pilot_bundle,
+  predictor_generator,
+  response = NULL,
+  n_draws = NULL
+) {
   if (!S7::S7_inherits(fitter, Fitter)) {
     stop(bayesim_config_error(
       "fitter must be an S7 Fitter object, got " %+% class(fitter)[1]
@@ -908,7 +928,8 @@ forward_sim_generator <- function(fitter, fit_spec, pilot_bundle,
     } else {
       if (!cn %in% names(newdata)) {
         stop(bayesim_config_error(
-          "predictor_generator is missing column '" %+% cn %+%
+          "predictor_generator is missing column '" %+%
+            cn %+%
             "' required by the stored draw"
         ))
       }
@@ -931,8 +952,15 @@ forward_sim_generator <- function(fitter, fit_spec, pilot_bundle,
 #'
 #' Returns a numeric vector of length nrow(newdata).
 #' @keywords internal
-.forward_sim_y <- function(fitter, fit_result, newdata, draw_id, theta_vec,
-                           voi, resp) {
+.forward_sim_y <- function(
+  fitter,
+  fit_result,
+  newdata,
+  draw_id,
+  theta_vec,
+  voi,
+  resp
+) {
   n <- nrow(newdata)
 
   if (inherits(fitter, "BrmsFitter")) {

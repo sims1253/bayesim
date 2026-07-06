@@ -103,8 +103,8 @@ p_interior <- function(p_int, x1, x2, z1, z2, gamma, N) {
 #' @param N Integer; number of samples (ranks).
 #' @param K Integer; number of evaluation points. Defaults to N.
 #' @param conf_level Numeric in (0,1); confidence level.
-#' @return A list with `lower` and `upper` numeric vectors of length K + 1 over
-#'   the grid 0:K / K.
+#' @return A list with `x` (the grid 0:K / K) and `lower` and `upper` numeric
+#'   vectors of length K + 1 over that grid.
 #' @keywords internal
 sbc_band <- function(N, K = N, conf_level = 0.95) {
   gamma <- adjust_gamma(N, L = 1L, K = K, conf_level = conf_level)

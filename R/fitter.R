@@ -178,7 +178,11 @@ predict_epred <- S7::new_generic(
 )
 
 # Default: fitters that don't override return NULL (metric degrades to NA).
-S7::method(predict_epred, S7::class_any) <- function(fitter, fit_result, newdata = NULL) {
+S7::method(predict_epred, S7::class_any) <- function(
+  fitter,
+  fit_result,
+  newdata = NULL
+) {
   NULL
 }
 
@@ -505,7 +509,7 @@ S7::method(predict_fit, MockFitter) <- function(
     if (!is.null(intercept_param) && !is.null(slope_param)) {
       # Linear prediction: intercept + slope * x  -> S x N
       intercept_vec <- draws[, intercept_param] # length S
-      slope_vec <- draws[, slope_param]         # length S
+      slope_vec <- draws[, slope_param] # length S
       pred_mean_matrix <- outer(intercept_vec, rep(1, n_obs)) +
         outer(slope_vec, x)
     } else if (!is.null(intercept_param)) {
@@ -952,7 +956,8 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
               "predict_fit() returned predicted_samples with the wrong orientation",
               i = paste0(
                 "predicted_samples must be S x N (draws x observations); ",
-                "expected N columns, got ", ncol(preds$predicted_samples)
+                "expected N columns, got ",
+                ncol(preds$predicted_samples)
               )
             ),
             class = "bayesim_validation_error"

@@ -29,8 +29,14 @@ describe("fixed_truth_generator", {
   })
 
   it("rejects non-numeric or unnamed truth", {
-    expect_error(fixed_truth_generator(c(1, 2), \(d, t) list()), class = "bayesim_config_error")
-    expect_error(fixed_truth_generator(c(a = "x"), \(d, t) list()), class = "bayesim_config_error")
+    expect_error(
+      fixed_truth_generator(c(1, 2), \(d, t) list()),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      fixed_truth_generator(c(a = "x"), \(d, t) list()),
+      class = "bayesim_config_error"
+    )
   })
 
   it("rejects draw_data without the right signature", {
@@ -51,8 +57,11 @@ describe("prior_predictive_generator", {
       prior = brms::prior(normal(0, 5), class = "b"),
       sample_prior = "only",
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
 
     gen <- prior_predictive_generator(
@@ -91,8 +100,11 @@ describe("ifs_generator", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
 
     gen <- ifs_generator(
@@ -116,14 +128,17 @@ describe("ifs_generator", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
     gen <- ifs_generator(
       prefit = prefit,
       predictor_generator = gaussian_predictors,
       vars_of_interest = "x",
-      lower_bound = -1e6,  # effectively no truncation, but exercises the path
+      lower_bound = -1e6, # effectively no truncation, but exercises the path
       upper_bound = 1e6,
       truncate = TRUE
     )
@@ -140,8 +155,11 @@ describe("brms_response_sequence internals", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
     seq <- bayesim:::brms_response_sequence(prefit)
     expect_type(seq, "list")
@@ -157,8 +175,11 @@ describe("brms_response_sequence internals", {
       data = data.frame(a = rnorm(20), b = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
     seq <- bayesim:::brms_response_sequence(prefit)
     expect_type(seq, "list")
@@ -168,7 +189,9 @@ describe("brms_response_sequence internals", {
     expect_setequal(all_resp, c("a", "b"))
     # a must be simulated before b (a appears in an earlier-or-equal depth group
     # index than b). For this model they land in separate groups.
-    depth_of <- function(name) min(which(vapply(seq, function(g) name %in% g, logical(1))))
+    depth_of <- function(name) {
+      min(which(vapply(seq, function(g) name %in% g, logical(1))))
+    }
     expect_equal(depth_of("a"), 1L)
     expect_equal(depth_of("b"), 2L)
   })
@@ -176,7 +199,10 @@ describe("brms_response_sequence internals", {
   it("errors on a cyclic response dependency (nodes_by_depth)", {
     # A 2x2 adjacency matrix where each node points to the other (a cycle):
     # rows have nonzero sums, so no zero-indegree node exists.
-    cyclic <- matrix(c(0, 1, 1, 0), nrow = 2, ncol = 2,
+    cyclic <- matrix(
+      c(0, 1, 1, 0),
+      nrow = 2,
+      ncol = 2,
       dimnames = list(c("a", "b"), c("a", "b"))
     )
     expect_error(
@@ -193,11 +219,17 @@ describe("ifs_generator F1 — simulated response", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
-    gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors,
-                         vars_of_interest = "x")
+    gen <- ifs_generator(
+      prefit = prefit,
+      predictor_generator = gaussian_predictors,
+      vars_of_interest = "x"
+    )
     bundle <- gen(list(n = 20), task_ctx = list(task_id = "t1", rep_idx = 1L))
     expect_true("y" %in% names(bundle$train))
     expect_false(all(is.na(bundle$train$y)))
@@ -212,11 +244,17 @@ describe("ifs_generator F1 — simulated response", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
-    gen <- ifs_generator(prefit = prefit, predictor_generator = NULL,
-                         vars_of_interest = "x")
+    gen <- ifs_generator(
+      prefit = prefit,
+      predictor_generator = NULL,
+      vars_of_interest = "x"
+    )
     bundle <- gen(list(n = 20), task_ctx = list(task_id = "t1", rep_idx = 1L))
     # Predictor columns come from the pilot, but the response MUST be freshly
     # simulated (previously this returned the pilot frame unchanged).
@@ -231,12 +269,18 @@ describe("ifs_generator F1 — simulated response", {
       data = data.frame(y = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
     n_draws <- posterior::ndraws(prefit)
-    gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors,
-                         vars_of_interest = "x")
+    gen <- ifs_generator(
+      prefit = prefit,
+      predictor_generator = gaussian_predictors,
+      vars_of_interest = "x"
+    )
 
     b2 <- gen(list(n = 20), task_ctx = list(task_id = "t2", rep_idx = 2L))
     expect_equal(b2$meta$truth_draw_id, 2L)
@@ -246,7 +290,10 @@ describe("ifs_generator F1 — simulated response", {
     # rep_idx beyond n_draws must wrap via modulo without indexing errors.
     rep_idx_wrap <- as.integer(n_draws) + 5L
     expected_id <- ((rep_idx_wrap - 1L) %% n_draws) + 1L
-    bw <- gen(list(n = 20), task_ctx = list(task_id = "tw", rep_idx = rep_idx_wrap))
+    bw <- gen(
+      list(n = 20),
+      task_ctx = list(task_id = "tw", rep_idx = rep_idx_wrap)
+    )
     expect_equal(bw$meta$truth_draw_id, expected_id)
     expect_false(all(is.na(bw$train$y)))
   })
@@ -257,10 +304,16 @@ describe("ifs_generator F1 — simulated response", {
       data = data.frame(a = rnorm(20), b = rnorm(20), x = rnorm(20)),
       family = gaussian(),
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
-    gen <- ifs_generator(prefit = prefit, predictor_generator = gaussian_predictors)
+    gen <- ifs_generator(
+      prefit = prefit,
+      predictor_generator = gaussian_predictors
+    )
     bundle <- gen(list(n = 20), task_ctx = list(task_id = "mv1", rep_idx = 1L))
     expect_true("a" %in% names(bundle$train))
     expect_true("b" %in% names(bundle$train))
@@ -278,12 +331,17 @@ describe("prior_predictive_generator F1 — simulated response", {
       prior = brms::prior(normal(0, 5), class = "b"),
       sample_prior = "only",
       backend = "cmdstanr",
-      chains = 1L, iter = 50L, warmup = 25L,
-      silent = 2L, refresh = 0L
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
     )
-    gen <- prior_predictive_generator(prior_fit = prior_fit,
-                                      predictor_generator = gaussian_predictors,
-                                      vars_of_interest = "x")
+    gen <- prior_predictive_generator(
+      prior_fit = prior_fit,
+      predictor_generator = gaussian_predictors,
+      vars_of_interest = "x"
+    )
     b1 <- gen(list(n = 20), list(task_id = "a", rep_idx = 1L))
     # Response column present and non-NA.
     expect_true("y" %in% names(b1$train))

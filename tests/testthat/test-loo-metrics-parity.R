@@ -13,14 +13,17 @@ fit <- suppressWarnings(brms::brm(
   data = data.frame(y = rnorm(30), x = rnorm(30)),
   family = gaussian(),
   backend = "cmdstanr",
-  chains = 1L, iter = 100L, warmup = 50L,
-  silent = 2L, refresh = 0L
+  chains = 1L,
+  iter = 100L,
+  warmup = 50L,
+  silent = 2L,
+  refresh = 0L
 ))
 
 # Build the bayesim context by hand from the fit, mirroring build_loo_context().
-ll <- brms::log_lik(fit)              # S x N
-epred <- brms::posterior_epred(fit)   # S x N
-y <- brms:::get_y(fit)               # observed response (sorted within brms)
+ll <- brms::log_lik(fit) # S x N
+epred <- brms::posterior_epred(fit) # S x N
+y <- brms:::get_y(fit) # observed response (sorted within brms)
 chain_id <- posterior::as_draws_df(fit)$.chain
 r_eff <- loo::relative_eff(exp(ll), chain_id = chain_id)
 psis_obj <- suppressWarnings(loo::psis(-ll, r_eff = r_eff))
@@ -40,7 +43,7 @@ ctx <- list(
 fit_result <- list(fit = fit, success = TRUE)
 # Build a data_bundle whose train$response matches the fit's y ordering.
 df <- fit$data
-df[[1]] <- y  # ensure the response column equals brms' get_y() output
+df[[1]] <- y # ensure the response column equals brms' get_y() output
 resp_name <- all.vars(fit$formula$formula)[1]
 data_bundle <- list(
   train = df,
@@ -54,9 +57,17 @@ describe("r2_loo_metric parity with brms::loo_R2", {
     # distribution per Gelman et al. 2018); both brms and our metric draw fresh
     # Exp(1) weights, so exact equality is impossible. Tolerance 0.05 reflects
     # this Monte-Carlo variance on a tiny (100-iteration, 1-chain) fit.
-    brms_r2 <- as.numeric(suppressWarnings(brms::loo_R2(fit, summary = TRUE))["R2", "Estimate"])
-    out <- compute_metric(r2_loo_metric(), fit_result, data_bundle, ctx,
-                   list(task_id = "t1"))
+    brms_r2 <- as.numeric(suppressWarnings(brms::loo_R2(fit, summary = TRUE))[
+      "R2",
+      "Estimate"
+    ])
+    out <- compute_metric(
+      r2_loo_metric(),
+      fit_result,
+      data_bundle,
+      ctx,
+      list(task_id = "t1")
+    )
     expect_false(is.na(out$value))
     expect_lt(abs(out$value - brms_r2), 0.05)
   })
@@ -70,8 +81,13 @@ describe("rmse_loo_metric parity with brms loo_predict", {
     # expectation. Compute the E_loo(epred) RMSE directly and compare.
     yloo <- loo::E_loo(epred, psis_obj, log_ratios = -ll, type = "mean")$value
     expected <- sqrt(mean((y - yloo)^2))
-    out <- compute_metric(rmse_loo_metric(), fit_result, data_bundle, ctx,
-                   list(task_id = "t1"))
+    out <- compute_metric(
+      rmse_loo_metric(),
+      fit_result,
+      data_bundle,
+      ctx,
+      list(task_id = "t1")
+    )
     expect_false(is.na(out$value))
     expect_lt(abs(out$value - expected), 1e-6)
     expect_false(is.na(out$pareto_k_max))
@@ -80,10 +96,20 @@ describe("rmse_loo_metric parity with brms loo_predict", {
 
 describe("rmse_loo / r2_loo degradation", {
   it("both NA when PSIS/epred context absent", {
-    out_r <- compute_metric(rmse_loo_metric(), fit_result, data_bundle,
-                     list(loo = ctx$loo), list(task_id = "t1"))
-    out_r2 <- compute_metric(r2_loo_metric(), fit_result, data_bundle,
-                      list(loo = ctx$loo), list(task_id = "t1"))
+    out_r <- compute_metric(
+      rmse_loo_metric(),
+      fit_result,
+      data_bundle,
+      list(loo = ctx$loo),
+      list(task_id = "t1")
+    )
+    out_r2 <- compute_metric(
+      r2_loo_metric(),
+      fit_result,
+      data_bundle,
+      list(loo = ctx$loo),
+      list(task_id = "t1")
+    )
     expect_true(is.na(out_r$value))
     expect_true(is.na(out_r2$value))
   })

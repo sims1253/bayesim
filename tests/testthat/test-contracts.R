@@ -795,7 +795,10 @@ describe("Fitter Class", {
       # S x N convention (draws x observations): 10 observations => 10 columns.
       expect_equal(ncol(ll), 10)
       # Default MockFitter: n_draws=100, n_chains=4 => 400 draws (rows).
-      expect_equal(nrow(ll), as.integer(fitter@n_draws) * as.integer(fitter@n_chains))
+      expect_equal(
+        nrow(ll),
+        as.integer(fitter@n_draws) * as.integer(fitter@n_chains)
+      )
     })
 
     it("loo_fit() returns proper structure", {
@@ -1157,7 +1160,13 @@ describe("Metric Class", {
       context <- list(predictions = list(predicted_mean = c(1.1, 1.9, 3.2)))
       task_ctx <- list(task_id = "test")
 
-      output <- compute_metric(metric, fit_result, data_bundle, context, task_ctx)
+      output <- compute_metric(
+        metric,
+        fit_result,
+        data_bundle,
+        context,
+        task_ctx
+      )
 
       expect_silent(validate_metric_output(output, "rmse"))
       expect_true("value" %in% names(output))
@@ -1419,7 +1428,10 @@ describe("SimulationConfig", {
         n_replicates = 5L
       )
       cfg1 <- do.call(simulation_config, c(base, list(retain = c("metrics"))))
-      cfg2 <- do.call(simulation_config, c(base, list(retain = c("metrics", "diagnostics"))))
+      cfg2 <- do.call(
+        simulation_config,
+        c(base, list(retain = c("metrics", "diagnostics")))
+      )
       expect_equal(
         compute_config_fingerprint(cfg1),
         compute_config_fingerprint(cfg2)
@@ -1673,7 +1685,9 @@ describe("Utility Functions", {
 
       for (case in test_cases) {
         task_id <- make_task_id(
-          case[1], case[2], case[3],
+          case[1],
+          case[2],
+          case[3],
           widths = list(data = 3, fit = 3, rep = 5)
         )
         parsed <- parse_task_id(task_id)
