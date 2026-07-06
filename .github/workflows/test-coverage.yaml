@@ -1,39 +1,86 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   pull_request:
-    branches:
-      - main
-      - master
 
 name: test-coverage
+
+permissions: read-all
 
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      NOT_CRAN: true
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: 'release'
+          use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::covr
+          extra-packages: any::covr, any::xml2
           needs: coverage
 
-      - name: Build Cmdstan
+      - name: Fix CmdStan toolchain
+        run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)
+        shell: Rscript {0}
+
+      - name: Get CmdStan version
+        id: cmdstan-version
         run: |
-          cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-          cmdstanr::install_cmdstan(cores = parallel::detectCores())
+          version <- cmdstanr::latest_released_version()
+          cat(sprintf("version=%s\n", version),
+              file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
+        shell: Rscript {0}
+
+      - name: Cache CmdStan
+        uses: actions/cache@v6
+        with:
+          path: ~/.cmdstan
+          key: cmdstan-${{ runner.os }}-${{ steps.cmdstan-version.outputs.version }}
+
+      - name: Install CmdStan
+        run: |
+          if (is.null(cmdstanr::cmdstan_version(error_on_NA = FALSE))) {
+            cmdstanr::install_cmdstan(cores = parallel::detectCores())
+          }
         shell: Rscript {0}
 
       - name: Test coverage
-        run: covr::codecov(token = "${{ secrets.CODECOV_TOKEN }}")
+        run: |
+          cov <- covr::package_coverage(
+            quiet = FALSE,
+            clean = FALSE,
+            install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"), winslash = "/"), "package")
+          )
+          print(cov)
+          covr::to_cobertura(cov)
         shell: Rscript {0}
+
+      - uses: codecov/codecov-action@v7
+        with:
+          fail_ci_if_error: ${{ github.event_name != 'pull_request' && true || false }}
+          files: ./cobertura.xml
+          plugins: noop
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Show testthat output
+        if: always()
+        run: |
+          ## --------------------------------------------------------------------
+          find '${{ runner.temp }}/package' -name 'testthat.Rout*' -exec cat '{}' \; || true
+        shell: bash
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-test-failures
+          path: ${{ runner.temp }}/package
