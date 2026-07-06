@@ -177,14 +177,6 @@ articles:
       - reproducibility
       - targets
 
-  - title: Legacy (superseded; pending removal)
-    contents:
-      - simulation-study
-      - case-studies
-      - hpc
-      - memory-management
-      - bayesfam
-
 # News configuration
 news:
   cran_dates: false

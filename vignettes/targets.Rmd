@@ -181,5 +181,5 @@ produces the aggregated condition-level table with MCSEs.
   `performance_measures()`.
 - `vignette("reproducibility")` for what exactly feeds the config fingerprint
   (and what does not).
-- `vignette("hpc")` for the remote-daemon / SLURM side of large runs, which
-  composes naturally with a `targets` driver.
+- `vignette("parallel-and-hpc")` for the remote-daemon / SLURM side of large
+  runs, which composes naturally with a `targets` driver.
