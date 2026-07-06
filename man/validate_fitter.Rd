@@ -55,17 +55,16 @@ The validation performs the following checks:
 }
 }
 \examples{
+# Validate a built-in fitter (basic check only)
+validate_fitter(LinearRegressionFitter())
+
+# Full validation with an end-to-end smoke test
+validate_fitter(LinearRegressionFitter(), smoke_test = TRUE)
+
 \dontrun{
-# Validate the built-in MockFitter (basic check only)
-validate_fitter(MockFitter())
-
-# Full validation with smoke test
-validate_fitter(MockFitter(), smoke_test = TRUE, verbose = TRUE)
-
-# Use in your fitter tests
+# Use in your own fitter's tests
 my_fitter <- MyCustomFitter()
-validate_fitter(my_fitter, smoke_test = TRUE)
-cat("Fitter is valid!\n")
+validate_fitter(my_fitter, smoke_test = TRUE, verbose = TRUE)
 }
 }
 \seealso{

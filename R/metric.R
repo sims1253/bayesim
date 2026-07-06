@@ -73,7 +73,9 @@
 #'   )
 #' )
 #'
-#' S7::method(compute_metric, RMSEMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
+#' S7::method(compute_metric, RMSEMetric) <- function(
+#'   metric, fit_result, data_bundle, context, task_ctx
+#' ) {
 #'   preds <- context$predictions
 #'   actual <- data_bundle$test[[data_bundle$response]]
 #'   list(

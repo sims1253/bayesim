@@ -52,7 +52,7 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
   n_compile <- if (inherits(fitter, "BrmsFitter") && !is.null(config@fit_grid)) {
     # Distinct model specs (formula/family combinations) → bank compiles each.
     nrow(config@fit_grid)
-  } else if (inherits(fitter, "CmdStanFitter_class")) {
+  } else if (S7::S7_inherits(fitter, CmdStanFitter_class)) {
     1L
   } else {
     0L

@@ -284,6 +284,9 @@ RankMetric <- S7::new_class(
     name = S7::new_property(S7::class_character, default = "rank"),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
+    # E4: per-task ranks are analyzed via sbc_ranks()/plot_rank_*, never by
+    # averaging across replicates.
+    summary_type = S7::new_property(S7::class_character, default = "none"),
     thin = S7::new_property(
       S7::new_union(S7::class_character, S7::class_logical, S7::class_integer, S7::class_double),
       default = "auto")
@@ -474,8 +477,10 @@ S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bun
   # No per-chain draws available (e.g. LinearRegressionFitter). R* is undefined
   # without multiple chains: degrade to NA with a warning.
   if (is.null(draws_df)) {
-    warning("rstar_metric requires per-chain posterior draws; the fitter's ",
-            "fit_result$fit carries no chain info. Returning NA_real_.")
+    .warn_once(
+      "rstar_no_chains",
+      "rstar_metric requires per-chain posterior draws; the fitter's fit_result$fit carries no chain info. Returning NA."
+    )
     return(list(value = NA_real_))
   }
   # rstar needs at least 2 chains to be meaningful; otherwise NA.
@@ -484,8 +489,10 @@ S7::method(compute_metric, RstarMetric) <- function(metric, fit_result, data_bun
     error = function(e) NA_integer_
   )
   if (is.na(n_chains) || n_chains < 2L) {
-    warning("rstar_metric requires >= 2 chains; got ", n_chains,
-            ". Returning NA_real_.")
+    .warn_once(
+      "rstar_few_chains",
+      "rstar_metric requires >= 2 chains; got {n_chains}. Returning NA."
+    )
     return(list(value = NA_real_))
   }
   value <- tryCatch(
@@ -596,8 +603,10 @@ S7::method(compute_metric, RmseLooMetric) <- function(metric, fit_result, data_b
   if (is.null(loo) || is.null(psis_obj) || is.null(ll) || is.null(ppred)) {
     return(list(value = NA_real_, elpd = NA_real_, pareto_k_max = NA_real_))
   }
-  test_data <- data_bundle$test %||% data_bundle$train
-  y <- test_data[[data_bundle$response]]
+  # LOO is leave-one-out over the TRAINING observations; the epred/PSIS objects
+  # are built on the training set, so the comparison response must be the
+  # training response (a test set would be misaligned).
+  y <- data_bundle$train[[data_bundle$response]]
   if (is.null(y)) {
     return(list(value = NA_real_, elpd = NA_real_, pareto_k_max = NA_real_))
   }
@@ -657,8 +666,8 @@ S7::method(compute_metric, R2LooMetric) <- function(metric, fit_result, data_bun
   if (is.null(loo) || is.null(psis_obj) || is.null(ll) || is.null(epred)) {
     return(list(value = NA_real_, elpd = NA_real_))
   }
-  test_data <- data_bundle$test %||% data_bundle$train
-  y <- test_data[[data_bundle$response]]
+  # As for rmse_loo: LOO quantities live on the training set.
+  y <- data_bundle$train[[data_bundle$response]]
   if (is.null(y)) {
     return(list(value = NA_real_, elpd = NA_real_))
   }

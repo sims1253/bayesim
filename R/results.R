@@ -494,7 +494,8 @@ new_simulation_result <- function(
   summary = NULL,
   timing = list(total = 0),
   errors = NULL,
-  checkpoint_path = NULL
+  checkpoint_path = NULL,
+  metric_summary_types = NULL
 ) {
   # Ensure task_results is a list
   if (is.null(task_results)) {
@@ -527,7 +528,10 @@ new_simulation_result <- function(
       summary = summary,
       timing = timing,
       errors = errors,
-      checkpoint_path = checkpoint_path
+      checkpoint_path = checkpoint_path,
+      # E4: named list mapping metric name -> summary_type ("mean",
+      # "proportion", "none"); consumed by summarize_simulation().
+      metric_summary_types = metric_summary_types
     ),
     class = "bayesim_simulation_result"
   )
@@ -618,7 +622,7 @@ print.bayesim_simulation_result <- function(x, ...) {
   if (!is.null(x$summary) && is.data.frame(x$summary) && nrow(x$summary) > 0) {
     metric_preview <- grep("__", names(x$summary), value = TRUE)
     if (length(metric_preview)) {
-      cat("  Metrics:", paste(head(metric_preview, 6L), collapse = ", "),
+      cat("  Metrics:", paste(utils::head(metric_preview, 6L), collapse = ", "),
           if (length(metric_preview) > 6L) " ..." else "", "\n")
     }
   }

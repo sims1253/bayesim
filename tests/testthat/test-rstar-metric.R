@@ -78,9 +78,9 @@ describe("rstar_metric against a real brmsfit", {
                 info = paste("value:", paste(head(out$value), collapse = ",")))
     expect_true(is.finite(out$value),
                 info = paste("non-finite value:", out$value))
-    # R* is the ratio of classifier accuracy to chance; >= 1 by construction,
-    # and well-converged tiny models report values close to 1 (typically < 1.3).
-    expect_gte(out$value, 1)
+    # R* is 2x classifier accuracy; ~1 for converged chains, but sampling
+    # noise in the classifier can push it slightly below 1.
+    expect_gte(out$value, 0.8)
     expect_lt(out$value, 1.5)
   })
 
@@ -90,7 +90,7 @@ describe("rstar_metric against a real brmsfit", {
                           data_bundle, ctx, list(task_id = "t1"))
     expect_true(is.numeric(out$value))
     expect_true(is.finite(out$value))
-    expect_gte(out$value, 1)
+    expect_gte(out$value, 0.8)
     expect_lt(out$value, 1.5)
   })
 })

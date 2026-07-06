@@ -7,7 +7,6 @@
 #' @keywords internal
 #' @import rlang
 #' @importFrom cli cli_abort cli_warn cli_inform
-#' @importFrom lifecycle deprecated deprecate_warn
 #' @seealso [simulation_config()], [run_simulation()], [resume_simulation()],
 #'   [Fitter], [Metric]
 "_PACKAGE"

@@ -1655,12 +1655,7 @@ describe("SimulationConfig", {
 # =============================================================================
 
 describe("Utility Functions", {
-  describe("format_task_id() and parse_task_id()", {
-    it("format_task_id() creates correct format", {
-      expect_equal(format_task_id(1, 2, 100), "d001_f002_r00100")
-      expect_equal(format_task_id(999, 999, 99999), "d999_f999_r99999")
-    })
-
+  describe("make_task_id() and parse_task_id()", {
     it("parse_task_id() extracts indices correctly", {
       result <- parse_task_id("d001_f002_r00100")
       expect_equal(result$data_idx, 1L)
@@ -1668,7 +1663,7 @@ describe("Utility Functions", {
       expect_equal(result$rep_idx, 100L)
     })
 
-    it("format_task_id() and parse_task_id() are inverses", {
+    it("make_task_id() and parse_task_id() are inverses", {
       test_cases <- list(
         c(1, 1, 1),
         c(5, 10, 100),
@@ -1677,7 +1672,10 @@ describe("Utility Functions", {
       )
 
       for (case in test_cases) {
-        task_id <- format_task_id(case[1], case[2], case[3])
+        task_id <- make_task_id(
+          case[1], case[2], case[3],
+          widths = list(data = 3, fit = 3, rep = 5)
+        )
         parsed <- parse_task_id(task_id)
 
         expect_equal(parsed$data_idx, as.integer(case[1]))
@@ -1869,7 +1867,7 @@ describe("Validators", {
         test = data.frame(x = 1:5, y = rnorm(5)),
         response = "y",
         true_params = c(beta = 1.0, sigma = 0.5),
-        vars_of_interest = c("beta", "sigma"),
+        vars_of_interest = c("beta", "sigma")
       )
       expect_silent(validate_data_bundle(bundle))
     })
@@ -1882,7 +1880,7 @@ describe("Validators", {
         test = NULL,
         response = "y",
         true_params = c(param1 = 1.0, param2 = 2.0),
-        vars_of_interest = c("param1", "param2"),
+        vars_of_interest = c("param1", "param2")
       )
       expect_silent(validate_data_bundle(bundle))
     })

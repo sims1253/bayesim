@@ -287,42 +287,6 @@ capture_error_info <- function(e) {
   )
 }
 
-# Task ID Formatting ------------------------------------------------------
-
-#' Format task ID from indices (deprecated)
-#'
-#' @description
-#' `r lifecycle::badge("deprecated")`
-#'
-#' Use [make_task_id()] instead, which auto-calculates field widths
-#' from the grid dimensions.
-#'
-#' @param data_idx Integer. Data index (1-999)
-#' @param fit_idx Integer. Fit index (1-999)
-#' @param rep_idx Integer. Replication index (1-99999)
-#'
-#' @return Character string in format "dXXX_fXXX_rXXXXX"
-#'
-#' @keywords internal
-#' @examples
-#' \dontrun{
-#' format_task_id(1, 2, 100)
-#' # Returns: "d001_f002_r00100"
-#' }
-format_task_id <- function(data_idx, fit_idx, rep_idx) {
-  lifecycle::deprecate_warn(
-    "1.1",
-    "format_task_id()",
-    "make_task_id()"
-  )
-  make_task_id(
-    data_idx,
-    fit_idx,
-    rep_idx,
-    widths = list(data = 3, fit = 3, rep = 5)
-  )
-}
-
 # Flatten Nested List -----------------------------------------------------
 
 #' Flatten a nested list with prefix

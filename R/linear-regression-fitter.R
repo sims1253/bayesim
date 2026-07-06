@@ -222,7 +222,7 @@ S7::method(predict_fit, LinearRegressionFitter) <- function(
   beta_draws <- draws[, fit_obj$design$coef_names, drop = FALSE]
   sigma_draws <- draws[, "sigma"]
   n_obs <- nrow(des$X)
-  withr::with_seed(seed %||% fit_obj$seed, {
+  draw_predictions <- function() {
     mu <- beta_draws %*% t(des$X)   # S x N
     noise <- matrix(stats::rnorm(n_obs * nrow(mu)), nrow = nrow(mu), ncol = n_obs)
     predicted_samples <- mu + sigma_draws * noise
@@ -231,7 +231,11 @@ S7::method(predict_fit, LinearRegressionFitter) <- function(
       predicted_samples = predicted_samples,
       predicted_sd = apply(predicted_samples, 2, stats::sd)
     )
-  })
+  }
+  # seed = NULL consumes the ambient RNG stream (required by the
+  # forward-simulation generators, which need fresh noise per task); an
+  # explicit seed gives reproducible predictions without touching that stream.
+  if (is.null(seed)) draw_predictions() else withr::with_seed(seed, draw_predictions())
 }
 
 # log_lik_matrix: exact normal density, S x N ------------------------------

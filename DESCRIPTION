@@ -58,7 +58,6 @@ Imports:
     cli (>= 3.6.0),
     digest (>= 0.6.30),
     jsonlite (>= 1.8.0),
-    lifecycle (>= 1.0.3),
     loo,
     mirai,
     parallel,

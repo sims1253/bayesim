@@ -22,7 +22,7 @@ gaussian_data_generator <- function(data_spec, task_ctx) {
     test = NULL,
     response = "y",
     true_params = c(beta = 2),
-    vars_of_interest = "beta",
+    vars_of_interest = "beta"
   )
 }
 

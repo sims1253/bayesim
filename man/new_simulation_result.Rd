@@ -11,7 +11,8 @@ new_simulation_result(
   summary = NULL,
   timing = list(total = 0),
   errors = NULL,
-  checkpoint_path = NULL
+  checkpoint_path = NULL,
+  metric_summary_types = NULL
 )
 }
 \arguments{

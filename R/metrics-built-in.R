@@ -1,16 +1,25 @@
+# One-time warning helper: metric compute() runs once per task, so a repeated
+# condition (missing test set, unsupported fitter) would otherwise warn
+# thousands of times per run. Warn once per key per session.
+.warn_once_env <- new.env(parent = emptyenv())
+.warn_once <- function(key, ..., .envir = parent.frame()) {
+  if (is.null(.warn_once_env[[key]])) {
+    .warn_once_env[[key]] <- TRUE
+    # .envir: cli glue expressions in `...` must resolve in the caller.
+    cli::cli_warn(c(...), .envir = .envir)
+  }
+  invisible(NULL)
+}
+
 # E2: prediction-error metrics refuse to silently fall back to the training
 # set. Warn once per metric name per session, naming the fix (provide a test
 # set). In-sample prediction error presented as "rmse" is a trap.
-.warn_no_test_env <- new.env(parent = emptyenv())
 .warn_no_test <- function(metric_name) {
-  if (is.null(.warn_no_test_env[[metric_name]])) {
-    .warn_no_test_env[[metric_name]] <- TRUE
-    cli::cli_warn(c(
-      "{metric_name}: no test set in data_bundle; returning NA.",
-      i = "Provide a test set via the data generator to measure predictive error."
-    ))
-  }
-  invisible(NULL)
+  .warn_once(
+    metric_name,
+    "{metric_name}: no test set in data_bundle; returning NA.",
+    i = "Provide a test set via the data generator to measure predictive error."
+  )
 }
 
 #' Resolve requested cleaned var names to actual draws-matrix columns
@@ -195,6 +204,8 @@ CoverageMetric <- S7::new_class(
     name = S7::new_property(S7::class_character, default = "coverage"),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
+    # E4: coverage columns are proportions -> sqrt(p(1-p)/n) MCSE.
+    summary_type = S7::new_property(S7::class_character, default = "proportion"),
     prob = S7::new_property(S7::class_numeric, default = 0.95)
   )
 )

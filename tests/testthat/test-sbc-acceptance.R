@@ -188,7 +188,7 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
       predictor_generator = gaussian_predictors,
       vars_of_interest = "x"
     )
-    b1 <- gen(list(n = 20L), seed = NULL, task_ctx = list(task_id = "a", rep_idx = 1L))
+    b1 <- gen(list(n = 20L), task_ctx = list(task_id = "a", rep_idx = 1L))
     expect_true("y" %in% names(b1$train))
     expect_false(all(is.na(b1$train$y)))
     expect_false(identical(b1$train$y, prefit$data$y),

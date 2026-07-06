@@ -120,6 +120,22 @@ CmdStanFitter <- function(
   )
 }
 
+# Internal: drop lp__ and the declared GQ variables from a cmdstan variable
+# set. posterior::variables() returns element-wise names ("log_lik[1]", ...),
+# so a plain setdiff against the bare GQ name would keep every element; match
+# the bare name and its indexed elements.
+.cmdstan_keep_vars <- function(vars_all, drop_names) {
+  drop_names <- drop_names[!vapply(drop_names, is.null, logical(1))]
+  drop_names <- unique(c("lp__", unlist(drop_names)))
+  pattern <- paste0(
+    "^(", paste(vapply(drop_names, .escape_regex, character(1)), collapse = "|"),
+    ")(\\[|$)"
+  )
+  vars_all[!grepl(pattern, vars_all)]
+}
+
+.escape_regex <- function(x) gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
+
 # Internal: compile-or-cache a cmdstan_model. Memoised in a session option
 # keyed by file/code hash so each daemon compiles once per distinct stan input.
 .cmdstan_model <- function(fitter) {
@@ -171,10 +187,6 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
     .cmdstan_model(fitter)
   }
 
-  control <- list()
-  if (!is.null(fitter@adapt_delta)) control$adapt_delta <- fitter@adapt_delta
-  if (!is.null(fitter@max_treedepth)) control$max_treedepth <- fitter@max_treedepth
-
   sample_args <- list(
     data = stan_data_list,
     seed = seed %||% 0L,
@@ -184,8 +196,13 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
     iter_sampling = as.integer(fitter@iter_sampling),
     refresh = 0L
   )
+  # cmdstanr takes sampler controls as direct $sample() arguments (there is no
+  # rstan-style `control` list).
+  if (!is.null(fitter@adapt_delta)) sample_args$adapt_delta <- fitter@adapt_delta
+  if (!is.null(fitter@max_treedepth)) {
+    sample_args$max_treedepth <- as.integer(fitter@max_treedepth)
+  }
   if (!is.null(fitter@init)) sample_args$init <- fitter@init
-  if (length(control)) sample_args$control <- control
   if (!is.null(fitter@extra_args)) sample_args <- c(sample_args, fitter@extra_args)
 
   fit <- tryCatch(
@@ -208,9 +225,10 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
   # Build the S x P draws matrix (exclude lp__ and declared GQ names).
   draws_obj <- fit$draws()
   vars_all <- posterior::variables(draws_obj)
-  drop_vars <- unique(c("lp__", fitter@log_lik_name, fitter@epred_name))
-  keep_vars <- setdiff(vars_all, drop_vars)
-  draws_mat <- if (length(keep_vars) && length(setdiff(vars_all, drop_vars))) {
+  keep_vars <- .cmdstan_keep_vars(
+    vars_all, list(fitter@log_lik_name, fitter@epred_name)
+  )
+  draws_mat <- if (length(keep_vars)) {
     posterior::as_draws_matrix(posterior::subset_draws(draws_obj, variable = keep_vars))
   } else {
     posterior::as_draws_matrix(draws_obj)
@@ -249,8 +267,7 @@ S7::method(extract_draws, CmdStanFitter_class) <- function(
   cmdstan_fit <- fit_obj$fit
   draws_obj <- cmdstan_fit$draws()
   vars_all <- posterior::variables(draws_obj)
-  drop_vars <- unique(c("lp__", fitter@log_lik_name, fitter@epred_name))
-  keep <- setdiff(vars_all, drop_vars)
+  keep <- .cmdstan_keep_vars(vars_all, list(fitter@log_lik_name, fitter@epred_name))
   if (!is.null(variables)) keep <- intersect(keep, variables)
   if (!length(keep)) return(NULL)
   posterior::as_draws_matrix(posterior::subset_draws(draws_obj, variable = keep))
@@ -324,8 +341,7 @@ S7::method(fit_diagnostics, CmdStanFitter_class) <- function(fitter, fit_result)
     {
       draws_obj <- cmdstan_fit$draws()
       vars_all <- posterior::variables(draws_obj)
-      drop_vars <- unique(c("lp__", fitter@log_lik_name, fitter@epred_name))
-      keep <- setdiff(vars_all, drop_vars)
+      keep <- .cmdstan_keep_vars(vars_all, list(fitter@log_lik_name, fitter@epred_name))
       if (length(keep)) {
         posterior::summarise_draws(
           posterior::subset_draws(draws_obj, variable = keep),

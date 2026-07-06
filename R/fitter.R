@@ -25,11 +25,16 @@
 #'
 #' @section Creating Custom Fitters:
 #' To create a custom fitter, extend this class and implement methods for the
-#' S7 generics: `fit_model()`, `extract_draws()`, `predict()`, `log_lik_matrix()`, `loo_fit()`, `fit_diagnostics()`.
+#' S7 generics: `fit_model()`, `extract_draws()`, `predict_fit()`,
+#' `log_lik_matrix()`, `loo_fit()`, `fit_diagnostics()`. All matrices follow
+#' the draws-by-observations (S x N) orientation; see
+#' `vignette("custom-fitters")` for the full contract.
 #'
 #' @return An S7 class object representing the abstract Fitter
 #' @export
-#' @seealso [MockFitter] for a simple example implementation
+#' @seealso [LinearRegressionFitter], [BrmsFitter], and [CmdStanFitter] for
+#'   the built-in implementations, and [validate_fitter()] to check a custom
+#'   fitter against the contract
 Fitter <- S7::new_class(
   "Fitter",
   abstract = TRUE,
@@ -663,17 +668,16 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' @seealso [Fitter], [MockFitter], [validate_metric()]
 #'
 #' @examples
+#' # Validate a built-in fitter (basic check only)
+#' validate_fitter(LinearRegressionFitter())
+#'
+#' # Full validation with an end-to-end smoke test
+#' validate_fitter(LinearRegressionFitter(), smoke_test = TRUE)
+#'
 #' \dontrun{
-#' # Validate the built-in MockFitter (basic check only)
-#' validate_fitter(MockFitter())
-#'
-#' # Full validation with smoke test
-#' validate_fitter(MockFitter(), smoke_test = TRUE, verbose = TRUE)
-#'
-#' # Use in your fitter tests
+#' # Use in your own fitter's tests
 #' my_fitter <- MyCustomFitter()
-#' validate_fitter(my_fitter, smoke_test = TRUE)
-#' cat("Fitter is valid!\n")
+#' validate_fitter(my_fitter, smoke_test = TRUE, verbose = TRUE)
 #' }
 validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
   # Helper function for conditional messages

@@ -47,9 +47,14 @@ The following S7 generics must be implemented by subclasses:
 \section{Creating Custom Fitters}{
 
 To create a custom fitter, extend this class and implement methods for the
-S7 generics: \code{fit_model()}, \code{extract_draws()}, \code{predict()}, \code{log_lik_matrix()}, \code{loo_fit()}, \code{fit_diagnostics()}.
+S7 generics: \code{fit_model()}, \code{extract_draws()}, \code{predict_fit()},
+\code{log_lik_matrix()}, \code{loo_fit()}, \code{fit_diagnostics()}. All matrices follow
+the draws-by-observations (S x N) orientation; see
+\code{vignette("custom-fitters")} for the full contract.
 }
 
 \seealso{
-\link{MockFitter} for a simple example implementation
+\link{LinearRegressionFitter}, \link{BrmsFitter}, and \link{CmdStanFitter} for
+the built-in implementations, and \code{\link[=validate_fitter]{validate_fitter()}} to check a custom
+fitter against the contract
 }

@@ -657,6 +657,19 @@ build_simulation_result <- function(
     )
   }
 
+  # E4: record each metric's declared summary_type so summarize_simulation()
+  # can pick the right aggregation/MCSE without name heuristics.
+  metric_summary_types <- NULL
+  metrics <- config@metrics %||% list()
+  if (length(metrics) > 0) {
+    metric_summary_types <- lapply(metrics, function(m) {
+      if (S7::S7_inherits(m)) m@summary_type else "mean"
+    })
+    names(metric_summary_types) <- vapply(metrics, function(m) {
+      if (S7::S7_inherits(m)) m@name else "unknown"
+    }, character(1))
+  }
+
   new_simulation_result(
     config_fingerprint = compute_config_fingerprint(config),
     task_results = task_results,
@@ -664,7 +677,8 @@ build_simulation_result <- function(
     summary = summary,
     timing = list(total = elapsed),
     errors = errors,
-    checkpoint_path = checkpoint_path
+    checkpoint_path = checkpoint_path,
+    metric_summary_types = metric_summary_types
   )
 }
 

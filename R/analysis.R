@@ -17,19 +17,19 @@
 #'   (MCSE), replicate counts, and failure/convergence-failure rates. Returns a
 #'   tidy tibble with one row per condition.
 #'
-#'   MCSE formulas follow rsimsum (Gasparini, 2018):
-#'   \itemize{
-#'     \item bias / mean metrics: MCSE = sd / sqrt(n)
-#'     \item coverage (0/1) metrics: MCSE = sqrt(p(1-p) / n)
-#'     \item rmse metrics: MCSE via the delta method on the mean and variance of
-#'       the squared errors (see Details).
-#'   }
+#'   Aggregation follows each metric's declared `summary_type` (E4; see
+#'   [Metric]): `"mean"` columns get a `sd / sqrt(n)` MCSE, `"proportion"`
+#'   columns (e.g. coverage) get `sqrt(p(1-p) / n)`, and `"none"` columns
+#'   (e.g. SBC ranks) are excluded from aggregation. Columns from unknown or
+#'   user-defined sources default to `"mean"`. MCSE formulas follow rsimsum
+#'   (Gasparini, 2018).
 #'
 #' @param result A `bayesim_simulation_result` object (uses `result$summary`),
-#'   or a data.frame/tibble of per-task metrics.
+#'   or a data.frame/tibble of per-task metrics. Passing the full result is
+#'   preferred: it carries the metrics' `summary_type` declarations.
 #' @param by Character vector of grouping columns (conditions). Defaults to the
-#'   data_grid and fit_grid columns found in the summary (excluding `task_id`,
-#'   `rep_idx`, `status`, and metric columns).
+#'   `data_*`/`fit_*` grid columns found in the summary plus any other
+#'   non-numeric condition columns (excluding `task_id` and `status`).
 #' @param metrics Character vector of metric columns to aggregate. Defaults to
 #'   all numeric columns not in `by` and not metadata
 #'   (`task_id`, `rep_idx`, `status`, `*timing*`).
@@ -52,25 +52,43 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     ))
   }
 
+  # E4: per-metric summary_type declared on the Metric objects (recorded in the
+  # result by run_simulation). Column prefix before the first "__" is the
+  # metric name. Unknown/user columns default to "mean"; a "coverage"-prefixed
+  # column defaults to "proportion" so bare data.frame input still gets the
+  # right MCSE.
+  summary_types <- if (!is.data.frame(result)) result$metric_summary_types else NULL
+  type_for <- function(col) {
+    metric_name <- sub("__.*$", "", col)
+    declared <- summary_types[[metric_name]]
+    if (!is.null(declared)) return(declared)
+    if (grepl("^coverage(__|$)", col)) "proportion" else "mean"
+  }
+
+  if (is.null(by)) {
+    # Default grouping: the data_grid/fit_grid condition columns (whatever
+    # their type), plus any other non-numeric non-metadata columns.
+    grid_cols <- grep("^(data_|fit_)", names(df), value = TRUE)
+    other <- names(df)[!vapply(df, is.numeric, logical(1))]
+    by <- setdiff(unique(c(grid_cols, other)), c("task_id", "status"))
+    # Only scalar atomic columns can group (drop list-columns like fit_formula).
+    by <- by[vapply(df[, by, drop = FALSE], is.atomic, logical(1))]
+  }
+  by <- intersect(by, names(df))
+
   meta_cols <- c("task_id", "rep_idx", "status", "timing_total", "timing_warmup", "timing_sample")
   numeric_cols <- names(df)[vapply(df, is.numeric, logical(1))]
   # exclude timing/pure-metadata numeric columns from default metrics
   exclude_meta <- numeric_cols[grepl("^(timing|n_)|(_timing)$", numeric_cols)]
-  metric_cols <- setdiff(numeric_cols, c(meta_cols, exclude_meta, by %||% character()))
+  metric_cols <- setdiff(numeric_cols, c(meta_cols, exclude_meta, by))
+  # summary_type = "none" opts a metric out of aggregation (e.g. SBC ranks).
+  metric_cols <- metric_cols[vapply(metric_cols, function(m) type_for(m) != "none", logical(1))]
 
   if (!is.null(metrics)) metric_cols <- intersect(metric_cols, metrics)
   if (length(metric_cols) == 0L) {
     warning("No metric columns found to summarize")
     return(tibble::as_tibble(df[0, , drop = FALSE]))
   }
-
-  if (is.null(by)) {
-    # Auto-detect grouping columns: everything non-numeric that isn't metadata,
-    # plus any explicit condition columns.
-    candidate <- names(df)[!vapply(df, is.numeric, logical(1))]
-    by <- setdiff(candidate, c("task_id", "status"))
-  }
-  by <- intersect(by, names(df))
 
   # Ensure status exists for failure-rate computation.
   has_status <- "status" %in% names(df)
@@ -102,14 +120,12 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       out[[paste0(m, "_median")]] <- if (n > 0L) stats::median(vals) else NA_real_
       sd_v <- if (n > 1L) stats::sd(vals) else NA_real_
       out[[paste0(m, "_sd")]] <- sd_v
-      # E4: MCSE by summary_type. Coverage-like columns (binary 0/1 or a column
-      # the metric declares as "proportion") use sqrt(p(1-p)/n). Everything
-      # else (including pred-RMSE means) uses the plain sd/sqrt(n) MCSE for what
-      # is reported (the mean of per-task values) — the previous delta-method
-      # rmse branch re-squared per-task RMSEs, producing an MCSE for a quantity
-      # (sqrt-mean-MSE) that is not the reported _mean column.
+      # E4: MCSE by declared summary_type. "proportion" (coverage-style)
+      # columns use sqrt(p(1-p)/n); everything else (including pred-RMSE
+      # means) uses the plain sd/sqrt(n) MCSE for what is reported (the mean
+      # of per-task values).
       if (n > 1L) {
-        if (is_coverage_like(m, vals)) {
+        if (identical(type_for(m), "proportion")) {
           p <- mean(vals)
           out[[paste0(m, "_mcse")]] <- sqrt(p * (1 - p) / n)
         } else {
@@ -124,33 +140,6 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
 
   tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame)))
 }
-
-#' Heuristic: is a metric column a coverage rate (binary or between 0 and 1)?
-#' @keywords internal
-is_coverage_like <- function(name, vals) {
-  grepl("coverage", name, ignore.case = TRUE) ||
-    (all(vals >= 0 & vals <= 1, na.rm = TRUE) && length(unique(vals)) <= 3L)
-}
-
-#' Heuristic: is a metric column an RMSE-like quantity (squared-error-based)?
-#' @keywords internal
-is_rmse_like <- function(name) {
-  grepl("rmse|mse", name, ignore.case = TRUE)
-}
-
-#' Delta-method MCSE for RMSE = sqrt(mean(e^2)).
-#' Var(sqrt(M)) approximates Var(e^2) / (4*M) where M = mean(e^2).
-#' MCSE = sqrt(Var(e^2) / (4 * n * M)).
-#' @keywords internal
-rmse_mcse <- function(vals) {
-  n <- length(vals)
-  if (n < 2L) return(NA_real_)
-  e2 <- vals^2
-  M <- mean(e2)
-  if (M <= 0) return(NA_real_)
-  sqrt(stats::var(e2) / (4 * n * M))
-}
-
 
 # SBC diagnostics ---------------------------------------------------------
 
@@ -494,18 +483,17 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
     ))
   }
 
-  # Default grouping: data_grid/fit_grid condition columns. Exclude task
-  # metadata, per-task diagnostics, metric columns (carry __), truth columns,
-  # and timing/n_-prefixed columns.
+  # Default grouping: the data_grid/fit_grid condition columns the summary was
+  # enriched with (data_*/fit_* prefixes, including fit_model for
+  # model-comparison studies). Metric columns carry "__" and are excluded.
   if (is.null(by)) {
-    exclude_patterns <- "^(task_id|rep_idx|status|timing|fit_model|rhat|ess|divergent|max_treedepth|n_)|__|^truth__"
-    by <- names(df)[!grepl(exclude_patterns, names(df))]
-    # Keep only scalar condition columns.
+    by <- grep("^(data_|fit_)", names(df), value = TRUE)
+    by <- by[!grepl("__", by, fixed = TRUE)]
+    # Keep only atomic condition columns (drop e.g. fit_formula list-columns).
     by <- by[vapply(df[, by, drop = FALSE], function(col) {
       is.numeric(col) || is.character(col) || is.factor(col) || is.logical(col)
     }, logical(1))]
   }
-  if (length(by) == 0L) by <- "fit_model"
 
   # Discover estimands: parameters with both truth__ and posterior_summary__mean__.
   truth_cols <- grep("^truth__", names(df), value = TRUE)
@@ -539,7 +527,6 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
     if (!truth_col %in% names(df) || !est_col %in% names(df)) next
 
     split_cols <- if (length(by)) df[, by, drop = FALSE] else data.frame(.group = rep(1, nrow(df)))
-    if (length(by) == 0L) by_use <- ".group" else by_use <- by
     splits <- interaction(split_cols, drop = TRUE)
 
     for (lev in levels(splits)) {
@@ -552,8 +539,8 @@ performance_measures <- function(result, estimand = NULL, estimator = c("mean", 
       if (n == 0L) next
       errs <- est - truth
 
-      # Condition cell values for the `by` columns.
-      cond <- as.list(df[sel[1L], by_use, drop = FALSE])
+      # Condition cell values for the `by` columns (empty when no conditions).
+      cond <- if (length(by)) as.list(df[sel[1L], by, drop = FALSE]) else list()
 
       add <- function(measure, value, mcse) {
         row <- c(cond, list(estimand = param, measure = measure,
@@ -744,13 +731,26 @@ report <- function(result, output_file = "bayesim-report.html",
   saveRDS(result, result_path)
   on.exit(unlink(result_path), add = TRUE)
 
+  # Quarto rejects paths in output_file and writes next to the input, so copy
+  # the template to a scratch dir, render there, then move the html into place.
+  render_dir <- tempfile("bayesim-report-")
+  dir.create(render_dir)
+  on.exit(unlink(render_dir, recursive = TRUE), add = TRUE)
+  render_input <- file.path(render_dir, basename(template))
+  file.copy(template, render_input)
+
   quarto::quarto_render(
-    input = template,
-    output_file = output_file,
+    input = render_input,
+    output_file = basename(output_file),
     execute_params = list(result_path = result_path)
   )
 
+  rendered <- file.path(render_dir, basename(output_file))
+  if (!file.exists(rendered)) {
+    stop(bayesim_config_error("Quarto did not produce the expected report file"))
+  }
   out <- normalizePath(output_file, mustWork = FALSE)
+  file.copy(rendered, out, overwrite = TRUE)
   if (isTRUE(open) && file.exists(out)) {
     tryCatch(utils::browseURL(out), error = function(e) NULL)
   }

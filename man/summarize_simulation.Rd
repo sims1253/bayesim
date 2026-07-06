@@ -8,11 +8,12 @@ summarize_simulation(result, by = NULL, metrics = NULL)
 }
 \arguments{
 \item{result}{A \code{bayesim_simulation_result} object (uses \code{result$summary}),
-or a data.frame/tibble of per-task metrics.}
+or a data.frame/tibble of per-task metrics. Passing the full result is
+preferred: it carries the metrics' \code{summary_type} declarations.}
 
 \item{by}{Character vector of grouping columns (conditions). Defaults to the
-data_grid and fit_grid columns found in the summary (excluding \code{task_id},
-\code{rep_idx}, \code{status}, and metric columns).}
+\verb{data_*}/\verb{fit_*} grid columns found in the summary plus any other
+non-numeric condition columns (excluding \code{task_id} and \code{status}).}
 
 \item{metrics}{Character vector of metric columns to aggregate. Defaults to
 all numeric columns not in \code{by} and not metadata
@@ -29,13 +30,12 @@ mean and median of each metric column, Monte Carlo standard errors
 (MCSE), replicate counts, and failure/convergence-failure rates. Returns a
 tidy tibble with one row per condition.
 
-MCSE formulas follow rsimsum (Gasparini, 2018):
-\itemize{
-\item bias / mean metrics: MCSE = sd / sqrt(n)
-\item coverage (0/1) metrics: MCSE = sqrt(p(1-p) / n)
-\item rmse metrics: MCSE via the delta method on the mean and variance of
-the squared errors (see Details).
-}
+Aggregation follows each metric's declared \code{summary_type} (E4; see
+\link{Metric}): \code{"mean"} columns get a \code{sd / sqrt(n)} MCSE, \code{"proportion"}
+columns (e.g. coverage) get \code{sqrt(p(1-p) / n)}, and \code{"none"} columns
+(e.g. SBC ranks) are excluded from aggregation. Columns from unknown or
+user-defined sources default to \code{"mean"}. MCSE formulas follow rsimsum
+(Gasparini, 2018).
 }
 \examples{
 \dontrun{
