@@ -9,11 +9,13 @@ Authors@R: c(
     person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", 
            role = "aut")
   )
-Description: A modern simulation framework for Bayesian modeling studies.
-    Provides extensible tools for running complex simulation studies with
-    deterministic reproducibility, checkpoint/resume capabilities, and 
-    memory-bounded execution. Users can extend with custom fitters, metrics,
-    and data generators.
+Description: A framework for designing and running simulation studies of
+    Bayesian models: parameter recovery, calibration checking via
+    simulation-based calibration, model comparison, and method evaluation.
+    Studies are declared as grids of data-generating conditions, models, and
+    replicates, and executed with deterministic reproducibility,
+    checkpoint/resume support, and bounded memory use. Extensible with
+    custom fitters, metrics, and data generators.
 License: GPL (>= 3)
 Config/testthat/edition: 3
 Encoding: UTF-8
