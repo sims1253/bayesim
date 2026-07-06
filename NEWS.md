@@ -58,10 +58,19 @@ masking `generics::fit`, `dplyr::compute`, and `brms::log_lik`.
 * Prediction metrics renamed honestly: `rmse`/`bias`/`mae`/`mse` →
   `pred_*_metric`. They **refuse to silently fall back to the training set**:
   default to test data, NA with a one-time warning when no test set.
-* `Metric` gained a `summary_type` property; `summarize_simulation()` no longer
-  uses the mathematically-wrong rmse MCSE heuristic.
+* `Metric` gained a `summary_type` property (`"mean"`, `"proportion"`,
+  `"none"`), recorded on the result and consumed by `summarize_simulation()` —
+  replacing both the 0-1-column coverage heuristic and the mathematically
+  wrong per-task-RMSE delta-method MCSE.
+* Metric context is computed on the **test set** when one exists: predictions
+  and pointwise log-lik previously came from the training data while every
+  consuming metric compared against the test response. LOO metrics
+  (`rmse_loo`, `r2_loo`) now always compare against the training response
+  (LOO is in-sample by construction).
 * `true_params` / `vars_of_interest` are now optional (truth-free studies run).
-* Deleted `rstar_metric` (placebo: returned NA; on the ROADMAP).
+* `rstar_metric()` reimplemented for real (was a placebo returning NA): uses
+  `posterior::rstar()` on per-chain draws from the underlying fit; degrades to
+  NA with a one-time warning for chain-less fitters.
 * `plot_coverage()` redesigned as a point-range plot with MCSE error bars.
 
 ## Config knobs

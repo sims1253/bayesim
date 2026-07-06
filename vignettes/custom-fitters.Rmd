@@ -1,8 +1,8 @@
 ---
-title: "Custom Fitters and Metrics"
+title: "Custom Fitters"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Custom Fitters and Metrics}
+  %\VignetteIndexEntry{Custom Fitters}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,10 +16,11 @@ knitr::opts_chunk$set(
 
 # Custom Fitters
 
-bayesim ships with `LinearRegressionFitter(n_draws = 200L)` (no Stan, for testing the framework) and
-`BrmsFitter()` (real Bayesian inference via brms + Stan). To use a different
-backend, implement a custom fitter by extending the `Fitter` class and
-providing methods for the required generics.
+bayesim ships three fitters: `LinearRegressionFitter()` (exact conjugate
+inference, no Stan), `BrmsFitter()` (Stan via brms, with the compile-once
+model bank), and `CmdStanFitter()` (your own `.stan` programs via cmdstanr).
+To use a different backend, implement a custom fitter by extending the
+`Fitter` class and providing methods for the required generics.
 
 ## The Fitter contract
 
@@ -27,15 +28,21 @@ Every fitter must implement these S7 generics:
 
 | generic | signature | returns |
 |---|---|---|
-| `fit(fitter, data_bundle, fit_spec, seed, task_ctx)` | training data + spec | a `bayesim_fit_result` (use `new_fit_result()` internally) |
-| `extract_draws(fitter, fit_result)` | a fit result | a draws matrix (rows = draws, cols = parameters) |
-| `predict_fit(fitter, fit_result, seed)` | a fit result | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
-| `log_lik(fitter, fit_result, newdata)` | a fit result | log-likelihood matrix (draws x observations) |
+| `fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)` | training data + spec | a `bayesim_fit_result` (use `new_fit_result()` internally) |
+| `extract_draws(fitter, fit_result, variables)` | a fit result | a draws matrix (rows = draws, cols = parameters, with colnames) |
+| `predict_fit(fitter, fit_result, newdata, seed)` | a fit result | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
+| `log_lik_matrix(fitter, fit_result, newdata)` | a fit result | log-likelihood matrix (S x N) |
 | `loo_fit(fitter, fit_result)` | a fit result | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k` |
-| `diagnostics(fitter, fit_result)` | a fit result | list with `rhat_max`, `ess_bulk_min`, `divergent`, ... |
+| `fit_diagnostics(fitter, fit_result)` | a fit result | list with `rhat_max`, `ess_bulk_min`, `divergent`, ... |
 
-The generic is named `loo_fit` (not `loo`) to avoid clashing with
-`loo::loo()`.
+**All matrices are draws x observations (S x N)** — `predicted_samples`,
+`log_lik_matrix()`, and `predict_epred()` all put posterior draws in rows and
+observations in columns, matching the brms/loo convention. This is the single
+most common custom-fitter bug; `validate_fitter(smoke_test = TRUE)` rejects
+transposed matrices.
+
+The generics avoid masking common names: `loo_fit` (not `loo::loo`),
+`log_lik_matrix` (not `brms::log_lik`), `fit_model` (not `generics::fit`).
 
 ## A minimal fitter: LinearFitter
 
@@ -164,39 +171,49 @@ generics before running a study:
 validate_fitter(LinearFitter())
 ```
 
-# Custom Metrics
+# Raw Stan: CmdStanFitter
 
-Extend the `Metric` class and implement `compute()`. The method receives the
-fit result, the data bundle, a precomputed `context` (predictions, log_lik,
-loo -- only what your metric's `needs` declares), and the task context.
+When brms cannot express your model, write the `.stan` file yourself and wire
+it in with `CmdStanFitter()` — no custom fitter class needed. You supply the
+Stan program, a `stan_data` function mapping a data bundle to the Stan `data`
+list, and (optionally) the names of `log_lik` / `epred` generated quantities:
 
-```{r}
-MADMetric <- S7::new_class(
-  "MADMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "mad"),
-    needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
-  )
+```{r, eval=FALSE}
+stan_file <- system.file("stan", "linear_regression.stan", package = "bayesim")
+
+fitter <- CmdStanFitter(
+  stan_file = stan_file,
+  stan_data = function(data_bundle, fit_spec) {
+    X <- stats::model.matrix(~x, data_bundle$train)
+    list(
+      N = nrow(X), K = ncol(X) - 1L, X = X,
+      y = data_bundle$train[[data_bundle$response]]
+    )
+  },
+  log_lik = "log_lik",   # generated-quantities vector -> LOO metrics work
+  epred = "mu",          # optional: in-sample expectation matrix
+  chains = 2L, iter_warmup = 500L, iter_sampling = 500L
 )
-
-S7::method(compute_metric, MADMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  if (is.null(context$predictions)) return(list(value = NA_real_))
-  test_data <- data_bundle$test %||% data_bundle$train
-  actual <- test_data[[data_bundle$response]]
-  predicted <- context$predictions$predicted_mean
-  list(value = stats::median(abs(predicted - actual)))
-}
-
-mad_metric <- function(name = "mad") MADMetric(name = name, needs = "predictions", required = FALSE)
 ```
 
-The `needs` property tells the engine which fitter capabilities to precompute
-into `context`: `"predictions"`, `"log_lik"`, `"loo"` (or `character()` for
-none). Built-in metrics (`pred_rmse_metric`, `pred_bias_metric`, `coverage_metric`,
-`posterior_summary_metric`, ...) cover the common surface; see
-`?Metric` and the getting-started vignette for the full list.
+The shipped `inst/stan/linear_regression.stan` shows the pattern: a
+`generated quantities` block computing `log_lik[n]` (pointwise
+log-likelihood) and `mu[n]` (the expectation). With `log_lik` declared,
+`supports_log_lik`/`supports_loo` are set automatically and `elpd_loo_metric()`
+works out of the box; without it, an informative error names the convention.
+
+Limitations, by design: raw Stan has no newdata semantics, so
+`supports_predictions` is `FALSE` (test-set prediction metrics need brms or a
+custom fitter), and `predict_epred()` returns the in-sample GQ matrix only
+when `epred` is declared. Compilation is cached by cmdstanr (keyed on the
+file hash), so daemons compile-or-cache-hit on first use — no model-bank
+involvement.
+
+# Custom Metrics
+
+Metrics are the other half of the extension surface — see
+`vignette("custom-metrics")` for the Metric contract, the output schema,
+`summary_type`, and externalization of large outputs.
 
 # A brms-based fitter (sketch)
 

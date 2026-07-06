@@ -60,7 +60,7 @@ my_data_generator <- function(data_spec, task_ctx) {
       x = data_spec$slope,
       sigma = data_spec$sigma
     ),
-    vars_of_interest = c("Intercept", "x", "sigma"),
+    vars_of_interest = c("Intercept", "x", "sigma")
   )
 }
 ```
@@ -115,7 +115,7 @@ the data-generating truth (E1), enabling parameter-recovery analysis.
 Monte Carlo standard errors (MCSE):
 
 ```{r}
-agg <- summarize_simulation(result, by = c("n"))
+agg <- summarize_simulation(result, by = "data_n")
 agg
 ```
 
@@ -163,7 +163,7 @@ config <- simulation_config(
   fit_grid = fit_grid,
   data_generator = my_data_generator,
   fitter = LinearRegressionFitter(n_draws = 200L),
-  metrics = list(pred_rmse_metric()),
+  metrics = list(posterior_summary_metric()),
   n_replicates = 1000L,
   seed = 42L,
   result_path = "my_simulation",
@@ -180,7 +180,8 @@ result <- resume_simulation("my_simulation")
 
 # Custom Metrics
 
-Extend the `Metric` class and implement `compute()`:
+Extend the `Metric` class and implement `compute_metric()` (see
+`vignette("custom-metrics")` for the full contract):
 
 ```{r}
 MyMetric <- S7::new_class(
@@ -224,6 +225,11 @@ and backend differences.
 
 # Next Steps
 
-- `vignette("custom-fitters")` for creating custom model fitters (incl. brms)
-- `vignette("reproducibility")` for the determinism guarantees
-- `vignette("memory-management")` for large simulations
+- `vignette("design-of-simulation-studies")` for aims, estimands, and choosing
+  the number of replicates
+- `vignette("sbc-and-calibration")` for the calibration workflow
+- `vignette("brms-studies")` for Stan-backed studies and `model_grid()`
+- `vignette("custom-fitters")` / `vignette("custom-metrics")` for extending
+  the framework
+- `vignette("parallel-and-hpc")` and `vignette("reproducibility")` for large
+  runs and the determinism guarantees

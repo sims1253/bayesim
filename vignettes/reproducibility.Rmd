@@ -60,7 +60,7 @@ config <- simulation_config(
     )
   },
   fitter = LinearRegressionFitter(n_draws = 200L),
-  metrics = list(pred_rmse_metric()),
+  metrics = list(posterior_summary_metric()),
   n_replicates = 2L,
   seed = 42L
 )

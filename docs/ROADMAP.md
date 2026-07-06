@@ -17,7 +17,8 @@ were implemented in the deferred-work pass; the remaining open items are marked
   remaining tasks once an estimand/measure MCSE falls below target.
 - **I4.** `report()` renders a Quarto study report from a template.
 - **I5.** `n_replicates_for_target()` inverts the MCSE formula.
-- **I6.** `vignettes/hpc.Rmd` — SLURM + remote mirai daemons, TLS, daemon_setup.
+- **I6.** SLURM + remote mirai daemons, TLS, daemon_setup — now part of
+  `vignettes/parallel-and-hpc.Rmd` (which also absorbed memory-management).
 - **I7.** `vignettes/targets.Rmd` — bayesim as a `targets` pipeline step.
 - **I8.** Optional parquet summary output (`summary_format = "parquet"`,
   nanoparquet; `read_summary()`).

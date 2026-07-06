@@ -88,7 +88,7 @@ list(
         fit_grid = fit_grid[conditions$fit_idx[sim_condition_group], , drop = FALSE],
         data_generator = my_data_generator,
         fitter = LinearRegressionFitter(n_draws = 500L),
-        metrics = list(pred_rmse_metric(), coverage_metric()),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
         n_replicates = 200L,
         seed = 42L
       )
@@ -102,7 +102,7 @@ list(
         fit_grid = fit_grid,
         data_generator = my_data_generator,
         fitter = LinearRegressionFitter(n_draws = 500L),
-        metrics = list(pred_rmse_metric(), coverage_metric()),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
         n_replicates = 200L,
         seed = 42L
       )
@@ -118,7 +118,7 @@ list(
         fit_grid = fit_grid,
         data_generator = my_data_generator,
         fitter = LinearRegressionFitter(n_draws = 500L),
-        metrics = list(pred_rmse_metric(), coverage_metric()),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
         n_replicates = 200L,
         seed = 42L
       )
@@ -130,7 +130,7 @@ list(
         fit_grid = fit_grid,
         data_generator = my_data_generator,
         fitter = LinearRegressionFitter(n_draws = 500L),
-        metrics = list(pred_rmse_metric(), coverage_metric()),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
         n_replicates = 200L,
         seed = 42L
       )

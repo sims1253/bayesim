@@ -61,7 +61,7 @@ Aggregate by condition to see how the posterior mean and spread of `beta`
 vary with `n` and effect size:
 
 ```{r}
-agg <- summarize_simulation(result, by = c("n", "beta"))
+agg <- summarize_simulation(result, by = c("data_n", "data_beta"))
 agg
 ```
 
