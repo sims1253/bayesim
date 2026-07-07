@@ -1,0 +1,247 @@
+# SBC and calibration
+
+``` r
+
+library(bayesim)
+```
+
+## Introduction
+
+Simulation-Based Calibration (SBC) is the standard self-consistency
+check for Bayesian inference engines. The idea, due to Talts et
+al. (2018), is sharp:
+
+> If we draw a parameter `theta` from the model prior, simulate data `y`
+> from the likelihood given `theta`, and then fit the model to `y`, the
+> resulting posterior should treat `theta` as a single uniform draw.
+
+Equivalently, the **posterior rank** of the true `theta` among the
+posterior draws should be uniformly distributed on `{0, 1, ..., S}`. If
+it is not, the inference engine is miscalibrated: the posterior is
+either too confident (ranks pile up at the ends) or biased (ranks drift
+to one side).
+
+This matters because a Bayesian posterior is only useful insofar as its
+uncertainty statements are honest. **Calibration** is the property that
+empirical coverage matches the nominal rate: a 95% credible interval
+should contain the truth about 95% of the time. SBC is the simulation
+analogue of this guarantee, applied to the *whole* posterior rather than
+to a single interval, and it is sensitive to biases that single-interval
+coverage can miss.
+
+This vignette runs end-to-end with
+[`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)
+— exact conjugate Normal-Inverse-Gamma Bayesian linear regression (real
+posteriors, no Stan, milliseconds per fit). For Stan/brms models, swap
+the fitter for
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+or
+[`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+and use
+[`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
+/
+[`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md);
+the SBC workflow below is identical.
+
+## Running SBC
+
+The SBC recipe needs three ingredients:
+
+1.  A **data generator** that draws `theta` from the model prior and
+    simulates `y ~ p(y | theta)`.
+2.  A **fitter** whose calibration we want to check.
+3.  The **rank metric**
+    ([`rank_metric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md)),
+    which counts how many posterior draws fall below the true `theta`,
+    giving one rank per task per parameter.
+
+Below, the generator draws `(Intercept, slope, sigma)` from the same
+weak prior family the `LinearRegressionFitter` assumes (broad Normal
+coefficients, inverse-gamma residual scale), then simulates Gaussian
+linear data. Because the fitter is the exact conjugate NIG updater, SBC
+should pass by construction — which is exactly what makes this a good
+teaching example: you see a *correct* rank distribution and learn what
+passing looks like.
+
+``` r
+
+sbc_generator <- function(data_spec, task_ctx) {
+  n <- data_spec$n
+  # Draw theta from the model prior (conjugate-friendly, weak/diffuse).
+  intercept <- stats::rnorm(1, mean = 0, sd = 2)
+  slope     <- stats::rnorm(1, mean = 0, sd = 2)
+  sigma     <- sqrt(1 / stats::rgamma(1, shape = 2, rate = 1))
+  # Simulate y from the likelihood given theta.
+  x <- stats::rnorm(n)
+  y <- intercept + slope * x + stats::rnorm(n, sd = sigma)
+  list(
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
+    true_params = c(Intercept = intercept, x = slope, sigma = sigma),
+    vars_of_interest = c("Intercept", "x", "sigma")
+  )
+}
+```
+
+The data generator consumes the **ambient** RNG state — bayesim restores
+a per-task L’Ecuyer stream before each call, so do not call
+[`set.seed()`](https://rdrr.io/r/base/Random.html) inside (see
+[`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)).
+
+Now configure and run the study. We use 150 replicates and 1000
+posterior draws per fit, with `rank_metric(thin = "auto")` so the rank
+counts are adjusted for autocorrelation in the draws (here the NIG draws
+are i.i.d., so no thinning is needed, but the option is there for
+MCMC-based fitters).
+
+``` r
+
+config <- simulation_config(
+  data_grid = data.frame(n = 40L),
+  fit_grid = data.frame(model = "lm"),
+  data_generator = sbc_generator,
+  fitter = LinearRegressionFitter(n_draws = 1000L),
+  metrics = list(
+    rank_metric(thin = "auto"),
+    posterior_summary_metric()
+  ),
+  n_replicates = 150L,
+  seed = 7L
+)
+
+result <- run_simulation(config, progress = FALSE)
+#> 150 tasks = 1 data x 1 fit x 150 reps
+#> ℹ Starting simulation with 150 tasks
+```
+
+Each task records one rank per parameter (here `Intercept`, `x`,
+`sigma`), plus the posterior summaries needed for the coverage check
+below.
+
+## Checking rank uniformity
+
+[`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md)
+collects the per-task ranks into a long tibble;
+[`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+plots the empirical CDF of the normalized ranks against the uniform CDF
+(the diagonal), with a pointwise uniformity band following Talts et
+al. (2018).
+
+``` r
+
+ranks <- sbc_ranks(result)
+head(ranks)
+#> # A tibble: 6 × 5
+#>   task_id          param      rank n_draws n_ranks
+#>   <chr>            <chr>     <int>   <int>   <int>
+#> 1 d001_f001_r00001 Intercept   577    1000    1001
+#> 2 d001_f001_r00002 Intercept   124    1000    1001
+#> 3 d001_f001_r00003 Intercept   554    1000    1001
+#> 4 d001_f001_r00004 Intercept   277    1000    1001
+#> 5 d001_f001_r00005 Intercept   859    1000    1001
+#> 6 d001_f001_r00006 Intercept     7    1000    1001
+```
+
+``` r
+
+plot_rank_ecdf(ranks, alpha = 0.95)
+```
+
+![](sbc-and-calibration_files/figure-html/sbc-ecdf-1.png)
+
+**How to read the band.** The grey ribbon is the pointwise 95% coverage
+interval for the ECDF of a truly uniform sample of this size, derived
+from the beta distribution of order statistics: at the `i`-th of `n`
+ordered points the lower bound is `qbeta(0.025, i, n + 1 - i)` and the
+upper bound is `qbeta(0.975, i, n + 1 - i)`. Under correct calibration,
+the ECDF (black step) should stay inside the ribbon everywhere. The
+dashed red line is the theoretical uniform CDF.
+
+Because `LinearRegressionFitter` is the *exact* conjugate updater, the
+ECDF hugs the diagonal and stays inside the band — this is what a
+calibrated inference engine looks like. With an approximate engine
+(e.g. a variational fitter, or a mis-specified MCMC sampler), the ECDF
+would systematically depart from the diagonal.
+
+## Interpreting failures
+
+When the ECDF *systematically* leaves the band, the shape of the
+departure tells you what is wrong:
+
+- **S-shape (ECDF above the diagonal on the left, below on the right):**
+  the posterior is *over-confident* — the draws are too tightly
+  clustered around their centre, so the true `theta` too often falls
+  outside the bulk. This is the classic signature of underestimated
+  posterior uncertainty (undercoverage).
+- **Reflected S-shape (below on the left, above on the right):** the
+  posterior is *under-confident* — wider than the likelihood justifies
+  (overcoverage).
+- **One-sided drift:** the posterior is *biased* — it systematically
+  over- or under-estimates `theta`.
+
+Random excursions outside the band at one or two points, with the ECDF
+returning inside, are expected by chance at the 95% level and are not
+evidence of miscalibration. Use a stricter band (`alpha = 0.99`) to
+confirm suspected systematic departures, and increase `n_replicates` to
+sharpen the test — SBC is a Monte Carlo procedure with its own sampling
+noise.
+
+## Coverage as a complementary check
+
+SBC checks the *whole* posterior at once. A complementary, more familiar
+check is **interval coverage**: does the nominal 95% credible interval
+contain the truth about 95% of the time?
+[`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md)
+shows this per estimand with MCSE error bars;
+[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+reports the same quantity in a table alongside bias, empirical SE, MSE,
+and average model SE.
+
+``` r
+
+plot_coverage(result)
+```
+
+![](sbc-and-calibration_files/figure-html/coverage-1.png)
+
+``` r
+
+pm <- performance_measures(result, estimand = "x")
+pm
+#> # A tibble: 6 × 7
+#>   data_n fit_model estimand measure      value     mcse n_sim
+#>    <int> <chr>     <chr>    <chr>        <dbl>    <dbl> <int>
+#> 1     40 lm        x        bias      -0.00877  0.165     150
+#> 2     40 lm        x        emp_se     2.02     0.117     150
+#> 3     40 lm        x        mse        0.0194   0.00352   150
+#> 4     40 lm        x        model_se   0.132    0.00650   150
+#> 5     40 lm        x        coverage   0.933    0.0204    150
+#> 6     40 lm        x        n_sim    150       NA         150
+```
+
+The `coverage` row reports the empirical coverage of the 95% posterior
+interval for the `x` coefficient, with its Monte Carlo standard error.
+For the conjugate fitter this should sit close to the nominal 0.95
+(within a couple of MCSEs).
+
+**Coverage vs SBC.** Coverage and SBC agree when the model is
+well-behaved, but they probe different things. Coverage is a
+single-number summary of one interval and can miss miscalibration that
+SBC catches: two posteriors can have identical 95% coverage while one
+has correct tail behaviour and the other is systematically
+over-dispersed in the tails and under-dispersed in the middle. SBC, by
+contrast, checks the full posterior shape through rank uniformity. In
+practice, run both: SBC as the global self-consistency test, and
+[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+coverage as the interval-level summary a methods paper reports.
+
+## Further reading
+
+- Talts et al. (2018), *Validating Bayesian Inference Algorithms with
+  Simulation-Based Calibration*, arXiv:1804.06788.
+- [`vignette("design-of-simulation-studies")`](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md)
+  for the Morris, White & Crowther
+  2019. framework for designing and reporting simulation studies.
+- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)
+  for the determinism guarantees behind SBC rank reproducibility.

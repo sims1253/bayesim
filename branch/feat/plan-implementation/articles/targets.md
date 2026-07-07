@@ -1,0 +1,181 @@
+# Running bayesim with targets
+
+``` r
+
+library(bayesim)
+```
+
+## Introduction
+
+[targets](https://docs.ropensci.org/targets/) is a Make-like pipeline
+engine for R: it caches the return value of each step and only re-runs a
+step when its inputs change. That maps onto bayesim naturally because
+every simulation has a stable **config fingerprint** — a SHA256 hash of
+the data/fit grids, the generator/fitter/metrics specs, `n_replicates`,
+and the seed (see
+[`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)).
+The fingerprint is a ready-made cache key: feed it to a `targets` cue
+and the pipeline re-fits only when the simulation design actually
+changes.
+
+`targets` is not a hard dependency of bayesim. The pipeline code below
+is `eval = FALSE`; install `targets` separately if you want to run it.
+
+## A minimal targets pipeline
+
+A typical workflow defines one target per simulation condition (so
+conditions re-run independently when their inputs change) or one target
+for the whole config. Both are shown below in a single `_targets.R`.
+
+The config fingerprint drives a `tar_cue()` so that a target is rebuilt
+only when its design changes — not on every `tar_make()` call:
+
+``` r
+
+# _targets.R
+library(targets)
+library(bayesim)
+library(tarchetypes) # for tar_cue()
+
+# Build the data and fit grids once, up front.
+data_grid <- data.frame(
+  n = c(100, 500, 1000),
+  effect = c(0.2, 0.5, 1.0)
+)
+fit_grid <- data.frame(model = c("baseline", "full"))
+
+# One row per condition; we will map over it to define one target per condition.
+conditions <- expand.grid(
+  data_idx = seq_len(nrow(data_grid)),
+  fit_idx = seq_len(nrow(fit_grid)),
+  stringsAsFactors = FALSE
+)
+
+# A cue that fires only when the fingerprint changes. The fingerprint excludes
+# runtime policy (result_path, retain, checkpoint cadence, max_errors, stop_on),
+# so bumping those does not invalidate the cache.
+fingerprint_cue <- function(config) {
+  fp <- bayesim:::compute_config_fingerprint(config)
+  tar_cue(fingerprint = fp)
+}
+
+list(
+  # Pre-define the (static) grids so they show up as their own targets.
+  tarchetypes::tar_file_read(
+    conditions,
+    command = readRDS("conditions.rds"),
+    read = readRDS(!!"conditions.rds")
+  ),
+
+  # One target per (data_idx, fit_idx) condition, iterating in "group" mode so
+  # each condition is built independently.
+  tar_target(
+    sim_condition,
+    {
+      config <- simulation_config(
+        data_grid = data_grid[conditions$data_idx[sim_condition_group], , drop = FALSE],
+        fit_grid = fit_grid[conditions$fit_idx[sim_condition_group], , drop = FALSE],
+        data_generator = my_data_generator,
+        fitter = LinearRegressionFitter(n_draws = 500L),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
+        n_replicates = 200L,
+        seed = 42L
+      )
+      run_simulation(config, progress = FALSE)
+    },
+    pattern = group(conditions),
+    iteration = "group",
+    cue = tar_cue(fingerprint = bayesim:::compute_config_fingerprint(
+      simulation_config(
+        data_grid = data_grid,
+        fit_grid = fit_grid,
+        data_generator = my_data_generator,
+        fitter = LinearRegressionFitter(n_draws = 500L),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
+        n_replicates = 200L,
+        seed = 42L
+      )
+    ))
+  ),
+
+  # A single-target alternative: one target for the whole config.
+  tar_target(
+    sim_all,
+    {
+      config <- simulation_config(
+        data_grid = data_grid,
+        fit_grid = fit_grid,
+        data_generator = my_data_generator,
+        fitter = LinearRegressionFitter(n_draws = 500L),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
+        n_replicates = 200L,
+        seed = 42L
+      )
+      run_simulation(config, progress = FALSE)
+    },
+    cue = tar_cue(fingerprint = bayesim:::compute_config_fingerprint(
+      simulation_config(
+        data_grid = data_grid,
+        fit_grid = fit_grid,
+        data_generator = my_data_generator,
+        fitter = LinearRegressionFitter(n_draws = 500L),
+        metrics = list(posterior_summary_metric(), coverage_metric()),
+        n_replicates = 200L,
+        seed = 42L
+      )
+    ))
+  )
+)
+```
+
+Notes on the cue:
+
+- The fingerprint is computed from a representative
+  [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md);
+  the cue re-evaluates that config on every `tar_make()` and compares
+  the resulting hash to the cached one.
+- Runtime policy (`result_path`, `retain`, `checkpoint_every`,
+  `max_errors`, `stop_on`) is excluded from the fingerprint by design,
+  so tweaking those does not force a re-fit.
+
+## Combining results
+
+Once the per-condition targets have built, assemble them into a single
+performance table with `tar_read()` / `tar_load()`. bayesim’s
+[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+expects a summary data frame, so we row-bind the per-condition summaries
+first:
+
+``` r
+
+# In an interactive session, after tar_make():
+library(targets)
+library(dplyr)
+
+# Load all per-condition results.
+conditions_results <- tar_read(sim_condition)          # list, one element per branch
+# Or, if iteration = "group" returns grouped chunks:
+tar_load(sim_condition)
+
+combined <- bind_rows(lapply(conditions_results, \(r) r$summary))
+
+pm <- performance_measures(combined, estimand = "effect")
+pm
+```
+
+For the whole-config target, `tar_read(sim_all)$summary` gives the full
+per-task summary directly, and `summarize_simulation(tar_read(sim_all))`
+produces the aggregated condition-level table with MCSEs.
+
+## Next steps
+
+- [`vignette("getting-started")`](https://sims1253.github.io/bayesim/articles/getting-started.md)
+  for
+  [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md)
+  and
+  [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md).
+- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)
+  for what exactly feeds the config fingerprint (and what does not).
+- [`vignette("parallel-and-hpc")`](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md)
+  for the remote-daemon / SLURM side of large runs, which composes
+  naturally with a `targets` driver.
