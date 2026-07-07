@@ -50,10 +50,15 @@ jobs:
         if: github.event.action != 'closed'
         id: cmdstan-version
         run: |
-          version <- cmdstanr::latest_released_version()
-          cat(sprintf("version=%s\n", version),
-              file = Sys.getenv("GITHUB_OUTPUT"), append = TRUE)
-        shell: Rscript {0}
+          version=$(curl -s -H "Authorization: Bearer $GITHUB_PAT" \
+            https://api.github.com/repos/stan-dev/cmdstan/releases/latest \
+            | jq -r .tag_name)
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo "Failed to resolve latest CmdStan release" >&2
+            exit 1
+          fi
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+        shell: bash
 
       - name: Cache CmdStan
         if: github.event.action != 'closed'
