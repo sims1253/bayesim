@@ -220,12 +220,13 @@ Metrics are the other half of the extension surface — see
 For a real Stan fitter, `BrmsFitter()` is the standard path and benefits from
 the model bank (one compile per distinct spec). A custom brms fitter would:
 
-1. Call `brms::brm()` (or reuse a prefit via the model bank) in `fit()`.
+1. Call `brms::brm()` (or reuse a prefit via the model bank) in `fit_model()`.
 2. Use `brms::as_draws_matrix()` in `extract_draws()`.
 3. Use `brms::posterior_predict()` / `brms::log_lik()` in the other generics.
 
-See `BrmsFitter` source (`bayesim:::brms-fitter.R` or the package source on
-GitHub) for a complete reference implementation. Because the model bank keys
+See the
+[`BrmsFitter` source](https://github.com/sims1253/bayesim/blob/main/R/brms-fitter.R)
+for a complete reference implementation. Because the model bank keys
 on `fit_spec` columns (`formula`, `family`, `prior`, `stanvars`), supplying
 these as `fit_grid` columns lets the engine compile once and reuse the binary
 across all replicates of the same condition.

@@ -171,6 +171,13 @@ get_next_checkpoint_id <- function(result_path) {
 #' @param config_fingerprint Character string containing a hash of the
 #'   configuration for validation purposes.
 #' @param checkpoint_format Character scalar naming the checkpoint storage format.
+#' @param keep_checkpoints Positive integer; number of complete snapshots to
+#'   retain. Older snapshots are pruned only after the new checkpoint and
+#'   `latest.json` have been written successfully. `Inf` disables pruning for
+#'   direct/internal callers.
+#' @param prior_results_df Optional cached data frame of results from before the
+#'   current execution. When supplied, it replaces the legacy read of the
+#'   previous checkpoint.
 #'
 #' @return Invisible checkpoint ID (integer), or NULL if result_path is NULL.
 #'
@@ -216,7 +223,9 @@ write_checkpoint <- function(
   task_grid,
   task_results,
   config_fingerprint,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  keep_checkpoints = Inf,
+  prior_results_df = NULL
 ) {
   if (is.null(result_path)) {
     return(invisible(NULL))
@@ -266,10 +275,14 @@ write_checkpoint <- function(
       # Convert and write results
       results_df <- results_to_dataframe(task_results)
 
-      prior_checkpoint <- read_checkpoint(result_path)
-      if (!is.null(prior_checkpoint) && !is.null(prior_checkpoint$results_df)) {
-        prior_only <- prior_checkpoint$results_df[
-          !prior_checkpoint$results_df$task_id %in% results_df$task_id,
+      prior_df <- prior_results_df
+      if (is.null(prior_df)) {
+        prior_checkpoint <- read_checkpoint(result_path)
+        prior_df <- prior_checkpoint$results_df
+      }
+      if (!is.null(prior_df) && nrow(prior_df) > 0L) {
+        prior_only <- prior_df[
+          !prior_df$task_id %in% results_df$task_id,
           ,
           drop = FALSE
         ]
@@ -334,6 +347,8 @@ write_checkpoint <- function(
         file.path(result_path, "latest.json")
       )
 
+      prune_checkpoints(result_path, keep = keep_checkpoints)
+
       invisible(checkpoint_id)
     },
     error = function(e) {
@@ -344,6 +359,36 @@ write_checkpoint <- function(
       stop(e)
     }
   )
+}
+
+#' Prune old checkpoint snapshots
+#'
+#' @param result_path Checkpoint result directory.
+#' @param keep Number of newest complete snapshots to keep; `Inf` keeps all.
+#' @return Invisible vector of removed checkpoint IDs.
+#' @keywords internal
+prune_checkpoints <- function(result_path, keep = 2L) {
+  if (is.infinite(keep)) {
+    return(invisible(integer()))
+  }
+  keep <- as.integer(keep)
+  if (length(keep) != 1L || is.na(keep) || keep < 1L) {
+    stop(bayesim_config_error("keep_checkpoints must be a positive integer"))
+  }
+
+  checkpoint_ids <- list_checkpoints(result_path)
+  if (length(checkpoint_ids) <= keep) {
+    return(invisible(integer()))
+  }
+
+  remove_ids <- utils::head(checkpoint_ids, -keep)
+  remove_paths <- file.path(
+    result_path,
+    "checkpoints",
+    sprintf("cp_%06d", remove_ids)
+  )
+  unlink(remove_paths, recursive = TRUE)
+  invisible(remove_ids)
 }
 
 # =============================================================================

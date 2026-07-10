@@ -359,6 +359,56 @@ describe("Checkpoint Writing", {
   })
 
   describe("write_checkpoint()", {
+    it("prunes snapshots older than the configured retention count", {
+      tmpdir <- withr::local_tempdir()
+      result_path <- file.path(tmpdir, "results")
+      init_checkpoint_dir(result_path, config_fingerprint = "test_fingerprint")
+      task_grid <- data.frame(task_id = "t1", status = "success")
+      task_results <- list(create_test_task_result())
+
+      for (i in seq_len(4L)) {
+        write_checkpoint(
+          result_path,
+          task_grid,
+          task_results,
+          config_fingerprint = "test_fingerprint",
+          keep_checkpoints = 2L
+        )
+      }
+
+      expect_equal(list_checkpoints(result_path), c(3L, 4L))
+      expect_equal(
+        jsonlite::read_json(file.path(
+          result_path,
+          "latest.json"
+        ))$checkpoint_id,
+        4L
+      )
+    })
+
+    it("uses cached prior results without re-reading the previous checkpoint", {
+      tmpdir <- withr::local_tempdir()
+      result_path <- file.path(tmpdir, "results")
+      init_checkpoint_dir(result_path, config_fingerprint = "test_fingerprint")
+      task_grid <- data.frame(task_id = "t1", status = "success")
+      task_results <- list(create_test_task_result())
+      local_mocked_bindings(
+        read_checkpoint = function(...) stop("unexpected checkpoint read"),
+        .package = "bayesim"
+      )
+
+      expect_no_error(write_checkpoint(
+        result_path,
+        task_grid,
+        task_results,
+        config_fingerprint = "test_fingerprint",
+        prior_results_df = data.frame(
+          task_id = character(),
+          status = character()
+        )
+      ))
+    })
+
     it("creates checkpoint directory with correct name", {
       tmpdir <- withr::local_tempdir()
       result_path <- file.path(tmpdir, "results")

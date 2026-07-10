@@ -21,8 +21,10 @@ all numeric columns not in \code{by} and not metadata
 }
 \value{
 A tibble with one row per condition: the \code{by} columns, then for each
-metric \verb{<m>_mean}, \verb{<m>_median}, \verb{<m>_sd}, \verb{<m>_mcse}, plus \code{n_reps},
-\code{n_failed}, \code{failure_rate}.
+metric \verb{<m>_n_used}, \verb{<m>_mean}, \verb{<m>_median}, \verb{<m>_sd}, \verb{<m>_mcse}, plus
+\code{n_reps}, \code{n_failed}, \code{failure_rate}. \verb{<m>_n_used} is the number of finite
+values used for that metric; failed or non-finite metric values do not
+contribute to its aggregate.
 }
 \description{
 Computes per-condition aggregates of the wide summary tibble:

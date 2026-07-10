@@ -41,6 +41,41 @@ describe("summarize_simulation", {
     expect_equal(agg$failure_rate, 1 / 20)
   })
 
+  it("does not treat task and metric errors as condition columns", {
+    df <- data.frame(
+      task_id = c("t1", "t2", "t3", "t4"),
+      model = rep(c("a", "b"), each = 2L),
+      status = c("success", "failed", "success", "success"),
+      error_class = c(NA, "bayesim_fit_error", NA, NA),
+      error_message = c(NA, "fit failed", NA, NA),
+      optional__error_class = c(NA, "simpleError", NA, NA),
+      optional__error_message = c(NA, "metric failed", NA, NA),
+      rmse__value = c(1, NA, 2, 4),
+      stringsAsFactors = FALSE
+    )
+
+    agg <- summarize_simulation(df)
+
+    expect_equal(nrow(agg), 2L)
+    expect_equal(agg$n_reps[agg$model == "a"], 2L)
+    expect_equal(agg$n_failed[agg$model == "a"], 1L)
+    expect_equal(agg$failure_rate[agg$model == "a"], 0.5)
+    expect_false(any(grepl("error_(class|message)", names(agg))))
+  })
+
+  it("reports how many finite values contributed to each metric", {
+    df <- data.frame(
+      model = "x",
+      status = "success",
+      estimate__value = c(1, 2, NA, Inf)
+    )
+
+    agg <- summarize_simulation(df, by = "model", metrics = "estimate__value")
+
+    expect_equal(agg$estimate__value_n_used, 2L)
+    expect_equal(agg$estimate__value_mean, 1.5)
+  })
+
   it("coverage MCSE uses sqrt(p(1-p)/n)", {
     # coverage values all 1 -> p=1 -> MCSE = sqrt(1*0/n) = 0
     df <- data.frame(
@@ -93,6 +128,15 @@ describe("sbc_ranks", {
     expect_true(all(ranks$n_ranks == 101L))
   })
 
+  it("preserves simulation condition columns for faceting", {
+    df <- make_summary(n_per = 4, n_cond = 2)
+    df$data_n <- rep(c(20L, 40L), each = 4L)
+
+    ranks <- sbc_ranks(df)
+
+    expect_equal(unique(ranks$data_n), c(20L, 40L))
+  })
+
   it("returns empty tibble when no rank columns", {
     df <- data.frame(task_id = "t1", model = "x", status = "success")
     ranks <- sbc_ranks(df)
@@ -134,6 +178,17 @@ describe("plot functions", {
     expect_true("GeomRibbon" %in% geoms)
   })
 
+  it("plot_rank_ecdf computes separate condition facets", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    df <- make_summary(n_per = 10, n_cond = 2)
+    df$data_n <- rep(c(20L, 40L), each = 10L)
+
+    p <- plot_rank_ecdf(sbc_ranks(df), by = "data_n")
+
+    expect_s3_class(p, "ggplot")
+    expect_equal(sort(unique(p$data$data_n)), c(20L, 40L))
+  })
+
   it("plot_metric returns a ggplot", {
     skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
     df <- make_summary(n_per = 10, n_cond = 1)
@@ -145,5 +200,34 @@ describe("plot functions", {
     skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
     df <- make_summary(n_per = 5, n_cond = 1)
     expect_error(plot_metric(df, "nonexistent"), class = "bayesim_config_error")
+  })
+})
+
+describe("SBC simultaneous bands", {
+  it("returns a valid envelope with fixed endpoints", {
+    band <- sbc_band(N = 25L, K = 10L, conf_level = 0.95)
+
+    expect_length(band$x, 11L)
+    expect_equal(band$x[c(1L, 11L)], c(0, 1))
+    expect_true(all(band$lower <= band$upper))
+    expect_true(all(diff(band$lower) >= 0))
+    expect_true(all(diff(band$upper) >= 0))
+  })
+
+  it("matches the ported reference gamma for a fixed design", {
+    expect_equal(
+      adjust_gamma(20L, L = 1L, K = 20L, conf_level = 0.95),
+      0.0140491762611022,
+      tolerance = 1e-12
+    )
+  })
+
+  it("announces the conservative fallback for multiple chains", {
+    expect_message(
+      multi <- adjust_gamma(20L, L = 2L, K = 20L, conf_level = 0.95),
+      "single-sample SBC band"
+    )
+    single <- adjust_gamma(20L, L = 1L, K = 20L, conf_level = 0.95)
+    expect_equal(multi, single)
   })
 })

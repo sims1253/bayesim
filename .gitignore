@@ -6,3 +6,5 @@
 /doc/
 /Meta/
 .claude/
+/inst/stan/*
+!/inst/stan/*.stan

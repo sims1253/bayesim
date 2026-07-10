@@ -67,8 +67,9 @@ run_simulation <- function(
   timer <- make_timer()
   timer$start()
 
-  # Set up global RNG
-  setup_global_rng(config@seed)
+  # Derive task streams under L'Ecuyer-CMRG without leaking either the RNG kind
+  # or .Random.seed into the caller's session after the run returns.
+  withr::local_seed(config@seed, .rng_kind = "L'Ecuyer-CMRG")
 
   # Convert config to spec for hashing/manifest storage/worker transport
   manifest_spec <- as_config_spec(config)
@@ -139,7 +140,8 @@ run_simulation <- function(
   # keeps the bank out of the S7 fitter (which would corrupt the config
   # fingerprint).
   if (
-    inherits(config@fitter, "BrmsFitter") && isTRUE(config@fitter@precompile)
+    S7::S7_inherits(config@fitter, BrmsFitter) &&
+      isTRUE(config@fitter@precompile)
   ) {
     model_bank <- build_model_bank(
       fitter = config@fitter,
@@ -169,7 +171,13 @@ run_simulation <- function(
     progress = progress,
     result_path = config@result_path,
     config_fingerprint = config_fingerprint,
-    checkpoint_every = config@checkpoint_every
+    checkpoint_every = config@checkpoint_every,
+    keep_checkpoints = config@keep_checkpoints,
+    prior_results_df = prior_results %||%
+      data.frame(
+        task_id = character(),
+        status = character()
+      )
   )
 
   timer$stop()
@@ -197,7 +205,12 @@ run_simulation <- function(
       results$task_grid,
       final_task_results,
       config_fingerprint,
-      checkpoint_format = config@checkpoint_format
+      checkpoint_format = config@checkpoint_format,
+      keep_checkpoints = config@keep_checkpoints,
+      prior_results_df = data.frame(
+        task_id = character(),
+        status = character()
+      )
     )
   }
 
@@ -236,6 +249,9 @@ run_simulation <- function(
 #' @param config_fingerprint Character; configuration fingerprint for validation
 #' @param checkpoint_every Integer; write checkpoint every N completed tasks.
 #'   B4: also bounds the number of task results held in memory at once.
+#' @param keep_checkpoints Integer; number of complete snapshots retained.
+#' @param prior_results_df Previously resumed result rows, cached in memory to
+#'   avoid re-reading and re-hashing the prior checkpoint for every batch.
 #'
 #' @return A list with task_results and task_grid
 #'
@@ -251,10 +267,18 @@ execute_tasks <- function(
   progress,
   result_path = NULL,
   config_fingerprint = NULL,
-  checkpoint_every = 50L
+  checkpoint_every = 50L,
+  keep_checkpoints = 2L,
+  prior_results_df = data.frame(task_id = character(), status = character())
 ) {
   pending <- get_pending_tasks(task_grid)
   n_pending <- nrow(pending)
+  pending_indices <- match(pending$task_id, task_grid$task_id)
+  if (anyNA(pending_indices)) {
+    stop(bayesim_internal_error(
+      "Pending task IDs could not be resolved in the task grid"
+    ))
+  }
   # B4: one knob. batch_size = checkpoint_every (also bounds in-memory results).
   batch_size <- as.integer(checkpoint_every)
 
@@ -263,7 +287,6 @@ execute_tasks <- function(
   # The final results are assembled from checkpoint data on disk.
   task_results <- vector("list", nrow(task_grid))
   error_count <- 0
-  n_in_memory <- 0
 
   # I3: optional adaptive stopping policy (NULL => run all tasks). The check
   # fires after each batch whose completed-task count reaches a check_every
@@ -309,9 +332,9 @@ execute_tasks <- function(
 
       current_batch_size <- min(batch_size, remaining_error_budget)
       batch_end <- min(batch_start + current_batch_size - 1L, n_pending)
-      batch_ids <- pending$task_id[batch_start:batch_end]
-      batch_tasks <- lapply(batch_ids, function(task_id) {
-        get_task_spec(task_grid, task_id, config)
+      batch_indices <- pending_indices[batch_start:batch_end]
+      batch_tasks <- lapply(batch_indices, function(row_idx) {
+        get_task_spec_at(task_grid, row_idx, config)
       })
 
       batch_results <- run_batch(
@@ -323,23 +346,10 @@ execute_tasks <- function(
         progress = progress
       )
 
-      for (k in seq_along(batch_results)) {
-        task <- batch_tasks[[k]]
-        result <- batch_results[[k]]
-        idx <- match(task$task_id, task_grid$task_id)
-
-        if (is.na(idx)) {
-          cli::cli_abort("Task ID '{task$task_id}' not found in task_grid")
-        }
-
-        task_results[[idx]] <- result
-        task_grid <- update_task_status(task_grid, task$task_id, result$status)
-        n_in_memory <- n_in_memory + 1L
-
-        if (identical(result$status, "failed")) {
-          error_count <- error_count + 1L
-        }
-      }
+      task_results[batch_indices] <- batch_results
+      batch_statuses <- vapply(batch_results, `[[`, character(1), "status")
+      task_grid$status[batch_indices] <- batch_statuses
+      error_count <- error_count + sum(batch_statuses == "failed")
 
       # C1: re-raise fatal conditions after collecting the batch. run_task_safe
       # captured them (rather than throwing across the daemon boundary) and
@@ -405,7 +415,9 @@ execute_tasks <- function(
           task_grid,
           results_to_checkpoint,
           config_fingerprint,
-          checkpoint_format = config@checkpoint_format
+          checkpoint_format = config@checkpoint_format,
+          keep_checkpoints = keep_checkpoints,
+          prior_results_df = prior_results_df
         )
 
         for (j in non_null_indices) {
@@ -417,9 +429,6 @@ execute_tasks <- function(
             )
           }
         }
-
-        n_in_memory <- sum(!vapply(task_results, is.null, logical(1)))
-        gc(verbose = FALSE)
       }
 
       if (error_count >= max_errors) {
@@ -861,20 +870,25 @@ bayesim_adaptive_summary <- function(task_results, task_grid, config) {
   if (is.null(df) || nrow(df) == 0L) {
     return(NULL)
   }
-  enrich_summary_with_grid_columns(
+  df <- enrich_summary_with_grid_columns(
     summary = df,
     task_grid = task_grid,
     data_grid = config@data_grid,
     fit_grid = config@fit_grid
   )
+  grid_indices <- match(df$task_id, task_grid$task_id)
+  df$.data_idx <- task_grid$data_idx[grid_indices]
+  df$.fit_idx <- task_grid$fit_idx[grid_indices]
+  df
 }
 
 #' Should the run stop early based on the adaptive-stopping policy? (I3)
 #'
 #' Builds a quick summary from `task_results_so_far` and calls
 #' [performance_measures()] for `stop_on$estimand`. Returns TRUE when the MCSE of
-#' `stop_on$measure` is finite and below `stop_on$target_mcse`. Wrapped in
-#' tryCatch by the caller: any failure (e.g. no truth columns yet) => FALSE.
+#' `stop_on$measure` is finite and below `stop_on$target_mcse` in every
+#' condition cell. Wrapped in tryCatch by the caller: any failure (e.g. no
+#' truth columns yet) => FALSE.
 #'
 #' @param task_results_so_far List of in-memory `bayesim_task_result`.
 #' @param task_grid Current task grid (statuses updated).
@@ -897,7 +911,11 @@ bayesim_adaptive_check <- function(
       if (is.null(df) || nrow(df) == 0L) {
         return(FALSE)
       }
-      pm <- performance_measures(df, estimand = stop_on$estimand)
+      pm <- performance_measures(
+        df,
+        estimand = stop_on$estimand,
+        by = c(".data_idx", ".fit_idx")
+      )
       if (is.null(pm) || nrow(pm) == 0L) {
         return(FALSE)
       }
@@ -905,9 +923,17 @@ bayesim_adaptive_check <- function(
       if (!any(sel)) {
         return(FALSE)
       }
-      mcse <- pm$mcse[sel][1L]
+      selected <- pm[sel, , drop = FALSE]
+      expected_cells <- nrow(unique(task_grid[c("data_idx", "fit_idx")]))
+      if (
+        nrow(selected) != expected_cells ||
+          any(selected$n_sim < stop_on$min_reps)
+      ) {
+        return(FALSE)
+      }
+      mcse <- selected$mcse
       target <- stop_on$target_mcse
-      isTRUE(is.finite(mcse)) && isTRUE(mcse < target)
+      length(mcse) > 0L && all(is.finite(mcse) & mcse < target)
     },
     error = function(e) FALSE
   )

@@ -12,11 +12,11 @@ component names).}
 }
 \value{
 A tibble with columns \code{model}, \code{formula}, \code{family}, \code{prior},
-\code{stanvars}, \code{stan_file}.
+\code{stanvars}.
 }
 \description{
 Combines named \code{\link[=brms_model]{brms_model()}} specs into a single data frame with one row per
-model and \code{formula}/\code{family}/\code{prior}/\code{stanvars}/\code{stan_file} list-columns,
+model and \code{formula}/\code{family}/\code{prior}/\code{stanvars} list-columns,
 ready to pass as \code{fit_grid} to \code{\link[=simulation_config]{simulation_config()}}. A \code{model} column holds
 the spec names and lands in the summary as \code{fit_model}.
 }

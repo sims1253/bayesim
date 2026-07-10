@@ -226,13 +226,13 @@ normalize_stanvars <- function(stanvars) {
 #' purpose is to fix the Stan data structure (variable names and types) so the
 #' compiled binary matches the real task data.
 #'
-#' Calls `data_generator(data_spec, seed, task_ctx)` and returns its `$train`
-#' data frame. The seed is a fixed throwaway constant (NOT the simulation seed)
-#' so the same template data is produced on controller and daemons.
+#' Calls `data_generator(data_spec, task_ctx)` and returns its `$train` data
+#' frame. `task_ctx$template` is TRUE so generators can recognize this
+#' structural template call.
 #'
 #' @param data_generator The simulation data generator function.
 #' @param data_spec A named list (one row of `data_grid` as a list).
-#' @param seed Integer throwaway seed (default 0L).
+#' @param seed Deprecated internal argument retained for compatibility; ignored.
 #'
 #' @return A data.frame suitable for `brms::brm(data =)`.
 #'
@@ -273,6 +273,42 @@ generate_template_data <- function(
 # ============================================================================
 # Model bank construction
 # ============================================================================
+
+#' Resolve one model-grid row into canonical components
+#'
+#' @param fit_grid A model specification data frame.
+#' @param i Scalar row index.
+#' @return A named list with formula, family, prior, and stanvars.
+#' @keywords internal
+model_spec_from_grid_row <- function(fit_grid, i) {
+  row <- as.list(fit_grid[i, , drop = FALSE])
+  if (!"formula" %in% names(row) || is.null(row$formula)) {
+    stop(bayesim_config_error(
+      "fit_grid row " %+%
+        i %+%
+        " has no 'formula' column; every fit_grid row must specify a formula."
+    ))
+  }
+
+  unwrap <- function(value, preserve_data_frame = FALSE) {
+    if (
+      length(value) == 1L &&
+        is.list(value) &&
+        !(preserve_data_frame && inherits(value, "data.frame"))
+    ) {
+      value[[1]]
+    } else {
+      value
+    }
+  }
+
+  list(
+    formula = unwrap(row$formula),
+    family = unwrap(row$family),
+    prior = unwrap(row$prior, preserve_data_frame = TRUE),
+    stanvars = unwrap(row$stanvars)
+  )
+}
 
 #' Build the model bank for a BrmsFitter
 #'
@@ -337,39 +373,24 @@ build_model_bank <- function(
   model_bank <- list()
 
   for (i in seq_len(nrow(fit_grid))) {
-    row <- as.list(fit_grid[i, , drop = FALSE])
-    # Guard: a fit_grid row must specify a formula column. A missing formula
-    # (e.g. a malformed grid) would otherwise index into NULL and fail opaquely
-    # downstream.
-    if (!"formula" %in% names(row) || is.null(row$formula)) {
-      stop(bayesim_config_error(
-        "fit_grid row " %+%
-          i %+%
-          " has no 'formula' column; every fit_grid row must specify a formula."
-      ))
-    }
-    formula <- row$formula[[1]] %||% row$formula
-    family <- row$family[[1]] %||% row$family
-    prior <- row$prior[[1]] %||% row$prior
-    stanvars <- row$stanvars[[1]] %||% row$stanvars
+    spec <- model_spec_from_grid_row(fit_grid, i)
+    formula <- spec$formula
+    family <- spec$family
+    prior <- spec$prior
+    stanvars <- spec$stanvars
 
-    # list-columns wrap scalars in a length-1 list; unwrap once more if needed.
-    if (length(formula) == 1L && is.list(formula)) {
-      formula <- formula[[1]]
-    }
-    if (length(family) == 1L && is.list(family)) {
-      family <- family[[1]]
-    }
-    if (
-      length(prior) == 1L && is.list(prior) && !"data.frame" %in% class(prior)
-    ) {
-      prior <- prior[[1]]
-    }
-    if (length(stanvars) == 1L && is.list(stanvars)) {
-      stanvars <- stanvars[[1]]
+    if (is.null(prior) || length(prior) == 0L) {
+      .warn_once(
+        "model_bank_default_prior",
+        c(
+          "Precompiled brms models should use explicit priors.",
+          i = "Some brms default priors depend on the template data and remain embedded when the compiled model is reused.",
+          i = "Set an explicit {.code prior} in every model-grid row, or use {.code BrmsFitter(precompile = FALSE)}."
+        )
+      )
     }
 
-    h <- model_spec_hash(
+    spec_hash <- model_spec_hash(
       formula = formula,
       family = family,
       prior = prior,
@@ -377,7 +398,7 @@ build_model_bank <- function(
       backend = backend
     )
 
-    if (h %in% names(model_bank)) {
+    if (spec_hash %in% names(model_bank)) {
       next # already compiled an identical spec
     }
 
@@ -385,7 +406,7 @@ build_model_bank <- function(
     family_resolved <- resolve_family(family)
 
     cli::cli_alert_info(
-      "Compiling model spec {length(model_bank) + 1L} (hash {substr(h, 1, 8)}): {.code {deparse(formula_resolved$formula)[1]}}"
+      "Compiling model spec {length(model_bank) + 1L} (hash {substr(spec_hash, 1, 8)}): {.code {deparse(formula_resolved$formula)[1]}}"
     )
 
     prefit <- tryCatch(
@@ -407,7 +428,7 @@ build_model_bank <- function(
     if (inherits(prefit, "error") || inherits(prefit, "simpleError")) {
       stop(bayesim_internal_error(paste(
         "Model bank compilation failed for spec",
-        sprintf("(hash %s):", substr(h, 1, 8)),
+        sprintf("(hash %s):", substr(spec_hash, 1, 8)),
         conditionMessage(prefit)
       )))
     }
@@ -433,7 +454,7 @@ build_model_bank <- function(
       NULL
     }
 
-    model_bank[[h]] <- list(prefit = prefit, struct_sig = struct_sig)
+    model_bank[[spec_hash]] <- list(prefit = prefit, struct_sig = struct_sig)
   }
 
   cli::cli_alert_info(
@@ -488,7 +509,7 @@ lookup_prefit <- function(
     return(NULL)
   }
 
-  h <- model_spec_hash(
+  spec_hash <- model_spec_hash(
     formula = formula,
     family = family,
     prior = prior,
@@ -496,5 +517,5 @@ lookup_prefit <- function(
     backend = backend
   )
 
-  model_bank[[h]] %||% NULL
+  model_bank[[spec_hash]] %||% NULL
 }

@@ -11,7 +11,7 @@ generate_template_data(data_generator, data_spec, seed = 0L)
 
 \item{data_spec}{A named list (one row of \code{data_grid} as a list).}
 
-\item{seed}{Integer throwaway seed (default 0L).}
+\item{seed}{Deprecated internal argument retained for compatibility; ignored.}
 }
 \value{
 A data.frame suitable for \code{brms::brm(data =)}.
@@ -23,8 +23,8 @@ purpose is to fix the Stan data structure (variable names and types) so the
 compiled binary matches the real task data.
 }
 \details{
-Calls \code{data_generator(data_spec, seed, task_ctx)} and returns its \verb{$train}
-data frame. The seed is a fixed throwaway constant (NOT the simulation seed)
-so the same template data is produced on controller and daemons.
+Calls \code{data_generator(data_spec, task_ctx)} and returns its \verb{$train} data
+frame. \code{task_ctx$template} is TRUE so generators can recognize this
+structural template call.
 }
 \keyword{internal}

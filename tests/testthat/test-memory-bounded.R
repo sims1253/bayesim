@@ -61,20 +61,30 @@ describe("lighten_task_result()", {
     expect_null(light$error)
   })
 
-  it("removes heavy objects (fit, draws, data) regardless of retain", {
+  it("preserves data-generating truth", {
+    heavy <- create_heavy_task_result()
+    heavy$truth <- c(beta = 0.5)
+
+    light <- lighten_task_result(heavy, retain = "metrics")
+
+    expect_identical(light$truth, c(beta = 0.5))
+  })
+
+  it("keeps only heavy objects explicitly requested by retain", {
     heavy <- create_heavy_task_result(
       include_fit = TRUE,
       include_draws = TRUE,
       include_data = TRUE
     )
 
-    # Even with "debug" retention, lighten removes heavy objects
+    heavy$predictions <- list(predicted_mean = 1:3)
     light <- lighten_task_result(
       heavy,
-      retain = c("metrics", "diagnostics", "fit", "draws", "data")
+      retain = c("metrics", "fit", "predictions")
     )
 
-    expect_null(light$fit)
+    expect_identical(light$fit, heavy$fit)
+    expect_identical(light$predictions, heavy$predictions)
     expect_null(light$draws)
     expect_null(light$data)
   })
@@ -190,6 +200,22 @@ describe("simulation_config() checkpoint_every parameter", {
       checkpoint_every = 10L
     )
     expect_equal(config@checkpoint_every, 10L)
+    expect_equal(config@keep_checkpoints, 2L)
+  })
+
+  it("validates checkpoint snapshot retention", {
+    expect_error(
+      simulation_config(
+        data_grid = data.frame(n = 100),
+        fit_grid = data.frame(model = "test"),
+        data_generator = .gen,
+        fitter = NULL,
+        n_replicates = 2L,
+        seed = 42L,
+        keep_checkpoints = 0L
+      ),
+      "keep_checkpoints must be a positive integer"
+    )
   })
 
   it("B4: chunk_size and max_in_memory are no longer arguments", {

@@ -59,20 +59,24 @@ The SBC recipe needs three ingredients:
 3. The **rank metric** (`rank_metric()`), which counts how many posterior
    draws fall below the true `theta`, giving one rank per task per parameter.
 
-Below, the generator draws `(Intercept, slope, sigma)` from the same weak
-prior family the `LinearRegressionFitter` assumes (broad Normal coefficients,
-inverse-gamma residual scale), then simulates Gaussian linear data. Because
-the fitter is the exact conjugate NIG updater, SBC should pass by
-construction — which is exactly what makes this a good teaching example: you
-see a *correct* rank distribution and learn what passing looks like.
+Below, the generator draws `(Intercept, slope, sigma)` from exactly the same
+Normal-Inverse-Gamma prior passed to `LinearRegressionFitter()`, then simulates
+Gaussian linear data. In an NIG prior the coefficient distribution is
+conditional on the residual variance:
+`beta | sigma^2 ~ Normal(0, sigma^2 Lambda^-1)`. Matching that conditional
+prior is essential; a prior mismatch is itself a valid SBC failure mode.
+Because the fitter is the exact conjugate updater for this same prior, SBC
+should pass by construction.
 
 ```{r}
 sbc_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
-  # Draw theta from the model prior (conjugate-friendly, weak/diffuse).
-  intercept <- stats::rnorm(1, mean = 0, sd = 2)
-  slope     <- stats::rnorm(1, mean = 0, sd = 2)
+  # Exact NIG prior used by the fitter below:
+  # sigma^2 ~ Inv-Gamma(2, 1)
+  # beta | sigma^2 ~ Normal(0, sigma^2 / 0.25)
   sigma     <- sqrt(1 / stats::rgamma(1, shape = 2, rate = 1))
+  intercept <- stats::rnorm(1, mean = 0, sd = sigma / sqrt(0.25))
+  slope     <- stats::rnorm(1, mean = 0, sd = sigma / sqrt(0.25))
   # Simulate y from the likelihood given theta.
   x <- stats::rnorm(n)
   y <- intercept + slope * x + stats::rnorm(n, sd = sigma)
@@ -100,7 +104,13 @@ config <- simulation_config(
   data_grid = data.frame(n = 40L),
   fit_grid = data.frame(model = "lm"),
   data_generator = sbc_generator,
-  fitter = LinearRegressionFitter(n_draws = 1000L),
+  fitter = LinearRegressionFitter(
+    n_draws = 1000L,
+    prior_mean = 0,
+    prior_precision = 0.25,
+    a0 = 2,
+    b0 = 1
+  ),
   metrics = list(
     rank_metric(thin = "auto"),
     posterior_summary_metric()
@@ -119,7 +129,8 @@ plus the posterior summaries needed for the coverage check below.
 
 `sbc_ranks()` collects the per-task ranks into a long tibble; `plot_rank_ecdf()`
 plots the empirical CDF of the normalized ranks against the uniform CDF (the
-diagonal), with a pointwise uniformity band following Talts et al. (2018).
+diagonal), with the simultaneous uniformity band of Säilynoja, Bürkner, and
+Vehtari (2022).
 
 ```{r}
 ranks <- sbc_ranks(result)
@@ -130,13 +141,13 @@ head(ranks)
 plot_rank_ecdf(ranks, alpha = 0.95)
 ```
 
-**How to read the band.** The grey ribbon is the pointwise 95% coverage
-interval for the ECDF of a truly uniform sample of this size, derived from
-the beta distribution of order statistics: at the `i`-th of `n` ordered
-points the lower bound is `qbeta(0.025, i, n + 1 - i)` and the upper bound is
-`qbeta(0.975, i, n + 1 - i)`. Under correct calibration, the ECDF (black
-step) should stay inside the ribbon everywhere. The dashed red line is the
-theoretical uniform CDF.
+**How to read the band.** The grey ribbon is a 95% *simultaneous* confidence
+envelope for the whole ECDF, calibrated with the discrete-uniform method of
+Säilynoja et al. (2022). Under correct calibration, the entire black ECDF
+stays inside the ribbon with probability 0.95. Consequently, a crossing
+anywhere is evidence against uniformity at the 5% global level; it is not the
+routine pointwise excursion expected from a collection of separate 95%
+intervals. The dashed red line is the theoretical uniform CDF.
 
 Because `LinearRegressionFitter` is the *exact* conjugate updater, the ECDF
 hugs the diagonal and stays inside the band — this is what a calibrated
@@ -159,11 +170,14 @@ tells you what is wrong:
 - **One-sided drift:** the posterior is *biased* — it systematically
   over- or under-estimates `theta`.
 
-Random excursions outside the band at one or two points, with the ECDF
-returning inside, are expected by chance at the 95% level and are not
-evidence of miscalibration. Use a stricter band (`alpha = 0.99`) to confirm
-suspected systematic departures, and increase `n_replicates` to sharpen the
-test — SBC is a Monte Carlo procedure with its own sampling noise.
+Because this is a simultaneous band, even one crossing rejects uniformity at
+the displayed global level. The shape and persistence of a departure remain
+useful for diagnosis, but they are not required for the graphical test to
+flag a problem. A 95% procedure still has a 5% false-positive probability
+under perfect calibration, so use a broader band (`alpha = 0.99`) or an
+independent rerun when the practical decision is consequential. Increasing
+`n_replicates` increases power — SBC is a Monte Carlo procedure with its own
+sampling noise.
 
 # Coverage as a complementary check
 
@@ -201,6 +215,9 @@ paper reports.
 
 - Talts et al. (2018), *Validating Bayesian Inference Algorithms with
   Simulation-Based Calibration*, arXiv:1804.06788.
+- Säilynoja, Bürkner, and Vehtari (2022), *Graphical test for discrete
+  uniformity and its applications in goodness-of-fit evaluation*,
+  *Statistics and Computing* 32(2).
 - `vignette("design-of-simulation-studies")` for the Morris, White & Crowther
   (2019) framework for designing and reporting simulation studies.
 - `vignette("reproducibility")` for the determinism guarantees behind SBC

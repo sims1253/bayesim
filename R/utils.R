@@ -240,7 +240,8 @@ make_timer <- function() {
 #' Captures detailed information about an error condition, including
 #' class, message, call, and a trimmed traceback.
 #'
-#' @param e A condition object (typically from tryCatch)
+#' @param e A condition object captured by a stack-preserving handler or with an
+#'   attached `rlang` trace.
 #'
 #' @return A named list with elements:
 #'   \itemize{
@@ -252,11 +253,14 @@ make_timer <- function() {
 #'
 #' @keywords internal
 capture_error_info <- function(e) {
-  # Get traceback and trim it
-  tb <- tryCatch(
-    sys.calls(),
-    error = function(cond) NULL
-  )
+  # Prefer a trace already attached to the condition. rlang::try_fetch()
+  # invokes handlers before unwinding, so its current stack still includes the
+  # original error site.
+  tb <- if (inherits(e$trace, "rlang_trace")) {
+    e$trace$call
+  } else {
+    tryCatch(rlang::trace_back()$call, error = function(cond) NULL)
+  }
 
   # Trim traceback to last 20 frames to avoid excessive storage
   if (!is.null(tb) && length(tb) > 20) {
@@ -269,6 +273,11 @@ capture_error_info <- function(e) {
   } else {
     character(0)
   }
+  plumbing <- grepl(
+    "(tryCatch|tryCatchList|tryCatchOne|doTryCatch|withCallingHandlers)",
+    tb_str
+  )
+  tb_str <- tb_str[!plumbing]
 
   # Get call if available
   error_call <- tryCatch(

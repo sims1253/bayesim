@@ -108,6 +108,12 @@ SimulationConfig <- S7::new_class(
         }
       }
     ),
+    keep_checkpoints = S7::new_property(
+      class = S7::class_integer,
+      validator = validate_positive_integer(
+        message = "keep_checkpoints must be a positive integer"
+      )
+    ),
     retain = S7::new_property(
       class = S7::class_list,
       validator = function(value) {
@@ -186,6 +192,10 @@ SimulationConfig <- S7::new_class(
 #' @param checkpoint_every Positive integer. Save progress every N tasks. This
 #'   single knob also bounds the number of task results held in memory at once
 #'   (B4: the former separate `chunk_size` knob was merged into this).
+#' @param keep_checkpoints Positive integer. Number of complete checkpoint
+#'   snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
+#'   plus one fallback for corruption recovery. Runtime policy; excluded from
+#'   the config fingerprint.
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
 #'   (B4: excluded from the config fingerprint — changing retention must not
@@ -240,6 +250,7 @@ simulation_config <- function(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
+  keep_checkpoints = 2L,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL,
@@ -355,6 +366,15 @@ simulation_config <- function(
     cli::cli_abort("checkpoint_every must be a positive integer >= 1")
   }
 
+  keep_checkpoints <- as.integer(keep_checkpoints)
+  if (
+    length(keep_checkpoints) != 1L ||
+      is.na(keep_checkpoints) ||
+      keep_checkpoints < 1L
+  ) {
+    cli::cli_abort("keep_checkpoints must be a positive integer >= 1")
+  }
+
   retain <- resolve_retention_spec(retain)
 
   # Validate max_errors
@@ -384,6 +404,7 @@ simulation_config <- function(
     result_path = result_path,
     checkpoint_every = checkpoint_every,
     checkpoint_format = checkpoint_format,
+    keep_checkpoints = keep_checkpoints,
     retain = retain,
     max_errors = max_errors,
     daemon_setup = daemon_setup,
@@ -749,6 +770,25 @@ compute_config_fingerprint <- function(config) {
   }
 
   digest::digest(json_str, algo = "sha256", serialize = FALSE)
+}
+
+#' Stable simulation-design fingerprint
+#'
+#' Returns the stable hash bayesim uses to validate checkpoint compatibility.
+#' The fingerprint covers the study design (grids, generator, fitter, metrics,
+#' replicate count, and seed) and intentionally excludes runtime policy such as
+#' output paths, retention, checkpoint cadence, and adaptive stopping.
+#'
+#' @param config A simulation configuration created by [simulation_config()].
+#' @return A scalar SHA-256 character string.
+#' @export
+#' @seealso [simulation_config()], [run_simulation()]
+#' @examples
+#' \dontrun{
+#' config_fingerprint(config)
+#' }
+config_fingerprint <- function(config) {
+  compute_config_fingerprint(config)
 }
 
 #' Check if Object is a SimulationConfig

@@ -35,8 +35,10 @@
 #'   (`task_id`, `rep_idx`, `status`, `*timing*`).
 #'
 #' @return A tibble with one row per condition: the `by` columns, then for each
-#'   metric `<m>_mean`, `<m>_median`, `<m>_sd`, `<m>_mcse`, plus `n_reps`,
-#'   `n_failed`, `failure_rate`.
+#'   metric `<m>_n_used`, `<m>_mean`, `<m>_median`, `<m>_sd`, `<m>_mcse`, plus
+#'   `n_reps`, `n_failed`, `failure_rate`. `<m>_n_used` is the number of finite
+#'   values used for that metric; failed or non-finite metric values do not
+#'   contribute to its aggregate.
 #' @export
 #' @examples
 #' \dontrun{
@@ -76,7 +78,17 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     # their type), plus any other non-numeric non-metadata columns.
     grid_cols <- grep("^(data_|fit_)", names(df), value = TRUE)
     other <- names(df)[!vapply(df, is.numeric, logical(1))]
-    by <- setdiff(unique(c(grid_cols, other)), c("task_id", "status"))
+    # Flattened metric payloads use `metric__field`; character payloads such as
+    # error messages and artifact paths are outputs, never design conditions.
+    other <- other[!grepl("__", other, fixed = TRUE)]
+    error_cols <- names(df)[grepl(
+      "(^error_(class|message)$|__error_(class|message)$)",
+      names(df)
+    )]
+    by <- setdiff(
+      unique(c(grid_cols, other)),
+      c("task_id", "status", error_cols)
+    )
     # Only scalar atomic columns can group (drop list-columns like fit_formula).
     by <- by[vapply(df[, by, drop = FALSE], is.atomic, logical(1))]
   }
@@ -135,6 +147,7 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       vals <- sub[[m]]
       vals <- vals[is.finite(vals)]
       n <- length(vals)
+      out[[paste0(m, "_n_used")]] <- n
       out[[paste0(m, "_mean")]] <- if (n > 0L) mean(vals) else NA_real_
       out[[paste0(m, "_median")]] <- if (n > 0L) {
         stats::median(vals)
@@ -170,10 +183,12 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
 #'
 #' @description Collects the per-task `rank__by_param` entries (from
 #'   [rank_metric()]) into a long tibble with columns `task_id`, `param`,
-#'   `rank`, `n_draws`. Returns an empty tibble if no rank metric was computed.
+#'   `rank`, `n_draws`, plus atomic `data_*` and `fit_*` condition columns.
+#'   Returns an empty tibble if no rank metric was computed.
 #'
 #' @param result A `bayesim_simulation_result`.
-#' @return A tibble with columns `task_id`, `param`, `rank`, `n_draws`.
+#' @return A tibble with columns `task_id`, `param`, `rank`, `n_draws`, and
+#'   available condition columns.
 #' @export
 #' @examples
 #' \dontrun{
@@ -207,6 +222,13 @@ sbc_ranks <- function(result) {
     return(empty)
   }
   n_draws <- if (length(n_draws_col) == 1L) df[[n_draws_col]] else NA_integer_
+  condition_cols <- grep("^(data_|fit_)", names(df), value = TRUE)
+  condition_cols <- condition_cols[!grepl("__", condition_cols, fixed = TRUE)]
+  condition_cols <- condition_cols[vapply(
+    df[, condition_cols, drop = FALSE],
+    is.atomic,
+    logical(1)
+  )]
   rows <- list()
   for (col in rank_cols) {
     param <- sub("^rank__by_param__?", "", col)
@@ -220,13 +242,17 @@ sbc_ranks <- function(result) {
     } else {
       NA_integer_
     }
-    rows[[param]] <- tibble::tibble(
+    rank_row <- tibble::tibble(
       task_id = df$task_id,
       param = param,
       rank = as.integer(df[[col]]),
       n_draws = n_draws,
       n_ranks = n_ranks
     )
+    if (length(condition_cols) > 0L) {
+      rank_row <- cbind(rank_row, df[, condition_cols, drop = FALSE])
+    }
+    rows[[param]] <- rank_row
   }
   do.call(rbind, rows)
 }
@@ -267,6 +293,10 @@ plot_rank_hist <- function(ranks) {
 #' @param ranks A tibble from [sbc_ranks()], or a `bayesim_simulation_result`.
 #' @param alpha Coverage level of the simultaneous confidence band
 #'   (default 0.95).
+#' @param by Optional character vector of condition columns to facet by. These
+#'   columns are preserved by [sbc_ranks()] for simulation results. Using `by`
+#'   computes a separate ECDF and simultaneous band per condition cell instead
+#'   of pooling ranks across cells.
 #' @references Säilynoja T, Bürkner PC, Vehtari A (2022). Graphical test for
 #'   discrete uniformity and its applications in goodness-of-fit evaluation.
 #'   *Statistics and Computing*, 32(2).
@@ -276,8 +306,9 @@ plot_rank_hist <- function(ranks) {
 #' \dontrun{
 #' plot_rank_ecdf(sbc_ranks(result))
 #' plot_rank_ecdf(sbc_ranks(result), alpha = 0.99)
+#' plot_rank_ecdf(sbc_ranks(result), by = "data_n")
 #' }
-plot_rank_ecdf <- function(ranks, alpha = 0.95) {
+plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
   rlang::check_installed("ggplot2", "to use plot_rank_ecdf()")
   if (inherits(ranks, "bayesim_simulation_result")) {
     ranks <- sbc_ranks(ranks)
@@ -296,13 +327,26 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95) {
       "alpha must be a scalar in (0, 1), got " %+% alpha
     ))
   }
+  if (!is.null(by)) {
+    if (!is.character(by) || anyNA(by) || !all(nzchar(by))) {
+      stop(bayesim_config_error("by must be NULL or a character vector"))
+    }
+    missing_by <- setdiff(by, names(ranks))
+    if (length(missing_by) > 0L) {
+      stop(bayesim_config_error(
+        "Unknown SBC facet column(s): " %+% paste(missing_by, collapse = ", ")
+      ))
+    }
+  }
 
-  params <- unique(ranks$param)
+  facet_cols <- c("param", by)
+  group_ids <- interaction(ranks[, facet_cols, drop = FALSE], drop = TRUE)
+  rank_groups <- split(seq_len(nrow(ranks)), group_ids)
 
   ecdf_data <- do.call(
     rbind,
-    lapply(params, function(p) {
-      sub <- ranks[ranks$param == p, , drop = FALSE]
+    lapply(seq_along(rank_groups), function(group_idx) {
+      sub <- ranks[rank_groups[[group_idx]], , drop = FALSE]
       n <- nrow(sub)
       # Prefer post-thinning n_ranks (F4); fall back to n_draws for old results.
       S <- NA
@@ -317,13 +361,14 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95) {
       }
       # Normalized rank on [0,1]: rank in 0..S, map to (rank+0.5)/(S+1).
       r <- (sort(sub$rank) + 0.5) / (S + 1)
-      tibble::tibble(
-        param = p,
+      out <- tibble::tibble(
+        .sbc_group = group_idx,
         rank_norm = r,
         ecdf = seq_len(n) / n,
         n = n,
         S = S
       )
+      cbind(out, sub[rep(1L, n), facet_cols, drop = FALSE])
     })
   )
 
@@ -331,16 +376,24 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95) {
   # uniform sample of size n, evaluated at K = min(n, S + 1) points.
   band_data <- do.call(
     rbind,
-    lapply(params, function(p) {
-      sub <- ecdf_data[ecdf_data$param == p, , drop = FALSE]
+    lapply(seq_along(rank_groups), function(group_idx) {
+      sub <- ecdf_data[
+        ecdf_data$.sbc_group == group_idx,
+        ,
+        drop = FALSE
+      ]
       n <- sub$n[1L]
       K <- max(1L, min(n, sub$S[1L] + 1L))
       band <- sbc_band(n, K = K, conf_level = alpha)
-      tibble::tibble(
-        param = p,
+      out <- tibble::tibble(
+        .sbc_group = group_idx,
         x = band$x,
         lower = pmax(0, band$lower),
         upper = pmin(1, band$upper)
+      )
+      cbind(
+        out,
+        sub[rep(1L, nrow(out)), facet_cols, drop = FALSE]
       )
     })
   )
@@ -360,7 +413,9 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95) {
       color = "red"
     ) +
     ggplot2::geom_line(ggplot2::aes(y = .data$ecdf)) +
-    ggplot2::facet_wrap(~param) +
+    ggplot2::facet_wrap(stats::as.formula(
+      paste("~", paste(facet_cols, collapse = " + "))
+    )) +
     ggplot2::labs(
       x = "normalized rank",
       y = "ECDF",

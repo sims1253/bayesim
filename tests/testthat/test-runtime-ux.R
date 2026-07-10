@@ -45,6 +45,26 @@ describe("F1 preflight", {
     )
     expect_invisible(preflight(config, condensed = TRUE))
   })
+
+  it("counts distinct brms model specs rather than fit-grid rows", {
+    skip_if_not(requireNamespace("brms", quietly = TRUE))
+    grid <- data.frame(model = c("a", "a-copy"))
+    grid$formula <- list(y ~ x, y ~ x)
+    grid$family <- list(stats::gaussian(), stats::gaussian())
+    config <- simulation_config(
+      data_grid = data.frame(n = 20L),
+      fit_grid = grid,
+      data_generator = .gen,
+      fitter = BrmsFitter(),
+      metrics = list(),
+      n_replicates = 1L,
+      seed = 1L
+    )
+
+    info <- suppressMessages(preflight(config, condensed = TRUE))
+
+    expect_equal(info$n_compile, 1L)
+  })
 })
 
 describe("F2 failed_tasks", {

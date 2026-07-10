@@ -214,7 +214,9 @@ The built-in metric library covers the standard surface: `pred_bias_metric`,
 `pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
 `sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`, and
 LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
-`elpd_test_metric`, `rmse_test_metric`, `r2_test_metric`).
+`elpd_test_metric`, `pred_rmse_metric`, `r2_test_metric`).
+`rmse_test_metric()` remains as a compatibility name for
+`pred_rmse_metric(name = "rmse_test")`.
 
 # Reproducibility
 

@@ -1436,6 +1436,10 @@ describe("SimulationConfig", {
         compute_config_fingerprint(cfg1),
         compute_config_fingerprint(cfg2)
       )
+      expect_identical(
+        config_fingerprint(cfg1),
+        compute_config_fingerprint(cfg1)
+      )
     })
 
     it("validates retain contains valid options", {
@@ -1554,6 +1558,7 @@ describe("SimulationConfig", {
 
       expect_false("result_path" %in% names(spec))
       expect_false("checkpoint_every" %in% names(spec))
+      expect_false("keep_checkpoints" %in% names(spec))
     })
 
     it("errors on non-SimulationConfig input", {
@@ -1796,6 +1801,34 @@ describe("Utility Functions", {
       info <- capture_error_info(err)
       # traceback should be limited
       expect_lte(length(info$traceback), 20)
+    })
+
+    it("preserves calls from the original error site", {
+      inner_failure <- function() stop("nested error")
+      outer_failure <- function() inner_failure()
+      info <- rlang::try_fetch(
+        outer_failure(),
+        error = capture_error_info
+      )
+
+      expect_true(any(grepl("inner_failure", info$traceback, fixed = TRUE)))
+      expect_false(any(grepl("tryCatchOne", info$traceback, fixed = TRUE)))
+    })
+
+    it("preserves attached traces after the handler unwinds", {
+      inner_failure <- function() stop("nested error")
+      err <- rlang::try_fetch(
+        inner_failure(),
+        error = function(e) {
+          normalized <- bayesim_fit_error(conditionMessage(e))
+          normalized$trace <- rlang::trace_back()
+          normalized
+        }
+      )
+
+      info <- capture_error_info(err)
+
+      expect_true(any(grepl("inner_failure", info$traceback, fixed = TRUE)))
     })
   })
 

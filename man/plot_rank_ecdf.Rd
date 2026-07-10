@@ -4,13 +4,18 @@
 \alias{plot_rank_ecdf}
 \title{Plot SBC rank ECDF with simultaneous confidence band}
 \usage{
-plot_rank_ecdf(ranks, alpha = 0.95)
+plot_rank_ecdf(ranks, alpha = 0.95, by = NULL)
 }
 \arguments{
 \item{ranks}{A tibble from \code{\link[=sbc_ranks]{sbc_ranks()}}, or a \code{bayesim_simulation_result}.}
 
 \item{alpha}{Coverage level of the simultaneous confidence band
 (default 0.95).}
+
+\item{by}{Optional character vector of condition columns to facet by. These
+columns are preserved by \code{\link[=sbc_ranks]{sbc_ranks()}} for simulation results. Using \code{by}
+computes a separate ECDF and simultaneous band per condition cell instead
+of pooling ranks across cells.}
 }
 \value{
 A ggplot object.
@@ -27,6 +32,7 @@ miscalibration at level 1 - alpha.
 \dontrun{
 plot_rank_ecdf(sbc_ranks(result))
 plot_rank_ecdf(sbc_ranks(result), alpha = 0.99)
+plot_rank_ecdf(sbc_ranks(result), by = "data_n")
 }
 }
 \references{

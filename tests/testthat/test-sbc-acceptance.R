@@ -9,6 +9,10 @@
 # ifs_generator() to exercise the F1 forward-sampling path.
 
 skip_on_cran()
+skip_if(
+  !identical(tolower(Sys.getenv("BAYESIM_RUN_ACCEPTANCE")), "true"),
+  "set BAYESIM_RUN_ACCEPTANCE=true to run Stan-backed acceptance tests"
+)
 skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
 skip_if_not(requireNamespace("brms", quietly = TRUE))
 skip_if_not(requireNamespace("posterior", quietly = TRUE))

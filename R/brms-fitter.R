@@ -17,7 +17,9 @@
 #' @param precompile Logical; if TRUE (default), the model bank compiles each
 #'   distinct model spec once via `brms::brm(chains = 0)` and reuses the prefit
 #'   across tasks via `stats::update(recompile = FALSE)`. Set to FALSE to fall
-#'   back to a fresh `brms::brm()` per task.
+#'   back to a fresh `brms::brm()` per task. When precompiling, specify priors
+#'   explicitly: some brms defaults are derived from the template dataset and
+#'   would otherwise remain embedded in the reused compiled model.
 #' @param stan_args Named list of Stan/brms arguments passed through to the fit,
 #'   e.g. `list(adapt_delta = 0.95, max_treedepth = 12, init = 0.1, threads = 2)`.
 #'   NULL (default) uses brms/Stan defaults.
@@ -72,6 +74,22 @@ extract_brms_timings <- function(fit, fallback_total) {
         ))
       }
       stanfit <- fit$fit
+      if (inherits(stanfit, "CmdStanMCMC") && is.function(stanfit$time)) {
+        elapsed <- stanfit$time()
+        chains <- elapsed$chains
+        if (
+          is.data.frame(chains) &&
+            all(c("warmup", "sampling") %in% names(chains))
+        ) {
+          warmup <- sum(chains$warmup)
+          sample <- sum(chains$sampling)
+          return(list(
+            total = warmup + sample,
+            warmup = warmup,
+            sample = sample
+          ))
+        }
+      }
       if (!inherits(stanfit, "stanfit")) {
         return(list(
           total = fallback_total,

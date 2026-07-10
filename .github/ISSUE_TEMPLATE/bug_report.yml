@@ -1,0 +1,26 @@
+name: Bug report
+description: Report incorrect or unexpected bayesim behavior
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the smallest reproducible example you can provide.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: session
+    attributes:
+      label: Session information
+      description: Paste `sessionInfo()` and relevant Stan/cmdstanr versions.
+      render: text
+    validations:
+      required: true

@@ -183,45 +183,6 @@ describe("RNG Management", {
       expect_identical(get(".Random.seed", envir = .GlobalEnv), stream)
     })
   })
-
-  describe("advance_rng_stream()", {
-    it("advances RNG state and returns new state", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced <- advance_rng_stream(stream)
-
-      # Advanced should be an integer vector
-      expect_true(is.integer(advanced))
-      expect_true(length(advanced) == length(stream))
-    })
-
-    it("advances RNG state by n steps", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced_1 <- advance_rng_stream(stream, n = 1)
-      advanced_5 <- advance_rng_stream(stream, n = 5)
-
-      # Both should be integer vectors
-      expect_true(is.integer(advanced_1))
-      expect_true(is.integer(advanced_5))
-    })
-
-    it("returns a valid RNG state that can be set", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced <- advance_rng_stream(stream, n = 5)
-
-      # Should be able to set this state
-      set_task_rng(advanced)
-
-      # Generate a value to verify RNG works
-      val <- runif(1)
-      expect_true(is.numeric(val))
-    })
-  })
 })
 
 
@@ -538,6 +499,19 @@ describe("Task Grid", {
     })
   })
 
+  describe("get_task_count_summary()", {
+    it("returns aligned zero-filled counts for every status", {
+      grid <- data.frame(status = c("success", "success", "failed"))
+
+      counts <- get_task_count_summary(grid)
+
+      expect_equal(
+        counts,
+        c(pending = 0L, success = 2L, failed = 1L, skipped = 0L)
+      )
+    })
+  })
+
   describe("filter_tasks_by_status()", {
     it("filters to include only specified statuses", {
       skip_if_not(
@@ -624,7 +598,7 @@ describe("Metric Resolution", {
       expect_s7_object(pred_rmse_metric())
       expect_s7_object(pred_bias_metric())
       expect_s7_object(coverage_metric())
-      expect_s7_object(posterior_mean_metric())
+      expect_s7_object(posterior_summary_metric())
     })
   })
 
@@ -1055,6 +1029,49 @@ describe("Worker", {
   })
 
   describe("compute_all_metrics()", {
+    it("isolates stochastic metrics from metric ordering", {
+      StochasticTestMetric <- S7::new_class(
+        "StochasticTestMetric",
+        parent = Metric,
+        properties = list(
+          name = S7::new_property(S7::class_character),
+          needs = S7::new_property(S7::class_character, default = character()),
+          required = S7::new_property(S7::class_logical, default = FALSE)
+        )
+      )
+      S7::method(compute_metric, StochasticTestMetric) <- function(
+        metric,
+        fit_result,
+        data_bundle,
+        context,
+        task_ctx
+      ) {
+        list(value = stats::runif(1))
+      }
+      metric_a <- StochasticTestMetric(name = "random_a")
+      metric_b <- StochasticTestMetric(name = "random_b")
+      args <- list(
+        fit_result = new_fit_result(success = TRUE),
+        data_bundle = valid_data_bundle(),
+        context = list(),
+        task_ctx = list(task_id = "t1", seed = 123L)
+      )
+
+      forward <- do.call(
+        compute_all_metrics,
+        c(args, list(metrics = list(metric_a, metric_b)))
+      )
+      reverse <- do.call(
+        compute_all_metrics,
+        c(args, list(metrics = list(metric_b, metric_a)))
+      )
+
+      expect_identical(
+        forward$metrics[c("random_a__value", "random_b__value")],
+        reverse$metrics[c("random_a__value", "random_b__value")]
+      )
+    })
+
     it("handles required vs optional metrics - required failures propagate", {
       # Required metric that fails should cause error
       required_metric <- create_test_metric(
@@ -1245,6 +1262,59 @@ describe("Worker", {
       )
 
       expect_null(result$diagnostics)
+    })
+  })
+
+  describe("prediction retention", {
+    it("copies metric-context predictions onto the task result", {
+      task_result <- new_task_result(
+        task_id = "t1",
+        status = "success",
+        metrics = list(value = 1),
+        timing = list(total = 0)
+      )
+      fit_result <- new_fit_result(success = TRUE)
+      predictions <- list(
+        predicted_mean = c(1, 2),
+        predicted_samples = matrix(1:4, nrow = 2)
+      )
+
+      retained <- apply_task_retention(
+        task_result,
+        fit_result,
+        valid_data_bundle(),
+        retain = c("metrics", "predictions"),
+        predictions = predictions
+      )
+
+      expect_identical(retained$predictions, predictions)
+    })
+
+    it("computes retained predictions even when no metric requests them", {
+      config <- simulation_config(
+        data_grid = data.frame(n = 10L),
+        fit_grid = data.frame(model = "linear"),
+        data_generator = function(data_spec, task_ctx) {
+          x <- stats::rnorm(data_spec$n)
+          list(
+            train = data.frame(y = 1 + x, x = x),
+            test = NULL,
+            response = "y",
+            true_params = c(Intercept = 1, x = 1, sigma = 0.1),
+            vars_of_interest = c("Intercept", "x", "sigma")
+          )
+        },
+        fitter = LinearRegressionFitter(n_draws = 10L),
+        metrics = list(),
+        n_replicates = 1L,
+        seed = 42L,
+        retain = c("metrics", "predictions")
+      )
+
+      result <- run_simulation(config, resume = "never", progress = FALSE)
+
+      expect_true(is.list(result$task_results[[1]]$predictions))
+      expect_length(result$task_results[[1]]$predictions$predicted_mean, 10L)
     })
   })
 })

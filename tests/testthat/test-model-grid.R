@@ -8,7 +8,7 @@ describe("brms_model", {
     expect_type(spec, "list")
     expect_equal(
       names(spec),
-      c("formula", "family", "prior", "stanvars", "stan_file")
+      c("formula", "family", "prior", "stanvars")
     )
     expect_equal(spec$formula, y ~ x)
     expect_false(is.null(spec$family))
@@ -29,7 +29,7 @@ describe("model_grid", {
     expect_equal(nrow(grid), 2L)
     expect_equal(grid$model, c("gaussian", "student"))
     expect_true(all(
-      c("formula", "family", "prior", "stanvars", "stan_file") %in% names(grid)
+      c("formula", "family", "prior", "stanvars") %in% names(grid)
     ))
     # formula list-column carries the specs.
     expect_equal(grid$formula[[1]], y ~ x)

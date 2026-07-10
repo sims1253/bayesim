@@ -7,7 +7,8 @@
 capture_error_info(e)
 }
 \arguments{
-\item{e}{A condition object (typically from tryCatch)}
+\item{e}{A condition object captured by a stack-preserving handler or with an
+attached \code{rlang} trace.}
 }
 \value{
 A named list with elements:

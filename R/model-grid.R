@@ -5,7 +5,7 @@
 #' Construct a single brms model specification
 #'
 #' Builds a one-row list of brms model components (formula, family, prior,
-#' stanvars, stan_file) suitable for assembling a fit_grid via [model_grid()].
+#' and stanvars suitable for assembling a fit_grid via [model_grid()].
 #' Inputs are validated at construction so errors surface before compilation.
 #'
 #' @param formula A formula or brmsformula.
@@ -13,10 +13,8 @@
 #'   brms default.
 #' @param prior A brms prior object, or NULL.
 #' @param stanvars A brms `stanvars` object, or NULL.
-#' @param stan_file Optional path to a `.stan` file (passed through to brms).
 #'
-#' @return A named list with elements `formula`, `family`, `prior`, `stanvars`,
-#'   `stan_file`.
+#' @return A named list with elements `formula`, `family`, `prior`, `stanvars`.
 #' @export
 #' @seealso [model_grid()]
 #' @examples
@@ -27,8 +25,7 @@ brms_model <- function(
   formula,
   family = NULL,
   prior = NULL,
-  stanvars = NULL,
-  stan_file = NULL
+  stanvars = NULL
 ) {
   if (
     is.null(formula) ||
@@ -43,15 +40,14 @@ brms_model <- function(
     formula = formula,
     family = family,
     prior = prior,
-    stanvars = stanvars,
-    stan_file = stan_file
+    stanvars = stanvars
   )
 }
 
 #' Assemble a tibble of model specifications for a fit_grid
 #'
 #' Combines named [brms_model()] specs into a single data frame with one row per
-#' model and `formula`/`family`/`prior`/`stanvars`/`stan_file` list-columns,
+#' model and `formula`/`family`/`prior`/`stanvars` list-columns,
 #' ready to pass as `fit_grid` to [simulation_config()]. A `model` column holds
 #' the spec names and lands in the summary as `fit_model`.
 #'
@@ -59,7 +55,7 @@ brms_model <- function(
 #'   component names).
 #'
 #' @return A tibble with columns `model`, `formula`, `family`, `prior`,
-#'   `stanvars`, `stan_file`.
+#'   `stanvars`.
 #' @export
 #' @seealso [brms_model()], [simulation_config()]
 #' @examples
@@ -77,7 +73,7 @@ model_grid <- function(...) {
   if (is.null(names(specs)) || any(names(specs) == "")) {
     stop(bayesim_config_error("every model_grid() spec must be named"))
   }
-  components <- c("formula", "family", "prior", "stanvars", "stan_file")
+  components <- c("formula", "family", "prior", "stanvars")
   for (nm in names(specs)) {
     spec <- specs[[nm]]
     if (!is.list(spec) || !all(components %in% names(spec))) {
@@ -96,8 +92,7 @@ model_grid <- function(...) {
     formula = lapply(specs, `[[`, "formula"),
     family = lapply(specs, `[[`, "family"),
     prior = lapply(specs, `[[`, "prior"),
-    stanvars = lapply(specs, `[[`, "stanvars"),
-    stan_file = lapply(specs, `[[`, "stan_file")
+    stanvars = lapply(specs, `[[`, "stanvars")
   )
   out
 }

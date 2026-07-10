@@ -660,7 +660,7 @@ prior_draws_generator <- function(
   # prefer true prior draws via brms::prior_draws() when available.
   draws_mat <- NULL
   prior_source <- "posterior_degraded"
-  if (inherits(fitter, "BrmsFitter")) {
+  if (S7::S7_inherits(fitter, BrmsFitter)) {
     fr <- .pilot_fit(fitter, pilot_bundle, fit_spec)
     prior_d <- tryCatch(
       {
@@ -963,7 +963,7 @@ forward_sim_generator <- function(
 ) {
   n <- nrow(newdata)
 
-  if (inherits(fitter, "BrmsFitter")) {
+  if (S7::S7_inherits(fitter, BrmsFitter)) {
     pp <- tryCatch(
       as.numeric(brms::posterior_predict(
         fit_result$fit,

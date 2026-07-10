@@ -10,12 +10,14 @@ sbc_ranks(result)
 \item{result}{A \code{bayesim_simulation_result}.}
 }
 \value{
-A tibble with columns \code{task_id}, \code{param}, \code{rank}, \code{n_draws}.
+A tibble with columns \code{task_id}, \code{param}, \code{rank}, \code{n_draws}, and
+available condition columns.
 }
 \description{
 Collects the per-task \code{rank__by_param} entries (from
 \code{\link[=rank_metric]{rank_metric()}}) into a long tibble with columns \code{task_id}, \code{param},
-\code{rank}, \code{n_draws}. Returns an empty tibble if no rank metric was computed.
+\code{rank}, \code{n_draws}, plus atomic \verb{data_*} and \verb{fit_*} condition columns.
+Returns an empty tibble if no rank metric was computed.
 }
 \examples{
 \dontrun{

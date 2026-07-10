@@ -52,10 +52,23 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
 
   daemons_set <- isTRUE(mirai::daemons_set())
   n_compile <- if (
-    inherits(fitter, "BrmsFitter") && !is.null(config@fit_grid)
+    S7::S7_inherits(fitter, BrmsFitter) && !is.null(config@fit_grid)
   ) {
-    # Distinct model specs (formula/family combinations) → bank compiles each.
-    nrow(config@fit_grid)
+    hashes <- vapply(
+      seq_len(nrow(config@fit_grid)),
+      function(i) {
+        spec <- model_spec_from_grid_row(config@fit_grid, i)
+        model_spec_hash(
+          spec$formula,
+          spec$family,
+          spec$prior,
+          spec$stanvars,
+          fitter@backend
+        )
+      },
+      character(1)
+    )
+    length(unique(hashes))
   } else if (S7::S7_inherits(fitter, CmdStanFitter_class)) {
     1L
   } else {

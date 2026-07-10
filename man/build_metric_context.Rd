@@ -4,7 +4,14 @@
 \alias{build_metric_context}
 \title{Build context for metrics computation}
 \usage{
-build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
+build_metric_context(
+  fit_result,
+  fitter,
+  data_bundle,
+  metrics,
+  seed = NULL,
+  retain = character()
+)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object from a successful fit}
@@ -14,6 +21,9 @@ build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
 \item{data_bundle}{A validated data bundle list}
 
 \item{metrics}{List of S7 Metric objects}
+
+\item{retain}{Retention specification. Requesting \code{"predictions"} computes
+predictions even when no metric needs them.}
 }
 \value{
 A named list containing any of:
@@ -24,9 +34,8 @@ A named list containing any of:
 }
 }
 \description{
-Precomputes predictions, log_lik, loo based on metric needs.
-Only computes what is needed by the metrics, and only if the fitter
-supports it.
+Precomputes predictions, log_lik, and loo based on metric needs and retained
+predictions. Only computes requested context that the fitter supports.
 }
 \details{
 The function inspects the \code{needs} property of each metric to determine

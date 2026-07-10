@@ -21,7 +21,8 @@ TRUE/FALSE. Never throws.
 \description{
 Builds a quick summary from \code{task_results_so_far} and calls
 \code{\link[=performance_measures]{performance_measures()}} for \code{stop_on$estimand}. Returns TRUE when the MCSE of
-\code{stop_on$measure} is finite and below \code{stop_on$target_mcse}. Wrapped in
-tryCatch by the caller: any failure (e.g. no truth columns yet) => FALSE.
+\code{stop_on$measure} is finite and below \code{stop_on$target_mcse} in every
+condition cell. Wrapped in tryCatch by the caller: any failure (e.g. no
+truth columns yet) => FALSE.
 }
 \keyword{internal}

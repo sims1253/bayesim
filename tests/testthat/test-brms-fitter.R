@@ -30,6 +30,34 @@ tiny_fitter <- function() {
   BrmsFitter(chains = 1L, iter = 50L, warmup = 25L, cores = 1L)
 }
 
+describe("BrmsFitter timings", {
+  it("reads timings directly from cmdstanr fits without rstan", {
+    cmdstan_fit <- structure(
+      list(time = function() {
+        list(
+          total = 3,
+          chains = data.frame(
+            chain_id = 1:2,
+            warmup = c(0.5, 0.6),
+            sampling = c(1, 1.2),
+            total = c(1.5, 1.8)
+          )
+        )
+      }),
+      class = "CmdStanMCMC"
+    )
+
+    timing <- bayesim:::extract_brms_timings(
+      list(fit = cmdstan_fit),
+      fallback_total = 99
+    )
+
+    expect_equal(timing$warmup, 1.1)
+    expect_equal(timing$sample, 2.2)
+    expect_equal(timing$total, 3.3)
+  })
+})
+
 describe("BrmsFitter model bank", {
   it("builds one prefit per distinct model spec", {
     fit_grid <- data.frame(
@@ -40,13 +68,16 @@ describe("BrmsFitter model bank", {
     fit_grid$family <- list(gaussian(), gaussian(), brms::brmsfamily("student"))
 
     fitter <- tiny_fitter()
-    bank <- bayesim:::build_model_bank(
-      fitter = fitter,
-      fit_grid = fit_grid,
-      data_generator = gaussian_data_generator,
-      data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+    expect_warning(
+      bank <- bayesim:::build_model_bank(
+        fitter = fitter,
+        fit_grid = fit_grid,
+        data_generator = gaussian_data_generator,
+        data_spec_template = list(n = 20),
+        result_path = NULL,
+        seed = 42L
+      ),
+      "explicit priors"
     )
 
     # Two distinct specs: gaussian (deduped from 2 rows) and student_t.

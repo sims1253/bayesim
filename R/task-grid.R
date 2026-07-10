@@ -259,11 +259,26 @@ create_task_grid <- function(config) {
 #' spec$fit_spec   # Fit parameters for this task
 #' }
 get_task_spec <- function(task_grid, task_id, config) {
-  row <- task_grid[task_grid$task_id == task_id, ]
-
-  if (nrow(row) == 0) {
+  row_idx <- match(task_id, task_grid$task_id)
+  if (is.na(row_idx)) {
     cli::cli_abort("Task '{task_id}' not found in grid")
   }
+  get_task_spec_at(task_grid, row_idx, config)
+}
+
+#' Get a task specification by precomputed row index
+#'
+#' The execution loop resolves a whole batch of task IDs once and calls this
+#' helper by index, avoiding repeated full-grid scans for large studies.
+#'
+#' @param task_grid A task grid tibble.
+#' @param row_idx Scalar row index.
+#' @param config The SimulationConfig used to create the grid.
+#' @return A task specification list; see [get_task_spec()].
+#' @keywords internal
+get_task_spec_at <- function(task_grid, row_idx, config) {
+  row <- task_grid[row_idx, , drop = FALSE]
+  task_id <- row$task_id[[1]]
 
   list(
     task_id = task_id,
@@ -414,11 +429,7 @@ parse_task_id <- function(task_id) {
 #' # summary["success"]  # Number of successful tasks
 #' }
 get_task_count_summary <- function(task_grid) {
-  stats::setNames(
-    as.integer(table(task_grid$status)),
-    levels(factor(
-      task_grid$status,
-      levels = c("pending", "success", "failed", "skipped")
-    ))
-  )
+  statuses <- c("pending", "success", "failed", "skipped")
+  counts <- table(factor(task_grid$status, levels = statuses))
+  stats::setNames(as.integer(counts), statuses)
 }

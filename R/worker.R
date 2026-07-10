@@ -23,7 +23,6 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #' @param fitter S7 Fitter object
 #' @param metrics List of Metric objects
 #' @param retain Character vector of what to retain
-#'
 #' @return A bayesim_task_result S3 object. If a recoverable error occurs,
 #'   returns a failed task result with error information. Fatal errors are
 #'   re-thrown and will stop the simulation.
@@ -53,7 +52,7 @@ run_task_safe <- function(
   # condition class chain; the controller (execute_tasks) re-raises a
   # reconstructed condition after collecting the batch. This removes the
   # entire cross-boundary mirai condition-restoration machinery.
-  tryCatch(
+  rlang::try_fetch(
     run_task(task, config_spec, fitter, metrics, retain),
     error = function(e) {
       err_info <- capture_error_info(e)
@@ -103,7 +102,6 @@ run_task_safe <- function(
 #'     \item "fit": The raw fit object
 #'     \item "draws": Posterior draws matrix
 #'   }
-#'
 #' @return A bayesim_task_result S3 object containing:
 #'   \itemize{
 #'     \item `task_id`: Task identifier
@@ -180,7 +178,7 @@ run_task <- function(
   task_ctx <- c(task$task_ctx, list(seed = task_seed))
 
   # Step 1: Generate data
-  data_result <- tryCatch(
+  data_result <- rlang::try_fetch(
     {
       # B4: generator signature is (data_spec, task_ctx); task_ctx$seed carries
       # the integer seed for backends that need one.
@@ -194,7 +192,7 @@ run_task <- function(
     error = function(e) {
       # C1: fatal errors propagate so the controller can stop the run.
       if (is_fatal_error(e)) {
-        stop(e)
+        stop(rlang::cnd_entrace(e))
       }
       # Normalize to bayesim_data_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
@@ -220,7 +218,7 @@ run_task <- function(
   data_bundle <- data_result$data_bundle
 
   # Step 2: Fit model
-  fit_result <- tryCatch(
+  fit_result <- rlang::try_fetch(
     {
       fit_model(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
     },
@@ -228,8 +226,9 @@ run_task <- function(
       # C1: fatal errors (config/contract/checkpoint/internal) propagate so the
       # controller can stop the run. Only recoverable fit errors are wrapped.
       if (is_fatal_error(e)) {
-        stop(e)
+        stop(rlang::cnd_entrace(e))
       }
+      error_trace <- rlang::trace_back()
       # Normalize to bayesim_fit_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
         e <- bayesim_fit_error(
@@ -237,6 +236,7 @@ run_task <- function(
           call = conditionCall(e)
         )
       }
+      e$trace <- error_trace
       new_fit_result(
         success = FALSE,
         error = e,
@@ -261,7 +261,8 @@ run_task <- function(
     fitter,
     data_bundle,
     metrics,
-    task_seed
+    task_seed,
+    retain = retain
   )
 
   # Step 4: Compute metrics
@@ -299,7 +300,13 @@ run_task <- function(
     truth = data_bundle$true_params
   )
 
-  apply_task_retention(task_result, fit_result, data_bundle, task_retain)
+  apply_task_retention(
+    task_result,
+    fit_result,
+    data_bundle,
+    task_retain,
+    predictions = context$predictions
+  )
 }
 
 # =============================================================================
@@ -308,14 +315,15 @@ run_task <- function(
 
 #' Build context for metrics computation
 #'
-#' Precomputes predictions, log_lik, loo based on metric needs.
-#' Only computes what is needed by the metrics, and only if the fitter
-#' supports it.
+#' Precomputes predictions, log_lik, and loo based on metric needs and retained
+#' predictions. Only computes requested context that the fitter supports.
 #'
 #' @param fit_result A bayesim_fit_result object from a successful fit
 #' @param fitter S7 Fitter object
 #' @param data_bundle A validated data bundle list
 #' @param metrics List of S7 Metric objects
+#' @param retain Retention specification. Requesting `"predictions"` computes
+#'   predictions even when no metric needs them.
 #'
 #' @return A named list containing any of:
 #'   \itemize{
@@ -343,7 +351,8 @@ build_metric_context <- function(
   fitter,
   data_bundle,
   metrics,
-  seed = NULL
+  seed = NULL,
+  retain = character()
 ) {
   context <- list()
 
@@ -351,6 +360,14 @@ build_metric_context <- function(
   all_needs <- unique(unlist(lapply(metrics, function(m) {
     if (S7::S7_inherits(m)) m@needs else character()
   })))
+  retained_options <- if (is.list(retain)) {
+    unique(unlist(retain, use.names = FALSE))
+  } else {
+    retain
+  }
+  if ("predictions" %in% retained_options) {
+    all_needs <- unique(c(all_needs, "predictions"))
+  }
 
   # Warn if metrics need features the fitter doesn't support
   if ("predictions" %in% all_needs && !fitter@supports_predictions) {
@@ -551,9 +568,10 @@ compute_all_metrics <- function(
     }
 
     metric_result <- tryCatch(
-      {
+      withr::with_seed(
+        derive_metric_seed(task_ctx$seed, metric_name),
         compute_metric(metric, fit_result, data_bundle, context, task_ctx)
-      },
+      ),
       error = function(e) {
         if (is_required) {
           stop(e)
@@ -582,6 +600,20 @@ compute_all_metrics <- function(
     metrics = unlist(metric_results, recursive = FALSE),
     warnings = unique(warning_acc)
   )
+}
+
+#' Derive a stable, metric-specific RNG seed
+#'
+#' Isolates stochastic metrics from one another: adding or reordering a metric
+#' cannot change another metric's random draws within the same task.
+#'
+#' @param task_seed Scalar task seed.
+#' @param metric_name Character metric name.
+#' @return A positive scalar integer seed.
+#' @keywords internal
+derive_metric_seed <- function(task_seed, metric_name) {
+  hash <- digest::digest2int(paste(task_seed, metric_name, sep = ":"))
+  as.integer((abs(as.double(hash)) %% (.Machine$integer.max - 1)) + 1)
 }
 
 #' Derive a scalar seed from an RNG state vector.

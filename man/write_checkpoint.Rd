@@ -9,7 +9,9 @@ write_checkpoint(
   task_grid,
   task_results,
   config_fingerprint,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  keep_checkpoints = Inf,
+  prior_results_df = NULL
 )
 }
 \arguments{
@@ -27,6 +29,15 @@ results from completed tasks.}
 configuration for validation purposes.}
 
 \item{checkpoint_format}{Character scalar naming the checkpoint storage format.}
+
+\item{keep_checkpoints}{Positive integer; number of complete snapshots to
+retain. Older snapshots are pruned only after the new checkpoint and
+\code{latest.json} have been written successfully. \code{Inf} disables pruning for
+direct/internal callers.}
+
+\item{prior_results_df}{Optional cached data frame of results from before the
+current execution. When supplied, it replaces the legacy read of the
+previous checkpoint.}
 }
 \value{
 Invisible checkpoint ID (integer), or NULL if result_path is NULL.

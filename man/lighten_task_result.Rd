@@ -28,13 +28,14 @@ This function:
 \itemize{
 \item Always keeps: task_id, status, metrics, timing, error
 \item Keeps diagnostics only if "diagnostics" is in retain
-\item Removes: draws, predictions, fit, data (always, since checkpointed)
+\item Keeps retained fit, draws, predictions, and data fields; these are
+intentionally omitted only when their retention option is absent
 \item Keeps warnings only if "warnings" is in retain
 }
 
-The rationale is that metrics and diagnostics are needed for the final
-summary dataframe construction, while heavy objects (fit, draws, data)
-can be loaded from checkpoint if needed for detailed analysis.
+The retention policy is authoritative: metrics-only runs stay lightweight,
+while users who explicitly retain heavy artifacts receive them in the final
+result even when checkpointing is enabled.
 }
 \seealso{
 \code{\link[=execute_tasks]{execute_tasks()}}, \code{\link[=write_checkpoint]{write_checkpoint()}}

@@ -71,7 +71,6 @@ Imports:
     utils,
     withr (>= 2.5.0)
 Suggests:
-    bayesfam,
     brms (>= 2.22.0),
     caret,
     cmdstanr (>= 0.7.0),
@@ -86,7 +85,6 @@ Suggests:
     rstan (>= 2.32.0),
     testthat (>= 3.1.0)
 Remotes:
-    stan-dev/cmdstanr,
-    sims1253/bayesfam
+    stan-dev/cmdstanr
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0

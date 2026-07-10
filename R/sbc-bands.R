@@ -41,6 +41,10 @@ adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
     # 0.x used adjust_gamma_simulate(N, L, K, conf_level) via bayeshear::u_scale,
     # which is unavailable here. Fall back to the exact single-sample band,
     # which is conservative for the multi-chain case.
+    cli::cli_inform(c(
+      "Using the single-sample SBC band for {.arg L} > 1.",
+      i = "The resulting band is conservative for correlated chains."
+    ))
     gamma <- adjust_gamma_optimize(N, K, conf_level)
   }
   gamma

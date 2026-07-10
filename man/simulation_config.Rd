@@ -16,6 +16,7 @@ simulation_config(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
+  keep_checkpoints = 2L,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL,
@@ -55,6 +56,11 @@ excluded from the config fingerprint — it is runtime policy.)}
 \item{checkpoint_every}{Positive integer. Save progress every N tasks. This
 single knob also bounds the number of task results held in memory at once
 (B4: the former separate \code{chunk_size} knob was merged into this).}
+
+\item{keep_checkpoints}{Positive integer. Number of complete checkpoint
+snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
+plus one fallback for corruption recovery. Runtime policy; excluded from
+the config fingerprint.}
 
 \item{retain}{Character vector. What to retain in results. Must be subset of
 \code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.

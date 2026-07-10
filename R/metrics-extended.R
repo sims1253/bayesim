@@ -342,6 +342,11 @@ S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(
 #'   test. `n_ranks` (posterior sample size after thinning + 1 possible ranks)
 #'   is reported per variable and is required by the SBC diagnostics
 #'   (`plot_rank_ecdf`).
+#'
+#'   Ranks use the strict comparison `draw < truth`, which is appropriate for
+#'   continuous posterior distributions where exact ties have probability
+#'   zero. For discrete parameters or parameters with boundary point masses,
+#'   use a custom metric with randomized tie-breaking.
 #' @param name Character string naming the metric. Defaults to "rank".
 #' @param thin Thinning policy. `"auto"` (default) thins toward the min
 #'   bulk-ESS across ranked variables; `FALSE` disables thinning (rank over all
@@ -891,50 +896,19 @@ S7::method(compute_metric, ElpdTestMetric) <- function(
   list(value = elpd, n_obs = ncol(ll))
 }
 
-#' @title RMSE Test-Set Metric
-#' @description Root-mean-square error of posterior-mean predictions on the
-#'   held-out test set. Returns NA when no test set.
+#' Test-set RMSE compatibility constructor
+#'
+#' `rmse_test_metric()` is a naming-compatible wrapper around
+#' [pred_rmse_metric()]. Both compute root-mean-square error of posterior-mean
+#' predictions on the held-out test set; use `pred_rmse_metric()` in new code.
+#'
 #' @param name Character string naming the metric. Defaults to "rmse_test".
-#' @return A `RmseTestMetric` object.
-#' @keywords internal
-RmseTestMetric <- S7::new_class(
-  "RmseTestMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "rmse_test"),
-    needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
-  )
-)
-
-#' @rdname RmseTestMetric
-#' @description Constructor for RmseTestMetric.
-#' @return A `RmseTestMetric` object.
+#' @return An `RmseMetric` object.
 #' @export
 #' @examples
 #' rmse_test_metric()
 rmse_test_metric <- function(name = "rmse_test") {
-  RmseTestMetric(name = name, needs = "predictions", required = FALSE)
-}
-
-S7::method(compute_metric, RmseTestMetric) <- function(
-  metric,
-  fit_result,
-  data_bundle,
-  context,
-  task_ctx
-) {
-  test_data <- data_bundle$test
-  if (is.null(test_data) || is.null(context$predictions)) {
-    return(list(value = NA_real_, n_obs = NA_integer_))
-  }
-  actual <- test_data[[data_bundle$response]]
-  predicted <- context$predictions$predicted_mean
-  n <- min(length(actual), length(predicted))
-  list(
-    value = sqrt(mean((predicted[seq_len(n)] - actual[seq_len(n)])^2)),
-    n_obs = n
-  )
+  pred_rmse_metric(name = name)
 }
 
 #' @title R-squared Test-Set Metric

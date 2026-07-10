@@ -4,13 +4,7 @@
 \alias{brms_model}
 \title{Construct a single brms model specification}
 \usage{
-brms_model(
-  formula,
-  family = NULL,
-  prior = NULL,
-  stanvars = NULL,
-  stan_file = NULL
-)
+brms_model(formula, family = NULL, prior = NULL, stanvars = NULL)
 }
 \arguments{
 \item{formula}{A formula or brmsformula.}
@@ -21,16 +15,13 @@ brms default.}
 \item{prior}{A brms prior object, or NULL.}
 
 \item{stanvars}{A brms \code{stanvars} object, or NULL.}
-
-\item{stan_file}{Optional path to a \code{.stan} file (passed through to brms).}
 }
 \value{
-A named list with elements \code{formula}, \code{family}, \code{prior}, \code{stanvars},
-\code{stan_file}.
+A named list with elements \code{formula}, \code{family}, \code{prior}, \code{stanvars}.
 }
 \description{
 Builds a one-row list of brms model components (formula, family, prior,
-stanvars, stan_file) suitable for assembling a fit_grid via \code{\link[=model_grid]{model_grid()}}.
+and stanvars suitable for assembling a fit_grid via \code{\link[=model_grid]{model_grid()}}.
 Inputs are validated at construction so errors surface before compilation.
 }
 \examples{

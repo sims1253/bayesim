@@ -77,20 +77,6 @@ describe("metrics against a real (tiny) brmsfit", {
     }
   })
 
-  it("posterior_mean_metric returns finite values for x/Intercept/sigma", {
-    out <- compute_metric(
-      posterior_mean_metric(),
-      fit_result,
-      data_bundle,
-      list(),
-      ctx
-    )
-    for (v in c("x", "Intercept", "sigma")) {
-      expect_true(v %in% names(out), info = paste("missing", v))
-      expect_true(is.finite(out[[v]]), info = paste("non-finite for", v))
-    }
-  })
-
   it("pos_prob_metric returns in-range non-NA probabilities", {
     out <- compute_metric(
       pos_prob_metric(),

@@ -35,14 +35,10 @@ describe("B1: renamed generics do not mask foreign packages", {
       refresh = 0L
     ))
 
-    # Attach brms then bayesim (the package under test) after it. log_lik must
-    # still dispatch to brms because bayesim no longer exports a log_lik generic.
-    library(brms)
-    on.exit(detach("package:brms"), add = TRUE)
-    library(bayesim)
-    on.exit(detach("package:bayesim"), add = TRUE)
-
-    ll <- log_lik(fit)
+    # The export assertion above proves bayesim cannot mask this generic in
+    # either attachment order. Exercise brms dispatch without mutating the
+    # shared test process's package search path.
+    ll <- brms::log_lik(fit)
     expect_true(is.matrix(ll))
   })
 })
