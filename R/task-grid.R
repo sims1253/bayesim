@@ -16,38 +16,43 @@ NULL
 #'
 #' @keywords internal
 #'
-#' @note This function is exported for advanced/internal use.
+#' @details The caller's RNG kind and seed are restored on exit, including when
+#'   `.Random.seed` did not exist before the call.
 create_task_rng_streams <- function(global_seed, n_tasks) {
-  # Store current RNG state to restore later
-  old_kind <- RNGkind()[1]
-  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
-    get(".Random.seed", envir = .GlobalEnv)
+  old_kind <- base::RNGkind()
+  seed_existed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  old_seed <- if (seed_existed) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   } else {
     NULL
   }
-
   on.exit(
     {
-      RNGkind(old_kind)
-      if (!is.null(old_seed)) {
+      do.call(base::RNGkind, as.list(old_kind))
+      if (seed_existed) {
         assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      } else if (
+        exists(
+          ".Random.seed",
+          envir = .GlobalEnv,
+          inherits = FALSE
+        )
+      ) {
+        rm(".Random.seed", envir = .GlobalEnv)
       }
     },
     add = TRUE
   )
 
-  # Set L'Ecuyer-CMRG for parallel-safe reproducibility
-  RNGkind("L'Ecuyer-CMRG")
+  base::RNGkind("L'Ecuyer-CMRG")
   set.seed(global_seed)
 
-  # Precompute streams for all tasks
   streams <- vector("list", n_tasks)
   seed <- .Random.seed
   for (i in seq_len(n_tasks)) {
     streams[[i]] <- seed
     seed <- parallel::nextRNGStream(seed)
   }
-
   streams
 }
 

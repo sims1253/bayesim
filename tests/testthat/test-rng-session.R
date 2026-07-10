@@ -21,7 +21,7 @@ describe("run_simulation RNG isolation", {
     }
     on.exit(
       {
-        do.call(RNGkind, as.list(original_kind))
+        do.call(base::RNGkind, as.list(original_kind))
         if (is.null(original_seed)) {
           if (exists(".Random.seed", envir = .GlobalEnv)) {
             rm(".Random.seed", envir = .GlobalEnv)

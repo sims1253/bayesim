@@ -140,6 +140,39 @@ describe("RNG Management", {
       expect_identical(streams1, streams2)
     })
 
+    it("restores every RNG kind component and an absent seed", {
+      original_kind <- RNGkind()
+      original_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
+        get(".Random.seed", envir = .GlobalEnv)
+      } else {
+        NULL
+      }
+      on.exit(
+        {
+          do.call(base::RNGkind, as.list(original_kind))
+          if (is.null(original_seed)) {
+            if (exists(".Random.seed", envir = .GlobalEnv)) {
+              rm(".Random.seed", envir = .GlobalEnv)
+            }
+          } else {
+            assign(".Random.seed", original_seed, envir = .GlobalEnv)
+          }
+        },
+        add = TRUE
+      )
+
+      RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+      if (exists(".Random.seed", envir = .GlobalEnv)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+      before_kind <- RNGkind()
+
+      create_task_rng_streams(42, 3)
+
+      expect_identical(RNGkind(), before_kind)
+      expect_false(exists(".Random.seed", envir = .GlobalEnv))
+    })
+
     it("advances using independent L'Ecuyer streams", {
       RNGkind("L'Ecuyer-CMRG")
       set.seed(42)
