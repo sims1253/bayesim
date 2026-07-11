@@ -178,36 +178,7 @@ If interrupted, resume with:
 result <- resume_simulation("my_simulation")
 ```
 
-# Custom Metrics
-
-Extend the `Metric` class and implement `compute_metric()` (see
-`vignette("custom-metrics")` for the full contract):
-
-```{r}
-MyMetric <- S7::new_class(
-  "MyMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "my_metric"),
-    needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
-  )
-)
-
-S7::method(compute_metric, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  list(value = 0.5)
-}
-
-config <- simulation_config(
-  data_grid = data.frame(n = 100),
-  fit_grid = data.frame(model = "test"),
-  data_generator = my_data_generator,
-  fitter = LinearRegressionFitter(n_draws = 200L),
-  metrics = list(MyMetric()),
-  n_replicates = 2L,
-  seed = 42L
-)
-```
+# Metrics
 
 The built-in metric library covers the standard surface: `pred_bias_metric`,
 `pred_rmse_metric`, `pred_mae_metric`, `pred_mse_metric`, `coverage_metric`,
@@ -217,6 +188,10 @@ LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
 `elpd_test_metric`, `pred_rmse_metric`, `r2_test_metric`).
 `rmse_test_metric()` remains as a compatibility name for
 `pred_rmse_metric(name = "rmse_test")`.
+
+To write your own metric, extend the `Metric` class and implement
+`compute_metric()`; `vignette("custom-metrics")` covers the full contract,
+the output schema, and how large outputs are externalized.
 
 # Reproducibility
 
