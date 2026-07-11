@@ -29,6 +29,12 @@ data generator and fitter run, so the RNG state a task sees depends only
 on its position in the grid – not on execution order, parallelism, or
 which other tasks have completed.
 
+Stochastic metrics receive deterministic sub-seeds derived from the task
+seed and metric name. Adding or reordering metrics therefore does not
+change the random draws used by another metric.
+[`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+also restores the caller’s RNG kind and state when it returns.
+
 ``` r
 
 library(bayesim)
@@ -104,6 +110,8 @@ resume is reproducible.
 - Changing the seed.
 - Changing the data generator’s RNG consumption (e.g. adding an extra
   `rnorm` call) – this shifts all downstream draws for that task.
+- Renaming a stochastic metric, because its name is part of its
+  deterministic metric-specific seed.
 - Reordering the data/fit grid (tasks are identified by grid position).
 - Upgrading Stan/brms/cmdstanr – results stay statistically equivalent
   but not bit-identical.

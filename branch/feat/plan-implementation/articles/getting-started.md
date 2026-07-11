@@ -104,7 +104,7 @@ print(result)
 #>     - Skipped: 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
 #>   Task grid: 8 rows x 6 cols
-#>   Total time: 0.18 s
+#>   Total time: 0.2 s
 ```
 
 ### Examine Results
@@ -183,12 +183,12 @@ head(result$summary)
 #> 5                      0                1        2            1        1
 #> 6                      0                1        2            1        1
 #>   ess_bulk ess_tail divergent max_treedepth timing_total rep_idx data_n
-#> 1      500      500         0             0  0.017411232       1     50
-#> 2      500      500         0             0  0.031905651       2     50
-#> 3      500      500         0             0  0.003921270       3     50
-#> 4      500      500         0             0  0.003745079       4     50
-#> 5      500      500         0             0  0.006474495       1    100
-#> 6      500      500         0             0  0.003725290       2    100
+#> 1      500      500         0             0  0.018351316       1     50
+#> 2      500      500         0             0  0.035759449       2     50
+#> 3      500      500         0             0  0.004430532       3     50
+#> 4      500      500         0             0  0.004460573       4     50
+#> 5      500      500         0             0  0.004014015       1    100
+#> 6      500      500         0             0  0.003907204       2    100
 #>   data_intercept data_slope data_sigma fit_model
 #> 1              1          2          1    linear
 #> 2              1          2          1    linear
@@ -214,18 +214,18 @@ errors (MCSE):
 
 agg <- summarize_simulation(result, by = "data_n")
 agg
-#> # A tibble: 2 × 124
-#>   data_n n_reps n_failed failure_rate posterior_summary__mean__Intercept_mean
-#>    <dbl>  <int>    <int>        <dbl>                                   <dbl>
-#> 1    100      4        0            0                                   1.02 
-#> 2     50      4        0            0                                   0.938
-#> # ℹ 119 more variables: posterior_summary__mean__Intercept_median <dbl>,
+#> # A tibble: 2 × 154
+#>   data_n n_reps n_failed failure_rate posterior_summary__mean__Intercept_n_used
+#>    <dbl>  <int>    <int>        <dbl>                                     <int>
+#> 1     50      4        0            0                                         4
+#> 2    100      4        0            0                                         4
+#> # ℹ 149 more variables: posterior_summary__mean__Intercept_mean <dbl>,
+#> #   posterior_summary__mean__Intercept_median <dbl>,
 #> #   posterior_summary__mean__Intercept_sd <dbl>,
 #> #   posterior_summary__mean__Intercept_mcse <dbl>,
+#> #   posterior_summary__mean__x_n_used <int>,
 #> #   posterior_summary__mean__x_mean <dbl>,
-#> #   posterior_summary__mean__x_median <dbl>,
-#> #   posterior_summary__mean__x_sd <dbl>, posterior_summary__mean__x_mcse <dbl>,
-#> #   posterior_summary__mean__sigma_mean <dbl>, …
+#> #   posterior_summary__mean__x_median <dbl>, …
 ```
 
 For each metric you get `<metric>_mean`, `<metric>_median`,
@@ -313,40 +313,7 @@ If interrupted, resume with:
 result <- resume_simulation("my_simulation")
 ```
 
-## Custom Metrics
-
-Extend the `Metric` class and implement
-[`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
-(see
-[`vignette("custom-metrics")`](https://sims1253.github.io/bayesim/articles/custom-metrics.md)
-for the full contract):
-
-``` r
-
-MyMetric <- S7::new_class(
-  "MyMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(S7::class_character, default = "my_metric"),
-    needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
-  )
-)
-
-S7::method(compute_metric, MyMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  list(value = 0.5)
-}
-
-config <- simulation_config(
-  data_grid = data.frame(n = 100),
-  fit_grid = data.frame(model = "test"),
-  data_generator = my_data_generator,
-  fitter = LinearRegressionFitter(n_draws = 200L),
-  metrics = list(MyMetric()),
-  n_replicates = 2L,
-  seed = 42L
-)
-```
+## Metrics
 
 The built-in metric library covers the standard surface:
 `pred_bias_metric`, `pred_rmse_metric`, `pred_mae_metric`,
@@ -354,8 +321,17 @@ The built-in metric library covers the standard surface:
 `posterior_summary_metric`, `convergence_metric`,
 `sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`,
 and LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`,
-`r2_loo_metric`, `elpd_test_metric`, `rmse_test_metric`,
+`r2_loo_metric`, `elpd_test_metric`, `pred_rmse_metric`,
 `r2_test_metric`).
+[`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
+remains as a compatibility name for
+`pred_rmse_metric(name = "rmse_test")`.
+
+To write your own metric, extend the `Metric` class and implement
+[`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md);
+[`vignette("custom-metrics")`](https://sims1253.github.io/bayesim/articles/custom-metrics.md)
+covers the full contract, the output schema, and how large outputs are
+externalized.
 
 ## Reproducibility
 

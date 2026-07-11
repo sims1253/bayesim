@@ -55,22 +55,26 @@ The SBC recipe needs three ingredients:
     which counts how many posterior draws fall below the true `theta`,
     giving one rank per task per parameter.
 
-Below, the generator draws `(Intercept, slope, sigma)` from the same
-weak prior family the `LinearRegressionFitter` assumes (broad Normal
-coefficients, inverse-gamma residual scale), then simulates Gaussian
-linear data. Because the fitter is the exact conjugate NIG updater, SBC
-should pass by construction — which is exactly what makes this a good
-teaching example: you see a *correct* rank distribution and learn what
-passing looks like.
+Below, the generator draws `(Intercept, slope, sigma)` from exactly the
+same Normal-Inverse-Gamma prior passed to
+[`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md),
+then simulates Gaussian linear data. In an NIG prior the coefficient
+distribution is conditional on the residual variance:
+`beta | sigma^2 ~ Normal(0, sigma^2 Lambda^-1)`. Matching that
+conditional prior is essential; a prior mismatch is itself a valid SBC
+failure mode. Because the fitter is the exact conjugate updater for this
+same prior, SBC should pass by construction.
 
 ``` r
 
 sbc_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
-  # Draw theta from the model prior (conjugate-friendly, weak/diffuse).
-  intercept <- stats::rnorm(1, mean = 0, sd = 2)
-  slope     <- stats::rnorm(1, mean = 0, sd = 2)
+  # Exact NIG prior used by the fitter below:
+  # sigma^2 ~ Inv-Gamma(2, 1)
+  # beta | sigma^2 ~ Normal(0, sigma^2 / 0.25)
   sigma     <- sqrt(1 / stats::rgamma(1, shape = 2, rate = 1))
+  intercept <- stats::rnorm(1, mean = 0, sd = sigma / sqrt(0.25))
+  slope     <- stats::rnorm(1, mean = 0, sd = sigma / sqrt(0.25))
   # Simulate y from the likelihood given theta.
   x <- stats::rnorm(n)
   y <- intercept + slope * x + stats::rnorm(n, sd = sigma)
@@ -101,7 +105,13 @@ config <- simulation_config(
   data_grid = data.frame(n = 40L),
   fit_grid = data.frame(model = "lm"),
   data_generator = sbc_generator,
-  fitter = LinearRegressionFitter(n_draws = 1000L),
+  fitter = LinearRegressionFitter(
+    n_draws = 1000L,
+    prior_mean = 0,
+    prior_precision = 0.25,
+    a0 = 2,
+    b0 = 1
+  ),
   metrics = list(
     rank_metric(thin = "auto"),
     posterior_summary_metric()
@@ -125,22 +135,20 @@ below.
 collects the per-task ranks into a long tibble;
 [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
 plots the empirical CDF of the normalized ranks against the uniform CDF
-(the diagonal), with a pointwise uniformity band following Talts et
-al. (2018).
+(the diagonal), with the simultaneous uniformity band of Säilynoja,
+Bürkner, and Vehtari (2022).
 
 ``` r
 
 ranks <- sbc_ranks(result)
 head(ranks)
-#> # A tibble: 6 × 5
-#>   task_id          param      rank n_draws n_ranks
-#>   <chr>            <chr>     <int>   <int>   <int>
-#> 1 d001_f001_r00001 Intercept   577    1000    1001
-#> 2 d001_f001_r00002 Intercept   124    1000    1001
-#> 3 d001_f001_r00003 Intercept   554    1000    1001
-#> 4 d001_f001_r00004 Intercept   277    1000    1001
-#> 5 d001_f001_r00005 Intercept   859    1000    1001
-#> 6 d001_f001_r00006 Intercept     7    1000    1001
+#>                      task_id     param rank n_draws n_ranks data_n fit_model
+#> Intercept.1 d001_f001_r00001 Intercept  920    1000    1001     40        lm
+#> Intercept.2 d001_f001_r00002 Intercept  148    1000    1001     40        lm
+#> Intercept.3 d001_f001_r00003 Intercept  680    1000    1001     40        lm
+#> Intercept.4 d001_f001_r00004 Intercept  254    1000    1001     40        lm
+#> Intercept.5 d001_f001_r00005 Intercept  826    1000    1001     40        lm
+#> Intercept.6 d001_f001_r00006 Intercept  902    1000    1001     40        lm
 ```
 
 ``` r
@@ -150,12 +158,13 @@ plot_rank_ecdf(ranks, alpha = 0.95)
 
 ![](sbc-and-calibration_files/figure-html/sbc-ecdf-1.png)
 
-**How to read the band.** The grey ribbon is the pointwise 95% coverage
-interval for the ECDF of a truly uniform sample of this size, derived
-from the beta distribution of order statistics: at the `i`-th of `n`
-ordered points the lower bound is `qbeta(0.025, i, n + 1 - i)` and the
-upper bound is `qbeta(0.975, i, n + 1 - i)`. Under correct calibration,
-the ECDF (black step) should stay inside the ribbon everywhere. The
+**How to read the band.** The grey ribbon is a 95% *simultaneous*
+confidence envelope for the whole ECDF, calibrated with the
+discrete-uniform method of Säilynoja et al. (2022). Under correct
+calibration, the entire black ECDF stays inside the ribbon with
+probability 0.95. Consequently, a crossing anywhere is evidence against
+uniformity at the 5% global level; it is not the routine pointwise
+excursion expected from a collection of separate 95% intervals. The
 dashed red line is the theoretical uniform CDF.
 
 Because `LinearRegressionFitter` is the *exact* conjugate updater, the
@@ -180,12 +189,14 @@ departure tells you what is wrong:
 - **One-sided drift:** the posterior is *biased* — it systematically
   over- or under-estimates `theta`.
 
-Random excursions outside the band at one or two points, with the ECDF
-returning inside, are expected by chance at the 95% level and are not
-evidence of miscalibration. Use a stricter band (`alpha = 0.99`) to
-confirm suspected systematic departures, and increase `n_replicates` to
-sharpen the test — SBC is a Monte Carlo procedure with its own sampling
-noise.
+Because this is a simultaneous band, even one crossing rejects
+uniformity at the displayed global level. The shape and persistence of a
+departure remain useful for diagnosis, but they are not required for the
+graphical test to flag a problem. A 95% procedure still has a 5%
+false-positive probability under perfect calibration, so use a broader
+band (`alpha = 0.99`) or an independent rerun when the practical
+decision is consequential. Increasing `n_replicates` increases power —
+SBC is a Monte Carlo procedure with its own sampling noise.
 
 ## Coverage as a complementary check
 
@@ -210,14 +221,14 @@ plot_coverage(result)
 pm <- performance_measures(result, estimand = "x")
 pm
 #> # A tibble: 6 × 7
-#>   data_n fit_model estimand measure      value     mcse n_sim
-#>    <int> <chr>     <chr>    <chr>        <dbl>    <dbl> <int>
-#> 1     40 lm        x        bias      -0.00877  0.165     150
-#> 2     40 lm        x        emp_se     2.02     0.117     150
-#> 3     40 lm        x        mse        0.0194   0.00352   150
-#> 4     40 lm        x        model_se   0.132    0.00650   150
-#> 5     40 lm        x        coverage   0.933    0.0204    150
-#> 6     40 lm        x        n_sim    150       NA         150
+#>   data_n fit_model estimand measure     value     mcse n_sim
+#>    <int> <chr>     <chr>    <chr>       <dbl>    <dbl> <int>
+#> 1     40 lm        x        bias       0.0209  0.134     150
+#> 2     40 lm        x        emp_se     1.64    0.0947    150
+#> 3     40 lm        x        mse        0.0228  0.00396   150
+#> 4     40 lm        x        model_se   0.140   0.00441   150
+#> 5     40 lm        x        coverage   0.94    0.0194    150
+#> 6     40 lm        x        n_sim    150      NA         150
 ```
 
 The `coverage` row reports the empirical coverage of the 95% posterior
@@ -240,6 +251,9 @@ coverage as the interval-level summary a methods paper reports.
 
 - Talts et al. (2018), *Validating Bayesian Inference Algorithms with
   Simulation-Based Calibration*, arXiv:1804.06788.
+- Säilynoja, Bürkner, and Vehtari (2022), *Graphical test for discrete
+  uniformity and its applications in goodness-of-fit evaluation*,
+  *Statistics and Computing* 32(2).
 - [`vignette("design-of-simulation-studies")`](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md)
   for the Morris, White & Crowther
   2019. framework for designing and reporting simulation studies.

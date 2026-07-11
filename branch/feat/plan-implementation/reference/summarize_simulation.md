@@ -42,8 +42,10 @@ summarize_simulation(result, by = NULL, metrics = NULL)
 ## Value
 
 A tibble with one row per condition: the `by` columns, then for each
-metric `<m>_mean`, `<m>_median`, `<m>_sd`, `<m>_mcse`, plus `n_reps`,
-`n_failed`, `failure_rate`.
+metric `<m>_n_used`, `<m>_mean`, `<m>_median`, `<m>_sd`, `<m>_mcse`,
+plus `n_reps`, `n_failed`, `failure_rate`. `<m>_n_used` is the number of
+finite values used for that metric; failed or non-finite metric values
+do not contribute to its aggregate.
 
 ## Examples
 

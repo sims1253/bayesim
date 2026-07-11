@@ -1,7 +1,7 @@
 # Construct a single brms model specification
 
 Builds a one-row list of brms model components (formula, family, prior,
-stanvars, stan_file) suitable for assembling a fit_grid via
+and stanvars suitable for assembling a fit_grid via
 [`model_grid()`](https://sims1253.github.io/bayesim/reference/model_grid.md).
 Inputs are validated at construction so errors surface before
 compilation.
@@ -9,13 +9,7 @@ compilation.
 ## Usage
 
 ``` r
-brms_model(
-  formula,
-  family = NULL,
-  prior = NULL,
-  stanvars = NULL,
-  stan_file = NULL
-)
+brms_model(formula, family = NULL, prior = NULL, stanvars = NULL)
 ```
 
 ## Arguments
@@ -38,14 +32,9 @@ brms_model(
 
   A brms `stanvars` object, or NULL.
 
-- stan_file:
-
-  Optional path to a `.stan` file (passed through to brms).
-
 ## Value
 
-A named list with elements `formula`, `family`, `prior`, `stanvars`,
-`stan_file`.
+A named list with elements `formula`, `family`, `prior`, `stanvars`.
 
 ## See also
 

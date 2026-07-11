@@ -8,6 +8,35 @@ simulation-method studies (Morris, White & Crowther 2019). Breaking
 across the public API; the package remains GitHub-only and
 lifecycle-experimental.
 
+### Review hardening
+
+- Fixed default simulation summaries with failed tasks: error payloads
+  and other flattened metric metadata no longer become condition
+  columns, and each aggregate now reports the number of finite values
+  used.
+- Adaptive stopping now requires the requested MCSE target in every
+  condition cell, not only the first.
+- Retained predictions are computed and returned even without a
+  prediction metric; checkpoint lightening now honors all explicit
+  retention options and preserves truths.
+- [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  restores the caller’s RNG state and kind. Stochastic metrics use
+  stable metric-specific sub-seeds, so metric order is irrelevant.
+- Task-grid bookkeeping is vectorized by batch. Checkpoint snapshots are
+  pruned to `keep_checkpoints = 2L` by default, retaining one corruption
+  fallback while bounding disk growth.
+- Fixed S7 class checks that had made automatic BrmsFitter model-bank
+  and generator shortcuts unreachable. Precompiled brms models now warn
+  when explicit priors are missing, and preflight reports deduplicated
+  compile counts.
+- Added exported
+  [`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md),
+  repaired the targets/HPC/SBC vignettes, consolidated
+  [`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
+  onto
+  [`pred_rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md),
+  and removed unused dependencies, helpers, and a committed Stan binary.
+
 ### Fitters and the fitter contract
 
 - **Contract matrices are now `S x N` (draws x observations)
@@ -49,7 +78,7 @@ lifecycle-experimental.
 | old | new |
 |----|----|
 | `fit()` | [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md) |
-| [`compute()`](https://dplyr.tidyverse.org/reference/compute.html) | [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md) |
+| `compute()` | [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md) |
 | `log_lik()` | [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md) |
 | `diagnostics()` | [`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md) |
 
@@ -141,13 +170,7 @@ and
 
 ------------------------------------------------------------------------
 
-## bayesim 2.0.0 (prior in-progress entry, kept for history)
-
-This is a ground-up rewrite of the simulation engine, fitters,
-generators, metrics, and analysis layer. It is breaking across the
-public API; the package remains GitHub-only and lifecycle-experimental.
-
-### Major changes
+### Earlier 2.0.0 implementation milestones
 
 #### Engine
 
@@ -180,8 +203,8 @@ public API; the package remains GitHub-only and lifecycle-experimental.
   [`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md),
   [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
   — factory constructors for the standard generator signature
-  `(data_spec, seed, task_ctx) -> data_bundle`. IFS and prior-predictive
-  use a deterministic draw index (`task_ctx$rep_idx`) so SBC ranks are
+  `(data_spec, task_ctx) -> data_bundle`. IFS and prior-predictive use a
+  deterministic draw index (`task_ctx$rep_idx`) so SBC ranks are
   well-defined and resume is reproducible.
 - Inverse forward sampling internals (`brms_full_ppred`,
   `brms_response_sequence`, `nodes_by_depth`) ported from 0.x and
@@ -251,7 +274,7 @@ green.
   truth-comparing metric silently returned NA on real brms fits. A new
   [`resolve_draw_columns()`](https://sims1253.github.io/bayesim/reference/resolve_draw_columns.md)
   helper maps cleaned names to actual columns (or errors) and is used by
-  `coverage_metric`, `posterior_mean_metric`, `pos_prob_metric`,
+  `coverage_metric`, `posterior_summary_metric`, `pos_prob_metric`,
   `posterior_summary_metric`, and `rank_metric`. Output field names stay
   on the cleaned names.
 - **LOO-RMSE and LOO-R² (critical):** the invented formulas
@@ -295,11 +318,9 @@ green.
   now uses true simultaneous ECDF bands (`adjust_gamma` ported from 0.x
   / Säilynoja et al. 2022) instead of an approximate KS bound;
   `posterior` moved from Suggests to Imports; the `dplyr` dependency was
-  dropped (base-R row-binding replaces `bind_rows`);
-  `bayesim_metric_error`, `bayesim_internal_error`, and
-  `bayesim_checkpoint_error` are now exported (extension docs raise
-  them); dead `hash_to_row` removed and a missing-`formula` guard added
-  to
+  dropped (base-R row-binding replaces `bind_rows`); internal error
+  constructors remain intentionally unexported; dead `hash_to_row`
+  removed and a missing-`formula` guard added to
   [`build_model_bank()`](https://sims1253.github.io/bayesim/reference/build_model_bank.md);
   the IFS bounds `resample` docstring now honestly describes the NA-out
   / truncate behavior and its rank-bias implication.
@@ -438,12 +459,9 @@ capabilities, and memory-bounded execution.
 
 #### RNG Management
 
-- [`setup_global_rng()`](https://sims1253.github.io/bayesim/reference/setup_global_rng.md)
-  initializes L’Ecuyer-CMRG RNG
+- `setup_global_rng()` initializes L’Ecuyer-CMRG RNG
 - [`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)
   restores per-task RNG state deterministically
-- [`advance_rng_stream()`](https://sims1253.github.io/bayesim/reference/advance_rng_stream.md)
-  pure function for advancing RNG state
 - Each task gets independent, precomputed RNG stream
 
 #### Worker Execution

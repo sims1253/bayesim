@@ -169,12 +169,12 @@ result <- run_simulation(config, progress = FALSE)
 #> 4 tasks = 1 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 4 tasks
 summarize_simulation(result, metrics = "mad__value")
-#> # A tibble: 1 × 9
-#>   data_n fit_model n_reps n_failed failure_rate mad__value_mean
-#>    <dbl> <chr>      <int>    <int>        <dbl>           <dbl>
-#> 1     50 linear         4        0            0              NA
-#> # ℹ 3 more variables: mad__value_median <dbl>, mad__value_sd <dbl>,
-#> #   mad__value_mcse <dbl>
+#> # A tibble: 1 × 10
+#>   data_n fit_model n_reps n_failed failure_rate mad__value_n_used
+#>    <dbl> <chr>      <int>    <int>        <dbl>             <int>
+#> 1     50 linear         4        0            0                 0
+#> # ℹ 4 more variables: mad__value_mean <dbl>, mad__value_median <dbl>,
+#> #   mad__value_sd <dbl>, mad__value_mcse <dbl>
 ```
 
 ## Next steps

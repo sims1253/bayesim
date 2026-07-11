@@ -53,6 +53,17 @@
 <h2 class="pkg-version" data-toc-text="2.0.0" id="bayesim-200">bayesim 2.0.0<a class="anchor" aria-label="anchor" href="#bayesim-200"></a></h2>
 <p>A ground-up rewrite of the simulation engine, fitters, generators, metrics, and analysis layer, redesigned around the needs of simulation-method studies (Morris, White &amp; Crowther 2019). Breaking across the public API; the package remains GitHub-only and lifecycle-experimental.</p>
 <div class="section level3">
+<h3 id="review-hardening-2-0-0">Review hardening<a class="anchor" aria-label="anchor" href="#review-hardening-2-0-0"></a></h3>
+<ul><li>Fixed default simulation summaries with failed tasks: error payloads and other flattened metric metadata no longer become condition columns, and each aggregate now reports the number of finite values used.</li>
+<li>Adaptive stopping now requires the requested MCSE target in every condition cell, not only the first.</li>
+<li>Retained predictions are computed and returned even without a prediction metric; checkpoint lightening now honors all explicit retention options and preserves truths.</li>
+<li>
+<code><a href="../reference/run_simulation.html">run_simulation()</a></code> restores the caller’s RNG state and kind. Stochastic metrics use stable metric-specific sub-seeds, so metric order is irrelevant.</li>
+<li>Task-grid bookkeeping is vectorized by batch. Checkpoint snapshots are pruned to <code>keep_checkpoints = 2L</code> by default, retaining one corruption fallback while bounding disk growth.</li>
+<li>Fixed S7 class checks that had made automatic BrmsFitter model-bank and generator shortcuts unreachable. Precompiled brms models now warn when explicit priors are missing, and preflight reports deduplicated compile counts.</li>
+<li>Added exported <code><a href="../reference/config_fingerprint.html">config_fingerprint()</a></code>, repaired the targets/HPC/SBC vignettes, consolidated <code><a href="../reference/rmse_test_metric.html">rmse_test_metric()</a></code> onto <code><a href="../reference/RmseMetric.html">pred_rmse_metric()</a></code>, and removed unused dependencies, helpers, and a committed Stan binary.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="fitters-and-the-fitter-contract-2-0-0">Fitters and the fitter contract<a class="anchor" aria-label="anchor" href="#fitters-and-the-fitter-contract-2-0-0"></a></h3>
 <ul><li>
 <strong>Contract matrices are now <code>S x N</code> (draws x observations) everywhere</strong> — <code>log_lik_matrix</code>, <code>predict_fit()$predicted_samples</code>, <code>predict_epred</code>. The brms/loo convention, enforced by non-square <code><a href="../reference/validate_fitter.html">validate_fitter()</a></code> smoke tests.</li>
@@ -74,7 +85,7 @@
 <th>new</th>
 </tr></thead><tbody><tr><td><code>fit()</code></td>
 <td><code><a href="../reference/fit_model.html">fit_model()</a></code></td>
-</tr><tr><td><code><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">compute()</a></code></td>
+</tr><tr><td><code>compute()</code></td>
 <td><code><a href="../reference/compute_metric.html">compute_metric()</a></code></td>
 </tr><tr><td><code>log_lik()</code></td>
 <td><code><a href="../reference/log_lik_matrix.html">log_lik_matrix()</a></code></td>
@@ -126,12 +137,8 @@
 <h3 id="error-api-2-0-0">Error API<a class="anchor" aria-label="anchor" href="#error-api-2-0-0"></a></h3>
 <ul><li>Exported error constructors narrowed to <code>bayesim_data_error</code>, <code>bayesim_fit_error</code>, <code>bayesim_metric_error</code>, <code>bayesim_config_error</code> plus <code>is_bayesim_error</code>, <code>is_fatal_error</code>, <code>is_recoverable_error</code>. Base <code>bayesim_error</code>/contract/checkpoint/internal constructors are internal.</li>
 </ul><hr></div>
-</div>
-    <div class="section level2">
-<h2 class="pkg-version" data-toc-text="2.0.0" id="bayesim-200-prior-in-progress-entry-kept-for-history">bayesim 2.0.0 (prior in-progress entry, kept for history)<a class="anchor" aria-label="anchor" href="#bayesim-200-prior-in-progress-entry-kept-for-history"></a></h2>
-<p>This is a ground-up rewrite of the simulation engine, fitters, generators, metrics, and analysis layer. It is breaking across the public API; the package remains GitHub-only and lifecycle-experimental.</p>
 <div class="section level3">
-<h3 id="major-changes-2-0-0">Major changes<a class="anchor" aria-label="anchor" href="#major-changes-2-0-0"></a></h3>
+<h3 id="earlier-implementation-milestones-2-0-0">Earlier 2.0.0 implementation milestones<a class="anchor" aria-label="anchor" href="#earlier-implementation-milestones-2-0-0"></a></h3>
 <div class="section level4">
 <h4 id="engine-2-0-0">Engine<a class="anchor" aria-label="anchor" href="#engine-2-0-0"></a></h4>
 <ul><li>Parallelization switched from <code>future</code>/<code>future.apply</code> to <strong>mirai</strong>. The engine owns parallelism; <code>SimulationConfig</code> gained a <code>daemon_setup</code> property for per-daemon initialization (e.g. cmdstan path configuration). Tasks run sequentially when no mirai daemons are set.</li>
@@ -148,7 +155,7 @@
 <div class="section level4">
 <h4 id="generators-new-2-0-0">Generators (new)<a class="anchor" aria-label="anchor" href="#generators-new-2-0-0"></a></h4>
 <ul><li>
-<code><a href="../reference/fixed_truth_generator.html">fixed_truth_generator()</a></code>, <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code>, <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> — factory constructors for the standard generator signature <code>(data_spec, seed, task_ctx) -&gt; data_bundle</code>. IFS and prior-predictive use a deterministic draw index (<code>task_ctx$rep_idx</code>) so SBC ranks are well-defined and resume is reproducible.</li>
+<code><a href="../reference/fixed_truth_generator.html">fixed_truth_generator()</a></code>, <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code>, <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> — factory constructors for the standard generator signature <code>(data_spec, task_ctx) -&gt; data_bundle</code>. IFS and prior-predictive use a deterministic draw index (<code>task_ctx$rep_idx</code>) so SBC ranks are well-defined and resume is reproducible.</li>
 <li>Inverse forward sampling internals (<code>brms_full_ppred</code>, <code>brms_response_sequence</code>, <code>nodes_by_depth</code>) ported from 0.x and decoupled from SBC/bayeshear/future.</li>
 </ul></div>
 <div class="section level4">
@@ -179,7 +186,7 @@
 <ul><li>
 <strong>IFS forward sampling (critical):</strong> <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> no longer returns the pilot dataset unchanged. The 0.x response-dependency topological sort (<code>brms_response_sequence</code> → adjacency matrix → <code>nodes_by_depth</code>) is restored so the response column is actually simulated for univariate and multivariate models; <code><a href="../reference/brms_full_ppred.html">brms_full_ppred()</a></code> now takes a single draw and returns a single data.frame, eliminating the draw-index/list-index mismatch that produced <code>NULL</code> for <code>rep_idx &gt; 1</code>.</li>
 <li>
-<strong>vars_of_interest / draws-column mismatch (critical):</strong> generators strip the <code>b_</code> prefix (<code>vars_of_interest = c("x","Intercept")</code>) but brms draws keep it (<code>c("b_x","b_Intercept","sigma")</code>), so every truth-comparing metric silently returned NA on real brms fits. A new <code><a href="../reference/resolve_draw_columns.html">resolve_draw_columns()</a></code> helper maps cleaned names to actual columns (or errors) and is used by <code>coverage_metric</code>, <code>posterior_mean_metric</code>, <code>pos_prob_metric</code>, <code>posterior_summary_metric</code>, and <code>rank_metric</code>. Output field names stay on the cleaned names.</li>
+<strong>vars_of_interest / draws-column mismatch (critical):</strong> generators strip the <code>b_</code> prefix (<code>vars_of_interest = c("x","Intercept")</code>) but brms draws keep it (<code>c("b_x","b_Intercept","sigma")</code>), so every truth-comparing metric silently returned NA on real brms fits. A new <code><a href="../reference/resolve_draw_columns.html">resolve_draw_columns()</a></code> helper maps cleaned names to actual columns (or errors) and is used by <code>coverage_metric</code>, <code>posterior_summary_metric</code>, <code>pos_prob_metric</code>, <code>posterior_summary_metric</code>, and <code>rank_metric</code>. Output field names stay on the cleaned names.</li>
 <li>
 <strong>LOO-RMSE and LOO-R² (critical):</strong> the invented formulas (<code>sqrt(-2*mean(elpd))</code>, <code>1-exp(2*elpd/n)</code>) are replaced with PSIS-based constructions on <code><a href="https://mc-stan.org/loo/reference/E_loo.html" class="external-link">loo::E_loo()</a></code>. <code><a href="../reference/build_metric_context.html">build_metric_context()</a></code> computes the PSIS object once (with chain-derived <code>r_eff</code>, falling back to <code>r_eff = NULL</code>); <code>rmse_loo</code> uses <code>E_loo(ppred, type="mean")</code> and reports max Pareto-k̂; <code>r2_loo</code> reproduces brms’ <code>loo_R2()</code> variance construction verbatim and uses <code>posterior_epred</code> (a new <code>predict_epred</code> Fitter generic). Parity with <code><a href="https://mc-stan.org/rstantools/reference/bayes_R2.html" class="external-link">brms::loo_R2()</a></code> verified on a fixture fit.</li>
 <li>
@@ -189,7 +196,7 @@
 <li>
 <strong>mirai / model-bank efficiency:</strong> the model bank and <code>daemon_setup</code> hook are shipped to daemons once per <code><a href="../reference/run_simulation.html">run_simulation()</a></code> instead of per batch; the prefit-side Stan data-structure signature is computed once in <code><a href="../reference/build_model_bank.html">build_model_bank()</a></code> and cached (not recomputed per task); the session bank is cleared on run exit.</li>
 <li>
-<strong>Cleanup:</strong> <code><a href="../reference/plot_rank_ecdf.html">plot_rank_ecdf()</a></code> now uses true simultaneous ECDF bands (<code>adjust_gamma</code> ported from 0.x / Säilynoja et al. 2022) instead of an approximate KS bound; <code>posterior</code> moved from Suggests to Imports; the <code>dplyr</code> dependency was dropped (base-R row-binding replaces <code>bind_rows</code>); <code>bayesim_metric_error</code>, <code>bayesim_internal_error</code>, and <code>bayesim_checkpoint_error</code> are now exported (extension docs raise them); dead <code>hash_to_row</code> removed and a missing-<code>formula</code> guard added to <code><a href="../reference/build_model_bank.html">build_model_bank()</a></code>; the IFS bounds <code>resample</code> docstring now honestly describes the NA-out / truncate behavior and its rank-bias implication.</li>
+<strong>Cleanup:</strong> <code><a href="../reference/plot_rank_ecdf.html">plot_rank_ecdf()</a></code> now uses true simultaneous ECDF bands (<code>adjust_gamma</code> ported from 0.x / Säilynoja et al. 2022) instead of an approximate KS bound; <code>posterior</code> moved from Suggests to Imports; the <code>dplyr</code> dependency was dropped (base-R row-binding replaces <code>bind_rows</code>); internal error constructors remain intentionally unexported; dead <code>hash_to_row</code> removed and a missing-<code>formula</code> guard added to <code><a href="../reference/build_model_bank.html">build_model_bank()</a></code>; the IFS bounds <code>resample</code> docstring now honestly describes the NA-out / truncate behavior and its rank-bias implication.</li>
 <li>
 <strong>Metric flatten:</strong> single-parameter named-vector metric outputs (e.g. a one-variable <code>rank</code>/<code>coverage</code> <code>by_param</code>) now carry the <code>__&lt;param&gt;</code> suffix when flattened, so downstream consumers grepping for <code>&lt;metric&gt;__by_param__&lt;param&gt;</code> find them.</li>
 </ul></div>
@@ -299,11 +306,9 @@
 <div class="section level4">
 <h4 id="rng-management-1-0-0">RNG Management<a class="anchor" aria-label="anchor" href="#rng-management-1-0-0"></a></h4>
 <ul><li>
-<code><a href="../reference/setup_global_rng.html">setup_global_rng()</a></code> initializes L’Ecuyer-CMRG RNG</li>
+<code>setup_global_rng()</code> initializes L’Ecuyer-CMRG RNG</li>
 <li>
 <code><a href="../reference/set_task_rng.html">set_task_rng()</a></code> restores per-task RNG state deterministically</li>
-<li>
-<code><a href="../reference/advance_rng_stream.html">advance_rng_stream()</a></code> pure function for advancing RNG state</li>
 <li>Each task gets independent, precomputed RNG stream</li>
 </ul></div>
 <div class="section level4">
@@ -454,7 +459,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

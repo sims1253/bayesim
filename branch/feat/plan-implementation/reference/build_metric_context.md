@@ -1,13 +1,20 @@
 # Build context for metrics computation
 
-Precomputes predictions, log_lik, loo based on metric needs. Only
-computes what is needed by the metrics, and only if the fitter supports
-it.
+Precomputes predictions, log_lik, and loo based on metric needs and
+retained predictions. Only computes requested context that the fitter
+supports.
 
 ## Usage
 
 ``` r
-build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
+build_metric_context(
+  fit_result,
+  fitter,
+  data_bundle,
+  metrics,
+  seed = NULL,
+  retain = character()
+)
 ```
 
 ## Arguments
@@ -27,6 +34,11 @@ build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
 - metrics:
 
   List of S7 Metric objects
+
+- retain:
+
+  Retention specification. Requesting `"predictions"` computes
+  predictions even when no metric needs them.
 
 ## Value
 

@@ -88,9 +88,9 @@ and only re-runs a step when its inputs change. That maps onto bayesim
 naturally because every simulation has a stable <strong>config
 fingerprint</strong> — a SHA256 hash of the data/fit grids, the
 generator/fitter/metrics specs, <code>n_replicates</code>, and the seed
-(see <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code>). The fingerprint is a
-ready-made cache key: feed it to a <code>targets</code> cue and the
-pipeline re-fits only when the simulation design actually changes.</p>
+(see <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code>). The exported
+<code><a href="../reference/config_fingerprint.html">config_fingerprint()</a></code> accessor is useful as an audit ID and
+as a compact dependency for downstream targets.</p>
 <p><code>targets</code> is not a hard dependency of bayesim. The
 pipeline code below is <code>eval = FALSE</code>; install
 <code>targets</code> separately if you want to run it.</p>
@@ -98,18 +98,17 @@ pipeline code below is <code>eval = FALSE</code>; install
 <div class="section level2">
 <h2 id="a-minimal-targets-pipeline">A minimal targets pipeline<a class="anchor" aria-label="anchor" href="#a-minimal-targets-pipeline"></a>
 </h2>
-<p>A typical workflow defines one target per simulation condition (so
-conditions re-run independently when their inputs change) or one target
-for the whole config. Both are shown below in a single
-<code>_targets.R</code>.</p>
-<p>The config fingerprint drives a <code>tar_cue()</code> so that a
-target is rebuilt only when its design changes — not on every
-<code>tar_make()</code> call:</p>
+<p>A typical workflow defines one dynamically branched target per
+simulation condition (so conditions rebuild independently) or one target
+for the whole config. <code>targets</code> already hashes commands and
+dependencies under its default <code>tar_cue(mode = "thorough")</code>;
+there is no <code>fingerprint</code> argument to <code>tar_cue()</code>.
+The pipeline below relies on that native invalidation and records
+bayesim’s fingerprint as a separate target.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># _targets.R</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/tarchetypes/" class="external-link">tarchetypes</a></span><span class="op">)</span> <span class="co"># for tar_cue()</span></span>
 <span></span>
 <span><span class="co"># Build the data and fit grids once, up front.</span></span>
 <span><span class="va">data_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
@@ -119,36 +118,22 @@ target is rebuilt only when its design changes — not on every
 <span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"baseline"</span>, <span class="st">"full"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># One row per condition; we will map over it to define one target per condition.</span></span>
-<span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span>
+<span><span class="va">conditions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span>
 <span>  data_idx <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">data_grid</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  fit_idx <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fit_grid</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># A cue that fires only when the fingerprint changes. The fingerprint excludes</span></span>
-<span><span class="co"># runtime policy (result_path, retain, checkpoint cadence, max_errors, stop_on),</span></span>
-<span><span class="co"># so bumping those does not invalidate the cache.</span></span>
-<span><span class="va">fingerprint_cue</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">config</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">fp</span> <span class="op">&lt;-</span> <span class="fu">bayesim</span><span class="fu">:::</span><span class="fu"><a href="../reference/compute_config_fingerprint.html">compute_config_fingerprint</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span>  <span class="fu">tar_cue</span><span class="op">(</span>fingerprint <span class="op">=</span> <span class="va">fp</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
+<span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">data_grid</span><span class="op">)</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">fit_grid</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  <span class="co"># Pre-define the (static) grids so they show up as their own targets.</span></span>
-<span>  <span class="fu">tarchetypes</span><span class="fu">::</span><span class="fu">tar_file_read</span><span class="op">(</span></span>
-<span>    <span class="va">conditions</span>,</span>
-<span>    command <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="st">"conditions.rds"</span><span class="op">)</span>,</span>
-<span>    read <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">readRDS</a></span><span class="op">(</span><span class="op">!</span><span class="op">!</span><span class="st">"conditions.rds"</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">condition</span>, <span class="va">conditions</span>, iteration <span class="op">=</span> <span class="st">"list"</span><span class="op">)</span>,</span>
 <span></span>
-<span>  <span class="co"># One target per (data_idx, fit_idx) condition, iterating in "group" mode so</span></span>
-<span>  <span class="co"># each condition is built independently.</span></span>
+<span>  <span class="co"># One dynamic branch per (data_idx, fit_idx) condition.</span></span>
 <span>  <span class="fu">tar_target</span><span class="op">(</span></span>
 <span>    <span class="va">sim_condition</span>,</span>
 <span>    <span class="op">{</span></span>
 <span>      <span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>        data_grid <span class="op">=</span> <span class="va">data_grid</span><span class="op">[</span><span class="va">conditions</span><span class="op">$</span><span class="va">data_idx</span><span class="op">[</span><span class="va">sim_condition_group</span><span class="op">]</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>,</span>
-<span>        fit_grid <span class="op">=</span> <span class="va">fit_grid</span><span class="op">[</span><span class="va">conditions</span><span class="op">$</span><span class="va">fit_idx</span><span class="op">[</span><span class="va">sim_condition_group</span><span class="op">]</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>,</span>
+<span>        data_grid <span class="op">=</span> <span class="va">data_grid</span><span class="op">[</span><span class="va">condition</span><span class="op">$</span><span class="va">data_idx</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>,</span>
+<span>        fit_grid <span class="op">=</span> <span class="va">fit_grid</span><span class="op">[</span><span class="va">condition</span><span class="op">$</span><span class="va">fit_idx</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span>,</span>
 <span>        data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
 <span>        fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
 <span>        metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -157,59 +142,42 @@ target is rebuilt only when its design changes — not on every
 <span>      <span class="op">)</span></span>
 <span>      <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span>    <span class="op">}</span>,</span>
-<span>    pattern <span class="op">=</span> <span class="fu">group</span><span class="op">(</span><span class="va">conditions</span><span class="op">)</span>,</span>
-<span>    iteration <span class="op">=</span> <span class="st">"group"</span>,</span>
-<span>    cue <span class="op">=</span> <span class="fu">tar_cue</span><span class="op">(</span>fingerprint <span class="op">=</span> <span class="fu">bayesim</span><span class="fu">:::</span><span class="fu"><a href="../reference/compute_config_fingerprint.html">compute_config_fingerprint</a></span><span class="op">(</span></span>
-<span>      <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>        data_grid <span class="op">=</span> <span class="va">data_grid</span>,</span>
-<span>        fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,</span>
-<span>        data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>        fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
-<span>        metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>        n_replicates <span class="op">=</span> <span class="fl">200L</span>,</span>
-<span>        seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span>      <span class="op">)</span></span>
-<span>    <span class="op">)</span><span class="op">)</span></span>
+<span>    pattern <span class="op">=</span> <span class="fu">map</span><span class="op">(</span><span class="va">condition</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span></span>
-<span>  <span class="co"># A single-target alternative: one target for the whole config.</span></span>
+<span>  <span class="co"># A single-target alternative for the whole study.</span></span>
+<span>  <span class="fu">tar_target</span><span class="op">(</span></span>
+<span>    <span class="va">config_all</span>,</span>
+<span>    <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
+<span>      data_grid <span class="op">=</span> <span class="va">data_grid</span>,</span>
+<span>      fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,</span>
+<span>      data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
+<span>      fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
+<span>      metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>      n_replicates <span class="op">=</span> <span class="fl">200L</span>,</span>
+<span>      seed <span class="op">=</span> <span class="fl">42L</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  <span class="fu">tar_target</span><span class="op">(</span><span class="va">config_id</span>, <span class="fu"><a href="../reference/config_fingerprint.html">config_fingerprint</a></span><span class="op">(</span><span class="va">config_all</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  <span class="fu">tar_target</span><span class="op">(</span></span>
 <span>    <span class="va">sim_all</span>,</span>
 <span>    <span class="op">{</span></span>
-<span>      <span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>        data_grid <span class="op">=</span> <span class="va">data_grid</span>,</span>
-<span>        fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,</span>
-<span>        data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>        fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
-<span>        metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>        n_replicates <span class="op">=</span> <span class="fl">200L</span>,</span>
-<span>        seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span>      <span class="op">)</span></span>
-<span>      <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>    <span class="op">}</span>,</span>
-<span>    cue <span class="op">=</span> <span class="fu">tar_cue</span><span class="op">(</span>fingerprint <span class="op">=</span> <span class="fu">bayesim</span><span class="fu">:::</span><span class="fu"><a href="../reference/compute_config_fingerprint.html">compute_config_fingerprint</a></span><span class="op">(</span></span>
-<span>      <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>        data_grid <span class="op">=</span> <span class="va">data_grid</span>,</span>
-<span>        fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,</span>
-<span>        data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>        fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
-<span>        metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>        n_replicates <span class="op">=</span> <span class="fl">200L</span>,</span>
-<span>        seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span>      <span class="op">)</span></span>
-<span>    <span class="op">)</span><span class="op">)</span></span>
+<span>      <span class="va">config_id</span> <span class="co"># explicit audit dependency, also visible in the target graph</span></span>
+<span>      <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config_all</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="op">}</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>Notes on the cue:</p>
+<p>Notes on invalidation:</p>
 <ul>
-<li>The fingerprint is computed from a representative
-<code><a href="../reference/simulation_config.html">simulation_config()</a></code>; the cue re-evaluates that config on
-every <code>tar_make()</code> and compares the resulting hash to the
-cached one.</li>
-<li>Runtime policy (<code>result_path</code>, <code>retain</code>,
-<code>checkpoint_every</code>, <code>max_errors</code>,
-<code>stop_on</code>) is excluded from the fingerprint by design, so
-tweaking those does not force a re-fit.</li>
+<li>The default thorough cue rebuilds a target when its command or
+upstream dependencies change. No custom cue is needed.</li>
+<li>
+<code>config_id</code> excludes runtime policy
+(<code>result_path</code>, retention, checkpoint settings,
+<code>max_errors</code>, and <code>stop_on</code>) by design, making it
+a stable study ID. <code>sim_all</code> still depends on the full
+<code>config_all</code>, so changing runtime policy can correctly affect
+execution and checkpoint behavior.</li>
 </ul>
 </div>
 <div class="section level2">
@@ -223,14 +191,9 @@ first:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># In an interactive session, after tar_make():</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://docs.ropensci.org/targets/" class="external-link">targets</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span></span>
 <span><span class="co"># Load all per-condition results.</span></span>
 <span><span class="va">conditions_results</span> <span class="op">&lt;-</span> <span class="fu">tar_read</span><span class="op">(</span><span class="va">sim_condition</span><span class="op">)</span>          <span class="co"># list, one element per branch</span></span>
-<span><span class="co"># Or, if iteration = "group" returns grouped chunks:</span></span>
-<span><span class="fu">tar_load</span><span class="op">(</span><span class="va">sim_condition</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">conditions_results</span>, \<span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="va">r</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">conditions_results</span>, \<span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="va">r</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">pm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/performance_measures.html">performance_measures</a></span><span class="op">(</span><span class="va">combined</span>, estimand <span class="op">=</span> <span class="st">"effect"</span><span class="op">)</span></span>
 <span><span class="va">pm</span></span></code></pre></div>
@@ -267,7 +230,7 @@ SLURM side of large runs, which composes naturally with a
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

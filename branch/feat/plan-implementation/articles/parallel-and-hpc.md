@@ -214,13 +214,15 @@ selects what each task result keeps:
 
 | value | keeps | drops |
 |----|----|----|
-| `"metrics"` | computed metric values | fit object, draws, predictions |
-| `c("metrics", "diagnostics")` (default) | metrics + sampler diagnostics | fit object, full draws |
-| `"full"` | everything | nothing |
+| `"minimal"` | computed metric values | diagnostics and heavy artifacts |
+| `c("metrics", "diagnostics")` (default) | metrics and diagnostics | warnings and heavy artifacts |
+| `"standard"` | metrics, diagnostics, warnings | fit object, draws, predictions, data |
+| `"debug"` | every retention option | nothing |
+| an explicit vector | exactly the requested fields (plus metrics) | every unrequested field |
 
 For a metrics-only sweep over thousands of conditions,
 `retain = "metrics"` keeps memory flat regardless of posterior size. Use
-`"full"` only when you need per-task posteriors, and consider the
+`"debug"` only when you need all per-task artifacts, and consider the
 conditional form (`retain = list(success = ..., warning = ...)`) to keep
 heavy artifacts only for tasks that emitted warnings — see
 [`vignette("brms-studies")`](https://sims1253.github.io/bayesim/articles/brms-studies.md).
@@ -238,6 +240,7 @@ config <- simulation_config(
   ...,
   result_path = "results/big_study",
   checkpoint_every = 50L,
+  keep_checkpoints = 2L,
   retain = "metrics"
 )
 ```
@@ -245,6 +248,12 @@ config <- simulation_config(
 When using daemons, each daemon holds its own copies of in-flight task
 artifacts; `checkpoint_every` bounds the in-flight work and the
 retention profile bounds per-task size.
+
+Each checkpoint is a complete cumulative snapshot so it can be validated
+and resumed independently. `keep_checkpoints = 2L` (the default) prunes
+older snapshots after a successful write, bounding checkpoint disk usage
+while preserving one fallback if the newest snapshot is corrupted.
+Increase it only when you need a longer audit history.
 
 ## Checkpoint/resume and the result_path layout
 
@@ -262,7 +271,8 @@ result <- resume_simulation("/scratch/user/bayesim-sim")
 The directory contains everything needed to resume and audit a run:
 
     results/my-study/
-    ├── manifest.json          # config fingerprint, schema version, spec summary
+    ├── run_manifest.json      # config fingerprint, schema version, spec summary
+    ├── latest.json            # pointer to the newest complete checkpoint
     ├── checkpoints/           # atomic rds checkpoints (task grid + results)
     ├── artifacts/             # externalized large metric outputs
     │   └── metrics/
@@ -272,9 +282,9 @@ The directory contains everything needed to resume and audit a run:
 The config fingerprint is written into the manifest, so a resumed run is
 rejected if you change the study design (grids, seed, generator, fitter
 or metric specs) between submissions. Runtime policy — `retain`,
-`max_errors`, `checkpoint_every`, `checkpoint_format` — is deliberately
-*excluded* from the fingerprint: you can change retention or error
-tolerance and still resume.
+`max_errors`, `checkpoint_every`, `keep_checkpoints`,
+`checkpoint_format` — is deliberately *excluded* from the fingerprint:
+you can change retention or error tolerance and still resume.
 
 ## Next steps
 

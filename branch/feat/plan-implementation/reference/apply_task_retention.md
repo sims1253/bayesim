@@ -6,7 +6,13 @@ task result based on the retention policy.
 ## Usage
 
 ``` r
-apply_task_retention(task_result, fit_result, data_bundle, retain)
+apply_task_retention(
+  task_result,
+  fit_result,
+  data_bundle,
+  retain,
+  predictions = NULL
+)
 ```
 
 ## Arguments
@@ -26,6 +32,12 @@ apply_task_retention(task_result, fit_result, data_bundle, retain)
 - retain:
 
   Character vector of retention options specifying what to keep
+
+- predictions:
+
+  Prediction context returned by
+  [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md),
+  or NULL.
 
 ## Value
 

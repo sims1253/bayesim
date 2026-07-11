@@ -184,7 +184,7 @@ sampling) use the factory constructors
 <span><span class="co">#&gt;     - Skipped: 0 </span></span>
 <span><span class="co">#&gt;   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... </span></span>
 <span><span class="co">#&gt;   Task grid: 8 rows x 6 cols</span></span>
-<span><span class="co">#&gt;   Total time: 0.18 s</span></span></code></pre></div>
+<span><span class="co">#&gt;   Total time: 0.2 s</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="examine-results">Examine Results<a class="anchor" aria-label="anchor" href="#examine-results"></a>
@@ -262,12 +262,12 @@ sampling) use the factory constructors
 <span><span class="co">#&gt; 5                      0                1        2            1        1</span></span>
 <span><span class="co">#&gt; 6                      0                1        2            1        1</span></span>
 <span><span class="co">#&gt;   ess_bulk ess_tail divergent max_treedepth timing_total rep_idx data_n</span></span>
-<span><span class="co">#&gt; 1      500      500         0             0  0.017411232       1     50</span></span>
-<span><span class="co">#&gt; 2      500      500         0             0  0.031905651       2     50</span></span>
-<span><span class="co">#&gt; 3      500      500         0             0  0.003921270       3     50</span></span>
-<span><span class="co">#&gt; 4      500      500         0             0  0.003745079       4     50</span></span>
-<span><span class="co">#&gt; 5      500      500         0             0  0.006474495       1    100</span></span>
-<span><span class="co">#&gt; 6      500      500         0             0  0.003725290       2    100</span></span>
+<span><span class="co">#&gt; 1      500      500         0             0  0.018351316       1     50</span></span>
+<span><span class="co">#&gt; 2      500      500         0             0  0.035759449       2     50</span></span>
+<span><span class="co">#&gt; 3      500      500         0             0  0.004430532       3     50</span></span>
+<span><span class="co">#&gt; 4      500      500         0             0  0.004460573       4     50</span></span>
+<span><span class="co">#&gt; 5      500      500         0             0  0.004014015       1    100</span></span>
+<span><span class="co">#&gt; 6      500      500         0             0  0.003907204       2    100</span></span>
 <span><span class="co">#&gt;   data_intercept data_slope data_sigma fit_model</span></span>
 <span><span class="co">#&gt; 1              1          2          1    linear</span></span>
 <span><span class="co">#&gt; 2              1          2          1    linear</span></span>
@@ -290,18 +290,18 @@ by condition, with Monte Carlo standard errors (MCSE):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">agg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/summarize_simulation.html">summarize_simulation</a></span><span class="op">(</span><span class="va">result</span>, by <span class="op">=</span> <span class="st">"data_n"</span><span class="op">)</span></span>
 <span><span class="va">agg</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 124</span></span></span>
-<span><span class="co">#&gt;   data_n n_reps n_failed failure_rate posterior_summary__mean__Intercept_mean</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                                   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    100      4        0            0                                   1.02 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     50      4        0            0                                   0.938</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 119 more variables: posterior_summary__mean__Intercept_median &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 2 × 154</span></span></span>
+<span><span class="co">#&gt;   data_n n_reps n_failed failure_rate posterior_summary__mean__Intercept_n_used</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>                                     <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     50      4        0            0                                         4</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>    100      4        0            0                                         4</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 149 more variables: posterior_summary__mean__Intercept_mean &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__Intercept_median &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__Intercept_sd &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__Intercept_mcse &lt;dbl&gt;,</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__x_n_used &lt;int&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__x_mean &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__x_median &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__x_sd &lt;dbl&gt;, posterior_summary__mean__x_mcse &lt;dbl&gt;,</span></span></span>
-<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__sigma_mean &lt;dbl&gt;, …</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;">#   posterior_summary__mean__x_median &lt;dbl&gt;, …</span></span></span></code></pre></div>
 <p>For each metric you get <code>&lt;metric&gt;_mean</code>,
 <code>&lt;metric&gt;_median</code>, <code>&lt;metric&gt;_sd</code>, and
 <code>&lt;metric&gt;_mcse</code>, plus <code>n_reps</code>,
@@ -375,35 +375,8 @@ cluster).</p>
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resume_simulation.html">resume_simulation</a></span><span class="op">(</span><span class="st">"my_simulation"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
-<h2 id="custom-metrics">Custom Metrics<a class="anchor" aria-label="anchor" href="#custom-metrics"></a>
+<h2 id="metrics">Metrics<a class="anchor" aria-label="anchor" href="#metrics"></a>
 </h2>
-<p>Extend the <code>Metric</code> class and implement
-<code><a href="../reference/compute_metric.html">compute_metric()</a></code> (see
-<code><a href="../articles/custom-metrics.html">vignette("custom-metrics")</a></code> for the full contract):</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">MyMetric</span> <span class="op">&lt;-</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
-<span>  <span class="st">"MyMetric"</span>,</span>
-<span>  parent <span class="op">=</span> <span class="va">Metric</span>,</span>
-<span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span>, default <span class="op">=</span> <span class="st">"my_metric"</span><span class="op">)</span>,</span>
-<span>    needs <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span>, default <span class="op">=</span> <span class="st">"predictions"</span><span class="op">)</span>,</span>
-<span>    required <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_logical</a></span>, default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">compute_metric</span>, <span class="va">MyMetric</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">metric</span>, <span class="va">fit_result</span>, <span class="va">data_bundle</span>, <span class="va">context</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">200L</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu">MyMetric</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">2L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span><span class="op">)</span></span></code></pre></div>
 <p>The built-in metric library covers the standard surface:
 <code>pred_bias_metric</code>, <code>pred_rmse_metric</code>,
 <code>pred_mae_metric</code>, <code>pred_mse_metric</code>,
@@ -413,7 +386,13 @@ cluster).</p>
 ranks), <code>rstar_metric</code>, and LOO/test-set variants
 (<code>elpd_loo_metric</code>, <code>rmse_loo_metric</code>,
 <code>r2_loo_metric</code>, <code>elpd_test_metric</code>,
-<code>rmse_test_metric</code>, <code>r2_test_metric</code>).</p>
+<code>pred_rmse_metric</code>, <code>r2_test_metric</code>).
+<code><a href="../reference/rmse_test_metric.html">rmse_test_metric()</a></code> remains as a compatibility name for
+<code>pred_rmse_metric(name = "rmse_test")</code>.</p>
+<p>To write your own metric, extend the <code>Metric</code> class and
+implement <code><a href="../reference/compute_metric.html">compute_metric()</a></code>;
+<code><a href="../articles/custom-metrics.html">vignette("custom-metrics")</a></code> covers the full contract, the
+output schema, and how large outputs are externalized.</p>
 </div>
 <div class="section level2">
 <h2 id="reproducibility">Reproducibility<a class="anchor" aria-label="anchor" href="#reproducibility"></a>
@@ -457,7 +436,7 @@ determinism guarantees</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

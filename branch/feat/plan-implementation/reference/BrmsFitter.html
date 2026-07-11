@@ -133,7 +133,9 @@ with brms-specific configuration properties.</p>
 <dd><p>Logical; if TRUE (default), the model bank compiles each
 distinct model spec once via <code>brms::brm(chains = 0)</code> and reuses the prefit
 across tasks via <code>stats::update(recompile = FALSE)</code>. Set to FALSE to fall
-back to a fresh <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> per task.</p></dd>
+back to a fresh <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> per task. When precompiling, specify priors
+explicitly: some brms defaults are derived from the template dataset and
+would otherwise remain embedded in the reused compiled model.</p></dd>
 
 
 <dt id="arg-stan-args">stan_args<a class="anchor" aria-label="anchor" href="#arg-stan-args"></a></dt>
@@ -156,7 +158,7 @@ NULL (default) uses brms/Stan defaults.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

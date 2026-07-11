@@ -13,7 +13,8 @@ capture_error_info(e)
 
 - e:
 
-  A condition object (typically from tryCatch)
+  A condition object captured by a stack-preserving handler or with an
+  attached `rlang` trace.
 
 ## Value
 

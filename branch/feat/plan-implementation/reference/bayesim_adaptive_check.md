@@ -3,8 +3,9 @@
 Builds a quick summary from `task_results_so_far` and calls
 [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
 for `stop_on$estimand`. Returns TRUE when the MCSE of `stop_on$measure`
-is finite and below `stop_on$target_mcse`. Wrapped in tryCatch by the
-caller: any failure (e.g. no truth columns yet) =\> FALSE.
+is finite and below `stop_on$target_mcse` in every condition cell.
+Wrapped in tryCatch by the caller: any failure (e.g. no truth columns
+yet) =\> FALSE.
 
 ## Usage
 

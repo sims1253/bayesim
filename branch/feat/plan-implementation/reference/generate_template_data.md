@@ -23,7 +23,7 @@ generate_template_data(data_generator, data_spec, seed = 0L)
 
 - seed:
 
-  Integer throwaway seed (default 0L).
+  Deprecated internal argument retained for compatibility; ignored.
 
 ## Value
 
@@ -31,7 +31,6 @@ A data.frame suitable for `brms::brm(data =)`.
 
 ## Details
 
-Calls `data_generator(data_spec, seed, task_ctx)` and returns its
-`$train` data frame. The seed is a fixed throwaway constant (NOT the
-simulation seed) so the same template data is produced on controller and
-daemons.
+Calls `data_generator(data_spec, task_ctx)` and returns its `$train`
+data frame. `task_ctx$template` is TRUE so generators can recognize this
+structural template call.

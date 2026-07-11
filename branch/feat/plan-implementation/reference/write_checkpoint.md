@@ -11,7 +11,9 @@ write_checkpoint(
   task_grid,
   task_results,
   config_fingerprint,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  keep_checkpoints = Inf,
+  prior_results_df = NULL
 )
 ```
 
@@ -41,6 +43,19 @@ write_checkpoint(
 - checkpoint_format:
 
   Character scalar naming the checkpoint storage format.
+
+- keep_checkpoints:
+
+  Positive integer; number of complete snapshots to retain. Older
+  snapshots are pruned only after the new checkpoint and `latest.json`
+  have been written successfully. `Inf` disables pruning for
+  direct/internal callers.
+
+- prior_results_df:
+
+  Optional cached data frame of results from before the current
+  execution. When supplied, it replaces the legacy read of the previous
+  checkpoint.
 
 ## Value
 

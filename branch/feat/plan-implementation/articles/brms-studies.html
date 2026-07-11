@@ -114,6 +114,14 @@ each task’s data, and aborts the run loudly on a mismatch. If your
 <code>data_grid</code> rows produce data with different shapes
 (e.g. varying factor levels), either make them structurally identical or
 set <code>precompile = FALSE</code>.</p>
+<p>Some brms default priors are data-dependent (for example, the
+intercept prior can be centered using the response in the template
+dataset). Those constants are embedded in the compiled model and cannot
+be refreshed by <code>update(recompile = FALSE)</code>. Therefore,
+always supply explicit priors in every <code><a href="../reference/brms_model.html">brms_model()</a></code> when
+<code>precompile = TRUE</code>; bayesim warns when a model-bank row
+omits them. Use <code>precompile = FALSE</code> if task-specific default
+priors are part of the study design.</p>
 </div>
 <div class="section level2">
 <h2 id="declaring-models-brms_model-and-model_grid">Declaring models: <code>brms_model()</code> and
@@ -125,18 +133,23 @@ error-prone. <code><a href="../reference/model_grid.html">model_grid()</a></code
 named <code><a href="../reference/brms_model.html">brms_model()</a></code> specs, validating each at construction
 so mistakes surface before any compilation:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_grid.html">model_grid</a></span><span class="op">(</span></span>
-<span>  gaussian  <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"gaussian"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  student   <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"student"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  lognormal <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"lognormal"</span><span class="op">)</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">explicit_priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>  <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/set_prior.html" class="external-link">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"b"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/set_prior.html" class="external-link">prior</a></span><span class="op">(</span><span class="fu">normal</span><span class="op">(</span><span class="fl">0</span>, <span class="fl">5</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"Intercept"</span><span class="op">)</span>,</span>
+<span>  <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/set_prior.html" class="external-link">prior</a></span><span class="op">(</span><span class="fu">exponential</span><span class="op">(</span><span class="fl">1</span><span class="op">)</span>, class <span class="op">=</span> <span class="st">"sigma"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/model_grid.html">model_grid</a></span><span class="op">(</span></span>
+<span>  gaussian  <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"gaussian"</span><span class="op">)</span>, <span class="va">explicit_priors</span><span class="op">)</span>,</span>
+<span>  student   <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"student"</span><span class="op">)</span>, <span class="va">explicit_priors</span><span class="op">)</span>,</span>
+<span>  lognormal <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"lognormal"</span><span class="op">)</span>, <span class="va">explicit_priors</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">fit_grid</span></span>
-<span><span class="co">#&gt; # A tibble: 3 x 6</span></span>
-<span><span class="co">#&gt;   model     formula  family  prior  stanvars stan_file</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;     &lt;list&gt;   &lt;list&gt;  &lt;list&gt; &lt;list&gt;   &lt;list&gt;</span></span>
-<span><span class="co">#&gt; 1 gaussian  &lt;formula&gt; &lt;family&gt; &lt;NULL&gt; &lt;NULL&gt;  &lt;NULL&gt;</span></span>
-<span><span class="co">#&gt; 2 student   &lt;formula&gt; &lt;family&gt; &lt;NULL&gt; &lt;NULL&gt;  &lt;NULL&gt;</span></span>
-<span><span class="co">#&gt; 3 lognormal &lt;formula&gt; &lt;family&gt; &lt;NULL&gt; &lt;NULL&gt;  &lt;NULL&gt;</span></span></code></pre></div>
+<span><span class="co">#&gt; # A tibble: 3 x 5</span></span>
+<span><span class="co">#&gt;   model     formula   family   prior  stanvars</span></span>
+<span><span class="co">#&gt;   &lt;chr&gt;     &lt;list&gt;    &lt;list&gt;   &lt;list&gt; &lt;list&gt;</span></span>
+<span><span class="co">#&gt; 1 gaussian  &lt;formula&gt; &lt;family&gt; &lt;prior&gt; &lt;NULL&gt;</span></span>
+<span><span class="co">#&gt; 2 student   &lt;formula&gt; &lt;family&gt; &lt;prior&gt; &lt;NULL&gt;</span></span>
+<span><span class="co">#&gt; 3 lognormal &lt;formula&gt; &lt;family&gt; &lt;prior&gt; &lt;NULL&gt;</span></span></code></pre></div>
 <p>The <code>model</code> name column lands in the result summary as
 <code>fit_model</code>, so per-model aggregation is
 <code>summarize_simulation(result)</code> or
@@ -153,7 +166,7 @@ compare expected log predictive density (ELPD):</p>
 <span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
 <span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span>  <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">beta</span> <span class="op">*</span> <span class="va">x</span></span>
-<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">mu</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/GammaDist.html" class="external-link">rgamma</a></span><span class="op">(</span><span class="va">n</span>, shape <span class="op">=</span> <span class="fl">2</span>, scale <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>  <span class="co"># right-skewed noise</span></span>
+<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="va">mu</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
 <span>    test <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -166,9 +179,15 @@ compare expected log predictive density (ELPD):</p>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
 <span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">200</span>, beta <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  fit_grid <span class="op">=</span> <span class="fu"><a href="../reference/model_grid.html">model_grid</a></span><span class="op">(</span></span>
-<span>    gaussian  <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"gaussian"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    student   <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"student"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    lognormal <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"lognormal"</span><span class="op">)</span><span class="op">)</span></span>
+<span>    gaussian <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span></span>
+<span>      <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"gaussian"</span><span class="op">)</span>, <span class="va">explicit_priors</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    student <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span></span>
+<span>      <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"student"</span><span class="op">)</span>, <span class="va">explicit_priors</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    lognormal <span class="op">=</span> <span class="fu"><a href="../reference/brms_model.html">brms_model</a></span><span class="op">(</span></span>
+<span>      <span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, <span class="fu">brms</span><span class="fu">::</span><span class="fu"><a href="https://paulbuerkner.com/brms/reference/brmsfamily.html" class="external-link">brmsfamily</a></span><span class="op">(</span><span class="st">"lognormal"</span><span class="op">)</span>, <span class="va">explicit_priors</span></span>
+<span>    <span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  data_generator <span class="op">=</span> <span class="va">skew_generator</span>,</span>
 <span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/BrmsFitter.html">BrmsFitter</a></span><span class="op">(</span>chains <span class="op">=</span> <span class="fl">2L</span>, iter <span class="op">=</span> <span class="fl">1000L</span>, warmup <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
@@ -255,7 +274,7 @@ fingerprint covers.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

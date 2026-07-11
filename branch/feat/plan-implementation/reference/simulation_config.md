@@ -19,6 +19,7 @@ simulation_config(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
+  keep_checkpoints = 2L,
   retain = c("metrics", "diagnostics"),
   max_errors = Inf,
   daemon_setup = NULL,
@@ -83,6 +84,13 @@ simulation_config(
   Positive integer. Save progress every N tasks. This single knob also
   bounds the number of task results held in memory at once (B4: the
   former separate `chunk_size` knob was merged into this).
+
+- keep_checkpoints:
+
+  Positive integer. Number of complete checkpoint snapshots to retain on
+  disk. Defaults to 2, preserving the latest snapshot plus one fallback
+  for corruption recovery. Runtime policy; excluded from the config
+  fingerprint.
 
 - retain:
 

@@ -14,6 +14,8 @@ Configure and execute simulation studies
   : Preflight check for a simulation configuration
 - [`n_replicates_for_target()`](https://sims1253.github.io/bayesim/reference/n_replicates_for_target.md)
   : Required number of replicates for a target MCSE
+- [`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md)
+  : Stable simulation-design fingerprint
 
 ## Fitters
 
@@ -114,9 +116,8 @@ Classes and built-in metrics for computing simulation results
 - [`ElpdTestMetric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
   [`elpd_test_metric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
   : ELPD Test-Set Metric
-- [`RmseTestMetric()`](https://sims1253.github.io/bayesim/reference/RmseTestMetric.md)
-  [`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/RmseTestMetric.md)
-  : RMSE Test-Set Metric
+- [`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
+  : Test-set RMSE compatibility constructor
 - [`R2TestMetric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
   [`r2_test_metric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
   : R-squared Test-Set Metric
@@ -128,6 +129,8 @@ results
 
 - [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
   : Aggregate simulation results per condition
+- [`metric_cols()`](https://sims1253.github.io/bayesim/reference/metric_cols.md)
+  : Select flattened metric columns
 - [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
   : Simulation-method performance measures with Monte-Carlo standard
   errors

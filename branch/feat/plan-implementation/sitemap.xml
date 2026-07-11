@@ -1,5 +1,6 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://sims1253.github.io/bayesim/404.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/CONTRIBUTING.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/LICENSE.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/articles/brms-studies.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/articles/custom-fitters.html</loc></url>
@@ -28,7 +29,6 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/MockFitter.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/MseMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/PosProbMetric.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/PosteriorMeanMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/PosteriorSummaryMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/R2LooMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/R2TestMetric.html</loc></url>
@@ -40,12 +40,10 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/RankMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/RmseLooMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/RmseMetric.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/RmseTestMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/RstarMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/adjust_gamma.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/adjust_gamma_optimize.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/advance_rng_stream.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/apply_fit_retention.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/apply_task_retention.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/as_config_spec.html</loc></url>
@@ -83,10 +81,12 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/compute_file_checksum.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/compute_hash.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/compute_metric.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/config_fingerprint.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/contracts.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/create_task_grid.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/create_task_rng_streams.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/deparse_formula_recursive.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/derive_metric_seed.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/derive_task_seed.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/dot-default_prior_vars.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/dot-extract_truth.html</loc></url>
@@ -118,7 +118,7 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/get_pending_tasks.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/get_resume_summary.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/get_task_count_summary.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/get_task_spec.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/get_task_spec_at.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/get_total_tasks.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/ifs_generator.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/index.html</loc></url>
@@ -140,8 +140,10 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/make_timer.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/merge_results.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/merge_task_grid_status.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/metric_cols.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/model-bank.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/model_grid.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/model_spec_from_grid_row.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/model_spec_hash.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/n_replicates_for_target.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/new_fit_result.html</loc></url>
@@ -165,6 +167,7 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/preflight.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/prior_draws_generator.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/prior_predictive_generator.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/prune_checkpoints.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/read_checkpoint.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/read_run_manifest.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/read_summary.html</loc></url>
@@ -181,6 +184,7 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/resume_simulation.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/retention.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/retention_for_task_result.html</loc></url>
+<url><loc>https://sims1253.github.io/bayesim/reference/rmse_test_metric.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/run_batch.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/run_fresh_brms.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/run_simulation.html</loc></url>
@@ -191,14 +195,12 @@
 <url><loc>https://sims1253.github.io/bayesim/reference/sbc_ranks.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/set_model_bank.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/set_task_rng.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/setup_global_rng.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/simulate.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/simulation_config.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/stan_threads_arg.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/string-concat.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/summarize_simulation.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/update_prefit.html</loc></url>
-<url><loc>https://sims1253.github.io/bayesim/reference/update_task_status.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/utils.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/validate_bayesim_fit_result.html</loc></url>
 <url><loc>https://sims1253.github.io/bayesim/reference/validate_bayesim_simulation_result.html</loc></url>

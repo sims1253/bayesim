@@ -45,6 +45,16 @@ loudly on a mismatch. If your `data_grid` rows produce data with
 different shapes (e.g. varying factor levels), either make them
 structurally identical or set `precompile = FALSE`.
 
+Some brms default priors are data-dependent (for example, the intercept
+prior can be centered using the response in the template dataset). Those
+constants are embedded in the compiled model and cannot be refreshed by
+`update(recompile = FALSE)`. Therefore, always supply explicit priors in
+every
+[`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
+when `precompile = TRUE`; bayesim warns when a model-bank row omits
+them. Use `precompile = FALSE` if task-specific default priors are part
+of the study design.
+
 ## Declaring models: `brms_model()` and `model_grid()`
 
 Hand-building list-columns (`fit_grid$formula <- list(...)`) works but
@@ -57,18 +67,23 @@ compilation:
 
 ``` r
 
+explicit_priors <- c(
+  brms::prior(normal(0, 2), class = "b"),
+  brms::prior(normal(0, 5), class = "Intercept"),
+  brms::prior(exponential(1), class = "sigma")
+)
 fit_grid <- model_grid(
-  gaussian  = brms_model(y ~ x, brms::brmsfamily("gaussian")),
-  student   = brms_model(y ~ x, brms::brmsfamily("student")),
-  lognormal = brms_model(y ~ x, brms::brmsfamily("lognormal"))
+  gaussian  = brms_model(y ~ x, brms::brmsfamily("gaussian"), explicit_priors),
+  student   = brms_model(y ~ x, brms::brmsfamily("student"), explicit_priors),
+  lognormal = brms_model(y ~ x, brms::brmsfamily("lognormal"), explicit_priors)
 )
 fit_grid
-#> # A tibble: 3 x 6
-#>   model     formula  family  prior  stanvars stan_file
-#>   <chr>     <list>   <list>  <list> <list>   <list>
-#> 1 gaussian  <formula> <family> <NULL> <NULL>  <NULL>
-#> 2 student   <formula> <family> <NULL> <NULL>  <NULL>
-#> 3 lognormal <formula> <family> <NULL> <NULL>  <NULL>
+#> # A tibble: 3 x 5
+#>   model     formula   family   prior  stanvars
+#>   <chr>     <list>    <list>   <list> <list>
+#> 1 gaussian  <formula> <family> <prior> <NULL>
+#> 2 student   <formula> <family> <prior> <NULL>
+#> 3 lognormal <formula> <family> <prior> <NULL>
 ```
 
 The `model` name column lands in the result summary as `fit_model`, so
@@ -87,7 +102,7 @@ skew_generator <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
   mu <- data_spec$beta * x
-  y <- mu + stats::rgamma(n, shape = 2, scale = 1)  # right-skewed noise
+  y <- exp(mu + stats::rnorm(n, sd = 0.5))
   list(
     train = data.frame(y = y, x = x),
     test = NULL,
@@ -100,9 +115,15 @@ skew_generator <- function(data_spec, task_ctx) {
 config <- simulation_config(
   data_grid = data.frame(n = 200, beta = 1),
   fit_grid = model_grid(
-    gaussian  = brms_model(y ~ x, brms::brmsfamily("gaussian")),
-    student   = brms_model(y ~ x, brms::brmsfamily("student")),
-    lognormal = brms_model(y ~ x, brms::brmsfamily("lognormal"))
+    gaussian = brms_model(
+      y ~ x, brms::brmsfamily("gaussian"), explicit_priors
+    ),
+    student = brms_model(
+      y ~ x, brms::brmsfamily("student"), explicit_priors
+    ),
+    lognormal = brms_model(
+      y ~ x, brms::brmsfamily("lognormal"), explicit_priors
+    )
   ),
   data_generator = skew_generator,
   fitter = BrmsFitter(chains = 2L, iter = 1000L, warmup = 500L),

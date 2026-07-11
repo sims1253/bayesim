@@ -16,7 +16,9 @@ execute_tasks(
   progress,
   result_path = NULL,
   config_fingerprint = NULL,
-  checkpoint_every = 50L
+  checkpoint_every = 50L,
+  keep_checkpoints = 2L,
+  prior_results_df = data.frame(task_id = character(), status = character())
 )
 ```
 
@@ -66,6 +68,15 @@ execute_tasks(
 
   Integer; write checkpoint every N completed tasks. B4: also bounds the
   number of task results held in memory at once.
+
+- keep_checkpoints:
+
+  Integer; number of complete snapshots retained.
+
+- prior_results_df:
+
+  Previously resumed result rows, cached in memory to avoid re-reading
+  and re-hashing the prior checkpoint for every batch.
 
 ## Value
 

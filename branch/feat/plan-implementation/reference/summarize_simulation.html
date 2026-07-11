@@ -111,8 +111,10 @@ all numeric columns not in <code>by</code> and not metadata
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with one row per condition: the <code>by</code> columns, then for each
-metric <code>&lt;m&gt;_mean</code>, <code>&lt;m&gt;_median</code>, <code>&lt;m&gt;_sd</code>, <code>&lt;m&gt;_mcse</code>, plus <code>n_reps</code>,
-<code>n_failed</code>, <code>failure_rate</code>.</p>
+metric <code>&lt;m&gt;_n_used</code>, <code>&lt;m&gt;_mean</code>, <code>&lt;m&gt;_median</code>, <code>&lt;m&gt;_sd</code>, <code>&lt;m&gt;_mcse</code>, plus
+<code>n_reps</code>, <code>n_failed</code>, <code>failure_rate</code>. <code>&lt;m&gt;_n_used</code> is the number of finite
+values used for that metric; failed or non-finite metric values do not
+contribute to its aggregate.</p>
     </div>
 
     <div class="section level2">
@@ -133,7 +135,7 @@ metric <code>&lt;m&gt;_mean</code>, <code>&lt;m&gt;_median</code>, <code>&lt;m&g
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

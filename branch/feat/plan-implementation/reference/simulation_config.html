@@ -74,6 +74,7 @@ and execution parameters.</p>
 <span>  result_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  checkpoint_format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"rds"</span><span class="op">)</span>,</span>
 <span>  checkpoint_every <span class="op">=</span> <span class="fl">50L</span>,</span>
+<span>  keep_checkpoints <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  retain <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"metrics"</span>, <span class="st">"diagnostics"</span><span class="op">)</span>,</span>
 <span>  max_errors <span class="op">=</span> <span class="cn">Inf</span>,</span>
 <span>  daemon_setup <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -138,6 +139,13 @@ excluded from the config fingerprint — it is runtime policy.)</p></dd>
 <dd><p>Positive integer. Save progress every N tasks. This
 single knob also bounds the number of task results held in memory at once
 (B4: the former separate <code>chunk_size</code> knob was merged into this).</p></dd>
+
+
+<dt id="arg-keep-checkpoints">keep_checkpoints<a class="anchor" aria-label="anchor" href="#arg-keep-checkpoints"></a></dt>
+<dd><p>Positive integer. Number of complete checkpoint
+snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
+plus one fallback for corruption recovery. Runtime policy; excluded from
+the config fingerprint.</p></dd>
 
 
 <dt id="arg-retain">retain<a class="anchor" aria-label="anchor" href="#arg-retain"></a></dt>
@@ -209,7 +217,7 @@ additionally writes <code>&lt;result_path&gt;/summary.parquet</code> using the s
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

@@ -81,7 +81,9 @@ BrmsFitter(
   across tasks via `stats::update(recompile = FALSE)`. Set to FALSE to
   fall back to a fresh
   [`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html) per
-  task.
+  task. When precompiling, specify priors explicitly: some brms defaults
+  are derived from the template dataset and would otherwise remain
+  embedded in the reused compiled model.
 
 - stan_args:
 

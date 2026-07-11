@@ -14,6 +14,11 @@ test. `n_ranks` (posterior sample size after thinning + 1 possible
 ranks) is reported per variable and is required by the SBC diagnostics
 (`plot_rank_ecdf`).
 
+Ranks use the strict comparison `draw < truth`, which is appropriate for
+continuous posterior distributions where exact ties have probability
+zero. For discrete parameters or parameters with boundary point masses,
+use a custom metric with randomized tie-breaking.
+
 Constructor for RankMetric.
 
 ## Usage

@@ -2,8 +2,9 @@
 
 Collects the per-task `rank__by_param` entries (from
 [`rank_metric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md))
-into a long tibble with columns `task_id`, `param`, `rank`, `n_draws`.
-Returns an empty tibble if no rank metric was computed.
+into a long tibble with columns `task_id`, `param`, `rank`, `n_draws`,
+plus atomic `data_*` and `fit_*` condition columns. Returns an empty
+tibble if no rank metric was computed.
 
 ## Usage
 
@@ -19,7 +20,8 @@ sbc_ranks(result)
 
 ## Value
 
-A tibble with columns `task_id`, `param`, `rank`, `n_draws`.
+A tibble with columns `task_id`, `param`, `rank`, `n_draws`, and
+available condition columns.
 
 ## Examples
 

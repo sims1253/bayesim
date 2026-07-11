@@ -81,7 +81,7 @@ compiled binary matches the real task data.</p>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Integer throwaway seed (default 0L).</p></dd>
+<dd><p>Deprecated internal argument retained for compatibility; ignored.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -90,9 +90,9 @@ compiled binary matches the real task data.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Calls <code>data_generator(data_spec, seed, task_ctx)</code> and returns its <code>$train</code>
-data frame. The seed is a fixed throwaway constant (NOT the simulation seed)
-so the same template data is produced on controller and daemons.</p>
+    <p>Calls <code>data_generator(data_spec, task_ctx)</code> and returns its <code>$train</code> data
+frame. <code>task_ctx$template</code> is TRUE so generators can recognize this
+structural template call.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
@@ -104,7 +104,7 @@ so the same template data is produced on controller and daemons.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

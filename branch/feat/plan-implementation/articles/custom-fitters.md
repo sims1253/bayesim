@@ -185,10 +185,10 @@ head(result$summary)
 #> 3                          2.382663            2        1          500
 #> 4                          2.027047            2        1          500
 #>   ess_tail_min divergent timing_total rep_idx data_n data_slope fit_model
-#> 1          500         0  0.055502892       1     50          2    linear
-#> 2          500         0  0.022937775       2     50          2    linear
-#> 3          500         0  0.002936840       3     50          2    linear
-#> 4          500         0  0.002731323       4     50          2    linear
+#> 1          500         0  0.068969011       1     50          2    linear
+#> 2          500         0  0.024803162       2     50          2    linear
+#> 3          500         0  0.003398418       3     50          2    linear
+#> 4          500         0  0.003047466       4     50          2    linear
 ```
 
 ### Validation
@@ -263,7 +263,8 @@ distinct spec). A custom brms fitter would:
 
 1.  Call
     [`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html)
-    (or reuse a prefit via the model bank) in `fit()`.
+    (or reuse a prefit via the model bank) in
+    [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md).
 2.  Use
     [`brms::as_draws_matrix()`](https://mc-stan.org/posterior/reference/draws_matrix.html)
     in
@@ -274,9 +275,9 @@ distinct spec). A custom brms fitter would:
     [`brms::log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
     in the other generics.
 
-See `BrmsFitter` source (`bayesim:::brms-fitter.R` or the package source
-on GitHub) for a complete reference implementation. Because the model
-bank keys on `fit_spec` columns (`formula`, `family`, `prior`,
-`stanvars`), supplying these as `fit_grid` columns lets the engine
-compile once and reuse the binary across all replicates of the same
-condition.
+See the [`BrmsFitter`
+source](https://github.com/sims1253/bayesim/blob/main/R/brms-fitter.R)
+for a complete reference implementation. Because the model bank keys on
+`fit_spec` columns (`formula`, `family`, `prior`, `stanvars`), supplying
+these as `fit_grid` columns lets the engine compile once and reuse the
+binary across all replicates of the same condition.

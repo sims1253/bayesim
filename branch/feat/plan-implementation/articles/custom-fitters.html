@@ -297,10 +297,10 @@ Stan.</p>
 <span><span class="co">#&gt; 3                          2.382663            2        1          500</span></span>
 <span><span class="co">#&gt; 4                          2.027047            2        1          500</span></span>
 <span><span class="co">#&gt;   ess_tail_min divergent timing_total rep_idx data_n data_slope fit_model</span></span>
-<span><span class="co">#&gt; 1          500         0  0.055502892       1     50          2    linear</span></span>
-<span><span class="co">#&gt; 2          500         0  0.022937775       2     50          2    linear</span></span>
-<span><span class="co">#&gt; 3          500         0  0.002936840       3     50          2    linear</span></span>
-<span><span class="co">#&gt; 4          500         0  0.002731323       4     50          2    linear</span></span></code></pre></div>
+<span><span class="co">#&gt; 1          500         0  0.068969011       1     50          2    linear</span></span>
+<span><span class="co">#&gt; 2          500         0  0.024803162       2     50          2    linear</span></span>
+<span><span class="co">#&gt; 3          500         0  0.003398418       3     50          2    linear</span></span>
+<span><span class="co">#&gt; 4          500         0  0.003047466       4     50          2    linear</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a>
@@ -367,16 +367,15 @@ path and benefits from the model bank (one compile per distinct spec). A
 custom brms fitter would:</p>
 <ol style="list-style-type: decimal">
 <li>Call <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> (or reuse a prefit via the model bank)
-in <code>fit()</code>.</li>
+in <code><a href="../reference/fit_model.html">fit_model()</a></code>.</li>
 <li>Use <code><a href="https://mc-stan.org/posterior/reference/draws_matrix.html" class="external-link">brms::as_draws_matrix()</a></code> in
 <code><a href="../reference/extract_draws.html">extract_draws()</a></code>.</li>
 <li>Use <code><a href="https://mc-stan.org/rstantools/reference/posterior_predict.html" class="external-link">brms::posterior_predict()</a></code> /
 <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik()</a></code> in the other generics.</li>
 </ol>
-<p>See <code>BrmsFitter</code> source
-(<code>bayesim:::brms-fitter.R</code> or the package source on GitHub)
-for a complete reference implementation. Because the model bank keys on
-<code>fit_spec</code> columns (<code>formula</code>,
+<p>See the <a href="https://github.com/sims1253/bayesim/blob/main/R/brms-fitter.R" class="external-link"><code>BrmsFitter</code>
+source</a> for a complete reference implementation. Because the model
+bank keys on <code>fit_spec</code> columns (<code>formula</code>,
 <code>family</code>, <code>prior</code>, <code>stanvars</code>),
 supplying these as <code>fit_grid</code> columns lets the engine compile
 once and reuse the binary across all replicates of the same
@@ -393,7 +392,7 @@ condition.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

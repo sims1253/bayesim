@@ -64,7 +64,9 @@ results. Uses a write-temp-then-rename protocol to ensure consistency.</p>
 <span>  <span class="va">task_grid</span>,</span>
 <span>  <span class="va">task_results</span>,</span>
 <span>  <span class="va">config_fingerprint</span>,</span>
-<span>  checkpoint_format <span class="op">=</span> <span class="st">"rds"</span></span>
+<span>  checkpoint_format <span class="op">=</span> <span class="st">"rds"</span>,</span>
+<span>  keep_checkpoints <span class="op">=</span> <span class="cn">Inf</span>,</span>
+<span>  prior_results_df <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -95,6 +97,19 @@ configuration for validation purposes.</p></dd>
 
 <dt id="arg-checkpoint-format">checkpoint_format<a class="anchor" aria-label="anchor" href="#arg-checkpoint-format"></a></dt>
 <dd><p>Character scalar naming the checkpoint storage format.</p></dd>
+
+
+<dt id="arg-keep-checkpoints">keep_checkpoints<a class="anchor" aria-label="anchor" href="#arg-keep-checkpoints"></a></dt>
+<dd><p>Positive integer; number of complete snapshots to
+retain. Older snapshots are pruned only after the new checkpoint and
+<code>latest.json</code> have been written successfully. <code>Inf</code> disables pruning for
+direct/internal callers.</p></dd>
+
+
+<dt id="arg-prior-results-df">prior_results_df<a class="anchor" aria-label="anchor" href="#arg-prior-results-df"></a></dt>
+<dd><p>Optional cached data frame of results from before the
+current execution. When supplied, it replaces the legacy read of the
+previous checkpoint.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -147,7 +162,7 @@ checkpoints.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

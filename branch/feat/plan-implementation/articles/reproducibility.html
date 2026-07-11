@@ -113,6 +113,11 @@ per task from the simulation seed. Each task restores its stream before
 its data generator and fitter run, so the RNG state a task sees depends
 only on its position in the grid – not on execution order, parallelism,
 or which other tasks have completed.</p>
+<p>Stochastic metrics receive deterministic sub-seeds derived from the
+task seed and metric name. Adding or reordering metrics therefore does
+not change the random draws used by another metric.
+<code><a href="../reference/run_simulation.html">run_simulation()</a></code> also restores the caller’s RNG kind and
+state when it returns.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
 <span></span>
@@ -189,6 +194,8 @@ additionally select their truth-draw parameter vector by a
 <li>Changing the data generator’s RNG consumption (e.g. adding an extra
 <code>rnorm</code> call) – this shifts all downstream draws for that
 task.</li>
+<li>Renaming a stochastic metric, because its name is part of its
+deterministic metric-specific seed.</li>
 <li>Reordering the data/fit grid (tasks are identified by grid
 position).</li>
 <li>Upgrading Stan/brms/cmdstanr – results stay statistically equivalent
@@ -207,7 +214,7 @@ but not bit-identical.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

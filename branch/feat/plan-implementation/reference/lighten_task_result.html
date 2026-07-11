@@ -89,11 +89,12 @@ a lightweight summary object instead.</p>
 heavy objects from memory since they can be reconstructed from the checkpoint.
 This function:</p><ul><li><p>Always keeps: task_id, status, metrics, timing, error</p></li>
 <li><p>Keeps diagnostics only if "diagnostics" is in retain</p></li>
-<li><p>Removes: draws, predictions, fit, data (always, since checkpointed)</p></li>
+<li><p>Keeps retained fit, draws, predictions, and data fields; these are
+intentionally omitted only when their retention option is absent</p></li>
 <li><p>Keeps warnings only if "warnings" is in retain</p></li>
-</ul><p>The rationale is that metrics and diagnostics are needed for the final
-summary dataframe construction, while heavy objects (fit, draws, data)
-can be loaded from checkpoint if needed for detailed analysis.</p>
+</ul><p>The retention policy is authoritative: metrics-only runs stay lightweight,
+while users who explicitly retain heavy artifacts receive them in the final
+result even when checkpointing is enabled.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -109,7 +110,7 @@ can be loaded from checkpoint if needed for detailed analysis.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

@@ -62,11 +62,11 @@ library(bayesim)
 # each call, so the function can simply consume the ambient RNG state.
 gen <- function(data_spec, task_ctx) {
   x <- rnorm(data_spec$n)
-  y <- 1 + 0.5 * x + rnorm(data_spec$n, sd = data_spec$sigma %||% 1)
+  y <- 1 + 0.5 * x + rnorm(data_spec$n, sd = data_spec$sigma)
   list(
     train = data.frame(y = y, x = x),
     response = "y",
-    true_params = c(Intercept = 1, x = 0.5, sigma = data_spec$sigma %||% 1),
+    true_params = c(Intercept = 1, x = 0.5, sigma = data_spec$sigma),
     vars_of_interest = c("Intercept", "x", "sigma")
   )
 }
@@ -133,6 +133,10 @@ reporting) in
 [`vignette("design-of-simulation-studies")`](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md).
 
 ## Related packages
+
+bayesim is not the best fit for a purely frequentist simulation that
+does not need posterior draws, SBC, LOO, or Stan-aware execution; use a
+general-purpose framework such as SimDesign in that case.
 
 - [SimDesign](https://cran.r-project.org/package=SimDesign) and
   [simhelpers](https://cran.r-project.org/package=simhelpers) are

@@ -19,7 +19,7 @@ run_task(
 
 - task:
 
-  A task specification list (from get_task_spec) containing:
+  A task specification list from the task grid containing:
 
   - `task_id`: Unique task identifier string
 

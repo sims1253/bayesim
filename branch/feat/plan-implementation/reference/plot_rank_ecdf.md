@@ -10,7 +10,7 @@ miscalibration at level 1 - alpha.
 ## Usage
 
 ``` r
-plot_rank_ecdf(ranks, alpha = 0.95)
+plot_rank_ecdf(ranks, alpha = 0.95, by = NULL)
 ```
 
 ## Arguments
@@ -24,6 +24,15 @@ plot_rank_ecdf(ranks, alpha = 0.95)
 - alpha:
 
   Coverage level of the simultaneous confidence band (default 0.95).
+
+- by:
+
+  Optional character vector of condition columns to facet by. These
+  columns are preserved by
+  [`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md)
+  for simulation results. Using `by` computes a separate ECDF and
+  simultaneous band per condition cell instead of pooling ranks across
+  cells.
 
 ## Value
 
@@ -41,5 +50,6 @@ uniformity and its applications in goodness-of-fit evaluation.
 if (FALSE) { # \dontrun{
 plot_rank_ecdf(sbc_ranks(result))
 plot_rank_ecdf(sbc_ranks(result), alpha = 0.99)
+plot_rank_ecdf(sbc_ranks(result), by = "data_n")
 } # }
 ```
