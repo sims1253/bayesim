@@ -70,6 +70,7 @@ reference:
       - resume_simulation
       - preflight
       - n_replicates_for_target
+      - config_fingerprint
 
   - title: Fitters
     desc: >
@@ -128,6 +129,7 @@ reference:
       Summaries, SBC diagnostics, and plotting functions for simulation results
     contents:
       - summarize_simulation
+      - metric_cols
       - performance_measures
       - failed_tasks
       - sbc_ranks

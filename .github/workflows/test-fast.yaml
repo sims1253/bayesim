@@ -15,7 +15,8 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      NOT_CRAN: true
+      # Keep tests marked skip_on_cran() out of this no-Stan, fast feedback job.
+      NOT_CRAN: false
 
     steps:
       - uses: actions/checkout@v7
