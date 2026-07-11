@@ -18,7 +18,7 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #' to task results. Fatal errors (bayesim_config_error, bayesim_contract_error,
 #' etc.) are re-thrown to stop the simulation run.
 #'
-#' @param task A task specification list (from get_task_spec)
+#' @param task A task specification list from the task grid.
 #' @param config_spec Plain list config spec (for worker transport)
 #' @param fitter S7 Fitter object
 #' @param metrics List of Metric objects
@@ -79,7 +79,7 @@ run_task_safe <- function(
 #' Runs one task: generate data, fit model, compute metrics.
 #' All errors are captured and converted to task results.
 #'
-#' @param task A task specification list (from get_task_spec) containing:
+#' @param task A task specification list from the task grid containing:
 #'   \itemize{
 #'     \item `task_id`: Unique task identifier string
 #'     \item `data_spec`: Data generation specification

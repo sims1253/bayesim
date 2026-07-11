@@ -14,7 +14,8 @@ get_task_spec_at(task_grid, row_idx, config)
 \item{config}{The SimulationConfig used to create the grid.}
 }
 \value{
-A task specification list; see \code{\link[=get_task_spec]{get_task_spec()}}.
+A named task specification list containing the task and grid
+indices, data and fit specifications, task context, and RNG seed.
 }
 \description{
 The execution loop resolves a whole batch of task IDs once and calls this

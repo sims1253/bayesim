@@ -235,42 +235,6 @@ create_task_grid <- function(config) {
   tibble::as_tibble(grid)
 }
 
-#' Get Task Specification from Grid
-#'
-#' Extracts the complete specification for a single task, including
-#' data_spec, fit_spec, task context, and RNG seed.
-#'
-#' @param task_grid A task grid tibble created by [create_task_grid()].
-#' @param task_id The task ID to look up (format: "dXXX_fXXX_rXXXXX").
-#' @param config The SimulationConfig object used to create the task grid.
-#'
-#' @return A named list with elements:
-#'   - `task_id`: Character task identifier
-#'   - `data_idx`: Integer data grid row index
-#'   - `fit_idx`: Integer fit grid row index
-#'   - `rep_idx`: Integer replicate number
-#'   - `data_spec`: Named list of data specification parameters
-#'   - `fit_spec`: Named list of fit specification parameters
-#'   - `task_ctx`: Named list with task_id, data_idx, fit_idx, rep_idx
-#'   - `rng_seed`: Integer vector RNG state for this task
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' task_grid <- create_task_grid(config)
-#' spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-#' spec$data_spec  # Data parameters for this task
-#' spec$fit_spec   # Fit parameters for this task
-#' }
-get_task_spec <- function(task_grid, task_id, config) {
-  row_idx <- match(task_id, task_grid$task_id)
-  if (is.na(row_idx)) {
-    cli::cli_abort("Task '{task_id}' not found in grid")
-  }
-  get_task_spec_at(task_grid, row_idx, config)
-}
-
 #' Get a task specification by precomputed row index
 #'
 #' The execution loop resolves a whole batch of task IDs once and calls this
@@ -279,7 +243,8 @@ get_task_spec <- function(task_grid, task_id, config) {
 #' @param task_grid A task grid tibble.
 #' @param row_idx Scalar row index.
 #' @param config The SimulationConfig used to create the grid.
-#' @return A task specification list; see [get_task_spec()].
+#' @return A named task specification list containing the task and grid
+#'   indices, data and fit specifications, task context, and RNG seed.
 #' @keywords internal
 get_task_spec_at <- function(task_grid, row_idx, config) {
   row <- task_grid[row_idx, , drop = FALSE]
@@ -348,28 +313,6 @@ filter_tasks_by_status <- function(task_grid, status) {
 #' }
 get_pending_tasks <- function(task_grid) {
   filter_tasks_by_status(task_grid, "pending")
-}
-
-#' Update Task Status in Grid
-#'
-#' Updates the status of a single task in the task grid.
-#' This function is designed for functional use (returns modified copy).
-#'
-#' @param task_grid A task grid tibble.
-#' @param task_id The task ID to update.
-#' @param status New status value. Valid values: "success", "failed", "skipped".
-#'
-#' @return A modified task grid tibble with the updated status.
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' task_grid <- update_task_status(task_grid, "d001_f001_r00001", "success")
-#' }
-update_task_status <- function(task_grid, task_id, status) {
-  task_grid$status[task_grid$task_id == task_id] <- status
-  task_grid
 }
 
 #' Validate Task ID Format

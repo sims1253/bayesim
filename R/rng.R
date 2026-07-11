@@ -1,24 +1,3 @@
-#' Set up global RNG for simulation
-#'
-#' Sets RNG kind to L'Ecuyer-CMRG and initializes with global seed.
-#' Must be called once at simulation start.
-#'
-#' @param seed Integer seed for the simulation
-#'
-#' @return The initial `.Random.seed` state (invisibly)
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' setup_global_rng(42)
-#' }
-setup_global_rng <- function(seed) {
-  RNGkind("L'Ecuyer-CMRG")
-  set.seed(seed)
-  invisible(get(".Random.seed", envir = .GlobalEnv, inherits = FALSE))
-}
-
 #' Set RNG state for a task
 #'
 #' Restores .Random.seed from a precomputed stream.

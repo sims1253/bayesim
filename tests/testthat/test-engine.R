@@ -52,55 +52,6 @@ create_test_metric <- function(
 # =============================================================================
 
 describe("RNG Management", {
-  describe("setup_global_rng()", {
-    it("sets correct RNG kind to L'Ecuyer-CMRG", {
-      old_kind <- RNGkind()[1]
-      on.exit(RNGkind(old_kind), add = TRUE)
-
-      setup_global_rng(42)
-
-      expect_equal(RNGkind()[1], "L'Ecuyer-CMRG")
-    })
-
-    it("sets the seed correctly", {
-      old_kind <- RNGkind()[1]
-      old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
-        get(".Random.seed", envir = .GlobalEnv)
-      } else {
-        NULL
-      }
-      on.exit(
-        {
-          RNGkind(old_kind)
-          if (!is.null(old_seed)) {
-            assign(".Random.seed", old_seed, envir = .GlobalEnv)
-          }
-        },
-        add = TRUE
-      )
-
-      setup_global_rng(123)
-
-      # Generate a value and check reproducibility
-      val1 <- runif(1)
-
-      # Reset with same seed
-      setup_global_rng(123)
-      val2 <- runif(1)
-
-      expect_equal(val1, val2)
-    })
-
-    it("returns the initial .Random.seed state invisibly", {
-      old_kind <- RNGkind()[1]
-      on.exit(RNGkind(old_kind), add = TRUE)
-
-      result <- setup_global_rng(42)
-      expect_true(is.integer(result))
-      expect_true(length(result) > 0)
-    })
-  })
-
   describe("create_task_rng_streams()", {
     it("creates correct number of streams", {
       streams <- create_task_rng_streams(42, 5)
@@ -390,148 +341,6 @@ describe("Task Grid", {
     })
   })
 
-  describe("get_task_spec()", {
-    it("extracts correct specs for a task", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 2, n_fit = 2, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d002_f001_r00001", config)
-
-      expect_equal(spec$task_id, "d002_f001_r00001")
-      expect_equal(spec$data_idx, 2)
-      expect_equal(spec$fit_idx, 1)
-      expect_equal(spec$rep_idx, 1)
-    })
-
-    it("extracts correct data_spec", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 2, n_fit = 1, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-      expect_equal(spec$data_spec$n, 100)
-
-      spec2 <- get_task_spec(task_grid, "d002_f001_r00001", config)
-      expect_equal(spec2$data_spec$n, 200)
-    })
-
-    it("extracts correct fit_spec", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 2, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-      expect_equal(spec$fit_spec$model, "model_1")
-
-      spec2 <- get_task_spec(task_grid, "d001_f002_r00001", config)
-      expect_equal(spec2$fit_spec$model, "model_2")
-    })
-
-    it("extracts correct task_ctx", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 2, n_fit = 2, n_replicates = 3L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d002_f001_r00002", config)
-
-      expect_equal(spec$task_ctx$task_id, "d002_f001_r00002")
-      expect_equal(spec$task_ctx$data_idx, 2)
-      expect_equal(spec$task_ctx$fit_idx, 1)
-      expect_equal(spec$task_ctx$rep_idx, 2)
-    })
-
-    it("errors for non-existent task_id", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config()
-      task_grid <- create_task_grid(config)
-
-      expect_error(
-        get_task_spec(task_grid, "d999_f999_r99999", config),
-        "not found in grid"
-      )
-    })
-  })
-
-  describe("update_task_status()", {
-    it("updates status correctly", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 2L)
-      task_grid <- create_task_grid(config)
-
-      updated <- update_task_status(task_grid, "d001_f001_r00001", "success")
-
-      expect_equal(updated$status[1], "success")
-      expect_equal(updated$status[2], "pending") # Other unchanged
-    })
-
-    it("returns a modified copy without changing original", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config()
-      task_grid <- create_task_grid(config)
-      original_status <- task_grid$status[1]
-
-      updated <- update_task_status(task_grid, task_grid$task_id[1], "failed")
-
-      expect_equal(task_grid$status[1], original_status)
-      expect_equal(updated$status[1], "failed")
-    })
-
-    it("can update to different status values", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 3L)
-      task_grid <- create_task_grid(config)
-
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "skipped"
-      )
-
-      expect_equal(task_grid$status[1], "success")
-      expect_equal(task_grid$status[2], "failed")
-      expect_equal(task_grid$status[3], "skipped")
-    })
-  })
-
   describe("get_task_count_summary()", {
     it("returns aligned zero-filled counts for every status", {
       grid <- data.frame(status = c("success", "success", "failed"))
@@ -555,17 +364,7 @@ describe("Task Grid", {
       config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 4L)
       task_grid <- create_task_grid(config)
 
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "success"
-      )
+      task_grid$status[1:3] <- c("success", "failed", "success")
       # task 4 remains pending
 
       success_only <- filter_tasks_by_status(task_grid, "success")
@@ -588,17 +387,7 @@ describe("Task Grid", {
       config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 4L)
       task_grid <- create_task_grid(config)
 
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "success"
-      )
+      task_grid$status[1:3] <- c("success", "failed", "success")
       # task 4 remains pending
 
       completed <- filter_tasks_by_status(task_grid, c("success", "failed"))

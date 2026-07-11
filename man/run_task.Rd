@@ -13,7 +13,7 @@ run_task(
 )
 }
 \arguments{
-\item{task}{A task specification list (from get_task_spec) containing:
+\item{task}{A task specification list from the task grid containing:
 \itemize{
 \item \code{task_id}: Unique task identifier string
 \item \code{data_spec}: Data generation specification
