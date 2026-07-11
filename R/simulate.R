@@ -392,7 +392,7 @@ execute_tasks <- function(
           )
           if (isTRUE(stop_now)) {
             cli::cli_alert_info(
-              "Adaptive stop: MCSE of '{stop_on$measure}' for '{stop_on$estimand}' below {stop_on$target_mcse} after {n_completed} reps; skipping remaining tasks"
+              "Adaptive stop: MCSE of '{stop_on$measure}' for '{stop_on$estimand}' below {stop_on$target_mcse} after {n_completed} completed tasks; skipping remaining tasks"
             )
             # Mark all still-pending tasks as skipped so they appear in the
             # summary with status 'skipped'. The post-loop fill below also

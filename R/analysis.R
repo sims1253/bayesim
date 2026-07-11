@@ -125,11 +125,7 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   has_status <- "status" %in% names(df)
 
   # Split-apply-combine via dplyr if available, else base R.
-  groups <- if (length(by) > 0L) {
-    do.call(paste, c(df[, by, drop = FALSE], sep = "|"))
-  } else {
-    rep("__all__", nrow(df))
-  }
+  groups <- group_ids(df, by)
 
   rows <- lapply(split(seq_len(nrow(df)), groups), function(idx) {
     sub <- df[idx, , drop = FALSE]
@@ -175,6 +171,101 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   })
 
   tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame)))
+}
+
+#' Select flattened metric columns
+#'
+#' Selects columns belonging to one metric in bayesim's flattened naming
+#' scheme, `<metric>__<field>` or `<metric>__<field>__<param>`.
+#'
+#' @param x A bayesim simulation result (with a `summary` component), or a
+#'   per-task summary data frame.
+#' @param metric Required character scalar naming the metric prefix.
+#' @param fields Optional character vector restricting the field segment.
+#' @param as Output form: `"names"` returns a named character vector suitable
+#'   for `dplyr::all_of()`; `"long"` returns one row per task and metric value.
+#'
+#' @return For `as = "names"`, a named character vector whose values are full
+#'   column names and whose names are suffixes following the metric prefix. For
+#'   `as = "long"`, a tibble with optional `task_id`, `field`, `param`, and
+#'   `value` columns.
+#' @export
+#' @examples
+#' fitter <- LinearRegressionFitter()
+#' summary <- data.frame(
+#'   task_id = "task_1",
+#'   posterior_summary__mean__x = 1.2,
+#'   posterior_summary__sd__x = 0.3,
+#'   check.names = FALSE
+#' )
+#' metric_cols(summary, "posterior_summary")
+#' metric_cols(summary, "posterior_summary", fields = "mean", as = "long")
+metric_cols <- function(x, metric, fields = NULL, as = c("names", "long")) {
+  as <- match.arg(as)
+  if (
+    !is.character(metric) ||
+      length(metric) != 1L ||
+      is.na(metric) ||
+      !nzchar(metric)
+  ) {
+    stop(bayesim_config_error("metric must be a non-empty character scalar"))
+  }
+  df <- if (is.data.frame(x)) x else x$summary
+  if (is.null(df) || !is.data.frame(df)) {
+    stop(bayesim_config_error(
+      "metric_cols() requires a simulation result or summary data.frame"
+    ))
+  }
+
+  prefix <- paste0(metric, "__")
+  candidates <- names(df)[startsWith(names(df), prefix)]
+  suffix <- substring(candidates, nchar(prefix) + 1L)
+  parts <- strsplit(suffix, "__", fixed = TRUE)
+  field <- vapply(parts, `[[`, character(1), 1L)
+  if (!is.null(fields)) {
+    keep <- field %in% fields
+    candidates <- candidates[keep]
+    suffix <- suffix[keep]
+    parts <- parts[keep]
+    field <- field[keep]
+  }
+  if (length(candidates) == 0L) {
+    flattened <- names(df)[grepl("__", names(df), fixed = TRUE)]
+    existing <- sort(unique(sub("__.*$", "", flattened)))
+    existing_text <- if (length(existing)) {
+      paste(existing, collapse = ", ")
+    } else {
+      "none"
+    }
+    stop(bayesim_config_error(paste0(
+      "No columns found for metric '",
+      metric,
+      "'. Metric prefixes present: ",
+      existing_text
+    )))
+  }
+
+  if (as == "names") {
+    return(stats::setNames(candidates, suffix))
+  }
+
+  rows <- lapply(seq_along(candidates), function(i) {
+    param <- if (length(parts[[i]]) > 1L) {
+      paste(parts[[i]][-1L], collapse = "__")
+    } else {
+      NA_character_
+    }
+    out <- tibble::tibble(
+      field = field[[i]],
+      param = param,
+      value = df[[candidates[[i]]]]
+    )
+    if ("task_id" %in% names(df)) {
+      out <- tibble::add_column(out, task_id = df$task_id, .before = 1L)
+    }
+    out
+  })
+  do.call(rbind, rows)
 }
 
 # SBC diagnostics ---------------------------------------------------------

@@ -107,6 +107,67 @@ describe("summarize_simulation", {
     agg2 <- summarize_simulation(df2, by = "model", metrics = "estimate__value")
     expect_equal(agg2$estimate__value_mcse, stats::sd(vals) / sqrt(4))
   })
+
+  it("uses collision-safe group identities", {
+    df <- data.frame(
+      left = c("a|b", "a"),
+      right = c("c", "b|c"),
+      value__x = c(1, 2)
+    )
+    expect_equal(nrow(summarize_simulation(df, c("left", "right"))), 2L)
+
+    na_df <- data.frame(group = c(NA, "NA"), value__x = c(1, 2))
+    expect_equal(nrow(summarize_simulation(na_df, "group")), 2L)
+  })
+
+  it("groups factors and mixed numeric/character columns", {
+    df <- data.frame(
+      fac = factor(c("a", "a", "b")),
+      number = c(1, 1, 2),
+      label = c("1", "1", "2"),
+      value__x = c(1, 3, 5)
+    )
+    agg <- summarize_simulation(df, c("fac", "number", "label"))
+    expect_equal(nrow(agg), 2L)
+    expect_equal(agg$value__x_mean, c(2, 5))
+  })
+})
+
+describe("metric_cols", {
+  df <- data.frame(
+    task_id = c("t1", "t2"),
+    posterior_summary__mean__x = c(1, 2),
+    posterior_summary__sd__x = c(0.1, 0.2),
+    posterior_summary__n_eff = c(100, 110),
+    coverage__value__x = c(TRUE, FALSE),
+    check.names = FALSE
+  )
+
+  it("returns named flattened column names and filters fields", {
+    cols <- metric_cols(df, "posterior_summary", fields = "mean")
+    expect_equal(
+      cols,
+      c(mean__x = "posterior_summary__mean__x")
+    )
+  })
+
+  it("returns long metric values with optional parameter", {
+    long <- metric_cols(df, "posterior_summary", as = "long")
+    expect_named(long, c("task_id", "field", "param", "value"))
+    expect_equal(nrow(long), 6L)
+    expect_true(all(is.na(long$param[long$field == "n_eff"])))
+    expect_equal(long$param[long$field == "mean"], rep("x", 2L))
+  })
+
+  it("accepts a result object and reports available prefixes", {
+    result <- structure(list(summary = df), class = "bayesim_simulation_result")
+    expect_length(metric_cols(result, "coverage"), 1L)
+    expect_error(
+      metric_cols(df, "missing"),
+      "coverage, posterior_summary",
+      class = "bayesim_config_error"
+    )
+  })
 })
 
 describe("sbc_ranks", {

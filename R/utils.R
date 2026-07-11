@@ -5,6 +5,24 @@
 #' @keywords internal
 NULL
 
+# Collision-free row grouping --------------------------------------------
+
+# Return stable integer group identifiers for the selected columns.
+group_ids <- function(df, by) {
+  if (length(by) == 0L) {
+    return(rep.int(1L, nrow(df)))
+  }
+
+  encoded <- lapply(df[, by, drop = FALSE], function(x) {
+    x <- as.character(x)
+    missing <- is.na(x)
+    x[missing] <- ""
+    paste0(ifelse(missing, "N", "V"), nchar(x), ":", x)
+  })
+  key <- do.call(paste0, encoded)
+  match(key, unique(key))
+}
+
 # Operators ----------------------------------------------------------------
 
 #' String concatenation operator
