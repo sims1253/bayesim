@@ -30,12 +30,12 @@ defines the interface contract that all fitters must implement:
 
 #### Properties
 
-| Property               | Type        | Description                                                                                                |
-|------------------------|-------------|------------------------------------------------------------------------------------------------------------|
-| `name`                 | `character` | Identifier for the fitter (e.g., “stan”, “brms”)                                                           |
-| `supports_predictions` | `logical`   | Whether the fitter supports [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md) |
-| `supports_log_lik`     | `logical`   | Whether the fitter supports [`log_lik()`](https://sims1253.github.io/bayesim/reference/log_lik.md)         |
-| `supports_loo`         | `logical`   | Whether the fitter supports [`loo()`](https://sims1253.github.io/bayesim/reference/loo.md)                 |
+| Property | Type | Description |
+|----|----|----|
+| `name` | `character` | Identifier for the fitter (e.g., “stan”, “brms”) |
+| `supports_predictions` | `logical` | Whether the fitter supports [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md) |
+| `supports_log_lik` | `logical` | Whether the fitter supports [`log_lik()`](https://sims1253.github.io/bayesim/reference/log_lik.md) |
+| `supports_loo` | `logical` | Whether the fitter supports [`loo()`](https://sims1253.github.io/bayesim/reference/loo.md) |
 
 These properties allow metrics and simulation code to query fitter
 capabilities before attempting operations that may not be supported.
@@ -126,6 +126,7 @@ data. This is the key pattern: priors come from `fit_spec`, not
 hardcoded in the model:
 
 ``` r
+
 # Define the Stan model as a character string
 # Note: Priors are passed as DATA, allowing fit_spec to control them
 stan_model_code <- "
@@ -169,6 +170,7 @@ generated quantities {
 The S7 class holds MCMC settings and caches the compiled model:
 
 ``` r
+
 library(S7)
 library(bayesim)
 
@@ -201,6 +203,7 @@ This is where the magic happens: we build `stan_data` from **both**
 `data_bundle` (the data) **and** `fit_spec` (the priors):
 
 ``` r
+
 method(fit, CmdStanFitter) <- function(
   fitter,
   data_bundle,
@@ -332,6 +335,7 @@ method(fit, CmdStanFitter) <- function(
 #### `extract_draws()`
 
 ``` r
+
 method(extract_draws, CmdStanFitter) <- function(
   fitter,
   fit_result,
@@ -356,6 +360,7 @@ method(extract_draws, CmdStanFitter) <- function(
 #### `predict_fit()`
 
 ``` r
+
 method(predict_fit, CmdStanFitter) <- function(
   fitter,
   fit_result,
@@ -409,6 +414,7 @@ method(predict_fit, CmdStanFitter) <- function(
 #### `log_lik()`
 
 ``` r
+
 method(log_lik, CmdStanFitter) <- function(
   fitter,
   fit_result,
@@ -431,6 +437,7 @@ method(log_lik, CmdStanFitter) <- function(
 #### `loo()`
 
 ``` r
+
 method(loo, CmdStanFitter) <- function(fitter, fit_result) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(list(elpd = NA_real_, p_loo = NA_real_, elpd_se = NA_real_, pareto_k = numeric()))
@@ -462,6 +469,7 @@ method(loo, CmdStanFitter) <- function(fitter, fit_result) {
 #### `diagnostics()`
 
 ``` r
+
 method(diagnostics, CmdStanFitter) <- function(fitter, fit_result) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(list())
@@ -476,6 +484,7 @@ Now we demonstrate the key pattern: using `fit_grid` to specify
 different priors, which flow through `fit_spec` into the Stan model.
 
 ``` r
+
 library(tibble)
 
 # Define fit_grid with different prior specifications
@@ -499,6 +508,7 @@ print(fit_grid)
 #### Data Generator
 
 ``` r
+
 # Data generator for simple linear regression
 linear_data_generator <- function(data_spec, seed, task_ctx) {
   # Note: seed is a scalar task seed.
@@ -529,6 +539,7 @@ linear_data_generator <- function(data_spec, seed, task_ctx) {
 #### Run the Simulation
 
 ``` r
+
 # Create the fitter
 fitter <- CmdStanFitter(
   chains = 4L,
@@ -564,6 +575,7 @@ result <- run_simulation(config, progress = TRUE)
 #### Analyze Results
 
 ``` r
+
 # Compare posterior means across prior specifications
 library(dplyr)
 
@@ -612,6 +624,7 @@ function that checks your fitter implements the required interface
 correctly:
 
 ``` r
+
 library(bayesim)
 
 # Create your fitter instance
@@ -674,6 +687,7 @@ For more granular testing or to test specific scenarios, you can write
 manual tests:
 
 ``` r
+
 # Create minimal test data
 set.seed(42)
 n <- 50
@@ -736,6 +750,7 @@ Always wrap fitting code in
 handle failures:
 
 ``` r
+
 result <- tryCatch(
   {
     # Fitting code here
@@ -761,6 +776,7 @@ still recorded - Partial progress can be checkpointed
 Always record timing information:
 
 ``` r
+
 start_time <- Sys.time()
 # ... fitting code ...
 end_time <- Sys.time()
@@ -777,6 +793,7 @@ Capture warnings during fitting to prevent them from cluttering output
 while preserving them for diagnostics:
 
 ``` r
+
 warnings <- character()
 
 fit_obj <- withCallingHandlers(
@@ -795,6 +812,7 @@ fit_obj <- withCallingHandlers(
 Pass the seed to the backend for reproducibility:
 
 ``` r
+
 # Pass seed to cmdstanr
 model$sample(..., seed = seed)
 
@@ -810,6 +828,7 @@ Before calling methods that may not be supported, check the fitter’s
 properties:
 
 ``` r
+
 if (fitter@supports_predictions) {
   preds <- predict_fit(fitter, fit_result, newdata)
 } else {
@@ -871,6 +890,7 @@ MCMC), but it’s useful for testing the simulation framework with
 realistic statistical behavior:
 
 ``` r
+
 library(bayesim)
 library(S7)
 
@@ -1073,6 +1093,7 @@ method(diagnostics, LinearFitter) <- function(fitter, fit_result) {
 Test the LinearFitter:
 
 ``` r
+
 # Quick test with LinearFitter
 fitter <- LinearFitter()
 

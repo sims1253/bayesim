@@ -24,6 +24,7 @@ provides:
 ### Setting Up a Simulation
 
 ``` r
+
 library(bayesim)
 ```
 
@@ -33,6 +34,7 @@ The data generator creates synthetic datasets for your simulation. It
 must have the signature `(data_spec, seed, task_ctx)`:
 
 ``` r
+
 my_data_generator <- function(data_spec, seed, task_ctx) {
   # Note: seed is a scalar task seed.
   # The simulation engine also restores the task RNG stream before each call,
@@ -65,6 +67,7 @@ have default names, but custom metrics require an explicit `name`
 argument:
 
 ``` r
+
 # Note: brms must be installed to use BrmsFitter()
 config <- simulation_config(
   data_grid = data.frame(
@@ -88,6 +91,7 @@ config <- simulation_config(
 ```
 
 ``` r
+
 # Alternative: Use MockFitter for testing without brms
 # Note: MockFitter is for testing the simulation framework only.
 # For real Bayesian inference, use BrmsFitter() or a custom fitter.
@@ -116,12 +120,14 @@ config <- simulation_config(
 #### Run the Simulation
 
 ``` r
+
 result <- run_simulation(config, progress = FALSE)
 ```
 
 #### Examine Results
 
 ``` r
+
 print(result)
 
 # Summary tibble
@@ -142,6 +148,7 @@ The summary tibble includes:
 For long-running simulations, use checkpointing:
 
 ``` r
+
 config <- simulation_config(
   data_grid = my_data_grid,
   fit_grid = my_fit_grid,
@@ -163,6 +170,7 @@ result <- run_simulation(config, resume = "auto")
 If interrupted, resume with:
 
 ``` r
+
 result <- resume_simulation("my_simulation")
 ```
 
@@ -174,6 +182,7 @@ not implemented yet.
 Create custom metrics by extending the Metric class:
 
 ``` r
+
 MyMetric <- S7::new_class(
   "MyMetric",
   parent = Metric,

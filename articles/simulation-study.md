@@ -1,6 +1,7 @@
 # Simulation Study Example: Assessing Model Performance
 
 ``` r
+
 library(bayesim)
 library(dplyr)
 #> 
@@ -70,6 +71,7 @@ The data generator creates synthetic linear regression data. It must
 have the signature `(data_spec, seed, task_ctx)`:
 
 ``` r
+
 generate_linear_data <- function(data_spec, seed, task_ctx) {
   # Note: seed is a scalar task seed.
   # The simulation engine also restores the task RNG stream before each call.
@@ -119,6 +121,7 @@ We create a simulation configuration that combines the data grid, fit
 grid, and execution settings:
 
 ``` r
+
 config <- simulation_config(
   data_grid = data.frame(
     n = c(50, 100, 200, 500),
@@ -164,6 +167,7 @@ have default names; custom metrics require an explicit `name` argument.
 Execute the simulation with progress display:
 
 ``` r
+
 result <- run_simulation(config, progress = TRUE)
 #> ℹ Starting simulation with 240 tasks
 #> Warning in draws[, slope_param] * x: longer object length is not a multiple of
@@ -347,7 +351,7 @@ result <- run_simulation(config, progress = TRUE)
 #> length is not a multiple of shorter object length
 #> Warning in matrix(rep(predicted_mean, each = n_obs), nrow = n_obs, ncol =
 #> n_draws): data length differs from size of matrix: [250000 != 500 x 400]
-#> Running tasks 101/240 [2s]
+#> Running tasks 101/240 [2.1s]
 #> Warning in draws[, slope_param] * x: longer object length is not a multiple of
 #> shorter object length
 #> Warning in draws[, intercept_param] + draws[, slope_param] * x: longer object
@@ -543,6 +547,7 @@ complexity.
 The result object contains the simulation output:
 
 ``` r
+
 print(result)
 #> <bayesim_simulation_result>
 #>   Config fingerprint: ae597dced4ea93880658ca37cb10994f03b548430a713128f0d3dd41f5e67df8 
@@ -551,7 +556,7 @@ print(result)
 #>     - Failed: 0 
 #>     - Skipped: 0 
 #>   Task grid: 240 rows x 6 cols
-#>   Total time: 3.33 s
+#>   Total time: 3.36 s
 ```
 
 ### Summary Tibble
@@ -561,6 +566,7 @@ columns. Data grid columns are prefixed with `data_` and fit grid
 columns with `fit_`:
 
 ``` r
+
 head(result$summary)
 #>            task_id  status rmse__value rmse__n_obs bias__value coverage__mean
 #> 1 d001_f001_r00001 success    1.911543          50 0.493704387              1
@@ -591,12 +597,12 @@ head(result$summary)
 #> 5              1.161367     1.01      400      350         0             0
 #> 6              1.165993     1.01      400      350         0             0
 #>   timing_total rep_idx data_n data_intercept data_slope data_sigma
-#> 1  0.037990808       1     50              1          2        0.5
-#> 2  0.059893847       2     50              1          2        0.5
-#> 3  0.003829241       3     50              1          2        0.5
-#> 4  0.003706217       4     50              1          2        0.5
-#> 5  0.003778219       5     50              1          2        0.5
-#> 6  0.003727913       6     50              1          2        0.5
+#> 1  0.037823915       1     50              1          2        0.5
+#> 2  0.059220552       2     50              1          2        0.5
+#> 3  0.003893137       3     50              1          2        0.5
+#> 4  0.003728151       4     50              1          2        0.5
+#> 5  0.003828287       5     50              1          2        0.5
+#> 6  0.003903866       6     50              1          2        0.5
 #>           fit_model
 #> 1 linear_regression
 #> 2 linear_regression
@@ -622,6 +628,7 @@ Column names follow these patterns:
 Aggregate results to examine patterns across conditions:
 
 ``` r
+
 summary_stats <- result$summary |>
   group_by(data_n, data_sigma) |>
   summarise(
@@ -656,6 +663,7 @@ print(summary_stats)
 Visualize how RMSE varies with sample size and noise level:
 
 ``` r
+
 result$summary |>
   mutate(
     data_n = factor(data_n, levels = c(50, 100, 200, 500)),
@@ -677,6 +685,7 @@ result$summary |>
 Examine coverage rates:
 
 ``` r
+
 coverage_summary <- result$summary |>
   group_by(data_n, data_sigma) |>
   summarise(
@@ -704,6 +713,7 @@ ggplot(coverage_summary, aes(x = data_n, y = coverage_rate, color = factor(data_
 View posterior mean estimates for the slope parameter:
 
 ``` r
+
 result$summary |>
   ggplot(aes(x = factor(data_n), y = posterior_mean__slope)) +
   geom_boxplot(aes(fill = factor(data_sigma))) +
@@ -726,6 +736,7 @@ The result also contains the task grid, which shows the full
 experimental design:
 
 ``` r
+
 head(result$task_grid)
 #> # A tibble: 6 × 6
 #>   data_idx fit_idx rep_idx task_id          rng_seed  status 
@@ -746,6 +757,7 @@ For long-running simulations, enable checkpointing to save progress
 periodically:
 
 ``` r
+
 config_with_checkpoint <- simulation_config(
   data_grid = data.frame(n = c(100, 500, 1000)),
   fit_grid = data.frame(model = "complex_model"),
@@ -768,6 +780,7 @@ result <- run_simulation(config_with_checkpoint, resume = "auto")
 If the simulation is interrupted, resume from the last checkpoint:
 
 ``` r
+
 result <- resume_simulation("my_simulation_results")
 ```
 

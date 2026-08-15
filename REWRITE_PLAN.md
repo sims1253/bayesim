@@ -100,6 +100,7 @@ Use S3 for: - `bayesim_fit_result` - `bayesim_task_result` -
 ## 3. Public API (Final)
 
 ``` r
+
 # Main entry point
 run_simulation <- function(config, resume = c("auto", "never", "must"), progress = TRUE) {}
 
@@ -184,6 +185,7 @@ posterior_mean_metric <- function(...) {}
 #### Signature
 
 ``` r
+
 data_generator <- function(data_spec, seed, task_ctx) {}
 ```
 
@@ -227,6 +229,7 @@ list(
 ### 4.2 Fitter Contract (S7)
 
 ``` r
+
 Fitter <- S7::new_class(
   "Fitter",
   abstract = TRUE,
@@ -282,6 +285,7 @@ structure(
 ### 4.3 Metric Contract (S7)
 
 ``` r
+
 Metric <- S7::new_class(
   "Metric",
   properties = list(
@@ -318,6 +322,7 @@ Metric <- S7::new_class(
 Each task has deterministic key:
 
 ``` r
+
 task_id = sprintf(
   paste0("d%0", data_width, "d_f%0", fit_width, "d_r%0", rep_width, "d"),
   data_idx,
@@ -339,6 +344,7 @@ directly; otherwise build the task table from the Cartesian product of
 - Set RNG kind once at run start:
 
 ``` r
+
 RNGkind("L'Ecuyer-CMRG")
 set.seed(config$seed)
 ```
@@ -350,6 +356,7 @@ set.seed(config$seed)
 - In worker, before any random call:
 
 ``` r
+
 .Random.seed <- task$rng_seed
 ```
 
@@ -505,6 +512,7 @@ a fresh run with `run_simulation(..., resume = "never")`.
 User-facing API may accept either named profile or explicit set from:
 
 ``` r
+
 c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")
 ```
 
@@ -651,6 +659,7 @@ once per run
 ### Safe task wrapper
 
 ``` r
+
 run_task_safe <- function(task, config_spec, fitter, metrics) {
   tryCatch(
     run_task_impl(task, config_spec, fitter, metrics),
@@ -670,6 +679,7 @@ run_task_safe <- function(task, config_spec, fitter, metrics) {
 ### Metric failure downgrade (non-required metric)
 
 ``` r
+
 compute_metric_safe <- function(metric, fit_result, data_bundle, context, task_ctx) {
   tryCatch(
     metric@compute(fit_result, data_bundle, context, task_ctx),
@@ -690,6 +700,7 @@ compute_metric_safe <- function(metric, fit_result, data_bundle, context, task_c
 ### Atomic JSON write
 
 ``` r
+
 write_json_atomic <- function(x, path) {
   tmp <- paste0(path, ".tmp")
   jsonlite::write_json(x, tmp, auto_unbox = TRUE, pretty = TRUE)
@@ -703,6 +714,7 @@ write_json_atomic <- function(x, path) {
 ### RNG stream precomputation
 
 ``` r
+
 create_task_rng_streams <- function(global_seed, n_tasks) {
   RNGkind("L'Ecuyer-CMRG")
   set.seed(global_seed)
@@ -721,6 +733,7 @@ create_task_rng_streams <- function(global_seed, n_tasks) {
 ### Backend seed propagation
 
 ``` r
+
 prepare_backend_seed <- function(task_seed, backend = c("generic", "cmdstanr", "rstan")) {
   backend <- match.arg(backend)
   .Random.seed <- task_seed
@@ -767,16 +780,16 @@ Retention/memory tuning guide
 
 ## 13. Risks and Watch-Outs
 
-| Risk                                             | Mitigation                                                                                 |
-|--------------------------------------------------|--------------------------------------------------------------------------------------------|
-| Hidden nondeterminism from backend internals     | Fixed RNG streams, explicit backend seeds, documented backend-qualified guarantees         |
-| Checkpoint bloat from retained artifacts         | Retention defaults and row-size externalization                                            |
-| Wrong storage format choice for core persistence | Keep `RDS` authoritative first; benchmark columnar backends before promoting them          |
-| Overly complex abstractions                      | Keep exactly one extension path (`Fitter` + `Metric`), avoid extra plugin layers           |
-| Parallel serialization of fitter objects         | Precompiled models are NOT serialized; workers compile locally or receive minimal specs    |
-| Stan backend differences                         | Default brms to `cmdstanr`, support `rstan` as configurable, and test both where available |
-| Resume false-positives with custom closures      | Normalize and fingerprint function bodies/env provenance; reject ambiguous resumes         |
-| Cross-filesystem atomicity assumptions           | Write temp dirs in-place and fail loudly when atomic rename cannot be guaranteed           |
+| Risk | Mitigation |
+|----|----|
+| Hidden nondeterminism from backend internals | Fixed RNG streams, explicit backend seeds, documented backend-qualified guarantees |
+| Checkpoint bloat from retained artifacts | Retention defaults and row-size externalization |
+| Wrong storage format choice for core persistence | Keep `RDS` authoritative first; benchmark columnar backends before promoting them |
+| Overly complex abstractions | Keep exactly one extension path (`Fitter` + `Metric`), avoid extra plugin layers |
+| Parallel serialization of fitter objects | Precompiled models are NOT serialized; workers compile locally or receive minimal specs |
+| Stan backend differences | Default brms to `cmdstanr`, support `rstan` as configurable, and test both where available |
+| Resume false-positives with custom closures | Normalize and fingerprint function bodies/env provenance; reject ambiguous resumes |
+| Cross-filesystem atomicity assumptions | Write temp dirs in-place and fail loudly when atomic rename cannot be guaranteed |
 
 ------------------------------------------------------------------------
 

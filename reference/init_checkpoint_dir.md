@@ -44,6 +44,7 @@ Invisible path to the result directory, or NULL if result_path is NULL.
 
 The directory structure created is:
 
+
     result_path/
     +-- run_manifest.json    # run-level metadata and schema versions
     +-- latest.json          # pointer to latest valid checkpoint ID

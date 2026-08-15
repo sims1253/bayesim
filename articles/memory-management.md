@@ -22,15 +22,15 @@ memory. We need a way to retain only what is necessary.
 
 During simulation, each task produces several types of artifacts:
 
-| Artifact      | Description                                         | Typical Size  |
-|---------------|-----------------------------------------------------|---------------|
-| `metrics`     | Computed metric values (RMSE, bias, coverage, etc.) | Small (KB)    |
-| `diagnostics` | Convergence diagnostics (R-hat, ESS, divergences)   | Small (KB)    |
-| `draws`       | Posterior draws matrix                              | Medium (MB)   |
-| `predictions` | Predicted values for test/training data             | Variable      |
-| `fit`         | Raw fit object from the modeling backend            | Large (MB-GB) |
-| `data`        | Input training and test data                        | Variable      |
-| `warnings`    | Warning messages from fitting                       | Small (KB)    |
+| Artifact | Description | Typical Size |
+|----|----|----|
+| `metrics` | Computed metric values (RMSE, bias, coverage, etc.) | Small (KB) |
+| `diagnostics` | Convergence diagnostics (R-hat, ESS, divergences) | Small (KB) |
+| `draws` | Posterior draws matrix | Medium (MB) |
+| `predictions` | Predicted values for test/training data | Variable |
+| `fit` | Raw fit object from the modeling backend | Large (MB-GB) |
+| `data` | Input training and test data | Variable |
+| `warnings` | Warning messages from fitting | Small (KB) |
 
 ### The `retain` Parameter
 
@@ -39,6 +39,7 @@ The `retain` parameter in
 controls which artifacts are kept in memory:
 
 ``` r
+
 library(bayesim)
 
 # Default retention: metrics and diagnostics
@@ -82,6 +83,7 @@ Use this for very large simulations where you only need summary
 statistics:
 
 ``` r
+
 # Get the minimal retention profile
 minimal_retain <- resolve_retention("minimal")
 print(minimal_retain)
@@ -122,6 +124,7 @@ memory footprint.
 This is the default profile, balancing information with memory usage:
 
 ``` r
+
 # Get the standard retention profile
 standard_retain <- resolve_retention("standard")
 print(standard_retain)
@@ -164,6 +167,7 @@ Use this for debugging or small studies where you need full access to
 all artifacts:
 
 ``` r
+
 # Get the debug retention profile
 debug_retain <- resolve_retention("debug")
 print(debug_retain)
@@ -205,6 +209,7 @@ The `"debug"` profile retains all artifacts: `metrics`, `diagnostics`,
 For fine-grained control, specify a custom character vector:
 
 ``` r
+
 # Keep metrics, diagnostics, and draws, but not fit objects or data
 config_custom <- simulation_config(
   data_grid = data.frame(n = 100, sigma = 1),
@@ -245,6 +250,7 @@ Raw fit object - `"data"` - Input data - `"warnings"` - Warning messages
 For small studies, you can safely use the debug profile:
 
 ``` r
+
 # Small study: 2 data configs × 1 model × 20 replicates = 40 tasks
 small_config <- simulation_config(
   data_grid = data.frame(n = c(100, 500), sigma = 1),
@@ -266,6 +272,7 @@ less than 5 GB of memory.
 For medium-sized studies, use the standard profile to keep diagnostics:
 
 ``` r
+
 # Medium study: 10 data configs × 2 models × 50 replicates = 1,000 tasks
 medium_config <- simulation_config(
   data_grid = data.frame(
@@ -290,6 +297,7 @@ while avoiding the memory overhead of storing all fit objects.
 For large studies, use the minimal profile or a custom profile:
 
 ``` r
+
 # Large study: 20 data configs × 5 models × 100 replicates = 10,000 tasks
 large_config <- simulation_config(
   data_grid = expand.grid(
@@ -318,6 +326,7 @@ When running large simulations, combine retention profiles with
 checkpointing to manage both memory and execution time:
 
 ``` r
+
 # Very large study with checkpointing
 huge_config <- simulation_config(
   data_grid = expand.grid(
@@ -358,6 +367,7 @@ study size.
 You can control the memory bound with the `chunk_size` parameter:
 
 ``` r
+
 # Tighter memory control - checkpoint and clear every 25 tasks
 tight_memory_config <- simulation_config(
   data_grid = expand.grid(n = c(100, 500), sigma = c(0.5, 1)),
@@ -386,6 +396,7 @@ If a simulation is interrupted, resuming continues from the last
 checkpoint without reloading previous full results:
 
 ``` r
+
 # First run - gets interrupted
 result <- run_simulation(huge_config, resume = "auto")
 
@@ -403,6 +414,7 @@ main summary table indefinitely.
 Let’s compare memory usage across different retention profiles:
 
 ``` r
+
 # Data generator for comparison
 demo_generator <- function(data_spec, seed, task_ctx) {
   # Note: seed is a scalar task seed and the task RNG stream is restored
@@ -479,9 +491,9 @@ print(head(result_minimal$summary, 3))
 #> 2                             1                         1
 #> 3                             1                         1
 #>   coverage__by_param__sigma timing_total rep_idx data_n data_intercept
-#> 1                         1  0.035192728       1    100              1
-#> 2                         1  0.047021866       2    100              1
-#> 3                         1  0.005603313       3    100              1
+#> 1                         1  0.033408880       1    100              1
+#> 2                         1  0.049299717       2    100              1
+#> 3                         1  0.005793095       3    100              1
 #>   data_slope data_sigma fit_model
 #> 1          2          1    linear
 #> 2          2          1    linear
@@ -504,15 +516,16 @@ print(head(result_standard$summary, 3))
 #> 2                         1     1.01      400      350         0             0
 #> 3                         1     1.01      400      350         0             0
 #>   timing_total rep_idx data_n data_intercept data_slope data_sigma fit_model
-#> 1  0.005848169       1    100              1          2          1    linear
-#> 2  0.005661011       2    100              1          2          1    linear
-#> 3  0.005575418       3    100              1          2          1    linear
+#> 1  0.005665302       1    100              1          2          1    linear
+#> 2  0.005479097       2    100              1          2          1    linear
+#> 3  0.005437136       3    100              1          2          1    linear
 ```
 
 Both profiles produce the same summary tibble with metric values. The
 difference is in what additional data is available in the task results:
 
 ``` r
+
 # Check what's available in task results (if any)
 cat("Minimal retention - task results available:", 
     !is.null(result_minimal$task_results), "\n")
@@ -529,6 +542,7 @@ Use [`object.size()`](https://rdrr.io/r/utils/object.size.html) and
 to check memory usage:
 
 ``` r
+
 # Estimate size of the result objects
 cat("Minimal result size:", 
     format(object.size(result_minimal), units = "KB"), "\n")
@@ -554,6 +568,7 @@ if (!is.null(result_standard$task_results) && length(result_standard$task_result
 Regularly check memory usage during development:
 
 ``` r
+
 # Before simulation
 gc()
 start_mem <- sum(gc()[, 2])  # Get used memory in MB
@@ -577,6 +592,7 @@ Before running a large study, do a small test run to estimate per-task
 memory:
 
 ``` r
+
 # Test run with 5 tasks
 test_config <- simulation_config(
   data_grid = data.frame(n = 100, sigma = 1),
@@ -609,6 +625,7 @@ If your study is too large for available memory even with minimal
 retention, split it into chunks:
 
 ``` r
+
 # Split by data configuration
 n_values <- c(100, 500, 1000)
 
@@ -649,6 +666,7 @@ Set `checkpoint_every` based on your model fitting time and available
 memory:
 
 ``` r
+
 # Fast models: checkpoint less frequently
 fast_config <- simulation_config(
   # ... other params ...
@@ -668,6 +686,7 @@ After a simulation completes, you may want to remove old checkpoints to
 free disk space:
 
 ``` r
+
 # List checkpoints
 checkpoint_ids <- list_checkpoints("my_simulation_results")
 cat("Available checkpoints:", checkpoint_ids, "\n")

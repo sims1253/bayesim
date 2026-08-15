@@ -1,6 +1,7 @@
 # Case Studies: Simulation-Based Research with bayesim
 
 ``` r
+
 library(bayesim)
 library(dplyr)
 library(ggplot2)
@@ -72,6 +73,7 @@ The generator preserves the DAG structure while varying the outcome
 distribution:
 
 ``` r
+
 generate_case1_data <- function(data_spec, seed, task_ctx) {
   # Use a shared seed so all models fit to the same dataset
   # within a replicate see identical data
@@ -152,6 +154,7 @@ We fit three different models to each dataset, all with the same formula
 but different likelihoods:
 
 ``` r
+
 library(brms)
 
 fit_grid_case1 <- tibble::tibble(
@@ -179,6 +182,7 @@ We define two custom metrics:
   true causal effect
 
 ``` r
+
 # PP: LOO-ELPD metric (needs LOO computation in context)
 LooElpdMetric <- S7::new_class(
   "LooElpdMetric",
@@ -234,6 +238,7 @@ Small-scale illustration with 3 DGP families × 3 fit models × 8
 replicates:
 
 ``` r
+
 config_case1 <- simulation_config(
   data_grid = data.frame(
     n = 120,
@@ -276,6 +281,7 @@ The key analysis compares whether the model with best PP also has best
 PR:
 
 ``` r
+
 # Extract summary and identify replicates
 summary_case1 <- result_case1$summary |>
   mutate(
@@ -306,6 +312,7 @@ agreement_tbl |>
 ### Visualization
 
 ``` r
+
 summary_case1 |>
   ggplot(aes(
     x = loo_elpd__elpd,
@@ -363,6 +370,7 @@ The primed prior workflow:
 This generator implements the primed prior pattern:
 
 ``` r
+
 library(brms)
 library(posterior)
 
@@ -465,6 +473,7 @@ make_primed_prior_generator <- function(
 Using the `epilepsy` dataset from `brms` as calibration data:
 
 ``` r
+
 # Use brms epilepsy data as calibration source
 calibration_data <- brms::epilepsy |>
   select(count, Base, Age) |>
@@ -488,6 +497,7 @@ primed_generator <- make_primed_prior_generator(
 Compare negative binomial vs Poisson (overdispersion misspecification):
 
 ``` r
+
 fit_grid_case2 <- tibble::tibble(
   model_id = c("negbinomial", "poisson"),
   formula = list(
@@ -551,6 +561,7 @@ Each simulated dataset carries the parameter values used to generate it
 ### Post-Run Analysis
 
 ``` r
+
 # Summary by model and sample size
 result_case2$summary |>
   group_by(fit_model_id, data_n) |>

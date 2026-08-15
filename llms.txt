@@ -9,6 +9,7 @@ memory-bounded execution so you can focus on your research questions.
 You can install the development version of bayesim from GitHub:
 
 ``` r
+
 # install.packages("pak")
 pak::pak("sims1253/bayesim")
 ```
@@ -26,6 +27,7 @@ The basic workflow has three steps:
     [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md)
 
 ``` r
+
 library(bayesim)
 
 # Define a data generator
@@ -89,6 +91,7 @@ resumed, and parallel runs produce identical results.
 Set `result_path` and `checkpoint_every` to make runs resumable:
 
 ``` r
+
 config <- simulation_config(
   data_grid = data.frame(n = c(100, 500)),
   fit_grid = data.frame(model = "baseline"),

@@ -50,6 +50,7 @@ Invisible checkpoint ID (integer), or NULL if result_path is NULL.
 
 The checkpoint directory structure is:
 
+
     checkpoints/
     +-- cp_000001/
         +-- meta.json         # checkpoint metadata

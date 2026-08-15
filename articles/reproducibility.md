@@ -49,6 +49,7 @@ Mersenne-Twister. This choice is deliberate:
   between streams
 
 ``` r
+
 library(bayesim)
 
 # bayesim automatically sets L'Ecuyer-CMRG when you run a simulation
@@ -66,6 +67,7 @@ Before any tasks execute, bayesim pre-computes an independent RNG stream
 for each task:
 
 ``` r
+
 # Create 5 independent RNG streams from seed 42
 # Note: create_task_rng_streams() is an internal API used here for demonstration
 streams <- bayesim:::create_task_rng_streams(42, 5)
@@ -94,6 +96,7 @@ Tasks are always processed in a deterministic, lexicographic order based
 on their task IDs:
 
 ``` r
+
 # Task IDs follow the pattern: d..._f..._r...
 # - d...: zero-padded data grid index
 # - f...: zero-padded fit grid index
@@ -118,6 +121,7 @@ This deterministic ordering ensures that:
 Every simulation configuration gets a unique cryptographic fingerprint:
 
 ``` r
+
 # Create a simple configuration
 config <- simulation_config(
   data_grid = data.frame(n = c(100, 200)),
@@ -167,6 +171,7 @@ task streams, so results stay aligned when the R, package, and
 model-backend environment matches:
 
 ``` r
+
 # Sequential execution
 config <- simulation_config(..., seed = 42L)
 result_seq <- run_simulation(config)
@@ -189,6 +194,7 @@ Checkpoint/resume preserves the same task streams and completed-task
 ledger:
 
 ``` r
+
 # First run (interrupted)
 config <- simulation_config(
   ...,
@@ -240,6 +246,7 @@ software/backend environment:
 Given identical configuration and seed, you get identical results:
 
 ``` r
+
 # Create a simple simulation configuration
 data_gen <- function(data_spec, seed, task_ctx) {
   # Note: seed is a scalar task seed.
@@ -287,6 +294,7 @@ Resuming from a checkpoint produces the same final results as an
 uninterrupted run:
 
 ``` r
+
 # This is demonstrated conceptually - in practice you would need
 # to interrupt and resume an actual run
 
@@ -330,6 +338,7 @@ inherently non-deterministic:
 Task execution times will vary between runs:
 
 ``` r
+
 # Run the same simulation twice
 config <- simulation_config(
   data_grid = data.frame(n = 100),
@@ -350,9 +359,9 @@ result2 <- run_simulation(config, progress = FALSE)
 timing1 <- result1$timing$total
 timing2 <- result2$timing$total
 cat("Run 1:", timing1, "seconds\n")
-#> Run 1: 0.03711462 seconds
+#> Run 1: 0.03979683 seconds
 cat("Run 2:", timing2, "seconds\n")
-#> Run 2: 0.03610706 seconds
+#> Run 2: 0.03935027 seconds
 ```
 
 This is expected and doesn’t affect the scientific validity of results.
@@ -397,6 +406,7 @@ critical simulations.
 Always explicitly set a seed in your simulation configuration:
 
 ``` r
+
 # Good: explicit seed
 config <- simulation_config(
   ...,
@@ -415,6 +425,7 @@ documented.
 Store your simulation configuration in version control:
 
 ``` r
+
 # In your R script or R Markdown document
 simulation_config(
   data_grid = read.csv("data_grid.csv"),
@@ -438,6 +449,7 @@ This ensures that:
 For long-running simulations, always enable checkpointing:
 
 ``` r
+
 config <- simulation_config(
   ...,
   result_path = "path/to/results",  # Enable checkpointing
@@ -460,15 +472,16 @@ This protects against:
 Document your computational environment:
 
 ``` r
+
 # Record R version
 R.version.string
-#> [1] "R version 4.5.3 (2026-03-11)"
+#> [1] "R version 4.6.1 (2026-06-24)"
 
 # Record package versions
 sessionInfo()
-#> R version 4.5.3 (2026-03-11)
+#> R version 4.6.1 (2026-06-24)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.3 LTS
+#> Running under: Ubuntu 24.04.4 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -492,23 +505,24 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] future_1.70.0 bayesim_1.0.1
+#> [1] future_1.75.0 bayesim_1.0.1
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] vctrs_0.7.1         cli_3.6.5           knitr_1.51         
-#>  [4] rlang_1.1.7         xfun_0.56           generics_0.1.4     
-#>  [7] textshaping_1.0.5   S7_0.2.1            jsonlite_2.0.0     
-#> [10] glue_1.8.0          listenv_0.10.1      future.apply_1.20.2
-#> [13] htmltools_0.5.9     ragg_1.5.1          sass_0.4.10        
-#> [16] rmarkdown_2.30      evaluate_1.0.5      jquerylib_0.1.4    
-#> [19] tibble_3.3.1        fastmap_1.2.0       yaml_2.3.12        
-#> [22] lifecycle_1.0.5     compiler_4.5.3      dplyr_1.2.0        
-#> [25] codetools_0.2-20    fs_1.6.7            pkgconfig_2.0.3    
-#> [28] systemfonts_1.3.2   digest_0.6.39       R6_2.6.1           
-#> [31] tidyselect_1.2.1    parallelly_1.46.1   pillar_1.11.1      
-#> [34] parallel_4.5.3      magrittr_2.0.4      bslib_0.10.0       
-#> [37] tools_4.5.3         withr_3.0.2         globals_0.19.1     
-#> [40] pkgdown_2.2.0       cachem_1.1.0        desc_1.4.3
+#>  [1] future.apply_1.20.2 jsonlite_2.0.0      dplyr_1.2.1        
+#>  [4] compiler_4.6.1      tidyselect_1.2.1    parallel_4.6.1     
+#>  [7] jquerylib_0.1.4     globals_0.19.1      systemfonts_1.3.2  
+#> [10] textshaping_1.0.5   yaml_2.3.12         fastmap_1.2.0      
+#> [13] R6_2.6.1            generics_0.1.4      knitr_1.51         
+#> [16] tibble_3.3.1        desc_1.4.3          bslib_0.12.0       
+#> [19] pillar_1.11.1       rlang_1.3.0         cachem_1.1.0       
+#> [22] xfun_0.60           fs_2.1.0            sass_0.4.10        
+#> [25] S7_0.2.2            otel_0.2.0          cli_3.6.6          
+#> [28] pkgdown_2.2.1       withr_3.0.3         magrittr_2.0.5     
+#> [31] digest_0.6.39       lifecycle_1.0.5     vctrs_0.7.3        
+#> [34] evaluate_1.0.5      glue_1.8.1          listenv_1.0.0      
+#> [37] codetools_0.2-20    ragg_1.5.2          parallelly_1.48.0  
+#> [40] rmarkdown_2.31      tools_4.6.1         pkgconfig_2.0.3    
+#> [43] htmltools_0.5.9
 ```
 
 For publication, include a section like:
@@ -529,6 +543,7 @@ machines and sessions.
 capturing exact package versions:
 
 ``` r
+
 # Initialize renv in your project
 renv::init()
 
@@ -554,6 +569,7 @@ libraries):
   the entire OS, R version, and all dependencies
 
 ``` r
+
 # Example: Using rv to manage environments
 rv::init()
 rv::snapshot()
@@ -569,6 +585,7 @@ evolution.
 Here’s a complete example demonstrating reproducibility:
 
 ``` r
+
 library(bayesim)
 
 # Define a data generator
@@ -665,6 +682,7 @@ To verify that different seeds produce different (but still
 reproducible) results:
 
 ``` r
+
 # Same configuration, different seeds
 config1 <- simulation_config(
   data_grid = data.frame(n = 100, intercept = 1, slope = 2, sigma = 0.5),
