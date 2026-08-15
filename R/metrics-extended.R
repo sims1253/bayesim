@@ -43,15 +43,7 @@ MaeMetric <- S7::new_class(
 #' @examples
 #' pred_mae_metric()
 pred_mae_metric <- function(name = "mae") {
-  MaeMetric(
-    name = name,
-    needs = "predictions",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      n_obs = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
+  MaeMetric(name = name)
 }
 
 S7::method(compute_metric, MaeMetric) <- function(
@@ -112,15 +104,7 @@ MseMetric <- S7::new_class(
 #' @examples
 #' pred_mse_metric()
 pred_mse_metric <- function(name = "mse") {
-  MseMetric(
-    name = name,
-    needs = "predictions",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      n_obs = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
+  MseMetric(name = name)
 }
 
 S7::method(compute_metric, MseMetric) <- function(
@@ -166,11 +150,9 @@ PosProbMetric <- S7::new_class(
       S7::class_list,
       default = list(
         mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-        by_param = list(
-          role = "binary",
-          aggregation = "proportion",
-          mcse = "binomial"
-        )
+        # by_param values are continuous per-task proportions (fraction of
+        # draws > 0), not 0/1 outcomes: aggregate as estimates with an sd MCSE.
+        by_param = list(role = "estimate", aggregation = "mean", mcse = "sd")
       ),
       validator = function(value) validate_metric_schema(value)
     )
@@ -184,19 +166,7 @@ PosProbMetric <- S7::new_class(
 #' @examples
 #' pos_prob_metric()
 pos_prob_metric <- function(name = "pos_prob") {
-  PosProbMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    schema = list(
-      mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      by_param = list(
-        role = "binary",
-        aggregation = "proportion",
-        mcse = "binomial"
-      )
-    )
-  )
+  PosProbMetric(name = name)
 }
 
 S7::method(compute_metric, PosProbMetric) <- function(
@@ -207,13 +177,13 @@ S7::method(compute_metric, PosProbMetric) <- function(
   task_ctx
 ) {
   if (is.null(fit_result$draws)) {
-    return(list(mean = NA_real_))
+    return(list(mean = NA_real_, by_param = NA_real_))
   }
   draws <- fit_result$draws
   voi <- data_bundle$vars_of_interest %||% colnames(draws)
   mapped <- resolve_draw_columns(voi, colnames(draws))
   if (length(mapped) == 0L) {
-    return(list(mean = NA_real_))
+    return(list(mean = NA_real_, by_param = NA_real_))
   }
   probs <- vapply(
     names(mapped),
@@ -312,6 +282,7 @@ S7::method(compute_metric, PosteriorSummaryMetric) <- function(
   if (is.null(fit_result$draws)) {
     return(list(
       mean = NA_real_,
+      median = NA_real_,
       sd = NA_real_,
       q_lower = NA_real_,
       q_upper = NA_real_
@@ -323,6 +294,7 @@ S7::method(compute_metric, PosteriorSummaryMetric) <- function(
   if (length(mapped) == 0L) {
     return(list(
       mean = NA_real_,
+      median = NA_real_,
       sd = NA_real_,
       q_lower = NA_real_,
       q_upper = NA_real_
@@ -343,19 +315,21 @@ S7::method(compute_metric, PosteriorSummaryMetric) <- function(
 
 # Convergence / sampler diagnostic metrics -------------------------------
 
-#' @title Convergence Metric
-#' @description Summarizes convergence diagnostics (max R-hat, min ESS,
-#'   divergences) from `fit_result$diagnostics`. Returns NA when absent.
-#' @param name Character string naming the metric. Defaults to "convergence".
-#' @return A `ConvergenceMetric` object.
+#' @title Sampler Diagnostics Metric
+#' @description Surfaces the full set of sampler and convergence diagnostics
+#'   from `fit_result$diagnostics`: max R-hat, min bulk ESS, min tail ESS,
+#'   divergence count, and max-treedepth hits. Returns NA fields when the
+#'   diagnostics list is absent.
+#' @param name Character string naming the metric. Defaults to "sampler_diagnostics".
+#' @return A `SamplerDiagnosticsMetric` object.
 #' @keywords internal
-ConvergenceMetric <- S7::new_class(
-  "ConvergenceMetric",
+SamplerDiagnosticsMetric <- S7::new_class(
+  "SamplerDiagnosticsMetric",
   parent = Metric,
   properties = list(
     name = S7::new_property(
       S7::class_character,
-      default = "convergence",
+      default = "sampler_diagnostics",
       validator = validate_metric_name
     ),
     needs = S7::new_property(S7::class_character, default = character()),
@@ -374,85 +348,6 @@ ConvergenceMetric <- S7::new_class(
           aggregation = "mean",
           mcse = "sd"
         ),
-        divergent = list(role = "count", aggregation = "none", mcse = "none")
-      ),
-      validator = function(value) validate_metric_schema(value)
-    )
-  )
-)
-
-#' @rdname ConvergenceMetric
-#' @description Constructor for ConvergenceMetric.
-#' @return A `ConvergenceMetric` object.
-#' @export
-#' @examples
-#' convergence_metric()
-convergence_metric <- function(name = "convergence") {
-  ConvergenceMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    schema = list(
-      rhat_max = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
-      ess_bulk_min = list(
-        role = "diagnostic",
-        aggregation = "mean",
-        mcse = "sd"
-      ),
-      ess_tail_min = list(
-        role = "diagnostic",
-        aggregation = "mean",
-        mcse = "sd"
-      ),
-      divergent = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
-}
-
-S7::method(compute_metric, ConvergenceMetric) <- function(
-  metric,
-  fit_result,
-  data_bundle,
-  context,
-  task_ctx
-) {
-  d <- fit_result$diagnostics
-  if (is.null(d)) {
-    return(list(
-      rhat_max = NA_real_,
-      ess_bulk_min = NA_real_,
-      ess_tail_min = NA_real_,
-      divergent = NA_integer_
-    ))
-  }
-  list(
-    rhat_max = as.numeric(d$rhat_max %||% NA_real_),
-    ess_bulk_min = as.numeric(d$ess_bulk_min %||% NA_real_),
-    ess_tail_min = as.numeric(d$ess_tail_min %||% NA_real_),
-    divergent = as.integer(d$divergent %||% NA_integer_)
-  )
-}
-
-#' @title Sampler Diagnostics Metric
-#' @description Surfaces sampler-level diagnostics (divergences, max treedepth)
-#'   from `fit_result$diagnostics`.
-#' @param name Character string naming the metric. Defaults to "sampler_diagnostics".
-#' @return A `SamplerDiagnosticsMetric` object.
-#' @keywords internal
-SamplerDiagnosticsMetric <- S7::new_class(
-  "SamplerDiagnosticsMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(
-      S7::class_character,
-      default = "sampler_diagnostics",
-      validator = validate_metric_name
-    ),
-    needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE),
-    schema = S7::new_property(
-      S7::class_list,
-      default = list(
         divergent = list(role = "count", aggregation = "none", mcse = "none"),
         max_treedepth = list(
           role = "diagnostic",
@@ -472,19 +367,7 @@ SamplerDiagnosticsMetric <- S7::new_class(
 #' @examples
 #' sampler_diagnostics_metric()
 sampler_diagnostics_metric <- function(name = "sampler_diagnostics") {
-  SamplerDiagnosticsMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    schema = list(
-      divergent = list(role = "count", aggregation = "none", mcse = "none"),
-      max_treedepth = list(
-        role = "diagnostic",
-        aggregation = "mean",
-        mcse = "sd"
-      )
-    )
-  )
+  SamplerDiagnosticsMetric(name = name)
 }
 
 S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(
@@ -496,9 +379,18 @@ S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(
 ) {
   d <- fit_result$diagnostics
   if (is.null(d)) {
-    return(list(divergent = NA_integer_, max_treedepth = NA_integer_))
+    return(list(
+      rhat_max = NA_real_,
+      ess_bulk_min = NA_real_,
+      ess_tail_min = NA_real_,
+      divergent = NA_integer_,
+      max_treedepth = NA_integer_
+    ))
   }
   list(
+    rhat_max = as.numeric(d$rhat_max %||% NA_real_),
+    ess_bulk_min = as.numeric(d$ess_bulk_min %||% NA_real_),
+    ess_tail_min = as.numeric(d$ess_tail_min %||% NA_real_),
     divergent = as.integer(d$divergent %||% NA_integer_),
     max_treedepth = as.integer(d$max_treedepth %||% NA_integer_)
   )
@@ -580,19 +472,7 @@ RankMetric <- S7::new_class(
 #' rank_metric()
 #' rank_metric(thin = FALSE)
 rank_metric <- function(name = "rank", thin = "auto") {
-  RankMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    summary_type = "none",
-    thin = thin,
-    schema = list(
-      n_draws = list(role = "count", aggregation = "none", mcse = "none"),
-      stride = list(role = "count", aggregation = "none", mcse = "none"),
-      by_param = list(role = "rank", aggregation = "none", mcse = "none"),
-      n_ranks = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
+  RankMetric(name = name, thin = thin)
 }
 
 # Auto-thinning stride toward the min bulk-ESS across ranked variable columns.
@@ -631,8 +511,15 @@ S7::method(compute_metric, RankMetric) <- function(
   task_ctx
 ) {
   if (is.null(fit_result$draws) || is.null(data_bundle$true_params)) {
-    # No draws or no truth: ranks undefined. Return an empty (but valid) result.
-    return(list(n_draws = NA_integer_, stride = NA_integer_))
+    # No draws or no truth: ranks undefined. Degraded output still contains
+    # exactly the schema-declared fields (by_param/n_ranks degrade to scalar
+    # NA; parameter names are unknowable without draws).
+    return(list(
+      n_draws = NA_integer_,
+      stride = NA_integer_,
+      by_param = NA_real_,
+      n_ranks = NA_real_
+    ))
   }
   draws <- fit_result$draws
   true_params <- data_bundle$true_params
@@ -641,7 +528,12 @@ S7::method(compute_metric, RankMetric) <- function(
   # Restrict to vars that also have a truth value.
   mapped <- mapped[names(mapped) %in% names(true_params)]
   if (length(mapped) == 0L) {
-    return(list(n_draws = as.integer(nrow(draws)), stride = 1L))
+    return(list(
+      n_draws = as.integer(nrow(draws)),
+      stride = 1L,
+      by_param = NA_real_,
+      n_ranks = NA_real_
+    ))
   }
 
   # Determine the thinning stride (F4). auto -> toward min bulk-ESS; integer
@@ -685,189 +577,6 @@ S7::method(compute_metric, RankMetric) <- function(
   )
 }
 
-# R* metric (ROADMAP I2) -------------------------------------------------
-# Re-added with a real implementation: posterior::rstar() needs per-chain
-# draws (a draws_df with .chain), which is available from the underlying fit
-# object (brmsfit / cmdstanfit$draws()) but NOT from the flat fit_result$draws
-# matrix. Fitters without chain info (e.g. LinearRegressionFitter) degrade to
-# NA_real_ with a warning.
-
-#' @title R* Convergence Metric
-#' @description Computes the R* MCMC convergence diagnostic (Lambert & Vehtari
-#'   2022) via [posterior::rstar()]. R* measures whether a classifier can
-#'   identify the chain that generated a draw better than chance; values near 1
-#'   indicate convergence. Requires per-chain posterior draws, which are
-#'   extracted from the underlying fit object (`fit_result$fit`):
-#'
-#'   - **BrmsFitter**: `fit_result$fit` is a `brmsfit`; `posterior::as_draws_df()`
-#'     on it carries `.chain`.
-#'   - **CmdStanFitter**: `fit_result$fit$fit$draws()` returns a `draws_df` with
-#'     `.chain`.
-#'
-#'   Fitters whose `fit_result$fit` carries no chain info (e.g.
-#'   `LinearRegressionFitter`, which has only a flat S x P draws matrix) return
-#'   `NA_real_` with a warning, since R* is undefined without multiple chains.
-#'
-#'   `posterior::rstar()` additionally requires the `caret` package (and a
-#'   backend such as `ranger` for the default random-forest classifier); on any
-#'   error (e.g. missing dependencies, too few chains) the metric degrades
-#'   gracefully to `NA_real_`.
-#' @param name Character string naming the metric. Defaults to "rstar".
-#' @param uncertainty Logical passed to [posterior::rstar()]: if `TRUE`
-#'   returns a vector of `nsimulations` R* values whose mean is the reported
-#'   metric; if `FALSE` returns a single value. Defaults to `FALSE` so the
-#'   metric yields a single scalar summary.
-#' @param method Character passed to [posterior::rstar()] (default `"rf"`).
-#' @return A `RstarMetric` object.
-#' @keywords internal
-RstarMetric <- S7::new_class(
-  "RstarMetric",
-  parent = Metric,
-  properties = list(
-    name = S7::new_property(
-      S7::class_character,
-      default = "rstar",
-      validator = validate_metric_name
-    ),
-    needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE),
-    uncertainty = S7::new_property(S7::class_logical, default = FALSE),
-    method = S7::new_property(S7::class_character, default = "rf"),
-    schema = S7::new_property(
-      S7::class_list,
-      default = list(
-        value = list(role = "diagnostic", aggregation = "mean", mcse = "sd")
-      ),
-      validator = function(value) validate_metric_schema(value)
-    )
-  )
-)
-
-#' @rdname RstarMetric
-#' @description Constructor for RstarMetric.
-#' @param uncertainty Logical; see [posterior::rstar()]. Defaults to `FALSE`.
-#' @param method Character; classifier passed to [posterior::rstar()].
-#' @return A `RstarMetric` object.
-#' @export
-#' @examples
-#' rstar_metric()
-#' rstar_metric(uncertainty = FALSE)
-rstar_metric <- function(name = "rstar", uncertainty = FALSE, method = "rf") {
-  RstarMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    uncertainty = uncertainty,
-    method = method,
-    schema = list(
-      value = list(role = "diagnostic", aggregation = "mean", mcse = "sd")
-    )
-  )
-}
-
-# Extract a per-chain draws_df from a fit_result, or NULL when unavailable.
-# Tries (1) brmsfit (as_draws_df carries .chain), (2) cmdstan-style list
-# wrapper whose $fit is a CmdStanFit object with a draws() method, (3) any
-# object whose fit_result$fit has a draws() method. Returns NULL when no chain
-# info exists.
-.rstar_extract_chain_draws <- function(fit_result) {
-  fit <- fit_result$fit
-  if (is.null(fit)) {
-    return(NULL)
-  }
-  # brmsfit: as_draws_df on the brmsfit carries .chain/.iteration.
-  if (inherits(fit, "brmsfit")) {
-    draws_df <- tryCatch(
-      posterior::as_draws_df(fit),
-      error = function(e) NULL
-    )
-    return(draws_df)
-  }
-  # cmdstan-style: fit is a list wrapper whose $fit is a CmdStanFit object with
-  # a draws() method returning a draws_df with .chain.
-  if (is.list(fit) && !is.data.frame(fit)) {
-    inner <- fit$fit
-    if (!is.null(inner)) {
-      draws_df <- tryCatch(
-        {
-          d <- if (is.function(inner$draws)) inner$draws() else NULL
-          if (is.null(d)) NULL else posterior::as_draws_df(d)
-        },
-        error = function(e) NULL
-      )
-      if (!is.null(draws_df)) return(draws_df)
-    }
-  }
-  # Generic: fit has a draws() method.
-  if (is.function(fit$draws)) {
-    draws_df <- tryCatch(
-      posterior::as_draws_df(fit$draws()),
-      error = function(e) NULL
-    )
-    return(draws_df)
-  }
-  NULL
-}
-
-S7::method(compute_metric, RstarMetric) <- function(
-  metric,
-  fit_result,
-  data_bundle,
-  context,
-  task_ctx
-) {
-  draws_df <- .rstar_extract_chain_draws(fit_result)
-  # No per-chain draws available (e.g. LinearRegressionFitter). R* is undefined
-  # without multiple chains: degrade to NA with a warning.
-  if (is.null(draws_df)) {
-    .warn_once(
-      "rstar_no_chains",
-      "rstar_metric requires per-chain posterior draws; the fitter's fit_result$fit carries no chain info. Returning NA."
-    )
-    return(list(value = NA_real_))
-  }
-  # rstar needs at least 2 chains to be meaningful; otherwise NA.
-  n_chains <- tryCatch(
-    length(unique(posterior::chain_ids(draws_df))),
-    error = function(e) NA_integer_
-  )
-  if (is.na(n_chains) || n_chains < 2L) {
-    .warn_once(
-      "rstar_few_chains",
-      "rstar_metric requires >= 2 chains; got {n_chains}. Returning NA."
-    )
-    return(list(value = NA_real_))
-  }
-  value <- tryCatch(
-    {
-      rstar_val <- posterior::rstar(
-        draws_df,
-        uncertainty = metric@uncertainty,
-        method = metric@method
-      )
-      # When uncertainty = TRUE, posterior::rstar returns a length-nsimulations
-      # vector; summarize to its mean so the metric remains scalar.
-      if (metric@uncertainty && length(rstar_val) > 1L) {
-        mean(rstar_val)
-      } else {
-        as.numeric(rstar_val)
-      }
-    },
-    error = function(e) {
-      # S7: consistent with the rest of this file, warn once per run rather than
-      # emitting a base warning() per task (rstar runs once per task).
-      .warn_once(
-        "rstar_compute_error",
-        "rstar_metric failed; returning NA_real_.",
-        i = conditionMessage(e)
-      )
-      NA_real_
-    }
-  )
-  list(value = value)
-}
-
-
 # LOO-based metrics ------------------------------------------------------
 
 #' @title ELPD-LOO Metric
@@ -910,21 +619,7 @@ ElpdLooMetric <- S7::new_class(
 #' @examples
 #' elpd_loo_metric()
 elpd_loo_metric <- function(name = "elpd_loo") {
-  ElpdLooMetric(
-    name = name,
-    needs = "loo",
-    required = FALSE,
-    schema = list(
-      elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      p_loo = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      se = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      pareto_k_max = list(
-        role = "diagnostic",
-        aggregation = "mean",
-        mcse = "sd"
-      )
-    )
-  )
+  ElpdLooMetric(name = name)
 }
 
 S7::method(compute_metric, ElpdLooMetric) <- function(
@@ -995,20 +690,7 @@ RmseLooMetric <- S7::new_class(
 #' @examples
 #' rmse_loo_metric()
 rmse_loo_metric <- function(name = "rmse_loo") {
-  RmseLooMetric(
-    name = name,
-    needs = "loo",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      pareto_k_max = list(
-        role = "diagnostic",
-        aggregation = "mean",
-        mcse = "sd"
-      )
-    )
-  )
+  RmseLooMetric(name = name)
 }
 
 S7::method(compute_metric, RmseLooMetric) <- function(
@@ -1196,15 +878,7 @@ ElpdTestMetric <- S7::new_class(
 #' @examples
 #' elpd_test_metric()
 elpd_test_metric <- function(name = "elpd_test") {
-  ElpdTestMetric(
-    name = name,
-    needs = "log_lik",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      n_obs = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
+  ElpdTestMetric(name = name)
 }
 
 S7::method(compute_metric, ElpdTestMetric) <- function(
@@ -1227,21 +901,6 @@ S7::method(compute_metric, ElpdTestMetric) <- function(
     m + log(mean(exp(col - m)))
   }))
   list(value = elpd, n_obs = ncol(ll))
-}
-
-#' Test-set RMSE compatibility constructor
-#'
-#' `rmse_test_metric()` is a naming-compatible wrapper around
-#' [pred_rmse_metric()]. Both compute root-mean-square error of posterior-mean
-#' predictions on the held-out test set; use `pred_rmse_metric()` in new code.
-#'
-#' @param name Character string naming the metric. Defaults to "rmse_test".
-#' @return An `RmseMetric` object.
-#' @export
-#' @examples
-#' rmse_test_metric()
-rmse_test_metric <- function(name = "rmse_test") {
-  pred_rmse_metric(name = name)
 }
 
 #' @title R-squared Test-Set Metric
@@ -1284,16 +943,7 @@ R2TestMetric <- S7::new_class(
 #' @examples
 #' r2_test_metric()
 r2_test_metric <- function(name = "r2_test") {
-  R2TestMetric(
-    name = name,
-    needs = "predictions",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      n_obs = list(role = "count", aggregation = "none", mcse = "none"),
-      undefined = list(role = "diagnostic", aggregation = "none", mcse = "none")
-    )
-  )
+  R2TestMetric(name = name)
 }
 
 S7::method(compute_metric, R2TestMetric) <- function(

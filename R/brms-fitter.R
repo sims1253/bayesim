@@ -6,6 +6,8 @@
 #' @param supports_predictions Logical indicating if predictions are supported (inherited)
 #' @param supports_log_lik Logical indicating if log-likelihood is supported (inherited)
 #' @param supports_loo Logical indicating if LOO-CV is supported (inherited)
+#' @param supports_epred Logical indicating if posterior expectation
+#'   predictions are supported (inherited)
 #' @param backend Character string for Stan backend ("cmdstanr" or "rstan")
 #' @param chains Integer number of MCMC chains
 #' @param iter Integer total iterations per chain
@@ -35,6 +37,7 @@ BrmsFitter <- S7::new_class(
     supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
     supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
     supports_loo = S7::new_property(S7::class_logical, default = TRUE),
+    supports_epred = S7::new_property(S7::class_logical, default = TRUE),
     backend = S7::new_property(S7::class_character, default = "cmdstanr"),
     chains = S7::new_property(S7::class_integer, default = 4L),
     iter = S7::new_property(S7::class_integer, default = 2000L),

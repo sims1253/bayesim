@@ -20,7 +20,7 @@ describe("F1 preflight", {
       fit_grid = data.frame(model = "lm"),
       data_generator = .gen,
       fitter = LinearRegressionFitter(n_draws = 50L),
-      metrics = list(rmse_test_metric()),
+      metrics = list(pred_rmse_metric()),
       n_replicates = 2L,
       seed = 1L
     )

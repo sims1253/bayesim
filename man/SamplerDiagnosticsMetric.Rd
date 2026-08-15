@@ -10,8 +10,11 @@ SamplerDiagnosticsMetric(
   needs = character(0),
   required = FALSE,
   summary_type = "mean",
-  schema = list(divergent = list(role = "count", aggregation = "none", mcse = "none"),
-    max_treedepth = list(role = "diagnostic", aggregation = "mean", mcse = "sd"))
+  schema = list(rhat_max = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    ess_bulk_min = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    ess_tail_min = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    divergent = list(role = "count", aggregation = "none", mcse = "none"), max_treedepth
+    = list(role = "diagnostic", aggregation = "mean", mcse = "sd"))
 )
 
 sampler_diagnostics_metric(name = "sampler_diagnostics")
@@ -25,8 +28,10 @@ A \code{SamplerDiagnosticsMetric} object.
 A \code{SamplerDiagnosticsMetric} object.
 }
 \description{
-Surfaces sampler-level diagnostics (divergences, max treedepth)
-from \code{fit_result$diagnostics}.
+Surfaces the full set of sampler and convergence diagnostics
+from \code{fit_result$diagnostics}: max R-hat, min bulk ESS, min tail ESS,
+divergence count, and max-treedepth hits. Returns NA fields when the
+diagnostics list is absent.
 
 Constructor for SamplerDiagnosticsMetric.
 }

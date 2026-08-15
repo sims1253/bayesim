@@ -393,7 +393,8 @@ validate_fit_result_interface <- function(fit_result) {
 #' @return The input `metric`, invisibly, if validation passes.
 #'
 #' @section Errors:
-#' Throws a `bayesim_contract_error` condition if validation fails.
+#' Throws a `bayesim_contract_error` condition if validation fails (or its
+#' subclass `bayesim_validation_error` for representative-execution failures).
 #'
 #' @export
 #'

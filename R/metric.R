@@ -607,20 +607,15 @@ flatten_metric_output <- function(output, metric_name) {
     # element, EVEN when length 1 — so single-parameter results (e.g. a
     # one-variable rank/coverage by_param) still carry the <param> suffix and
     # downstream consumers grepping for <metric>__<field>__<param> find them.
-    # Bare scalars (no names) collapse to <metric>__<field>.
+    # Bare scalars (no names) collapse to <metric>__<field>. validate_metric_
+    # output() only admits these two shapes: scalar atomics (length 1) and
+    # named numeric vectors (length >= 1), so no other branch is needed.
     if (!is.null(names(val)) && is.numeric(val) && length(val) >= 1L) {
       for (sub_nm in names(val)) {
         result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
       }
-    } else if (length(val) == 1) {
-      result[[paste0(metric_name, "__", nm)]] <- val
     } else {
-      # Defensive branch: unreachable in practice. validate_metric_output()
-      # only admits scalar atomics or named numeric vectors (length >= 1), so
-      # a length > 1 value without names (or non-numeric) is already rejected.
-      for (sub_nm in names(val)) {
-        result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
-      }
+      result[[paste0(metric_name, "__", nm)]] <- val
     }
   }
 

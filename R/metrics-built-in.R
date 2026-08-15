@@ -120,15 +120,9 @@ RmseMetric <- S7::new_class(
 #' @examples
 #' pred_rmse_metric()
 pred_rmse_metric <- function(name = "rmse") {
-  RmseMetric(
-    name = name,
-    needs = "predictions",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-      n_obs = list(role = "count", aggregation = "none", mcse = "none")
-    )
-  )
+  # needs/required/schema are the class defaults; S7 honors subclass-declared
+  # defaults at construction (see Metric), so they are not repeated here.
+  RmseMetric(name = name)
 }
 
 S7::method(compute_metric, RmseMetric) <- function(
@@ -195,14 +189,7 @@ BiasMetric <- S7::new_class(
 #' @return A BiasMetric object.
 #' @export
 pred_bias_metric <- function(name = "bias") {
-  BiasMetric(
-    name = name,
-    needs = "predictions",
-    required = FALSE,
-    schema = list(
-      value = list(role = "estimate", aggregation = "mean", mcse = "sd")
-    )
-  )
+  BiasMetric(name = name)
 }
 
 S7::method(compute_metric, BiasMetric) <- function(
@@ -313,7 +300,9 @@ S7::method(compute_metric, CoverageMetric) <- function(
   task_ctx
 ) {
   if (is.null(fit_result$draws) || is.null(data_bundle$true_params)) {
-    return(list(value = NA_real_))
+    # Degraded output must contain exactly the schema-declared fields. Parameter
+    # names are unknowable without draws, so by_param degrades to a scalar NA.
+    return(list(mean = NA_real_, by_param = NA_real_))
   }
 
   draws <- fit_result$draws

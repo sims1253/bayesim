@@ -49,6 +49,7 @@ The validation performs the following checks:
 \item \code{supports_predictions} property exists and is logical
 \item \code{supports_log_lik} property exists and is logical
 \item \code{supports_loo} property exists and is logical
+\item \code{supports_epred} property exists and is logical
 }
 
 \strong{Method Checks:}
@@ -66,6 +67,7 @@ The validation performs the following checks:
 \item Calls \code{extract_draws()} and verifies matrix with colnames
 \item If \code{supports_predictions}, calls \code{predict_fit()} and verifies output
 \item If \code{supports_log_lik}, calls \code{log_lik_matrix()} and verifies matrix output
+\item If \code{supports_epred}, calls \code{predict_epred()} and verifies matrix output
 \item Calls \code{fit_diagnostics()} and verifies list output
 }
 }

@@ -134,41 +134,16 @@ describe("M5 extended metrics", {
     expect_true(out$q_lower[["b_x"]] < out$q_upper[["b_x"]])
   })
 
-  it("convergence_metric surfaces diagnostics", {
+  it("sampler_diagnostics_metric surfaces all five diagnostics", {
     fx <- make_fixture(
       diagnostics = list(
         rhat_max = 1.01,
         ess_bulk_min = 100,
         ess_tail_min = 90,
-        divergent = 0L
+        divergent = 3L,
+        max_treedepth = 5L
       )
     )
-    out <- compute_metric(
-      convergence_metric(),
-      fx$fit_result,
-      fx$data_bundle,
-      fx$context,
-      fx$task_ctx
-    )
-    expect_equal(out$rhat_max, 1.01)
-    expect_equal(out$ess_bulk_min, 100)
-    expect_equal(out$divergent, 0L)
-  })
-
-  it("convergence_metric returns NAs when diagnostics absent", {
-    fx <- make_fixture(diagnostics = NULL)
-    out <- compute_metric(
-      convergence_metric(),
-      fx$fit_result,
-      fx$data_bundle,
-      fx$context,
-      fx$task_ctx
-    )
-    expect_true(is.na(out$rhat_max))
-  })
-
-  it("sampler_diagnostics_metric surfaces divergences/treedepth", {
-    fx <- make_fixture(diagnostics = list(divergent = 3L, max_treedepth = 5L))
     out <- compute_metric(
       sampler_diagnostics_metric(),
       fx$fit_result,
@@ -176,8 +151,37 @@ describe("M5 extended metrics", {
       fx$context,
       fx$task_ctx
     )
+    expect_setequal(
+      names(out),
+      c(
+        "rhat_max",
+        "ess_bulk_min",
+        "ess_tail_min",
+        "divergent",
+        "max_treedepth"
+      )
+    )
+    expect_equal(out$rhat_max, 1.01)
+    expect_equal(out$ess_bulk_min, 100)
+    expect_equal(out$ess_tail_min, 90)
     expect_equal(out$divergent, 3L)
     expect_equal(out$max_treedepth, 5L)
+  })
+
+  it("sampler_diagnostics_metric returns NAs when diagnostics absent", {
+    fx <- make_fixture(diagnostics = NULL)
+    out <- compute_metric(
+      sampler_diagnostics_metric(),
+      fx$fit_result,
+      fx$data_bundle,
+      fx$context,
+      fx$task_ctx
+    )
+    expect_true(is.na(out$rhat_max))
+    expect_true(is.na(out$ess_bulk_min))
+    expect_true(is.na(out$ess_tail_min))
+    expect_true(is.na(out$divergent))
+    expect_true(is.na(out$max_treedepth))
   })
 
   it("rank_metric computes SBC ranks (draws < true value)", {
@@ -379,7 +383,10 @@ describe("M5 extended metrics", {
       list(task_id = "t1")
     )
     expect_null(out$mean)
+    expect_setequal(names(out), c("n_draws", "stride", "by_param", "n_ranks"))
     expect_true(is.na(out$n_draws))
+    expect_true(is.na(out$by_param))
+    expect_true(is.na(out$n_ranks))
   })
 
   it("elpd_loo_metric surfaces loo context fields", {
@@ -474,13 +481,13 @@ describe("M5 extended metrics", {
     expect_true(is.na(out$value))
   })
 
-  it("rmse_test_metric computes RMSE on test set", {
+  it("pred_rmse_metric computes RMSE on test set", {
     fx <- make_fixture(
       predictions = list(predicted_mean = c(1, 2, 3)),
       test = data.frame(y = c(2, 2, 2))
     )
     out <- compute_metric(
-      rmse_test_metric(),
+      pred_rmse_metric(),
       fx$fit_result,
       fx$data_bundle,
       fx$context,

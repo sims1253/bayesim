@@ -32,6 +32,8 @@
 #' @param supports_predictions Logical; whether predictions are supported.
 #' @param supports_log_lik Logical; whether log-likelihood is supported.
 #' @param supports_loo Logical; whether LOO-CV is supported.
+#' @param supports_epred Logical; whether posterior expectation predictions
+#'   (`predict_epred()`) are supported.
 #' @param n_draws Positive integer; number of i.i.d. posterior draws.
 #' @param prior_mean Numeric vector (length = number of coefficients, including
 #'   intercept) or scalar; prior mean of `beta`. Recycled. Default 0.
@@ -56,6 +58,7 @@ LinearRegressionFitter <- S7::new_class(
     supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
     supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
     supports_loo = S7::new_property(S7::class_logical, default = TRUE),
+    supports_epred = S7::new_property(S7::class_logical, default = TRUE),
     n_draws = S7::new_property(S7::class_integer, default = 1000L),
     prior_mean = S7::new_property(
       S7::new_union(S7::class_numeric, NULL),

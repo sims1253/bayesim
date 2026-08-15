@@ -9,6 +9,7 @@ MockFitter(
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,
+  supports_epred = FALSE,
   n_draws = 100L,
   n_chains = 4L
 )

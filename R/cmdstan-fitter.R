@@ -17,6 +17,8 @@ CmdStanFitter_class <- S7::new_class(
     supports_predictions = S7::new_property(S7::class_logical, default = FALSE),
     supports_log_lik = S7::new_property(S7::class_logical, default = FALSE),
     supports_loo = S7::new_property(S7::class_logical, default = FALSE),
+    # TRUE when the constructor receives an `epred` GQ name (see below).
+    supports_epred = S7::new_property(S7::class_logical, default = FALSE),
     stan_file = S7::new_property(
       S7::new_union(S7::class_character, NULL),
       default = NULL
@@ -149,7 +151,8 @@ CmdStanFitter <- function(
     # in-sample predict_epred() path used by LOO metrics.
     supports_predictions = FALSE,
     supports_log_lik = !is.null(log_lik),
-    supports_loo = !is.null(log_lik)
+    supports_loo = !is.null(log_lik),
+    supports_epred = !is.null(epred)
   )
 }
 
@@ -517,15 +520,15 @@ S7::method(fit_diagnostics, CmdStanFitter_class) <- function(
 }
 
 # predict_fit: unsupported for raw Stan (no newdata semantics) -------------
+# Aligned with the package contract: an unsupported capability returns NULL
+# and the metric-context seam warns once (see build_metric_context()); raw
+# Stan has no newdata prediction semantics, so epred GQs via predict_epred()
+# or BrmsFitter / a custom fitter are the supported alternatives.
 S7::method(predict_fit, CmdStanFitter_class) <- function(
   fitter,
   fit_result,
   newdata = NULL,
   seed = NULL
 ) {
-  stop(bayesim_contract_error(paste(
-    "CmdStanFitter does not support posterior-predictive sampling.",
-    "Raw Stan has no newdata semantics; use an epred GQ via predict_epred,",
-    "or use BrmsFitter / a custom fitter for test-set prediction."
-  )))
+  NULL
 }

@@ -11,7 +11,7 @@ PosProbMetric(
   required = FALSE,
   summary_type = "mean",
   schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
-    by_param = list(role = "binary", aggregation = "proportion", mcse = "binomial"))
+    by_param = list(role = "estimate", aggregation = "mean", mcse = "sd"))
 )
 
 pos_prob_metric(name = "pos_prob")

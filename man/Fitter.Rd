@@ -8,7 +8,8 @@ Fitter(
   name = character(0),
   supports_predictions = FALSE,
   supports_log_lik = FALSE,
-  supports_loo = FALSE
+  supports_loo = FALSE,
+  supports_epred = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,10 @@ Fitter(
 \item{supports_log_lik}{Logical indicating if the fitter supports log-likelihood computation}
 
 \item{supports_loo}{Logical indicating if the fitter supports LOO-CV}
+
+\item{supports_epred}{Logical indicating if the fitter supports posterior
+expectation predictions (\code{predict_epred()}; required by the \code{r2_loo} /
+\code{rmse_loo} LOO metrics)}
 }
 \value{
 An S7 class object representing the abstract Fitter

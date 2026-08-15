@@ -73,6 +73,7 @@ bayesim_config_error <- function(message, call = NULL) {
 #' @return An error condition object with class c("bayesim_contract_error",
 #'   "bayesim_error", "error", "condition")
 #' @keywords internal
+#' @export
 #' @seealso [is_fatal_error()]
 bayesim_contract_error <- function(message, call = NULL) {
   structure(

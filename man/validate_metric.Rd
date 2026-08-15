@@ -47,7 +47,8 @@ run starts instead of as thousands of per-task failures.
 }
 \section{Errors}{
 
-Throws a \code{bayesim_contract_error} condition if validation fails.
+Throws a \code{bayesim_contract_error} condition if validation fails (or its
+subclass \code{bayesim_validation_error} for representative-execution failures).
 }
 
 \seealso{

@@ -11,6 +11,9 @@
 #' @param supports_predictions Logical indicating if the fitter supports predictions
 #' @param supports_log_lik Logical indicating if the fitter supports log-likelihood computation
 #' @param supports_loo Logical indicating if the fitter supports LOO-CV
+#' @param supports_epred Logical indicating if the fitter supports posterior
+#'   expectation predictions (`predict_epred()`; required by the `r2_loo` /
+#'   `rmse_loo` LOO metrics)
 #'
 #' @section Methods:
 #' The following S7 generics form the fitter interface. A minimal custom
@@ -48,7 +51,10 @@ Fitter <- S7::new_class(
     # the capabilities they implement; a custom fitter is safe by default.
     supports_predictions = S7::new_property(S7::class_logical, default = FALSE),
     supports_log_lik = S7::new_property(S7::class_logical, default = FALSE),
-    supports_loo = S7::new_property(S7::class_logical, default = FALSE)
+    supports_loo = S7::new_property(S7::class_logical, default = FALSE),
+    # Posterior expectation predictions (mu, no observation noise) via
+    # predict_epred(); drives the PSIS-LOO r2_loo / rmse_loo metrics.
+    supports_epred = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
 
@@ -443,10 +449,7 @@ S7::method(fit_model, MockFitter) <- function(
 
   # Validate input
   if (is.null(data_bundle$train)) {
-    rlang::abort(
-      "data_bundle$train is required but got NULL",
-      class = "bayesim_contract_error"
-    )
+    stop(bayesim_contract_error("data_bundle$train is required but got NULL"))
   }
 
   n_obs <- nrow(data_bundle$train)
@@ -774,6 +777,7 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - `supports_predictions` property exists and is logical
 #' - `supports_log_lik` property exists and is logical
 #' - `supports_loo` property exists and is logical
+#' - `supports_epred` property exists and is logical
 #'
 #' **Method Checks:**
 #' - `fit_model()` and `extract_draws()` are implemented (the core contract)
@@ -787,6 +791,7 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - Calls `extract_draws()` and verifies matrix with colnames
 #' - If `supports_predictions`, calls `predict_fit()` and verifies output
 #' - If `supports_log_lik`, calls `log_lik_matrix()` and verifies matrix output
+#' - If `supports_epred`, calls `predict_epred()` and verifies matrix output
 #' - Calls `fit_diagnostics()` and verifies list output
 #'
 #' @export
@@ -824,15 +829,12 @@ validate_fitter <- function(
   # ===========================================================================
   msg("Checking S7 Fitter class...")
   if (!S7::S7_inherits(fitter, Fitter)) {
-    rlang::abort(
-      c(
-        "Object is not an S7 Fitter class",
-        i = "Object class: ",
-        paste(class(fitter), collapse = ", "),
-        i = "Use S7::new_class() with parent = Fitter to create a fitter"
-      ),
-      class = "bayesim_validation_error"
-    )
+    stop(bayesim_validation_error(paste(
+      "Object is not an S7 Fitter class.",
+      "Object class:",
+      paste(class(fitter), collapse = ", "),
+      "Use S7::new_class() with parent = Fitter to create a fitter."
+    )))
   }
   msg("  [OK] Object is an S7 Fitter class")
 
@@ -845,7 +847,8 @@ validate_fitter <- function(
     "name",
     "supports_predictions",
     "supports_log_lik",
-    "supports_loo"
+    "supports_loo",
+    "supports_epred"
   )
 
   for (prop in required_props) {
@@ -861,7 +864,10 @@ validate_fitter <- function(
       rlang::abort(
         c(
           paste0("Missing required property: '", prop, "'"),
-          i = "All Fitter subclasses must have: name, supports_predictions, supports_log_lik, supports_loo"
+          i = paste0(
+            "All Fitter subclasses must have: name, supports_predictions, ",
+            "supports_log_lik, supports_loo, supports_epred"
+          )
         ),
         class = "bayesim_validation_error"
       )
@@ -907,7 +913,8 @@ validate_fitter <- function(
   optional_methods <- c(
     predictions = "predict_fit",
     log_lik = "log_lik_matrix",
-    loo = "loo_fit"
+    loo = "loo_fit",
+    epred = "predict_epred"
   )
   for (capability in names(optional_methods)) {
     method_name <- optional_methods[[capability]]
@@ -915,7 +922,8 @@ validate_fitter <- function(
       capability,
       predictions = isTRUE(fitter@supports_predictions),
       log_lik = isTRUE(fitter@supports_log_lik),
-      loo = isTRUE(fitter@supports_loo)
+      loo = isTRUE(fitter@supports_loo),
+      epred = isTRUE(fitter@supports_epred)
     )
     method_impl <- tryCatch(
       S7::method(get(method_name), fitter_class),
@@ -1217,6 +1225,67 @@ validate_fitter <- function(
         msg("    [OK] log_lik_matrix() returns valid matrix")
       } else {
         msg("  [SKIP] log_lik_matrix() (supports_log_lik is FALSE)")
+      }
+
+      # Test predict_epred() if supported. Convention: an S x N matrix of
+      # posterior expectation draws (mu, no observation noise); only the column
+      # count (one per observation) is enforced, mirroring log_lik_matrix().
+      if (isTRUE(fitter@supports_epred)) {
+        msg("  Testing predict_epred()...")
+        epred <- tryCatch(
+          predict_epred(fitter, fit_result),
+          error = function(e) {
+            rlang::abort(
+              c(
+                "predict_epred() method failed during smoke test",
+                x = conditionMessage(e)
+              ),
+              class = "bayesim_validation_error"
+            )
+          }
+        )
+
+        if (is.null(epred)) {
+          rlang::abort(
+            c(
+              "predict_epred() returned NULL but supports_epred is TRUE",
+              i = "Return an S x N matrix (draws x observations) of expectation draws"
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (!is.matrix(epred) || !is.numeric(epred)) {
+          rlang::abort(
+            c(
+              "predict_epred() did not return a numeric matrix",
+              i = paste0(
+                "Returned class: ",
+                paste(class(epred), collapse = ", ")
+              )
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (ncol(epred) != n) {
+          rlang::abort(
+            c(
+              "predict_epred() returned wrong number of columns",
+              i = paste0(
+                "Expected N columns (one per observation), got ",
+                ncol(epred),
+                " (expected ",
+                n,
+                ")"
+              )
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+        msg("    [OK] predict_epred() returns valid matrix")
+      } else {
+        msg("  [SKIP] predict_epred() (supports_epred is FALSE)")
       }
 
       # Test fit_diagnostics()

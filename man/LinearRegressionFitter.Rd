@@ -9,6 +9,7 @@ LinearRegressionFitter(
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,
+  supports_epred = TRUE,
   n_draws = 1000L,
   prior_mean = 0,
   prior_precision = 1e-06,
@@ -24,6 +25,9 @@ LinearRegressionFitter(
 \item{supports_log_lik}{Logical; whether log-likelihood is supported.}
 
 \item{supports_loo}{Logical; whether LOO-CV is supported.}
+
+\item{supports_epred}{Logical; whether posterior expectation predictions
+(\code{predict_epred()}) are supported.}
 
 \item{n_draws}{Positive integer; number of i.i.d. posterior draws.}
 

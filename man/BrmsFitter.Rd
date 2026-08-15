@@ -9,6 +9,7 @@ BrmsFitter(
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,
+  supports_epred = TRUE,
   backend = "cmdstanr",
   chains = 4L,
   iter = 2000L,
@@ -29,6 +30,9 @@ BrmsFitter(
 \item{supports_log_lik}{Logical indicating if log-likelihood is supported (inherited)}
 
 \item{supports_loo}{Logical indicating if LOO-CV is supported (inherited)}
+
+\item{supports_epred}{Logical indicating if posterior expectation
+predictions are supported (inherited)}
 
 \item{backend}{Character string for Stan backend ("cmdstanr" or "rstan")}
 
