@@ -149,3 +149,13 @@ valid_task_ctx <- function() {
     rep_idx = 1
   )
 }
+
+# Explicit backend-tier gate. Ordinary package checks exercise all analytic
+# behavior; only tests that require a compiled Stan backend opt into this gate.
+skip_unless_bayesim_backend <- function() {
+  tier <- tolower(Sys.getenv("BAYESIM_TEST_TIER", "core"))
+  testthat::skip_if_not(
+    tier %in% c("backend", "full"),
+    "requires the explicit bayesim backend test tier"
+  )
+}

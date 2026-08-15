@@ -150,7 +150,7 @@ conservative default). Inverting gives `n = p(1-p) / MCSE^2`.
 n_replicates_for_target(target_mcse = 0.03, metric_type = "coverage")
 ```
 
-So **1,667** replicates (ceiling) are needed to estimate a coverage rate to
+So **278** replicates (ceiling) are needed to estimate a coverage rate to
 within `+/- 0.03` (one MCSE) at the worst-case variance. If the coverage is
 expected near the nominal 0.95, supply `p = 0.95` for a tighter, smaller
 estimate:
@@ -235,8 +235,12 @@ estimates against the truth, faceted by a condition column — a direct visual
 check that the estimator recovers the estimand across the design:
 
 ```{r recovery}
-plot_recovery(design_result, "x", by = "data_n")
+plot_recovery(design_result, estimand = "x", by = "data_n")
 ```
+
+The parameter argument is named `estimand`, the same term
+`performance_measures()` uses (`var =` remains accepted as a compatibility
+alias).
 
 # Summary
 

@@ -9,8 +9,13 @@ preflight(config, pilot = FALSE, condensed = FALSE)
 \arguments{
 \item{config}{A \code{SimulationConfig}.}
 
-\item{pilot}{Logical; if TRUE, time a single pilot task to estimate total
-wall-clock time (default FALSE). Experimental.}
+\item{pilot}{Logical; if TRUE, run a single pilot task and extrapolate its
+wall-clock time to an estimate of the total study time (default FALSE). The
+estimate is printed and returned in the \code{pilot_seconds} and
+\code{estimated_total_seconds} elements of the returned list. A pilot that
+cannot execute (e.g. a Stan fitter with no CmdStan installed) yields NA
+estimates rather than failing the preflight. Note that for Stan fitters a
+pilot compiles the model, so it is not instant.}
 
 \item{condensed}{Logical; if TRUE, print a single one-line summary instead of
 the full report (used by run_simulation).}

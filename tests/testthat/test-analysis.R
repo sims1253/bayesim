@@ -22,6 +22,34 @@ make_summary <- function(n_per = 20, n_cond = 2) {
 }
 
 describe("summarize_simulation", {
+  it("uses field roles to exclude counts from scientific aggregates", {
+    df <- data.frame(
+      model = "x",
+      status = c("success", "success"),
+      pred__value = c(1, 2),
+      pred__n_obs = c(10, 20)
+    )
+    agg <- summarize_simulation(
+      df,
+      by = "model",
+      metrics = c("pred__value", "pred__n_obs")
+    )
+    expect_true("pred__value_mean" %in% names(agg))
+    expect_false("pred__n_obs_mean" %in% names(agg))
+  })
+
+  it("rejects unknown grouping and metric columns", {
+    df <- data.frame(model = "x", value__x = 1)
+    expect_error(
+      summarize_simulation(df, by = "missing"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      summarize_simulation(df, metrics = "missing__value"),
+      class = "bayesim_config_error"
+    )
+  })
+
   it("aggregates metrics with mean/median/sd/mcse per condition", {
     df <- make_summary(n_per = 20, n_cond = 2)
     agg <- summarize_simulation(df, by = "model", metrics = "rmse__value")
@@ -87,6 +115,35 @@ describe("summarize_simulation", {
     expect_equal(agg$coverage__mean_mcse, 0)
   })
 
+  it("honors field-level schema metadata when aggregating a result", {
+    df <- data.frame(
+      model = "x",
+      status = c("success", "success"),
+      custom__estimate = c(1, 3),
+      custom__count = c(10, 20),
+      check.names = FALSE
+    )
+    result <- structure(
+      list(
+        summary = df,
+        metric_field_metadata = list(
+          custom = list(
+            estimate = list(
+              role = "estimate",
+              aggregation = "mean",
+              mcse = "sd"
+            ),
+            count = list(role = "count", aggregation = "none", mcse = "none")
+          )
+        )
+      ),
+      class = "bayesim_simulation_result"
+    )
+    agg <- summarize_simulation(result, by = "model")
+    expect_true("custom__estimate_mean" %in% names(agg))
+    expect_false("custom__count_mean" %in% names(agg))
+  })
+
   it("coverage MCSE for p=0.5, n=100 is sqrt(0.25/100) = 0.05", {
     df <- data.frame(
       model = "x",
@@ -131,6 +188,56 @@ describe("summarize_simulation", {
     expect_equal(nrow(agg), 2L)
     expect_equal(agg$value__x_mean, c(2, 5))
   })
+
+  it("stays silent programmatically even for 100+ metric columns", {
+    n_cols <- 120L
+    wide <- data.frame(
+      model = rep(c("a", "b"), each = 5L),
+      status = "success"
+    )
+    for (i in seq_len(n_cols)) {
+      wide[[sprintf("m%03d__value", i)]] <- i + seq_len(10) * 0.1
+    }
+    agg <- expect_silent(summarize_simulation(wide, by = "model"))
+    expect_equal(nrow(agg), 2L)
+    # Nothing is dropped or truncated to make the summary discoverable.
+    expect_equal(sum(grepl("_mean$", names(agg))), n_cols)
+  })
+})
+
+describe("wide summary discoverability hint", {
+  it("fires only interactively, only when wide, only by default", {
+    # Interactive + wide + no explicit metrics -> hint mentions narrowing.
+    expect_message(
+      maybe_wide_summary_hint(30L, NULL, .interactive = TRUE),
+      "metrics"
+    )
+    # Noninteractive programmatic use is completely silent, however wide.
+    expect_silent(maybe_wide_summary_hint(30L, NULL, .interactive = FALSE))
+    # User already narrowed via metrics = -> no hint even interactively.
+    expect_silent(
+      maybe_wide_summary_hint(30L, "rmse__value", .interactive = TRUE)
+    )
+    # Narrow summaries never hint.
+    expect_silent(maybe_wide_summary_hint(3L, NULL, .interactive = TRUE))
+  })
+
+  it("threshold matches the documented wide-summary cutoff", {
+    expect_silent(
+      maybe_wide_summary_hint(
+        WIDE_SUMMARY_HINT_THRESHOLD,
+        NULL,
+        .interactive = TRUE
+      )
+    )
+    expect_message(
+      maybe_wide_summary_hint(
+        WIDE_SUMMARY_HINT_THRESHOLD + 1L,
+        NULL,
+        .interactive = TRUE
+      )
+    )
+  })
 })
 
 describe("metric_cols", {
@@ -167,6 +274,67 @@ describe("metric_cols", {
       "coverage, posterior_summary",
       class = "bayesim_config_error"
     )
+  })
+})
+
+describe("plot_recovery estimand/var terminology", {
+  recovery_result <- function() {
+    summary <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(1, 4),
+      posterior_summary__mean__x = c(0.9, 1.1, 1.0, 1.2),
+      posterior_summary__sd__x = rep(0.2, 4),
+      posterior_summary__q_lower__x = rep(0.6, 4),
+      posterior_summary__q_upper__x = rep(1.4, 4),
+      check.names = FALSE
+    )
+    structure(
+      list(summary = summary),
+      class = "bayesim_simulation_result"
+    )
+  }
+
+  it("accepts estimand as the primary argument name", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    p <- plot_recovery(recovery_result(), estimand = "x")
+    expect_s3_class(p, "ggplot")
+    expect_equal(p$labels$x, "true x")
+    expect_equal(p$labels$y, "posterior mean x")
+  })
+
+  it("keeps the legacy var alias and produces the same plot", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    p_var <- plot_recovery(recovery_result(), var = "x")
+    p_estimand <- plot_recovery(recovery_result(), estimand = "x")
+    expect_s3_class(p_var, "ggplot")
+    expect_equal(p_var$labels, p_estimand$labels)
+    expect_equal(
+      vapply(p_var$layers, function(l) class(l$geom)[1], character(1)),
+      vapply(p_estimand$layers, function(l) class(l$geom)[1], character(1))
+    )
+  })
+
+  it("errors clearly when neither estimand nor var is provided", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    expect_error(
+      plot_recovery(recovery_result()),
+      "estimand",
+      class = "bayesim_config_error"
+    )
+  })
+
+  it("errors when estimand and var disagree", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    expect_error(
+      plot_recovery(recovery_result(), estimand = "x", var = "y"),
+      class = "bayesim_config_error"
+    )
+  })
+
+  it("accepts identical estimand and var without error", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    p <- plot_recovery(recovery_result(), estimand = "x", var = "x")
+    expect_s3_class(p, "ggplot")
   })
 })
 
@@ -222,6 +390,34 @@ describe("sbc_ranks", {
 })
 
 describe("plot functions", {
+  it("plot_coverage uses the nominal level of the intervals it summarizes", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    summary <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(0, 4),
+      posterior_summary__mean__x = c(-0.1, 0, 0.1, 0),
+      posterior_summary__q_lower__x = rep(-1, 4),
+      posterior_summary__q_upper__x = rep(1, 4),
+      coverage__by_param__x = rep(1, 4),
+      check.names = FALSE
+    )
+    result <- structure(
+      list(
+        summary = summary,
+        metric_field_metadata = list(
+          posterior_summary = list(
+            q_lower = list(nominal = 0.95),
+            q_upper = list(nominal = 0.95)
+          ),
+          coverage = list(by_param = list(nominal = 0.90))
+        )
+      ),
+      class = "bayesim_simulation_result"
+    )
+    built <- ggplot2::ggplot_build(plot_coverage(result))
+    expect_equal(unique(built$data[[1]]$yintercept), 0.95)
+  })
+
   it("plot_rank_hist returns a ggplot object", {
     skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
     df <- make_summary(n_per = 10, n_cond = 1)
@@ -262,9 +458,26 @@ describe("plot functions", {
     df <- make_summary(n_per = 5, n_cond = 1)
     expect_error(plot_metric(df, "nonexistent"), class = "bayesim_config_error")
   })
+
+  it("plot_metric validates requested x and facet columns", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    df <- make_summary(n_per = 5, n_cond = 1)
+    expect_error(
+      plot_metric(df, "rmse__value", x = "missing"),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      plot_metric(df, "rmse__value", facets = "missing"),
+      class = "bayesim_config_error"
+    )
+  })
 })
 
 describe("SBC simultaneous bands", {
+  it("rejects non-probabilities and invalid dimensions", {
+    expect_error(sbc_band(10, conf_level = 0), class = "bayesim_config_error")
+    expect_error(adjust_gamma(10, L = 1, K = 0), class = "bayesim_config_error")
+  })
   it("returns a valid envelope with fixed endpoints", {
     band <- sbc_band(N = 25L, K = 10L, conf_level = 0.95)
 
@@ -273,6 +486,13 @@ describe("SBC simultaneous bands", {
     expect_true(all(band$lower <= band$upper))
     expect_true(all(diff(band$lower) >= 0))
     expect_true(all(diff(band$upper) >= 0))
+  })
+
+  it("handles the one-interval degenerate band", {
+    band <- sbc_band(N = 10L, K = 1L, conf_level = 0.95)
+    expect_length(band$x, 2L)
+    expect_equal(band$lower[c(1L, 2L)], c(0, 1))
+    expect_equal(band$upper[c(1L, 2L)], c(0, 1))
   })
 
   it("matches the ported reference gamma for a fixed design", {
@@ -284,7 +504,9 @@ describe("SBC simultaneous bands", {
   })
 
   it("announces the conservative fallback for multiple chains", {
-    expect_message(
+    # warn_once(): the fallback is announced as a warning (once per run)
+    # rather than a message on every call.
+    expect_warning(
       multi <- adjust_gamma(20L, L = 2L, K = 20L, conf_level = 0.95),
       "single-sample SBC band"
     )

@@ -2,8 +2,6 @@
 # Tests: analytic posterior mean/cov vs closed form; coverage ~0.95 over
 # replicates; validate_fitter smoke test; full contract orientation (S x N).
 
-skip_on_cran()
-
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 200L
   beta <- data_spec$beta %||% 0.5
@@ -144,7 +142,6 @@ describe("LinearRegressionFitter contract", {
 
 describe("LinearRegressionFitter coverage", {
   it("coverage ~ 0.95 over replicates", {
-    skip_on_cran()
     # Per-task 90% intervals of 'x'; coverage should be near 0.90. We use a
     # generous band given MC noise on a small number of replicates.
     fitter <- LinearRegressionFitter(n_draws = 500L)

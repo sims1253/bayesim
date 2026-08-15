@@ -6,10 +6,14 @@
 \title{SBC Rank Metric}
 \usage{
 RankMetric(
-  name = character(0),
+  name = "rank",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean",
+  summary_type = "none",
+  schema = list(n_draws = list(role = "count", aggregation = "none", mcse = "none"),
+    stride = list(role = "count", aggregation = "none", mcse = "none"), by_param =
+    list(role = "rank", aggregation = "none", mcse = "none"), n_ranks = list(role =
+    "count", aggregation = "none", mcse = "none")),
   thin = "auto"
 )
 

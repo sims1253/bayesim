@@ -192,14 +192,23 @@ SimulationConfig <- S7::new_class(
 #' @param checkpoint_every Positive integer. Save progress every N tasks. This
 #'   single knob also bounds the number of task results held in memory at once
 #'   (B4: the former separate `chunk_size` knob was merged into this).
-#' @param keep_checkpoints Positive integer. Number of complete checkpoint
-#'   snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
-#'   plus one fallback for corruption recovery. Runtime policy; excluded from
-#'   the config fingerprint.
+#' @param keep_checkpoints Positive integer. Number of checkpoint commit
+#'   directories to retain. Defaults to 2, preserving the newest commit plus
+#'   one older fallback for corruption recovery. Pruning removes old commit
+#'   directories only; the immutable outcome shards and ledger history are
+#'   never pruned, so durable storage grows roughly linearly with completed
+#'   tasks. Runtime policy; excluded from the config fingerprint.
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
-#'   (B4: excluded from the config fingerprint — changing retention must not
-#'   invalidate resume.)
+#'   A single profile name is also accepted: `"minimal"` (metrics only),
+#'   `"standard"` (metrics, diagnostics, warnings), or `"debug"` (everything).
+#'   Alternatively, a named list with `success`, `warning`, and `error`
+#'   entries to retain more for tasks that warn or fail. `"metrics"` is always
+#'   retained.
+#'   (B4: excluded from the config fingerprint, but exclusion does not make
+#'   every retention change legal on resume: a compatible resume may narrow
+#'   retention, while widening is rejected once completed outcomes lack the
+#'   requested artifacts — discarded artifacts cannot be recreated.)
 #' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no
 #'   limit. (B4: excluded from the config fingerprint.)
 #' @param daemon_setup Optional function run once per mirai daemon (via
@@ -215,8 +224,9 @@ SimulationConfig <- S7::new_class(
 #'   are marked `"skipped"` and the run stops. (I3: excluded from the config
 #'   fingerprint — it is runtime policy.)
 #' @param summary_format Character scalar. Output format for the final summary.
-#'   `"rds"` (default) writes nothing extra -- the canonical rds checkpoint
-#'   carries the summary and remains the resume artifact. `"parquet"`
+#'   `"rds"` (default) writes nothing extra -- the durable run store (outcome
+#'   shards plus ledger) carries the results and remains the resume artifact.
+#'   `"parquet"`
 #'   additionally writes `<result_path>/summary.parquet` using the suggested
 #'   `nanoparquet` package, for downstream consumption (pandas, arrow, polars).
 #'   (I8: excluded from the config fingerprint -- runtime policy.)
@@ -294,8 +304,8 @@ simulation_config <- function(
       cli::cli_abort("fit_grid must have at least 1 row")
     }
   } else {
-    data_grid <- if (is.null(data_grid)) NULL else data_grid
-    fit_grid <- if (is.null(fit_grid)) NULL else fit_grid
+    # task_grid carries explicit data_spec/fit_spec list-columns; the optional
+    # data_grid/fit_grid are kept as-is (used for summary enrichment only).
   }
 
   # Validate data_generator
@@ -549,7 +559,8 @@ validate_stop_on <- function(stop_on) {
 #' hashing or serialization. Excludes runtime-specific fields like
 #' result_path and checkpoint_every.
 #'
-#' @param config An S7 SimulationConfig object.
+#' @param config An S7 SimulationConfig object or a `StudySpec` created by
+#'   [new_study_spec()].
 #'
 #' @return A named list containing the configuration specification.
 #'
@@ -562,25 +573,33 @@ validate_stop_on <- function(stop_on) {
 #' # spec can now be serialized or hashed
 #' }
 as_config_spec <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+  if (is_study_spec(config)) {
+    study <- config
+  } else {
+    if (!S7::S7_inherits(config, SimulationConfig)) {
+      cli::cli_abort(
+        "config must be a SimulationConfig object"
+      )
+    }
+    # Extract properties that define the simulation identity. B4: exclude
+    # runtime policy (result_path, checkpoint_every, checkpoint_format, retain,
+    # max_errors) — changing retention or error tolerance must not invalidate
+    # resume. I3: stop_on (adaptive stopping) is also runtime policy and
+    # excluded here.
+    study <- new_study_spec(config)
   }
 
-  # Extract properties that define the simulation identity. B4: exclude runtime
-  # policy (result_path, checkpoint_every, checkpoint_format, retain, max_errors)
-  # — changing retention or error tolerance must not invalidate resume. I3:
-  # stop_on (adaptive stopping) is also runtime policy and excluded here.
   spec <- list(
-    data_grid = config@data_grid,
-    fit_grid = config@fit_grid,
-    task_grid = config@task_grid,
+    data_grid = study$data_grid,
+    fit_grid = study$fit_grid,
+    task_grid = study$task_grid,
     data_generator_spec = capture_function_signature(
-      config@data_generator
+      study$data_generator
     ),
-    fitter_spec = capture_fitter_spec(config@fitter),
-    metrics_spec = capture_metrics_spec(config@metrics),
-    n_replicates = config@n_replicates,
-    seed = config@seed
+    fitter_spec = capture_fitter_spec(study$fitter),
+    metrics_spec = capture_metrics_spec(study$metrics),
+    n_replicates = study$n_replicates,
+    seed = study$seed
   )
 
   spec
@@ -637,12 +656,60 @@ capture_function_signature <- function(fn) {
       args <- formals(fn)
       body_hash <- digest::digest(capture.output(print(body(fn))))
 
+      # Hash the values of closure-captured free variables. The body hash
+      # alone is identical for two functions whose bodies match but whose
+      # captured environments bind different values (e.g. `f <- local({
+      # n <- 50; function(ds, ctx) rnorm(n, sd = n) })` with different `n`),
+      # which would silently equate genuinely different generators at resume
+      # time. Only user-defined closure environments are hashed: namespaced
+      # functions are pinned by `reference` (package/name/version), and
+      # base/global environments cannot be fingerprinted meaningfully.
+      closure_hash <- NA_character_
+      if (
+        !is.null(env) &&
+          !isNamespace(env) &&
+          !identical(env, globalenv()) &&
+          !identical(env, baseenv()) &&
+          !identical(env, emptyenv())
+      ) {
+        free_vars <- setdiff(all.vars(body(fn)), names(formals(fn)))
+        captured <- free_vars[vapply(
+          free_vars,
+          exists,
+          logical(1),
+          envir = env,
+          inherits = FALSE
+        )]
+        if (length(captured) > 0) {
+          hashes <- vapply(
+            captured,
+            function(name) {
+              tryCatch(
+                digest::digest(get(name, envir = env), algo = "xxhash64"),
+                error = function(e) NA_character_
+              )
+            },
+            character(1)
+          )
+          # Unhashable bindings (environments, external pointers) are
+          # omitted rather than poisoning the fingerprint.
+          hashes <- hashes[!is.na(hashes)]
+          if (length(hashes) > 0) {
+            closure_hash <- digest::digest(
+              sort(paste(names(hashes), hashes, sep = "=")),
+              algo = "xxhash64"
+            )
+          }
+        }
+      }
+
       list(
         rehydratable = !is.null(reference),
         reference = reference,
         environment = env_name,
         args = names(args),
-        body_hash = body_hash
+        body_hash = body_hash,
+        closure_hash = closure_hash
       )
     },
     error = function(e) {
@@ -722,12 +789,16 @@ capture_metrics_spec <- function(metrics) {
 #' The fingerprint excludes runtime policy settings (B4):
 #' - `result_path`: Output location doesn't affect simulation identity
 #' - `checkpoint_every` / `checkpoint_format`: checkpoint cadence/format is runtime optimization
-#' - `retain`: retention policy must not invalidate resume
+#' - `retain`: retention is runtime policy; fingerprint exclusion does not
+#'   make every retention change legal on resume (a compatible resume may
+#'   narrow retention; widening is rejected once completed outcomes lack the
+#'   requested artifacts)
 #' - `max_errors`: error tolerance is runtime policy
 #'
-#' @param config An S7 SimulationConfig object.
+#' @param config An S7 SimulationConfig object or a `StudySpec` created by
+#'   [new_study_spec()].
 #'
-#' @return A character string containing the SHA256 hash of the configuration.
+#' @return A character string containing the SHA256 hash of the study design.
 #'
 #' @keywords internal
 #'
@@ -745,8 +816,10 @@ capture_metrics_spec <- function(metrics) {
 #' # Use fingerprint for caching or deduplication
 #' }
 compute_config_fingerprint <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+  if (!S7::S7_inherits(config, SimulationConfig) && !is_study_spec(config)) {
+    cli::cli_abort(
+      "config must be a SimulationConfig object"
+    )
   }
 
   spec <- as_config_spec(config)

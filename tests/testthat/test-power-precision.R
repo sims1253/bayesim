@@ -1,5 +1,4 @@
 # I5: n_replicates_for_target() — invert MCSE formulas for planning.
-skip_on_cran()
 library(bayesim)
 
 describe("n_replicates_for_target", {

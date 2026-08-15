@@ -24,7 +24,6 @@ describe("rstar_metric construction", {
 })
 
 describe("rstar_metric against a chain-less fitter (LinearRegressionFitter)", {
-  skip_on_cran()
   skip_if_not(requireNamespace("posterior", quietly = TRUE))
 
   # LinearRegressionFitter produces a fit_result whose $fit is a plain list
@@ -54,7 +53,7 @@ describe("rstar_metric against a chain-less fitter (LinearRegressionFitter)", {
 })
 
 describe("rstar_metric against a real brmsfit", {
-  skip_on_cran()
+  skip_unless_bayesim_backend()
   skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
   skip_if_not(requireNamespace("brms", quietly = TRUE))
   skip_if_not(requireNamespace("posterior", quietly = TRUE))

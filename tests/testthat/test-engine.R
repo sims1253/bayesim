@@ -1384,7 +1384,6 @@ describe("run_simulation()", {
     })
 
     it("produces matching summaries under sequential and mirai daemon execution", {
-      skip_on_cran()
       skip_if_not(
         run_sim_exists(),
         "run_simulation not available or is_simulation_config broken"
@@ -1421,7 +1420,6 @@ describe("run_simulation()", {
     })
 
     it("ships the model bank once per run, not per batch (F6)", {
-      skip_on_cran()
       skip_if_not(
         run_sim_exists(),
         "run_simulation not available or is_simulation_config broken"

@@ -17,7 +17,13 @@ execute_tasks(
   config_fingerprint = NULL,
   checkpoint_every = 50L,
   keep_checkpoints = 2L,
-  prior_results_df = data.frame(task_id = character(), status = character())
+  prior_results_df = data.frame(task_id = character(), status = character()),
+  prior_task_results = NULL,
+  adaptive_next_check = NULL,
+  adaptive_state = NULL,
+  stop_on = NULL,
+  verbose = TRUE,
+  run_store = NULL
 )
 }
 \arguments{
@@ -44,10 +50,20 @@ execute_tasks(
 \item{checkpoint_every}{Integer; write checkpoint every N completed tasks.
 B4: also bounds the number of task results held in memory at once.}
 
-\item{keep_checkpoints}{Integer; number of complete snapshots retained.}
+\item{keep_checkpoints}{Integer; number of checkpoint commit directories
+retained. Pruning removes old commit directories only; immutable outcome
+shards and ledger history are never pruned.}
 
 \item{prior_results_df}{Previously resumed result rows, cached in memory to
 avoid re-reading and re-hashing the prior checkpoint for every batch.}
+
+\item{stop_on}{Optional adaptive stopping policy from the RunPolicy.}
+
+\item{verbose}{Logical; if TRUE, print lifecycle messages independently of
+the task progress bar.}
+
+\item{run_store}{Optional internal RunStore adapter used for checkpoint
+persistence. Defaults to an adapter created from \code{result_path}.}
 }
 \value{
 A list with task_results and task_grid

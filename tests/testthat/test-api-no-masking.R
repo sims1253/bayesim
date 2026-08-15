@@ -2,8 +2,6 @@
 # bayesim no longer exports fit / compute / log_lik / diagnostics, so loading it
 # alongside brms/dplyr must leave those names resolving to the foreign package.
 
-skip_on_cran()
-
 describe("B1: renamed generics do not mask foreign packages", {
   it("bayesim does not export fit / compute / log_lik / diagnostics", {
     ns <- asNamespace("bayesim")
@@ -20,6 +18,7 @@ describe("B1: renamed generics do not mask foreign packages", {
   })
 
   it("log_lik(brmsfit) still resolves to brms after loading bayesim", {
+    skip_unless_bayesim_backend()
     skip_if_not(requireNamespace("brms", quietly = TRUE))
     skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
 

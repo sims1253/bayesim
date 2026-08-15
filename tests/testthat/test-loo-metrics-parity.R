@@ -1,7 +1,7 @@
 # F3 acceptance tests: rmse_loo / r2_loo must match brms::loo_R2 / brms::loo_predict
 # on identical draws. Uses a real (tiny) cmdstanr brmsfit.
 
-skip_on_cran()
+skip_unless_bayesim_backend()
 skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
 skip_if_not(requireNamespace("brms", quietly = TRUE))
 skip_if_not(requireNamespace("posterior", quietly = TRUE))

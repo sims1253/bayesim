@@ -6,7 +6,9 @@
 # compiles-or-cache-hits on first use.
 
 # The S7 class. The public constructor (below, same name) auto-derives
-# supports_* from the log_lik / epred GQ names.
+# supports_* from the generated-quantity capabilities. Raw Stan has no
+# generic newdata prediction contract, so supports_predictions remains FALSE;
+# an `epred` GQ is exposed through predict_epred() for LOO-based metrics.
 CmdStanFitter_class <- S7::new_class(
   "CmdStanFitter",
   parent = Fitter,
@@ -63,9 +65,10 @@ CmdStanFitter_class <- S7::new_class(
 #' `mu`). Declare their names via the `log_lik` / `epred` arguments.
 #'
 #' **Newdata prediction is out of scope** (raw Stan has no newdata semantics):
-#' `supports_predictions` is FALSE unless `epred` is given, in which case
-#' `predict_epred` returns the in-sample GQ matrix and `predict_fit` is
-#' unsupported. Test-set metrics require brms or a custom fitter.
+#' `supports_predictions` is always FALSE. When `epred` is supplied,
+#' `predict_epred` returns the in-sample GQ matrix for LOO-based metrics, while
+#' `predict_fit` remains unsupported. Test-set metrics require brms or a custom
+#' fitter.
 #'
 #' @param stan_file Path to a `.stan` file, or NULL if `stan_code` is supplied.
 #' @param stan_code Character string of Stan code (used when `stan_file` is
@@ -76,8 +79,8 @@ CmdStanFitter_class <- S7::new_class(
 #'   program, or NULL if the program has no log_lik GQ. When NULL,
 #'   `supports_log_lik`/`supports_loo` are FALSE and elpd metrics degrade.
 #' @param epred Optional name of an epred/mu GQ matrix or vector. When supplied,
-#'   `supports_predictions` is TRUE and `predict_epred` returns the in-sample GQ
-#'   matrix (S x N).
+#'   `predict_epred` returns the in-sample GQ matrix (S x N) for LOO-based
+#'   metrics; it does not enable newdata predictions.
 #' @param chains Integer number of MCMC chains.
 #' @param iter_warmup Integer warmup iterations per chain.
 #' @param iter_sampling Integer sampling iterations per chain.
@@ -141,7 +144,10 @@ CmdStanFitter <- function(
     parallel_chains = as.integer(parallel_chains),
     init = init,
     extra_args = if (length(dots)) dots else NULL,
-    supports_predictions = !is.null(epred),
+    # `predict_fit()` is intentionally unsupported for raw Stan because the
+    # fitter cannot define newdata semantics. `epred` only enables the separate
+    # in-sample predict_epred() path used by LOO metrics.
+    supports_predictions = FALSE,
     supports_log_lik = !is.null(log_lik),
     supports_loo = !is.null(log_lik)
   )
@@ -290,13 +296,10 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
     seed = seed %||% 0L
   )
 
-  diag <- fit_diagnostics(fitter, list(fit = fit_obj, success = TRUE))
-
-  new_fit_result(
+  fit_result <- new_fit_result(
     success = TRUE,
     fit = fit_obj,
     draws = draws_mat,
-    diagnostics = diag,
     timing = list(
       total = timer$elapsed(),
       warmup = NA_real_,
@@ -306,6 +309,12 @@ S7::method(fit_model, CmdStanFitter_class) <- function(
     error = NULL,
     data_bundle = data_bundle
   )
+
+  # Compute diagnostics against the real result object (consistent with the
+  # fitter contract) rather than a bare ad-hoc list.
+  fit_result$diagnostics <- fit_diagnostics(fitter, fit_result)
+
+  fit_result
 }
 
 # extract_draws -----------------------------------------------------------
@@ -352,6 +361,13 @@ S7::method(log_lik_matrix, CmdStanFitter_class) <- function(
     posterior::subset_draws(draws_obj, variable = fitter@log_lik_name)
   )
   if (is.null(dim(ll))) {
+    # Scalar GQ (no per-observation dimension): pointwise log-likelihoods are
+    # unavailable, which silently degrades LOO-based metrics to NA. Alert once
+    # per run so the cause is discoverable.
+    .warn_once(
+      "cmdstan_log_lik_scalar",
+      "log_lik_name '{fitter@log_lik_name}' is not vectorized over observations; pointwise log-likelihood is unavailable and LOO-based metrics will return NA."
+    )
     return(NULL)
   }
   ll
@@ -396,9 +412,30 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(fitter, fit_result) {
       pareto_k = numeric()
     ))
   }
-  loo_result <- tryCatch(suppressWarnings(loo::loo(ll)), error = function(e) {
-    NULL
-  })
+
+  # Account for MCMC autocorrelation via loo::relative_eff(), matching the
+  # BrmsFitter path. Without r_eff, loo() assumes i.i.d. draws and the
+  # resulting ELPD/CV estimates are not comparable across fitters.
+  r_eff <- NULL
+  draws_df <- tryCatch(
+    posterior::as_draws_df(fit_result$fit$fit$draws()),
+    error = function(e) NULL
+  )
+  if (!is.null(draws_df) && nrow(draws_df) == nrow(ll)) {
+    r_eff <- tryCatch(
+      loo::relative_eff(exp(ll), chain_id = draws_df$.chain),
+      error = function(e) NULL
+    )
+  }
+
+  loo_args <- list(x = ll)
+  if (!is.null(r_eff)) {
+    loo_args$r_eff <- r_eff
+  }
+  loo_result <- tryCatch(
+    suppressWarnings(do.call(loo::loo, loo_args)),
+    error = function(e) NULL
+  )
   if (is.null(loo_result)) {
     return(list(
       elpd = NA_real_,

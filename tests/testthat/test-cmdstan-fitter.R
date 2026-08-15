@@ -1,5 +1,5 @@
 # D2: CmdStanFitter — user-supplied Stan programs. cmdstan-gated.
-skip_on_cran()
+skip_unless_bayesim_backend()
 skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
 skip_if_not(
   nzchar(Sys.which("cmdstan")) || !is.null(cmdstanr::cmdstan_version())

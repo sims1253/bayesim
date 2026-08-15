@@ -18,19 +18,24 @@ knitr::opts_chunk$set(
 
 bayesim is designed so that simulation results are reproducible across
 sequential, parallel, interrupted-and-resumed, and re-run executions, given a
-fixed seed.
+fixed seed. Full result objects also record wall-clock timings, and those
+change between runs, so the guarantee covers scientific outputs and canonical
+task outcomes, not timing fields.
 
 ## What is guaranteed
 
-- **Same seed + same package/backend versions + same platform** produces
-  **identical** results (bit-for-bit), whether the run is sequential, uses
-  mirai daemons, or is interrupted and resumed.
+- **Same seed + same package/backend versions + same platform**: scientific
+  outputs and canonical task outcomes match across sequential, parallel,
+  re-run, and interrupted-and-resumed execution once volatile timing fields
+  are excluded. Timing fields record wall-clock time, so they differ between
+  runs.
 - **Across platforms** (or when the Stan/brms/cmdstanr version changes),
   results are **statistically equivalent** but may differ in the least
   significant bits due to floating-point ordering and backend differences.
 
-This is the honest, qualified statement; bit-identical reproducibility cannot
-be promised across Stan versions or operating systems.
+Bit-identical reproducibility of the full result object is not promised on
+any platform: the object records wall-clock timings, and those change between
+runs.
 
 ## How determinism is achieved
 
@@ -73,8 +78,10 @@ config <- simulation_config(
 
 ### Determinism across executors
 
-Because the RNG is per-task and stream-derived, a study produces identical
-summaries whether run sequentially or via mirai daemons:
+Because the RNG is per-task and stream-derived, sequential runs and mirai
+daemon runs produce the same scientific outputs and canonical task outcomes.
+Volatile timing fields are the only difference, so the example drops them
+before comparing:
 
 ```{r, eval=FALSE}
 # Sequential
@@ -85,7 +92,12 @@ mirai::daemons(2)
 par_result <- run_simulation(config, resume = "never", progress = FALSE)
 mirai::daemons(0)
 
-identical(seq_result$summary, par_result$summary) # TRUE (ignoring timing columns)
+# Timing columns record wall-clock time, so drop them before comparing.
+drop_timing <- function(df) df[!grepl("^timing_", names(df))]
+identical(
+  drop_timing(seq_result$summary),
+  drop_timing(par_result$summary)
+) # TRUE
 ```
 
 ### Determinism under resume
@@ -94,7 +106,8 @@ When a run is interrupted and resumed, the task grid (including each task's
 RNG stream) is recomputed deterministically from the seed, and only terminal
 task statuses are copied from the checkpoint. Resuming therefore completes
 the remaining tasks with the exact RNG streams they would have had in a full
-run, producing identical results.
+run. The resumed study then matches a single uninterrupted run once volatile
+timing fields are excluded.
 
 ## The config fingerprint
 

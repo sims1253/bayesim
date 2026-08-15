@@ -33,13 +33,21 @@ single code path: with no daemons set, purrr runs tasks sequentially in the
 current process; with daemons set, the same tasks are crated and shipped to
 the workers. Determinism is unaffected — every task carries its own
 precomputed L'Ecuyer-CMRG RNG stream, so sequential and parallel runs produce
-identical results (see `vignette("reproducibility")`).
+the same scientific outputs and canonical task outcomes once volatile timing
+fields are excluded (see `vignette("reproducibility")`).
 
 Task lambdas are shipped to daemons via `carrier::crate()`, which strips their
 environment. Your data generator and any custom fitters/metrics are crated
 into the transport, so they must be self-contained: reference package
 functions by namespace and pass data through `data_spec`, not through free
 variables captured from your session.
+
+Crating moves task data and objects, not registrations. `S7::method()`
+registrations live in the process that ran them, so they do not travel to
+daemons with a crated fitter object. Run script-defined external S7
+extensions in-process (`workers = 1`, or no daemons set), or install the
+extension as a package and load it on every daemon — for example with
+`daemon_setup`.
 
 # Local parallelism: `workers`
 
@@ -51,10 +59,12 @@ result <- run_simulation(config, workers = 4)
 ```
 
 This is the recommended path for development and moderate task counts.
-`workers` errors if daemons are already set (it will not silently stack a
-second daemon pool on top of yours); everything below is for daemons the
-`workers` argument cannot manage itself — remote nodes, TLS, per-daemon
-setup.
+`workers = 1` is genuinely sequential: no daemons are launched and tasks run
+in-process, which also preserves method dispatch for S7 fitters and metrics
+defined outside a package (see `vignette("custom-fitters")`). `workers` errors
+if daemons are already set (it will not silently stack a second daemon pool on
+top of yours); everything below is for daemons the `workers` argument cannot
+manage itself — remote nodes, TLS, per-daemon setup.
 
 # Remote daemons (mirai URL scheme)
 
@@ -152,7 +162,8 @@ the load-bearing idea is the dispatcher/daemon split.
 ## TLS configuration
 
 Remote daemons should connect over TLS. mirai uses standard PEM material; see
-the [mirai security documentation](https://mirai.r-lib.org/articles/tls.html)
+the [mirai TLS
+documentation](https://mirai.r-lib.org/articles/v1-daemons.html#tls-secure-connections)
 for the full reference. A self-signed CA plus server certs is enough to get
 started:
 
@@ -244,11 +255,21 @@ When using daemons, each daemon holds its own copies of in-flight task
 artifacts; `checkpoint_every` bounds the in-flight work and the retention
 profile bounds per-task size.
 
-Each checkpoint is a complete cumulative snapshot so it can be validated and
-resumed independently. `keep_checkpoints = 2L` (the default) prunes older
-snapshots after a successful write, bounding checkpoint disk usage while
-preserving one fallback if the newest snapshot is corrupted. Increase it only
-when you need a longer audit history.
+On disk, the run store is append-only. A *checkpoint commit* is an atomic
+directory under `checkpoints/` that records one batch: its metadata, its
+ledger delta view, and its results delta view. Completed task outcomes are
+written once as immutable *outcome shards* under `outcomes/`, and task
+statuses are written under `ledger/` as a base ledger plus status deltas (each
+a *ledger delta*). Each shard keeps a redundantly mirrored second copy with
+its own checksum, so a single corrupt shard file is recovered from its mirror;
+older commit records also support fallback while the shards they reference
+remain valid.
+
+`keep_checkpoints = 2L` (the default) prunes old checkpoint commit
+directories after a successful write, keeping one older commit as a fallback.
+It does not prune the immutable outcome shards or the ledger history, so
+durable storage grows roughly linearly with the number of completed tasks.
+Increase it only when you want a longer commit history for audits.
 
 # Checkpoint/resume and the result_path layout
 
@@ -259,16 +280,27 @@ Point `result_path` at a directory (on shared scratch, for clusters) and pass
 result <- run_simulation(config, resume = "auto", workers = NULL)
 
 # Or force a resume from a specific directory:
-result <- resume_simulation("/scratch/user/bayesim-sim")
+result <- resume_simulation("/scratch/user/bayesim-sim", config = config)
 ```
 
-The directory contains everything needed to resume and audit a run:
+`resume_simulation()` rehydrates the config from the run manifest when you
+omit `config`, but that works only if every generator, fitter, and metric is a
+namespaced package function or class. The run manifest cannot rehydrate
+script-defined closures (including the return value of
+`fixed_truth_generator()`): R can serialize closures, but configless resume
+intentionally does not restore arbitrary executable closures. Supply the
+original config for those runs.
+
+The directory holds bayesim's durable run state and scientific results;
+non-rehydratable executable components still require the original config:
 
 ```
 results/my-study/
 ├── run_manifest.json      # config fingerprint, schema version, spec summary
-├── latest.json            # pointer to the newest complete checkpoint
-├── checkpoints/           # atomic rds checkpoints (task grid + results)
+├── latest.json            # pointer to the newest checkpoint commit
+├── checkpoints/           # atomic checkpoint commits (cp_XXXXXX directories)
+├── outcomes/              # immutable, redundantly mirrored outcome shards
+├── ledger/                # base ledger plus status deltas
 ├── artifacts/             # externalized large metric outputs
 │   └── metrics/
 ├── stan_binaries/         # shared compiled-model cache (Stan backends)
@@ -279,13 +311,15 @@ The config fingerprint is written into the manifest, so a resumed run is
 rejected if you change the study design (grids, seed, generator, fitter or
 metric specs) between submissions. Runtime policy — `retain`, `max_errors`,
 `checkpoint_every`, `keep_checkpoints`, `checkpoint_format` — is deliberately
-*excluded* from the fingerprint: you can change retention or error tolerance
-and still resume.
+*excluded* from the fingerprint: you can change error tolerance, checkpoint
+cadence, or narrow retention and still resume. Widening retention is rejected
+while the checkpoint holds completed tasks: artifacts the earlier run
+discarded cannot be recreated, and bayesim refuses to promise them.
 
 # Next steps
 
-- `vignette("reproducibility")` — why resuming and parallelizing produce
-  identical results.
+- `vignette("reproducibility")` — why resuming and parallelizing preserve
+  scientific outputs and canonical task outcomes.
 - `vignette("brms-studies")` — the model bank and warning-conditional
   retention.
 - `vignette("targets")` — running bayesim as a step in a `targets` pipeline.

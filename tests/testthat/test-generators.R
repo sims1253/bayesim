@@ -1,4 +1,4 @@
-skip_on_cran()
+skip_unless_bayesim_backend()
 
 skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
 skip_if_not(requireNamespace("brms", quietly = TRUE))

@@ -17,9 +17,12 @@ remains GitHub-only and lifecycle-experimental.
   preserves truths.
 * `run_simulation()` restores the caller's RNG state and kind. Stochastic
   metrics use stable metric-specific sub-seeds, so metric order is irrelevant.
-* Task-grid bookkeeping is vectorized by batch. Checkpoint snapshots are
-  pruned to `keep_checkpoints = 2L` by default, retaining one corruption
-  fallback while bounding disk growth.
+* Task-grid bookkeeping is vectorized by batch. The run store is append-only:
+  completed outcomes are written once as immutable, mirrored outcome shards,
+  and each checkpoint commit directory records its deltas plus metadata.
+  `keep_checkpoints = 2L` by default prunes old checkpoint commits, keeping
+  one fallback commit; immutable outcome/ledger history is never pruned, so
+  durable storage grows roughly linearly with completed tasks.
 * Fixed S7 class checks that had made automatic BrmsFitter model-bank and
   generator shortcuts unreachable. Precompiled brms models now warn when
   explicit priors are missing, and preflight reports deduplicated compile
@@ -69,6 +72,14 @@ masking `generics::fit`, `dplyr::compute`, and `brms::log_lik`.
   removing the cross-boundary condition-restoration machinery.
 * `run_simulation(config, workers = N)` sets up and tears down mirai daemons
   for the run (the simple path); `mirai::daemons()` remains for advanced/HPC.
+* The model bank is now shared across local daemons via [mori](https://shikokuchuo.net/mori/)
+  shared memory, so each daemon zero-copy maps the bank instead of
+  deserializing a private copy. Locality is auto-detected from the mirai
+  daemon URL (machine-local transports and loopback TCP qualify); remote and
+  wildcard-bound daemons, and sequential runs, are passed through unchanged.
+  `mori` is an optional suggested dependency because its current releases
+  require R >= 4.3 while bayesim supports R >= 4.1. Without it, or when shared
+  memory creation fails, bayesim safely uses ordinary serialized dispatch.
 
 ## Metrics and analysis (Morris et al. framing)
 

@@ -465,7 +465,8 @@ lighten_task_result <- function(task_result, retain) {
     metrics = task_result$metrics,
     timing = task_result$timing,
     error = task_result$error,
-    truth = task_result$truth
+    truth = task_result$truth,
+    stop_reason = task_result$stop_reason
   )
 
   # Keep diagnostics if retention includes it (needed for summary)

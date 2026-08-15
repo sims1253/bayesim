@@ -1,6 +1,4 @@
 # E3: performance_measures() — Morris et al. (2019) estimator-performance layer.
-skip_on_cran()
-
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n
   b <- data_spec$beta
@@ -17,6 +15,47 @@ skip_on_cran()
 }
 
 describe("performance_measures", {
+  it("uses explicitly error-based measures when truth varies", {
+    df <- data.frame(
+      data_n = 10L,
+      status = c("success", "success", "success"),
+      truth__x = c(0, 10, 20),
+      posterior_summary__mean__x = c(1, 11, 21),
+      posterior_summary__sd__x = c(1, 1, 1),
+      posterior_summary__q_lower__x = c(-1, 9, 19),
+      posterior_summary__q_upper__x = c(2, 12, 22),
+      check.names = FALSE
+    )
+    pm <- performance_measures(df, estimand = "x", by = "data_n")
+    expect_false(any(c("bias", "emp_se", "mse") %in% pm$measure))
+    mean_error <- pm[pm$measure == "mean_error", , drop = FALSE]
+    error_sd <- pm[pm$measure == "error_sd", , drop = FALSE]
+    error_mse <- pm[pm$measure == "error_mse", , drop = FALSE]
+    expect_equal(mean_error$value, 1)
+    expect_equal(mean_error$mcse, 0)
+    expect_equal(error_sd$value, 0)
+    expect_equal(error_mse$value, 1)
+    expect_true(all(pm$truth_mode == "varying"))
+  })
+
+  it("retains Morris names and formulas when truth is fixed", {
+    df <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(2, 4),
+      posterior_summary__mean__x = c(1, 2, 3, 4),
+      posterior_summary__sd__x = rep(0.5, 4),
+      check.names = FALSE
+    )
+    pm <- performance_measures(df, estimand = "x")
+    expect_true(all(c("bias", "emp_se", "mse") %in% pm$measure))
+    expect_false(any(c("mean_error", "error_sd", "error_mse") %in% pm$measure))
+    expect_true(all(pm$truth_mode == "fixed"))
+    expect_equal(
+      pm$mcse[pm$measure == "bias"],
+      stats::sd(df$posterior_summary__mean__x) / 2
+    )
+  })
+
   it("returns a tidy tibble of measures with MCSE per estimand/condition", {
     config <- simulation_config(
       data_grid = data.frame(n = 60L, beta = c(0.5, 1.0)),

@@ -41,6 +41,18 @@ make_fixture <- function(
 }
 
 describe("M5 extended metrics", {
+  it("rejects invalid credible-interval probabilities at construction", {
+    expect_error(
+      coverage_metric(prob = 0),
+      class = "bayesim_config_error"
+    )
+    expect_error(
+      posterior_summary_metric(prob = 1),
+      class = "bayesim_config_error"
+    )
+    expect_no_error(coverage_metric(prob = 0.9))
+  })
+
   it("pred_mae_metric computes mean absolute error", {
     fx <- make_fixture(predictions = list(predicted_mean = 1:10))
     fx$data_bundle$response <- "y"
@@ -491,5 +503,38 @@ describe("M5 extended metrics", {
       fx$task_ctx
     )
     expect_equal(out$value, 1) # perfect prediction
+  })
+
+  it("does not truncate mismatched prediction vectors", {
+    fx <- make_fixture(
+      predictions = list(predicted_mean = c(1, 2)),
+      test = data.frame(y = c(1, 2, 3))
+    )
+    expect_error(
+      compute_metric(
+        pred_mae_metric(),
+        fx$fit_result,
+        fx$data_bundle,
+        fx$context,
+        fx$task_ctx
+      ),
+      class = "bayesim_metric_error"
+    )
+  })
+
+  it("returns an explicit undefined value for constant-response R-squared", {
+    fx <- make_fixture(
+      predictions = list(predicted_mean = c(1, 1, 1)),
+      test = data.frame(y = c(1, 1, 1))
+    )
+    out <- compute_metric(
+      r2_test_metric(),
+      fx$fit_result,
+      fx$data_bundle,
+      fx$context,
+      fx$task_ctx
+    )
+    expect_true(is.na(out$value))
+    expect_equal(out$n_obs, 3L)
   })
 })

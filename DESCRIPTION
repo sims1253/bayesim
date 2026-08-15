@@ -1,7 +1,7 @@
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
 Version: 2.0.0
-URL: https://sims1253.github.io/bayesim, https://github.com/sims1253/bayesim
+URL: https://sims1253.github.io/bayesim/, https://github.com/sims1253/bayesim
 BugReports: https://github.com/sims1253/bayesim/issues
 Authors@R: c(
     person("Maximilian", "Scholz", , "research.scholz@mailbox.org", 
@@ -9,6 +9,8 @@ Authors@R: c(
     person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", 
            role = "aut")
   )
+Author: Maximilian Scholz [aut, cre], Paul-Christian Bürkner [aut]
+Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
 Description: A framework for designing and running simulation studies of
     Bayesian models: parameter recovery, calibration checking via
     simulation-based calibration, model comparison, and method evaluation.
@@ -31,6 +33,7 @@ Collate:
     'results.R'
     'fitter.R'
     'metric.R'
+    'lifecycle.R'
     'simulation-config.R'
     'example-data-generator.R'
     'generators.R'
@@ -38,8 +41,10 @@ Collate:
     'rng.R'
     'task-grid.R'
     'worker.R'
+    'mori.R'
     'simulate.R'
     'checkpoint.R'
+    'run-store.R'
     'io-parquet.R'
     'resume.R'
     'retention.R'
@@ -77,6 +82,7 @@ Suggests:
     ggplot2,
     knitr,
     MASS,
+    mori,
     nanoparquet,
     quarto,
     randomForest,
@@ -84,7 +90,7 @@ Suggests:
     rmarkdown,
     rstan (>= 2.32.0),
     testthat (>= 3.1.0)
-Remotes:
-    stan-dev/cmdstanr
+Additional_repositories:
+    https://stan-dev.r-universe.dev
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0

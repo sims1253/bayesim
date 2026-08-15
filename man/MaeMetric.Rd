@@ -6,10 +6,12 @@
 \title{MAE Metric}
 \usage{
 MaeMetric(
-  name = character(0),
-  needs = character(0),
+  name = "mae",
+  needs = "predictions",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), n_obs
+    = list(role = "count", aggregation = "none", mcse = "none"))
 )
 
 pred_mae_metric(name = "mae")
@@ -24,7 +26,8 @@ A \code{MaeMetric} object.
 }
 \description{
 Mean absolute error between predictions and the observed
-response on the test set (or training set when no test set).
+response on the test set. Returns NA when no test set is present (no
+training-set fallback).
 
 Constructor for MaeMetric.
 }

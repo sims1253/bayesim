@@ -185,7 +185,10 @@ SBC checks the *whole* posterior at once. A complementary, more familiar
 check is **interval coverage**: does the nominal 95% credible interval contain
 the truth about 95% of the time? `plot_coverage()` shows this per estimand
 with MCSE error bars; `performance_measures()` reports the same quantity in a
-table alongside bias, empirical SE, MSE, and average model SE.
+table. Because SBC draws a new truth from the prior for every replicate, this
+is a **varying-truth** study. Accordingly, the table labels error summaries as
+`mean_error`, `error_sd`, and `error_mse`; it does not label them as the
+fixed-truth Morris measures `bias`, `emp_se`, or `mse`.
 
 ```{r coverage}
 plot_coverage(result)
@@ -199,7 +202,11 @@ pm
 The `coverage` row reports the empirical coverage of the 95% posterior
 interval for the `x` coefficient, with its Monte Carlo standard error. For
 the conjugate fitter this should sit close to the nominal 0.95 (within a
-couple of MCSEs).
+couple of MCSEs). The `truth_mode` column is `"varying"`. Here `mean_error`
+is the average replicate-level difference `estimate - truth`, and its MCSE is
+computed from those replicate-level errors; `error_sd` describes the spread
+of that error distribution. These are useful calibration summaries, but they
+are not the empirical sampling SE or bias of an estimator at one fixed truth.
 
 **Coverage vs SBC.** Coverage and SBC agree when the model is well-behaved,
 but they probe different things. Coverage is a single-number summary of one
@@ -209,7 +216,8 @@ other is systematically over-dispersed in the tails and under-dispersed in
 the middle. SBC, by contrast, checks the full posterior shape through rank
 uniformity. In practice, run both: SBC as the global self-consistency test,
 and `performance_measures()` coverage as the interval-level summary a methods
-paper reports.
+paper reports. Use a fixed-truth data generator when the scientific target is
+the Morris estimator-performance measures `bias`, `emp_se`, and `mse`.
 
 # Further reading
 

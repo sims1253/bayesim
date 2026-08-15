@@ -92,6 +92,16 @@ LinearRegressionFitter <- S7::new_class(
   cn <- colnames(X)
   cn[cn == "(Intercept)"] <- "Intercept"
   colnames(X) <- cn
+
+  # Missing values would silently propagate through model.matrix into NaN
+  # posteriors; reject them up front as a recoverable data error.
+  if (anyNA(X) || anyNA(y)) {
+    stop(bayesim_data_error(paste(
+      "LinearRegressionFitter received data with missing values;",
+      "NA predictors or responses are not supported (posterior would be NaN)."
+    )))
+  }
+
   list(X = X, y = as.numeric(y), coef_names = cn)
 }
 

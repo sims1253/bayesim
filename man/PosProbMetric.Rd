@@ -6,10 +6,12 @@
 \title{Positivity Probability Metric}
 \usage{
 PosProbMetric(
-  name = character(0),
+  name = "pos_prob",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+    by_param = list(role = "binary", aggregation = "proportion", mcse = "binomial"))
 )
 
 pos_prob_metric(name = "pos_prob")

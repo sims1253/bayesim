@@ -8,6 +8,29 @@
 # coverage MCSE = sqrt(p(1-p)/n); rmse MCSE via the delta method on the
 # squared-error mean and variance.
 
+validate_analysis_columns <- function(
+  data,
+  columns,
+  invalid_message,
+  unknown_prefix,
+  allow_null = TRUE
+) {
+  if (is.null(columns) && isTRUE(allow_null)) {
+    return(invisible(NULL))
+  }
+  if (!is.character(columns) || anyNA(columns) || !all(nzchar(columns))) {
+    stop(bayesim_config_error(invalid_message))
+  }
+  missing <- setdiff(columns, names(data))
+  if (length(missing) > 0L) {
+    stop(bayesim_config_error(paste0(
+      unknown_prefix,
+      paste(missing, collapse = ", ")
+    )))
+  }
+  invisible(columns)
+}
+
 # summarize_simulation ----------------------------------------------------
 
 #' Aggregate simulation results per condition
@@ -23,6 +46,13 @@
 #'   (e.g. SBC ranks) are excluded from aggregation. Columns from unknown or
 #'   user-defined sources default to `"mean"`. MCSE formulas follow rsimsum
 #'   (Gasparini, 2018).
+#'
+#'   Wide summaries: several metrics legitimately flatten to dozens of columns
+#'   each, so the default aggregation can return 100+ columns. Nothing is ever
+#'   dropped or truncated. Narrow the output with the `metrics` argument, and
+#'   discover a single metric's flattened columns with [metric_cols()]. In
+#'   interactive sessions only, a wide default call prints a one-line hint
+#'   pointing at these; programmatic and noninteractive use is always silent.
 #'
 #' @param result A `bayesim_simulation_result` object (uses `result$summary`),
 #'   or a data.frame/tibble of per-task metrics. Passing the full result is
@@ -60,17 +90,78 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   # column defaults to "proportion" so bare data.frame input still gets the
   # right MCSE.
   summary_types <- if (!is.data.frame(result)) {
-    result$metric_summary_types
+    result$metric_summary_types %||% list()
   } else {
-    NULL
+    list()
+  }
+  field_schemas <- if (!is.data.frame(result)) {
+    result$metric_field_metadata %||% result$metric_schemas %||% list()
+  } else {
+    list()
+  }
+  field_metadata_for <- function(col) {
+    metric_name <- sub("__.*$", "", col)
+    suffix <- substring(col, nchar(metric_name) + 3L)
+    field <- sub("__.*$", "", suffix)
+    schema <- field_schemas[[metric_name]]
+    if (S7::S7_inherits(schema, Metric)) {
+      return(metric_field_metadata(schema, field))
+    }
+    if (is.list(schema) && field %in% names(schema)) {
+      meta <- schema[[field]]
+      if (is.character(meta) && length(meta) == 1L) {
+        meta <- list(aggregation = meta)
+      }
+      if (is.list(meta)) {
+        if (is.null(meta$aggregation)) {
+          meta$aggregation <- "mean"
+        }
+        if (is.null(meta$mcse)) {
+          meta$mcse <- if (identical(meta$aggregation, "proportion")) {
+            "binomial"
+          } else if (identical(meta$aggregation, "none")) {
+            "none"
+          } else {
+            "sd"
+          }
+        }
+        return(meta)
+      }
+    }
+    list()
   }
   type_for <- function(col) {
+    metadata <- field_metadata_for(col)
+    if (!is.null(metadata$aggregation)) {
+      return(metadata$aggregation)
+    }
     metric_name <- sub("__.*$", "", col)
     declared <- summary_types[[metric_name]]
     if (!is.null(declared)) {
-      return(declared)
+      if (is.list(declared)) {
+        field <- sub("^[^_]+__", "", col)
+        field <- sub("__.*$", "", field)
+        declared <- declared[[field]] %||% declared$aggregation
+      }
+      if (!is.null(declared)) return(declared)
     }
     if (grepl("^coverage(__|$)", col)) "proportion" else "mean"
+  }
+  role_for <- function(col) {
+    declared <- field_metadata_for(col)$role
+    if (!is.null(declared)) {
+      return(declared)
+    }
+    # Compatibility fallback for summaries produced before field schemas were
+    # persisted. Counts are bookkeeping, never scientific measures.
+    if (grepl("(^|__)n_(obs|draws|ranks)$", col)) {
+      return("count")
+    }
+    ""
+  }
+  mcse_for <- function(col) {
+    field_metadata_for(col)$mcse %||%
+      if (identical(type_for(col), "proportion")) "binomial" else "sd"
   }
 
   if (is.null(by)) {
@@ -92,7 +183,12 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     # Only scalar atomic columns can group (drop list-columns like fit_formula).
     by <- by[vapply(df[, by, drop = FALSE], is.atomic, logical(1))]
   }
-  by <- intersect(by, names(df))
+  validate_analysis_columns(
+    df,
+    by,
+    "by must be NULL or a character vector of columns",
+    "Unknown grouping column(s): "
+  )
 
   meta_cols <- c(
     "task_id",
@@ -109,17 +205,27 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   # summary_type = "none" opts a metric out of aggregation (e.g. SBC ranks).
   metric_cols <- metric_cols[vapply(
     metric_cols,
-    function(m) type_for(m) != "none",
+    function(m) type_for(m) != "none" && role_for(m) != "count",
     logical(1)
   )]
 
   if (!is.null(metrics)) {
+    validate_analysis_columns(
+      df,
+      metrics,
+      "metrics must be a character vector of columns",
+      "Unknown metric column(s): ",
+      allow_null = FALSE
+    )
     metric_cols <- intersect(metric_cols, metrics)
   }
   if (length(metric_cols) == 0L) {
     warning("No metric columns found to summarize")
     return(tibble::as_tibble(df[0, , drop = FALSE]))
   }
+  # Wide-summary discoverability (interactive only): point at the existing
+  # metrics/metric_cols() narrowing instead of ever dropping columns.
+  maybe_wide_summary_hint(length(metric_cols), metrics)
 
   # Ensure status exists for failure-rate computation.
   has_status <- "status" %in% names(df)
@@ -127,12 +233,12 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
   # Split-apply-combine via dplyr if available, else base R.
   groups <- group_ids(df, by)
 
-  rows <- lapply(split(seq_len(nrow(df)), groups), function(idx) {
+  rows <- lapply(split(seq_len(nrow(df)), groups, drop = TRUE), function(idx) {
     sub <- df[idx, , drop = FALSE]
     out <- if (length(by) > 0L) as.list(sub[1, by, drop = FALSE]) else list()
     out$n_reps <- length(idx)
     if (has_status) {
-      n_fail <- sum(!sub$status %in% "success", na.rm = TRUE)
+      n_fail <- sum(is.na(sub$status) | as.character(sub$status) != "success")
       out$n_failed <- n_fail
       out$failure_rate <- n_fail / length(idx)
     } else {
@@ -141,6 +247,9 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     }
     for (m in metric_cols) {
       vals <- sub[[m]]
+      if (has_status) {
+        vals <- vals[!is.na(sub$status) & as.character(sub$status) == "success"]
+      }
       vals <- vals[is.finite(vals)]
       n <- length(vals)
       out[[paste0(m, "_n_used")]] <- n
@@ -157,9 +266,15 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       # means) uses the plain sd/sqrt(n) MCSE for what is reported (the mean
       # of per-task values).
       if (n > 1L) {
-        if (identical(type_for(m), "proportion")) {
+        if (identical(mcse_for(m), "binomial")) {
           p <- mean(vals)
-          out[[paste0(m, "_mcse")]] <- sqrt(p * (1 - p) / n)
+          out[[paste0(m, "_mcse")]] <- if (is.finite(p) && p >= 0 && p <= 1) {
+            sqrt(p * (1 - p) / n)
+          } else {
+            NA_real_
+          }
+        } else if (identical(mcse_for(m), "none")) {
+          out[[paste0(m, "_mcse")]] <- NA_real_
         } else {
           out[[paste0(m, "_mcse")]] <- sd_v / sqrt(n)
         }
@@ -170,7 +285,62 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     out
   })
 
-  tibble::as_tibble(do.call(rbind, lapply(rows, as.data.frame)))
+  # Build a 1-row data.frame per group, then rbind. Uniform schema: rows from
+  # different groups always share keys, but we defensively pad any missing
+  # column (logical NA, which coerces upward safely in rbind) and align the
+  # column order so mixed-type columns never reorder or coerce between groups.
+  row_dfs <- lapply(
+    rows,
+    as.data.frame,
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+  row_names <- unique(unlist(lapply(row_dfs, names), use.names = FALSE))
+  row_dfs <- lapply(row_dfs, function(row) {
+    missing <- setdiff(row_names, names(row))
+    if (length(missing) > 0L) {
+      row[missing] <- rep(list(NA), length(missing))
+    }
+    row[row_names]
+  })
+
+  tibble::as_tibble(do.call(rbind, row_dfs))
+}
+
+# Metric-column count at which summarize_simulation() gives a one-line
+# interactive hint about narrowing with `metrics = ...` / metric_cols().
+# Below this, a wide default summary stays completely silent everywhere.
+WIDE_SUMMARY_HINT_THRESHOLD <- 20L
+
+# Interactive-only discoverability hint for wide summaries.
+#
+# A default summarize_simulation() call over several metrics can legitimately
+# aggregate 100+ columns. Rather than dropping or truncating anything, guide
+# interactive users toward the existing narrowing capabilities. The hint is
+# narrowly triggered: never in noninteractive/programmatic use (tests,
+# scripts, reports), never when `metrics` was supplied explicitly, and never
+# for narrow summaries.
+maybe_wide_summary_hint <- function(
+  n_metric_cols,
+  metrics = NULL,
+  .interactive = interactive()
+) {
+  if (!isTRUE(.interactive) || !is.null(metrics)) {
+    return(invisible(NULL))
+  }
+  if (
+    !is.finite(n_metric_cols) || n_metric_cols <= WIDE_SUMMARY_HINT_THRESHOLD
+  ) {
+    return(invisible(NULL))
+  }
+  cli::cli_inform(c(
+    i = paste0(
+      "Aggregating {n_metric_cols} metric columns. Pass `metrics = <columns>` ",
+      "to narrow the output, or use metric_cols() to list one metric's columns ",
+      "(see ?summarize_simulation)."
+    )
+  ))
+  invisible(NULL)
 }
 
 #' Select flattened metric columns
@@ -418,21 +588,16 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
       "alpha must be a scalar in (0, 1), got " %+% alpha
     ))
   }
-  if (!is.null(by)) {
-    if (!is.character(by) || anyNA(by) || !all(nzchar(by))) {
-      stop(bayesim_config_error("by must be NULL or a character vector"))
-    }
-    missing_by <- setdiff(by, names(ranks))
-    if (length(missing_by) > 0L) {
-      stop(bayesim_config_error(
-        "Unknown SBC facet column(s): " %+% paste(missing_by, collapse = ", ")
-      ))
-    }
-  }
+  validate_analysis_columns(
+    ranks,
+    by,
+    "by must be NULL or a character vector",
+    "Unknown SBC facet column(s): "
+  )
 
   facet_cols <- c("param", by)
-  group_ids <- interaction(ranks[, facet_cols, drop = FALSE], drop = TRUE)
-  rank_groups <- split(seq_len(nrow(ranks)), group_ids)
+  group_keys <- group_ids(ranks, facet_cols)
+  rank_groups <- split(seq_len(nrow(ranks)), group_keys, drop = TRUE)
 
   ecdf_data <- do.call(
     rbind,
@@ -519,6 +684,51 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
     ggplot2::theme_minimal()
 }
 
+# Resolve the `estimand` argument against its legacy `var` alias.
+#
+# Terminology consistency: performance_measures() uses `estimand` while
+# plot_recovery() historically used `var`. `estimand` is now the primary
+# name on both; `var` remains a silent compatibility alias. Behavior:
+# - neither provided -> error naming the `estimand` argument;
+# - both provided and equal -> the shared value (no warning; the alias is
+#   compatibility, not deprecation noise);
+# - both provided and conflicting -> error (silently picking one would hide
+#   a probable copy-paste mistake).
+resolve_estimand_alias <- function(estimand, var, fn) {
+  if (is.null(estimand) && is.null(var)) {
+    stop(bayesim_config_error(paste0(
+      fn,
+      "() requires a parameter name via `estimand` ",
+      "(or the legacy `var` alias)"
+    )))
+  }
+  if (is.null(estimand)) {
+    estimand <- var
+  }
+  if (!is.null(var) && !identical(var, estimand)) {
+    stop(bayesim_config_error(paste0(
+      fn,
+      "(): `estimand` (",
+      estimand,
+      ") and the legacy alias `var` (",
+      var,
+      ") disagree; supply only `estimand`"
+    )))
+  }
+  if (
+    !is.character(estimand) ||
+      length(estimand) != 1L ||
+      is.na(estimand) ||
+      !nzchar(estimand)
+  ) {
+    stop(bayesim_config_error(paste0(
+      fn,
+      "(): estimand must be a single non-empty character string"
+    )))
+  }
+  estimand
+}
+
 #' Plot parameter recovery (truth vs posterior estimate)
 #'
 #' @description Scatter of posterior-mean estimates against true parameter
@@ -526,21 +736,42 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
 #'   column when `by` is supplied. Requires `posterior_summary_metric` to have
 #'   been computed and the truth recorded (E1).
 #' @param result A `bayesim_simulation_result`.
-#' @param var Parameter name (a vars_of_interest entry).
+#' @param estimand Parameter name (a `vars_of_interest` entry); the preferred
+#'   terminology, matching [performance_measures()].
 #' @param by Optional name of a condition column to facet by (E7).
+#' @param var Legacy alias for `estimand`, kept for backward compatibility
+#'   with earlier bayesim versions. It is a silent compatibility alias, not a
+#'   deprecated argument, and emits no deprecation warning. When both
+#'   `estimand` and `var` are supplied they must name the same parameter;
+#'   conflicting values are an error.
 #' @return A ggplot object.
 #' @export
 #' @examples
 #' \dontrun{
-#' plot_recovery(result, "b_x")
-#' plot_recovery(result, "b_x", by = "data_n")
+#' plot_recovery(result, estimand = "b_x")
+#' plot_recovery(result, estimand = "b_x", by = "data_n")
+#' # Legacy spelling, identical result:
+#' plot_recovery(result, var = "b_x")
 #' }
-plot_recovery <- function(result, var, by = NULL) {
+plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
   rlang::check_installed("ggplot2", "to use plot_recovery()")
+  estimand <- resolve_estimand_alias(estimand, var, "plot_recovery")
   df <- result$summary
-  mean_col <- paste0("posterior_summary__mean__", var)
-  lower_col <- paste0("posterior_summary__q_lower__", var)
-  upper_col <- paste0("posterior_summary__q_upper__", var)
+  if (!is.null(by)) {
+    if (
+      !is.character(by) ||
+        anyNA(by) ||
+        !all(nzchar(by)) ||
+        !all(by %in% names(df))
+    ) {
+      stop(bayesim_config_error(
+        "by must name existing columns in the simulation summary"
+      ))
+    }
+  }
+  mean_col <- paste0("posterior_summary__mean__", estimand)
+  lower_col <- paste0("posterior_summary__q_lower__", estimand)
+  upper_col <- paste0("posterior_summary__q_upper__", estimand)
   if (!(mean_col %in% names(df))) {
     stop(bayesim_config_error(
       "Posterior summary column " %+%
@@ -552,8 +783,8 @@ plot_recovery <- function(result, var, by = NULL) {
   # Truth column (E1): prefer truth__<var>, then a legacy true_params__<var>,
   # then a bare `truth` column.
   truth_candidates <- c(
-    paste0("truth__", var),
-    paste0("true_params__", var),
+    paste0("truth__", estimand),
+    paste0("true_params__", estimand),
     "truth"
   )
   truth_col <- truth_candidates[truth_candidates %in% names(df)][1]
@@ -581,9 +812,9 @@ plot_recovery <- function(result, var, by = NULL) {
     ) +
     ggplot2::geom_point(alpha = 0.6) +
     ggplot2::labs(
-      x = paste0("true ", var),
-      y = paste0("posterior mean ", var),
-      title = paste0("Parameter recovery: ", var)
+      x = paste0("true ", estimand),
+      y = paste0("posterior mean ", estimand),
+      title = paste0("Parameter recovery: ", estimand)
     ) +
     ggplot2::theme_minimal()
   # Posterior-interval segments by default (E7).
@@ -608,7 +839,8 @@ plot_recovery <- function(result, var, by = NULL) {
 #'   condition x estimand cell, with a dashed reference line at the nominal
 #'   rate. Requires `posterior_summary_metric()` (and recorded truths, E1).
 #' @param result A `bayesim_simulation_result`.
-#' @param nominal Nominal coverage rate (default 0.95).
+#' @param nominal Nominal coverage rate. Defaults to the interval probability
+#'   recorded by the metric schema, or 0.95 for legacy results.
 #' @param by Character vector of condition columns (passed to
 #'   [performance_measures()]).
 #' @return A ggplot object.
@@ -617,8 +849,73 @@ plot_recovery <- function(result, var, by = NULL) {
 #' \dontrun{
 #' plot_coverage(result)
 #' }
-plot_coverage <- function(result, nominal = 0.95, by = NULL) {
+plot_coverage <- function(result, nominal = NULL, by = NULL) {
   rlang::check_installed("ggplot2", "to use plot_coverage()")
+  if (is.null(nominal)) {
+    schemas <- result$metric_field_metadata %||%
+      result$metric_schemas %||%
+      list()
+    df <- if (is.data.frame(result)) result else result$summary
+    lower_params <- sub(
+      "^posterior_summary__q_lower__",
+      "",
+      grep("^posterior_summary__q_lower__", names(df), value = TRUE)
+    )
+    upper_params <- sub(
+      "^posterior_summary__q_upper__",
+      "",
+      grep("^posterior_summary__q_upper__", names(df), value = TRUE)
+    )
+    uses_posterior_intervals <- length(intersect(lower_params, upper_params)) >
+      0L
+    metric_name <- if (uses_posterior_intervals) {
+      "posterior_summary"
+    } else {
+      "coverage"
+    }
+    fields <- if (uses_posterior_intervals) {
+      c("q_lower", "q_upper")
+    } else {
+      "by_param"
+    }
+    schema <- schemas[[metric_name]]
+    if (S7::S7_inherits(schema, Metric)) {
+      schema <- tryCatch(schema@schema, error = function(e) list())
+    }
+    candidates <- vapply(
+      fields,
+      function(field) {
+        candidate <- if (is.list(schema) && is.list(schema[[field]])) {
+          schema[[field]]$nominal
+        } else {
+          NULL
+        }
+        if (is.null(candidate)) NA_real_ else as.numeric(candidate)
+      },
+      numeric(1)
+    )
+    candidates <- unique(candidates[is.finite(candidates)])
+    if (length(candidates) > 1L) {
+      stop(bayesim_config_error(paste0(
+        "Conflicting nominal levels in ",
+        metric_name,
+        " interval metadata"
+      )))
+    }
+    nominal <- if (length(candidates) == 1L) candidates[[1L]] else 0.95
+  }
+  if (
+    !is.numeric(nominal) ||
+      length(nominal) != 1L ||
+      is.na(nominal) ||
+      !is.finite(nominal) ||
+      nominal <= 0 ||
+      nominal >= 1
+  ) {
+    stop(bayesim_config_error(
+      "nominal must be a single finite value in (0, 1)"
+    ))
+  }
   pm <- performance_measures(result, by = by)
   cov <- pm[pm$measure == "coverage", , drop = FALSE]
   if (nrow(cov) == 0L) {
@@ -626,6 +923,11 @@ plot_coverage <- function(result, nominal = 0.95, by = NULL) {
       "No coverage rows: performance_measures() needs truth__ and",
       "posterior_summary__ columns (compute posterior_summary_metric(), E1 truths)."
     )))
+  }
+  condition_cols <- if (!is.null(by)) {
+    by
+  } else {
+    grep("^(data_|fit_)", names(cov), value = TRUE)
   }
   p <- ggplot2::ggplot(cov, ggplot2::aes(.data$estimand, .data$value)) +
     ggplot2::geom_hline(
@@ -647,6 +949,12 @@ plot_coverage <- function(result, nominal = 0.95, by = NULL) {
       title = "Credible-interval coverage with MCSE"
     ) +
     ggplot2::theme_minimal()
+  if (length(condition_cols) > 0L) {
+    p <- p +
+      ggplot2::facet_wrap(stats::as.formula(
+        paste("~", paste(condition_cols, collapse = " + "))
+      ))
+  }
   p
 }
 
@@ -676,6 +984,29 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
   if (is.null(x)) {
     x <- "task_id"
   }
+  if (
+    !is.character(x) ||
+      length(x) != 1L ||
+      is.na(x) ||
+      !nzchar(x) ||
+      !x %in% names(df)
+  ) {
+    stop(bayesim_config_error(
+      "x must name an existing column in the summary"
+    ))
+  }
+  if (!is.null(facets)) {
+    if (
+      !is.character(facets) ||
+        anyNA(facets) ||
+        !all(nzchar(facets)) ||
+        !all(facets %in% names(df))
+    ) {
+      stop(bayesim_config_error(
+        "facets must name existing columns in the summary"
+      ))
+    }
+  }
   p <- ggplot2::ggplot(df, ggplot2::aes(.data[[x]], .data$.metric)) +
     ggplot2::geom_point(alpha = 0.5) +
     ggplot2::labs(y = metric, title = metric) +
@@ -691,11 +1022,13 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #' Simulation-method performance measures with Monte-Carlo standard errors
 #'
 #' @description
-#' Computes the Morris, White & Crowther (2019, *Stat Med*) estimator-
-#' performance measures — **bias**, **empirical SE**, **MSE**, **coverage**,
-#' **average model SE**, and `n_sim` — for each estimand (parameter) and
-#' condition cell, each with its MCSE. This is the function a methods paper
-#' actually needs; it is the centerpiece of the analysis layer (E3).
+#' For condition cells with fixed data-generating truth, computes the Morris,
+#' White & Crowther (2019, *Stat Med*) estimator-performance measures:
+#' **bias**, **empirical SE**, **MSE**, **coverage**, **average model SE**, and
+#' `n_sim`, each with its MCSE. When truth varies across replicates (as in a
+#' prior-predictive SBC study), the fixed-truth Morris names are not returned.
+#' Instead, the error distribution is described by `mean_error`, `error_sd`,
+#' and `error_mse`; coverage and average model SE remain available.
 #'
 #' For each parameter the function pairs the data-generating `truth__<param>`
 #' column with the per-task `posterior_summary__*__<param>` columns (point
@@ -703,7 +1036,7 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #' uses the interval when available; otherwise it falls back to a
 #' `coverage__by_param__<param>` column if present.
 #'
-#' MCSE formulas follow Morris et al. / rsimsum:
+#' Fixed-truth MCSE formulas follow Morris et al. / rsimsum:
 #' \itemize{
 #'   \item bias MCSE = sd(point_est) / sqrt(n)
 #'   \item empSE MCSE = sd / sqrt(2(n-1))
@@ -711,6 +1044,9 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #'   \item coverage MCSE = sqrt(p(1-p) / n)
 #'   \item modelSE MCSE = sd(posterior_sd) / sqrt(n)
 #' }
+#' For varying truth, `mean_error` uses `sd(est-truth) / sqrt(n)`, `error_sd`
+#' uses `error_sd / sqrt(2(n-1))`, and `error_mse` uses
+#' `sqrt(Var((est-truth)^2) / n)`.
 #'
 #' @param result A `bayesim_simulation_result` (uses `$summary`), or a
 #'   data.frame of per-task metrics.
@@ -725,9 +1061,10 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #'   rep_idx, status, and metric columns).
 #'
 #' @return A tidy tibble with columns: the `by` columns, `estimand`,
-#'   `measure`, `value`, `mcse`, `n_sim`. One row per condition x estimand x
-#'   measure. `measure` is one of `bias`, `emp_se`, `mse`, `coverage`,
-#'   `model_se`, `n_sim`.
+#'   `measure`, `value`, `mcse`, `n_sim`, `truth_mode`. One row per condition x
+#'   estimand x measure. Fixed-truth measures use `bias`, `emp_se`, and `mse`;
+#'   varying-truth measures use `mean_error`, `error_sd`, and `error_mse`.
+#'   Both modes may also include `coverage`, `model_se`, and `n_sim`.
 #' @export
 #' @references Morris, White & Crowther (2019), *Using simulation studies to
 #'   evaluate statistical methods*, Statistics in Medicine.
@@ -769,6 +1106,13 @@ performance_measures <- function(
       logical(1)
     )]
   }
+  validate_analysis_columns(
+    df,
+    by,
+    "by must be NULL or a character vector of columns",
+    "Unknown grouping column(s): ",
+    allow_null = FALSE
+  )
 
   # Discover estimands: parameters with both truth__ and posterior_summary__mean__.
   truth_cols <- grep("^truth__", names(df), value = TRUE)
@@ -812,13 +1156,21 @@ performance_measures <- function(
     } else {
       data.frame(.group = rep(1, nrow(df)))
     }
-    splits <- interaction(split_cols, drop = TRUE)
+    splits <- group_ids(split_cols, names(split_cols))
 
-    for (lev in levels(splits)) {
+    for (lev in unique(splits)) {
       sel <- which(splits == lev)
+      if ("status" %in% names(df)) {
+        sel <- sel[
+          !is.na(df$status[sel]) & as.character(df$status[sel]) == "success"
+        ]
+      }
+      if (length(sel) == 0L) {
+        next
+      }
       est <- df[[est_col]][sel]
       truth <- df[[truth_col]][sel]
-      ok <- !is.na(est) & !is.na(truth)
+      ok <- is.finite(est) & is.finite(truth)
       est <- est[ok]
       truth <- truth[ok]
       n <- length(est)
@@ -829,6 +1181,8 @@ performance_measures <- function(
 
       # Condition cell values for the `by` columns (empty when no conditions).
       cond <- if (length(by)) as.list(df[sel[1L], by, drop = FALSE]) else list()
+      truth_varies <- length(unique(truth)) > 1L
+      truth_mode <- if (truth_varies) "varying" else "fixed"
 
       add <- function(measure, value, mcse) {
         row <- c(
@@ -838,36 +1192,63 @@ performance_measures <- function(
             measure = measure,
             value = value,
             mcse = mcse,
-            n_sim = n
+            n_sim = n,
+            truth_mode = truth_mode
           )
         )
         rows[[length(rows) + 1L]] <<- row
       }
 
-      # bias = mean(est - truth); MCSE = sd(est)/sqrt(n)
-      add(
-        "bias",
-        mean(errs),
-        if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_
-      )
-      # empirical SE = sd(est); MCSE = sd/sqrt(2(n-1))
-      emp_se <- if (n > 1L) stats::sd(est) else NA_real_
-      add(
-        "emp_se",
-        emp_se,
-        if (n > 2L) emp_se / sqrt(2 * (n - 1L)) else NA_real_
-      )
-      # MSE = mean((est-truth)^2); MCSE = sqrt(Var(err^2)/n)
+      # For fixed-truth cells sd(est) and sd(error) coincide. When truth varies
+      # (prior-predictive or otherwise), the replicate-level error is the only
+      # valid reference for bias uncertainty and empirical estimator spread;
+      # using sd(est) would mostly measure variation in the data-generating
+      # truth rather than simulation error.
+      error_sd <- if (n > 1L) stats::sd(errs) else NA_real_
       sq <- errs^2
-      add("mse", mean(sq), if (n > 1L) sqrt(stats::var(sq) / n) else NA_real_)
+      if (truth_varies) {
+        add(
+          "mean_error",
+          mean(errs),
+          if (n > 1L) error_sd / sqrt(n) else NA_real_
+        )
+        add(
+          "error_sd",
+          error_sd,
+          if (n > 2L) error_sd / sqrt(2 * (n - 1L)) else NA_real_
+        )
+        add(
+          "error_mse",
+          mean(sq),
+          if (n > 1L) sqrt(stats::var(sq) / n) else NA_real_
+        )
+      } else {
+        add(
+          "bias",
+          mean(errs),
+          if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_
+        )
+        emp_se <- if (n > 1L) stats::sd(est) else NA_real_
+        add(
+          "emp_se",
+          emp_se,
+          if (n > 2L) emp_se / sqrt(2 * (n - 1L)) else NA_real_
+        )
+        add(
+          "mse",
+          mean(sq),
+          if (n > 1L) sqrt(stats::var(sq) / n) else NA_real_
+        )
+      }
       # average model SE = mean(posterior_sd); MCSE = sd(posterior_sd)/sqrt(n)
       if (sd_col %in% names(df)) {
         pse <- df[[sd_col]][sel][ok]
+        pse <- pse[is.finite(pse)]
         add(
           "model_se",
-          mean(pse, na.rm = TRUE),
-          if (sum(!is.na(pse)) > 1L) {
-            stats::sd(pse, na.rm = TRUE) / sqrt(sum(!is.na(pse)))
+          if (length(pse) > 0L) mean(pse) else NA_real_,
+          if (length(pse) > 1L) {
+            stats::sd(pse) / sqrt(length(pse))
           } else {
             NA_real_
           }
@@ -878,12 +1259,15 @@ performance_measures <- function(
         lo <- df[[lo_col]][sel][ok]
         hi <- df[[hi_col]][sel][ok]
         covered <- (truth >= lo) & (truth <= hi)
-        p <- mean(covered, na.rm = TRUE)
-        ncv <- sum(!is.na(covered))
+        covered <- covered[!is.na(covered)]
+        p <- if (length(covered)) mean(covered) else NA_real_
+        ncv <- length(covered)
         add("coverage", p, if (ncv > 1L) sqrt(p * (1 - p) / ncv) else NA_real_)
       } else if (cov_col %in% names(df)) {
-        p <- mean(df[[cov_col]][sel], na.rm = TRUE)
-        ncv <- sum(!is.na(df[[cov_col]][sel]))
+        fallback <- df[[cov_col]][sel]
+        fallback <- fallback[is.finite(fallback)]
+        p <- if (length(fallback)) mean(fallback) else NA_real_
+        ncv <- length(fallback)
         add("coverage", p, if (ncv > 1L) sqrt(p * (1 - p) / ncv) else NA_real_)
       }
       add("n_sim", n, NA_real_)

@@ -29,22 +29,39 @@
 #' @return Numeric gamma in (0, 1 - conf_level).
 #' @keywords internal
 adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
-  if (any(c(K, N, L) < 1)) {
+  if (
+    !all(is.numeric(c(K, N, L))) ||
+      !all(is.finite(c(K, N, L))) ||
+      any(c(K, N, L) < 1) ||
+      any(c(K, N, L) != as.integer(c(K, N, L)))
+  ) {
     stop(bayesim_config_error("'N', 'L' and 'K' must be positive integers."))
   }
-  if (conf_level >= 1 || conf_level <= 0) {
+  if (
+    !is.numeric(conf_level) ||
+      length(conf_level) != 1L ||
+      is.na(conf_level) ||
+      !is.finite(conf_level) ||
+      conf_level >= 1 ||
+      conf_level <= 0
+  ) {
     stop(bayesim_config_error("'conf_level' must be in (0, 1)."))
   }
+  N <- as.integer(N)
+  L <- as.integer(L)
+  K <- as.integer(K)
   if (L == 1) {
     gamma <- adjust_gamma_optimize(N, K, conf_level)
   } else {
     # 0.x used adjust_gamma_simulate(N, L, K, conf_level) via bayeshear::u_scale,
     # which is unavailable here. Fall back to the exact single-sample band,
-    # which is conservative for the multi-chain case.
-    cli::cli_inform(c(
+    # which is conservative for the multi-chain case. Warn once per run rather
+    # than on every call (this is invoked per group inside plotting loops).
+    .warn_once(
+      "sbc_band_multichain_fallback",
       "Using the single-sample SBC band for {.arg L} > 1.",
       i = "The resulting band is conservative for correlated chains."
-    ))
+    )
     gamma <- adjust_gamma_optimize(N, K, conf_level)
   }
   gamma
@@ -53,6 +70,11 @@ adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
 #' Exact gamma for a single sample (L = 1) via dynamic programming.
 #' @keywords internal
 adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
+  if (K == 1L) {
+    # With a single partition interval [0, 1], every empirical CDF is exactly
+    # on the endpoint envelope; no dynamic-programming recursion is needed.
+    return((1 - conf_level) / 2)
+  }
   target <- function(gamma, conf_level, N, K) {
     z <- 1:(K - 1) / K
     z1 <- c(0, z)
@@ -60,7 +82,9 @@ adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
 
     # pre-compute quantiles and use symmetry for increased efficiency.
     x2_lower <- qbinom(gamma / 2, N, z2)
-    x2_upper <- c(N - rev(x2_lower)[2:K], 1)
+    # seq_len(K - 1) + 1L (not 2:K) so K == 1 does not index past the vector
+    # and produce NA bounds; the degenerate single-interval band stays valid.
+    x2_upper <- c(N - rev(x2_lower)[seq_len(K - 1) + 1L], 1)
 
     # Compute the total probability of trajectories inside the confidence
     # intervals. Initialize the set and corresponding probabilities known

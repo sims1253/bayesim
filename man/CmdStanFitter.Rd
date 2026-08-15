@@ -34,8 +34,8 @@ program, or NULL if the program has no log_lik GQ. When NULL,
 \code{supports_log_lik}/\code{supports_loo} are FALSE and elpd metrics degrade.}
 
 \item{epred}{Optional name of an epred/mu GQ matrix or vector. When supplied,
-\code{supports_predictions} is TRUE and \code{predict_epred} returns the in-sample GQ
-matrix (S x N).}
+\code{predict_epred} returns the in-sample GQ matrix (S x N) for LOO-based
+metrics; it does not enable newdata predictions.}
 
 \item{chains}{Integer number of MCMC chains.}
 
@@ -67,9 +67,10 @@ vector of pointwise log-likelihoods) and optionally \code{epred} (the expectatio
 \code{mu}). Declare their names via the \code{log_lik} / \code{epred} arguments.
 
 \strong{Newdata prediction is out of scope} (raw Stan has no newdata semantics):
-\code{supports_predictions} is FALSE unless \code{epred} is given, in which case
-\code{predict_epred} returns the in-sample GQ matrix and \code{predict_fit} is
-unsupported. Test-set metrics require brms or a custom fitter.
+\code{supports_predictions} is always FALSE. When \code{epred} is supplied,
+\code{predict_epred} returns the in-sample GQ matrix for LOO-based metrics, while
+\code{predict_fit} remains unsupported. Test-set metrics require brms or a custom
+fitter.
 }
 \examples{
 \dontrun{

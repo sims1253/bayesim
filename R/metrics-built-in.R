@@ -1,7 +1,16 @@
 # One-time warning helper: metric compute() runs once per task, so a repeated
 # condition (missing test set, unsupported fitter) would otherwise warn
-# thousands of times per run. Warn once per key per session.
+# thousands of times per run. Warn once per key per run; .reset_warn_once()
+# clears the flags at the start of each run_simulation().
 .warn_once_env <- new.env(parent = emptyenv())
+
+# S6: clear all one-time-warning flags. Called at the start of run_simulation()
+# so that each run warns on its own conditions even within one session.
+.reset_warn_once <- function() {
+  rm(list = ls(.warn_once_env, all.names = TRUE), envir = .warn_once_env)
+  invisible(NULL)
+}
+
 .warn_once <- function(key, ..., .envir = parent.frame()) {
   if (is.null(.warn_once_env[[key]])) {
     .warn_once_env[[key]] <- TRUE
@@ -85,9 +94,21 @@ RmseMetric <- S7::new_class(
   "RmseMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "rmse"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "rmse",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        n_obs = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -102,7 +123,11 @@ pred_rmse_metric <- function(name = "rmse") {
   RmseMetric(
     name = name,
     needs = "predictions",
-    required = FALSE
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      n_obs = list(role = "count", aggregation = "none", mcse = "none")
+    )
   )
 }
 
@@ -126,6 +151,7 @@ S7::method(compute_metric, RmseMetric) <- function(
   test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
+  validate_prediction_vectors(actual, predicted, metric@name)
 
   list(
     value = sqrt(mean((predicted - actual)^2)),
@@ -146,9 +172,20 @@ BiasMetric <- S7::new_class(
   "BiasMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "bias"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "bias",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -161,7 +198,10 @@ pred_bias_metric <- function(name = "bias") {
   BiasMetric(
     name = name,
     needs = "predictions",
-    required = FALSE
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd")
+    )
   )
 }
 
@@ -184,6 +224,7 @@ S7::method(compute_metric, BiasMetric) <- function(
   test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
+  validate_prediction_vectors(actual, predicted, metric@name)
 
   list(
     value = mean(predicted - actual)
@@ -201,15 +242,36 @@ CoverageMetric <- S7::new_class(
   "CoverageMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "coverage"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "coverage",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
     # E4: coverage columns are proportions -> sqrt(p(1-p)/n) MCSE.
     summary_type = S7::new_property(
       S7::class_character,
-      default = "proportion"
+      default = "proportion",
+      validator = validate_metric_summary_type
     ),
-    prob = S7::new_property(S7::class_numeric, default = 0.95)
+    prob = S7::new_property(
+      S7::class_numeric,
+      default = 0.95,
+      validator = function(value) validate_interval_probability(value, "prob")
+    ),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        by_param = list(
+          role = "binary",
+          aggregation = "proportion",
+          mcse = "binomial"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -220,11 +282,26 @@ CoverageMetric <- S7::new_class(
 #' @return A CoverageMetric object.
 #' @export
 coverage_metric <- function(name = "coverage", prob = 0.95) {
-  CoverageMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    prob = prob
+  tryCatch(
+    CoverageMetric(
+      name = name,
+      needs = character(),
+      required = FALSE,
+      summary_type = "proportion",
+      prob = prob,
+      schema = list(
+        mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        by_param = list(
+          role = "binary",
+          aggregation = "proportion",
+          mcse = "binomial",
+          nominal = prob
+        )
+      )
+    ),
+    error = function(e) {
+      stop(bayesim_config_error(conditionMessage(e)))
+    }
   )
 }
 

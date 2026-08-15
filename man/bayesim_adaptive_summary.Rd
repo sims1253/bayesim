@@ -20,7 +20,7 @@ A data.frame summary, or NULL if no non-NULL results.
 Internal helper for adaptive stopping: flattens the non-NULL entries of
 \code{task_results} to a summary data.frame via \code{\link[=results_to_dataframe]{results_to_dataframe()}} and
 enriches it with data_grid/fit_grid/rep_idx columns (matching what
-\code{\link[=build_simulation_result]{build_simulation_result()}} produces). Used by \code{\link[=bayesim_adaptive_check]{bayesim_adaptive_check()}} so
-it can call \code{\link[=performance_measures]{performance_measures()}} mid-run.
+\code{\link[=build_simulation_result]{build_simulation_result()}} produces). Used by the internal adaptive
+evaluator so it can call \code{\link[=performance_measures]{performance_measures()}} mid-run.
 }
 \keyword{internal}

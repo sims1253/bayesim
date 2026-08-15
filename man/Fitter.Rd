@@ -6,9 +6,9 @@
 \usage{
 Fitter(
   name = character(0),
-  supports_predictions = TRUE,
-  supports_log_lik = TRUE,
-  supports_loo = TRUE
+  supports_predictions = FALSE,
+  supports_log_lik = FALSE,
+  supports_loo = FALSE
 )
 }
 \arguments{
@@ -33,7 +33,10 @@ model diagnostics.
 }
 \section{Methods}{
 
-The following S7 generics must be implemented by subclasses:
+The following S7 generics form the fitter interface. A minimal custom
+fitter only needs to implement \code{fit_model()} and \code{extract_draws()};
+diagnostics default to an empty list and unsupported optional capabilities
+default to \code{NULL}.
 \describe{
 \item{\code{fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
@@ -47,9 +50,10 @@ The following S7 generics must be implemented by subclasses:
 \section{Creating Custom Fitters}{
 
 To create a custom fitter, extend this class and implement methods for the
-S7 generics: \code{fit_model()}, \code{extract_draws()}, \code{predict_fit()},
-\code{log_lik_matrix()}, \code{loo_fit()}, \code{fit_diagnostics()}. All matrices follow
-the draws-by-observations (S x N) orientation; see
+core S7 generics: \code{fit_model()} and \code{extract_draws()}. Implement optional
+\code{predict_fit()}, \code{log_lik_matrix()}, and \code{loo_fit()} methods only when the
+matching \verb{supports_*} property is \code{TRUE}. All matrices follow the
+draws-by-observations (S x N) orientation; see
 \code{vignette("custom-fitters")} for the full contract.
 }
 

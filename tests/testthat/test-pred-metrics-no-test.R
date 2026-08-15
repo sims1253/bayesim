@@ -1,6 +1,4 @@
 # E2: prediction metrics refuse to silently fall back to the training set.
-skip_on_cran()
-
 describe("E2: prediction metrics require a test set", {
   it("pred_rmse_metric returns NA when no test set", {
     draws <- matrix(

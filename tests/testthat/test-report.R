@@ -1,7 +1,5 @@
 # Workstream I4: report() renders a Quarto HTML report.
 
-skip_on_cran()
-
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 50L
   beta <- data_spec$beta %||% 0.5

@@ -4,7 +4,14 @@
 \alias{validate_fitter}
 \title{Validate a Fitter Object}
 \usage{
-validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
+validate_fitter(
+  fitter,
+  smoke_test = FALSE,
+  verbose = FALSE,
+  data_bundle = NULL,
+  fit_spec = NULL,
+  task_ctx = NULL
+)
 }
 \arguments{
 \item{fitter}{An S7 Fitter object to validate}
@@ -13,6 +20,16 @@ validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
 verify that methods work correctly end-to-end}
 
 \item{verbose}{Logical, if TRUE print progress messages during validation}
+
+\item{data_bundle}{Optional representative data bundle for the conformance
+run. Supplying this is recommended for custom fitters whose data contract
+is not a \code{y ~ x} regression.}
+
+\item{fit_spec}{Optional representative fit specification passed to
+\code{fit_model()} during conformance testing.}
+
+\item{task_ctx}{Optional task context passed to \code{fit_model()} during
+conformance testing.}
 }
 \value{
 The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
@@ -36,12 +53,10 @@ The validation performs the following checks:
 
 \strong{Method Checks:}
 \itemize{
-\item \code{fit_model()} method is implemented
-\item \code{extract_draws()} method is implemented
-\item \code{predict_fit()} method is implemented
-\item \code{log_lik_matrix()} method is implemented
-\item \code{loo_fit()} method is implemented
-\item \code{fit_diagnostics()} method is implemented
+\item \code{fit_model()} and \code{extract_draws()} are implemented (the core contract)
+\item optional methods are required only when their \verb{supports_*} capability is
+\code{TRUE}; unsupported methods have safe defaults
+\item \code{fit_diagnostics()} may use the default empty-list implementation
 }
 
 \strong{Smoke Test (when smoke_test = TRUE):}

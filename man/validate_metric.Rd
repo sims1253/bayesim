@@ -4,10 +4,30 @@
 \alias{validate_metric}
 \title{Validate a Metric Object}
 \usage{
-validate_metric(metric)
+validate_metric(
+  metric,
+  fit_result = NULL,
+  data_bundle = NULL,
+  context = NULL,
+  task_ctx = NULL
+)
 }
 \arguments{
 \item{metric}{An S7 object to validate as a Metric.}
+
+\item{fit_result}{Optional representative \code{bayesim_fit_result}
+(\code{\link[=new_fit_result]{new_fit_result()}}) driving a conformance execution of
+\code{compute_metric()}. Must be supplied together with \code{data_bundle}.}
+
+\item{data_bundle}{Optional representative data bundle for the conformance
+execution.}
+
+\item{context}{Optional representative context list (e.g. predictions,
+log_lik). Defaults to an empty list; metrics should degrade to \code{NA} rather
+than erroring when a needed context element is missing.}
+
+\item{task_ctx}{Optional representative task context. Defaults to a stable
+placeholder.}
 }
 \value{
 The input \code{metric}, invisibly, if validation passes.
@@ -18,6 +38,12 @@ valid \code{name} property. This is the canonical metric validator (B3 merges th
 former internal \code{validate_metric_interface} into this exported name). Method
 existence is not checked because S7 dispatches via generics and the base
 class raises errors for unimplemented abstract methods.
+
+When representative values are supplied (\code{fit_result} plus \code{data_bundle}),
+validation additionally executes \code{compute_metric()} once and checks that its
+output passes the metric output schema and that every field declared in the
+metric's \code{schema} is produced. This catches broken external metrics before a
+run starts instead of as thousands of per-task failures.
 }
 \section{Errors}{
 

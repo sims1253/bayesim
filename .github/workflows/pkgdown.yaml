@@ -41,40 +41,6 @@ jobs:
           extra-packages: any::pkgdown, local::.
           needs: website
 
-      - name: Fix CmdStan toolchain
-        if: github.event.action != 'closed'
-        run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-        shell: Rscript {0}
-
-      - name: Get CmdStan version
-        if: github.event.action != 'closed'
-        id: cmdstan-version
-        run: |
-          version=$(curl -s -H "Authorization: Bearer $GITHUB_PAT" \
-            https://api.github.com/repos/stan-dev/cmdstan/releases/latest \
-            | jq -r .tag_name)
-          if [ -z "$version" ] || [ "$version" = "null" ]; then
-            echo "Failed to resolve latest CmdStan release" >&2
-            exit 1
-          fi
-          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - name: Cache CmdStan
-        if: github.event.action != 'closed'
-        uses: actions/cache@v6
-        with:
-          path: ~/.cmdstan
-          key: cmdstan-${{ runner.os }}-${{ steps.cmdstan-version.outputs.version }}
-
-      - name: Install CmdStan
-        if: github.event.action != 'closed'
-        run: |
-          if (is.null(cmdstanr::cmdstan_version(error_on_NA = FALSE))) {
-            cmdstanr::install_cmdstan(cores = parallel::detectCores())
-          }
-        shell: Rscript {0}
-
       - name: Build site (main branch)
         if: github.event_name != 'pull_request'
         run: pkgdown::build_site_github_pages(new_process = FALSE, install = FALSE)
@@ -110,7 +76,9 @@ jobs:
         with:
           script: |
             const branch = '${{ github.head_ref }}';
-            const url = `https://sims1253.github.io/bayesim/branch/${branch}`;
+            // S4: interpolate the org/repo like the PKGDOWN_URL env does,
+            // instead of hardcoding the package owner.
+            const url = `https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/branch/${branch}`;
 
             github.rest.issues.createComment({
               issue_number: context.issue.number,

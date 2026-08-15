@@ -29,8 +29,9 @@ NULL
 #' Initialize checkpoint directory
 #'
 #' Creates the checkpoint directory structure for a new simulation run.
-#' This includes the base result path, checkpoints subdirectory, run manifest,
-#' and initial latest pointer.
+#' This includes the base result path, checkpoints and outcomes subdirectories,
+#' run manifest, and initial latest pointer. The ledger subdirectory is created
+#' lazily at the first delta write.
 #'
 #' @param result_path Character string giving the base path for results.
 #'   If NULL, the function returns NULL immediately (no checkpointing).
@@ -49,7 +50,9 @@ NULL
 #' result_path/
 #' +-- run_manifest.json    # run-level metadata and schema versions
 #' +-- latest.json          # pointer to latest valid checkpoint ID
-#' +-- checkpoints/         # directory for checkpoint snapshots
+#' +-- checkpoints/         # atomic checkpoint commit directories
+#' +-- outcomes/            # immutable, redundantly mirrored outcome shards
+#' +-- ledger/              # base ledger plus status deltas (lazy)
 #' }
 #'
 #' The run manifest contains:
@@ -74,13 +77,80 @@ init_checkpoint_dir <- function(
   result_path,
   config_fingerprint,
   config_spec = NULL,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  retention_spec = NULL,
+  run_policy_spec = NULL
 ) {
   if (is.null(result_path)) {
     return(NULL)
   }
 
   assert_supported_checkpoint_format(checkpoint_format)
+
+  if (file.exists(result_path) && !dir.exists(result_path)) {
+    cli::cli_abort(
+      "Result path exists but is not a directory: {.file {result_path}}",
+      class = "bayesim_checkpoint_error"
+    )
+  }
+
+  manifest_path <- file.path(result_path, "run_manifest.json")
+  if (file.exists(manifest_path)) {
+    existing <- tryCatch(
+      jsonlite::read_json(manifest_path),
+      error = function(e) NULL
+    )
+    if (is.null(existing)) {
+      cli::cli_abort(
+        "Result path contains an unreadable run manifest; refusing to overwrite it",
+        class = "bayesim_checkpoint_error"
+      )
+    }
+    if (!identical(existing$config_fingerprint, config_fingerprint)) {
+      cli::cli_abort(
+        c(
+          "Result path belongs to a different simulation study",
+          x = "Existing and requested study fingerprints differ.",
+          i = "Choose a new result_path or explicitly resume the existing study."
+        ),
+        class = "bayesim_checkpoint_error"
+      )
+    }
+    existing_format <- existing$checkpoint_format %||% "rds"
+    if (!identical(existing_format, checkpoint_format)) {
+      cli::cli_abort(
+        "Checkpoint format mismatch for existing result path",
+        class = "bayesim_checkpoint_error"
+      )
+    }
+    dir.create(
+      file.path(result_path, "checkpoints"),
+      recursive = TRUE,
+      showWarnings = FALSE
+    )
+    dir.create(
+      file.path(result_path, "outcomes"),
+      recursive = TRUE,
+      showWarnings = FALSE
+    )
+    if (!file.exists(file.path(result_path, "latest.json"))) {
+      write_json_atomic(
+        list(checkpoint_id = NULL),
+        file.path(result_path, "latest.json")
+      )
+    }
+    return(invisible(result_path))
+  }
+
+  if (dir.exists(result_path) && !is_empty_result_path(result_path)) {
+    cli::cli_abort(
+      c(
+        "Result path is not empty and does not contain a bayesim run manifest",
+        i = "Refusing to mix a new study with existing files."
+      ),
+      class = "bayesim_checkpoint_error"
+    )
+  }
 
   # Create base directory
   dir.create(result_path, recursive = TRUE, showWarnings = FALSE)
@@ -91,6 +161,11 @@ init_checkpoint_dir <- function(
     recursive = TRUE,
     showWarnings = FALSE
   )
+  dir.create(
+    file.path(result_path, "outcomes"),
+    recursive = TRUE,
+    showWarnings = FALSE
+  )
 
   # Write run manifest
   manifest <- list(
@@ -98,6 +173,8 @@ init_checkpoint_dir <- function(
     result_schema_version = RESULT_SCHEMA_VERSION,
     config_fingerprint = config_fingerprint,
     config_spec = config_spec,
+    retention_spec = retention_spec,
+    run_policy = run_policy_spec,
     checkpoint_format = checkpoint_format,
     created = as.character(Sys.time())
   )
@@ -171,13 +248,27 @@ get_next_checkpoint_id <- function(result_path) {
 #' @param config_fingerprint Character string containing a hash of the
 #'   configuration for validation purposes.
 #' @param checkpoint_format Character scalar naming the checkpoint storage format.
-#' @param keep_checkpoints Positive integer; number of complete snapshots to
-#'   retain. Older snapshots are pruned only after the new checkpoint and
-#'   `latest.json` have been written successfully. `Inf` disables pruning for
-#'   direct/internal callers.
+#' @param keep_checkpoints Positive integer; number of checkpoint commit
+#'   directories to retain. Older commit directories are pruned only after the
+#'   new checkpoint commit and `latest.json` have been written successfully.
+#'   Pruning never removes immutable outcome shards or ledger history, so
+#'   durable storage grows roughly linearly with completed tasks. `Inf`
+#'   disables pruning for direct/internal callers.
 #' @param prior_results_df Optional cached data frame of results from before the
 #'   current execution. When supplied, it replaces the legacy read of the
 #'   previous checkpoint.
+#' @param prior_task_results Optional canonical task outcomes from before the
+#'   current execution, used when migrating legacy checkpoints.
+#' @param adaptive_next_check Optional persisted adaptive-check threshold.
+#' @param adaptive_state Optional persistable adaptive precision snapshot.
+#' @param run_policy_spec Optional serialized effective run policy.
+#' @param prior_checkpoint Optional validated in-memory checkpoint state. The
+#'   filesystem store supplies this to keep live append work proportional to
+#'   newly completed tasks.
+#' @param return_state Logical; return the validated checkpoint state instead
+#'   of only its numeric ID.
+#' @param delta_store Logical; write immutable outcome and ledger deltas instead
+#'   of legacy full snapshots.
 #'
 #' @return Invisible checkpoint ID (integer), or NULL if result_path is NULL.
 #'
@@ -187,10 +278,19 @@ get_next_checkpoint_id <- function(result_path) {
 #' checkpoints/
 #' +-- cp_000001/
 #'     +-- meta.json         # checkpoint metadata
-#'     +-- ledger.rds        # task grid with status
-#'     +-- results.rds       # metrics + diagnostics per task
+#'     +-- ledger.rds        # ledger view (delta in delta-store mode)
+#'     +-- results.rds       # results view (delta in delta-store mode)
 #'     +-- checksums.json    # file integrity checksums
 #' }
+#'
+#' With `delta_store = TRUE`, each checkpoint commit directory is an atomic
+#' commit record: its `meta.json` plus the delta views above. Newly completed
+#' outcomes are appended once as immutable, redundantly mirrored shards under
+#' `outcomes/`, and task statuses under `ledger/` are a base ledger plus
+#' status deltas. Readers reconstruct the accumulated run state from the
+#' shards a commit references; they never rewrite history. With
+#' `delta_store = FALSE` (legacy snapshot mode for direct/internal callers),
+#' the checkpoint directory itself carries the snapshot views.
 #'
 #' Atomic write protocol:
 #' \enumerate{
@@ -225,13 +325,97 @@ write_checkpoint <- function(
   config_fingerprint,
   checkpoint_format = "rds",
   keep_checkpoints = Inf,
-  prior_results_df = NULL
+  prior_results_df = NULL,
+  prior_task_results = NULL,
+  adaptive_next_check = NULL,
+  adaptive_state = NULL,
+  run_policy_spec = NULL,
+  prior_checkpoint = NULL,
+  return_state = FALSE,
+  delta_store = FALSE
 ) {
   if (is.null(result_path)) {
     return(invisible(NULL))
   }
 
   assert_supported_checkpoint_format(checkpoint_format)
+
+  has_supplied_previous <- !is.null(prior_checkpoint)
+  previous <- prior_checkpoint
+  if (is.null(previous) && can_resume(result_path)) {
+    previous <- get_latest_valid_checkpoint(
+      result_path,
+      config_fingerprint = config_fingerprint,
+      load_outcomes = FALSE
+    )
+  }
+
+  current_outcomes <- Filter(
+    function(x) !is.null(x) && is_bayesim_task_result(x),
+    task_results
+  )
+  previous_grid <- previous$task_grid %||%
+    data.frame(
+      task_id = character(),
+      status = character()
+    )
+  previous_status <- stats::setNames(
+    previous_grid$status,
+    previous_grid$task_id
+  )
+  previous_reason <- if ("stop_reason" %in% names(previous_grid)) {
+    stats::setNames(previous_grid$stop_reason, previous_grid$task_id)
+  } else {
+    stats::setNames(
+      rep(NA_character_, nrow(previous_grid)),
+      previous_grid$task_id
+    )
+  }
+  changed <- vapply(
+    current_outcomes,
+    function(outcome) {
+      if (!has_supplied_previous) {
+        return(TRUE)
+      }
+      old_status <- unname(previous_status[outcome$task_id])
+      old_reason <- unname(previous_reason[outcome$task_id])
+      new_reason <- outcome$stop_reason %||% NA_character_
+      length(old_status) == 0L ||
+        is.na(old_status) ||
+        !identical(old_status, outcome$status) ||
+        !identical(old_reason, new_reason)
+    },
+    logical(1)
+  )
+  new_outcomes <- current_outcomes[changed]
+
+  # The final assembly often asks the store to write the exact ledger already
+  # checkpointed by the last execution batch. Avoid a redundant snapshot: it
+  # would add no durability and could prune the predecessor needed for corrupt
+  # latest-shard fallback.
+  same_ledger <- !is.null(previous) &&
+    identical(
+      as.data.frame(previous_grid),
+      as.data.frame(task_grid)
+    )
+  same_policy <- identical(
+    previous$meta$run_policy %||% NULL,
+    run_policy_spec %||% NULL
+  )
+  if (
+    has_supplied_previous &&
+      same_policy &&
+      same_ledger &&
+      length(new_outcomes) == 0L
+  ) {
+    return(invisible(
+      if (isTRUE(return_state)) {
+        previous
+      } else {
+        previous$checkpoint_id
+      }
+    ))
+  }
 
   # Get next checkpoint ID and create directory names
   checkpoint_id <- get_next_checkpoint_id(result_path)
@@ -246,10 +430,118 @@ write_checkpoint <- function(
 
   # Create temporary directory
   dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
+  new_shard_path <- NULL
 
   # Use tryCatch to ensure cleanup on error
   tryCatch(
     {
+      outcome_refs <- normalize_outcome_shard_refs(
+        previous$meta$outcome_shards %||% NULL
+      )
+
+      # One-time migration for checkpoints written before append-only outcome
+      # shards existed. Prefer canonical outcomes when available; otherwise
+      # reconstruct the legacy flat rows while keeping truth/error fields out
+      # of metrics.
+      if (
+        !isTRUE(delta_store) &&
+          !is.null(previous) &&
+          length(outcome_refs) == 0L &&
+          length(current_outcomes) > 0L
+      ) {
+        legacy_outcomes <- previous$task_outcomes %||% prior_task_results
+        if (is.null(legacy_outcomes) || length(legacy_outcomes) == 0L) {
+          legacy_outcomes <- task_outcomes_from_dataframe(
+            previous$results_df %||% prior_results_df
+          )
+        }
+        legacy_outcomes <- Filter(
+          function(x) !is.null(x) && is_bayesim_task_result(x),
+          legacy_outcomes %||% list()
+        )
+        if (length(legacy_outcomes) > 0L) {
+          new_ids <- vapply(new_outcomes, function(x) x$task_id, character(1))
+          legacy_outcomes <- legacy_outcomes[
+            !vapply(
+              legacy_outcomes,
+              function(x) x$task_id %in% new_ids,
+              logical(1)
+            )
+          ]
+          new_outcomes <- c(legacy_outcomes, new_outcomes)
+        }
+      }
+
+      if (length(new_outcomes) > 0L) {
+        shard_name <- sprintf("shard_%06d.rds", checkpoint_id)
+        shard_path <- file.path(result_path, "outcomes", shard_name)
+        new_shard_path <- shard_path
+        new_ref <- if (isTRUE(delta_store)) {
+          write_redundant_shard(new_outcomes, shard_path)
+        } else {
+          write_rds_atomic(new_outcomes, shard_path)
+          list(
+            file = shard_name,
+            checksum = compute_file_checksum(shard_path),
+            n_outcomes = length(new_outcomes)
+          )
+        }
+        new_ref$n_outcomes <- length(new_outcomes)
+        outcome_refs <- c(outcome_refs, list(new_ref))
+      }
+
+      ledger_to_write <- task_grid
+      ledger_ref <- NULL
+      if (isTRUE(delta_store)) {
+        ledger_dir <- file.path(result_path, "ledger")
+        dir.create(ledger_dir, recursive = TRUE, showWarnings = FALSE)
+        if (is.null(previous)) {
+          ledger_name <- "base_000001.rds"
+          ledger_to_write <- task_grid
+        } else {
+          ledger_name <- sprintf("delta_%06d.rds", checkpoint_id)
+          old_status <- stats::setNames(
+            previous_grid$status,
+            previous_grid$task_id
+          )
+          old_reason <- if ("stop_reason" %in% names(previous_grid)) {
+            stats::setNames(previous_grid$stop_reason, previous_grid$task_id)
+          } else {
+            stats::setNames(
+              rep(NA_character_, nrow(previous_grid)),
+              previous_grid$task_id
+            )
+          }
+          status_changed <- vapply(
+            seq_len(nrow(task_grid)),
+            function(i) {
+              id <- task_grid$task_id[[i]]
+              reason <- if ("stop_reason" %in% names(task_grid)) {
+                task_grid$stop_reason[[i]]
+              } else {
+                NA_character_
+              }
+              !identical(unname(old_status[id]), task_grid$status[[i]]) ||
+                !identical(unname(old_reason[id]), reason)
+            },
+            logical(1)
+          )
+          ledger_to_write <- task_grid[
+            status_changed,
+            intersect(
+              c("task_id", "status", "stop_reason"),
+              names(task_grid)
+            ),
+            drop = FALSE
+          ]
+        }
+        ledger_ref <- write_redundant_shard(
+          ledger_to_write,
+          file.path(ledger_dir, ledger_name)
+        )
+        ledger_ref$n_rows <- nrow(ledger_to_write)
+      }
+
       # Write meta.json
       meta <- list(
         checkpoint_id = checkpoint_id,
@@ -258,7 +550,30 @@ write_checkpoint <- function(
         n_tasks = nrow(task_grid),
         n_success = sum(task_grid$status == "success", na.rm = TRUE),
         n_failed = sum(task_grid$status == "failed", na.rm = TRUE),
-        n_pending = sum(task_grid$status == "pending", na.rm = TRUE)
+        n_pending = sum(
+          is_resumable_task_status(task_grid$status),
+          na.rm = TRUE
+        ),
+        n_policy_stopped = if ("stop_reason" %in% names(task_grid)) {
+          sum(
+            task_grid$status == "skipped" &
+              task_grid$stop_reason %in% c("max_errors", "adaptive_stop"),
+            na.rm = TRUE
+          )
+        } else {
+          0L
+        },
+        adaptive_next_check = adaptive_next_check,
+        adaptive_state = adaptive_state,
+        run_policy = run_policy_spec,
+        storage_mode = if (isTRUE(delta_store)) "delta-v1" else "snapshot-v1",
+        ledger_shard = ledger_ref,
+        outcome_shard = if (isTRUE(delta_store) && length(new_outcomes) > 0L) {
+          utils::tail(outcome_refs, 1L)[[1L]]
+        } else {
+          NULL
+        },
+        outcome_shards = if (isTRUE(delta_store)) NULL else outcome_refs
       )
       write_json_atomic(meta, file.path(tmp_dir, "meta.json"))
 
@@ -270,25 +585,20 @@ write_checkpoint <- function(
       )
 
       # Write ledger (task grid)
-      write_checkpoint_object(task_grid, ledger_path, checkpoint_format)
+      write_checkpoint_object(ledger_to_write, ledger_path, checkpoint_format)
 
-      # Convert and write results
-      results_df <- results_to_dataframe(task_results)
-
-      prior_df <- prior_results_df
-      if (is.null(prior_df)) {
-        prior_checkpoint <- read_checkpoint(result_path)
-        prior_df <- prior_checkpoint$results_df
+      # The flat checkpoint view is a delta matching this checkpoint's new
+      # canonical shard. read_checkpoint() derives the accumulated flat view
+      # from all referenced shards, so write cost stays proportional to new
+      # outcomes rather than total study size.
+      results_df <- if (length(new_outcomes) > 0L) {
+        results_to_dataframe(new_outcomes)
+      } else {
+        # Compatibility for direct/internal callers that still supply the
+        # historical unclassed task-result lists. The execution engine always
+        # supplies canonical outcomes and therefore takes the delta path.
+        results_to_dataframe(task_results)
       }
-      if (!is.null(prior_df) && nrow(prior_df) > 0L) {
-        prior_only <- prior_df[
-          !prior_df$task_id %in% results_df$task_id,
-          ,
-          drop = FALSE
-        ]
-        results_df <- rbind(prior_only, results_df)
-      }
-
       write_checkpoint_object(results_df, results_path, checkpoint_format)
 
       # Read-back validation
@@ -349,22 +659,41 @@ write_checkpoint <- function(
 
       prune_checkpoints(result_path, keep = keep_checkpoints)
 
-      invisible(checkpoint_id)
+      checkpoint_state <- list(
+        checkpoint_id = checkpoint_id,
+        meta = meta,
+        task_grid = task_grid,
+        results_df = results_df,
+        task_outcomes = NULL,
+        adaptive_next_check = adaptive_next_check,
+        adaptive_state = adaptive_state,
+        run_policy = run_policy_spec
+      )
+      invisible(if (isTRUE(return_state)) checkpoint_state else checkpoint_id)
     },
     error = function(e) {
       # Clean up temporary directory on any error
       if (dir.exists(tmp_dir)) {
         unlink(tmp_dir, recursive = TRUE)
       }
+      if (
+        !dir.exists(checkpoint_dir) &&
+          !is.null(new_shard_path) &&
+          file.exists(new_shard_path)
+      ) {
+        unlink(new_shard_path)
+      }
       stop(e)
     }
   )
 }
 
-#' Prune old checkpoint snapshots
+#' Prune old checkpoint commit directories
 #'
 #' @param result_path Checkpoint result directory.
-#' @param keep Number of newest complete snapshots to keep; `Inf` keeps all.
+#' @param keep Number of newest checkpoint commits to keep; `Inf` keeps all.
+#'   Removes commit directories only; immutable outcome shards and ledger
+#'   history are never pruned.
 #' @return Invisible vector of removed checkpoint IDs.
 #' @keywords internal
 prune_checkpoints <- function(result_path, keep = 2L) {
@@ -404,6 +733,9 @@ prune_checkpoints <- function(result_path, keep = 2L) {
 #'   If NULL, the function returns NULL immediately.
 #' @param checkpoint_id Integer specifying the checkpoint ID to read.
 #'   If NULL (default), reads the latest checkpoint from latest.json.
+#' @param load_outcomes Logical; when FALSE, validate shard integrity but omit
+#'   materializing accumulated outcomes. Used by the filesystem RunStore while
+#'   appending the next ledger checkpoint.
 #'
 #' @return A list with the following elements, or NULL if checkpoint not found
 #'   or invalid:
@@ -439,7 +771,11 @@ prune_checkpoints <- function(result_path, keep = 2L) {
 #' # Read specific checkpoint
 #' checkpoint <- read_checkpoint("/path/to/results", checkpoint_id = 5)
 #' }
-read_checkpoint <- function(result_path, checkpoint_id = NULL) {
+read_checkpoint <- function(
+  result_path,
+  checkpoint_id = NULL,
+  load_outcomes = TRUE
+) {
   if (is.null(result_path)) {
     return(NULL)
   }
@@ -484,16 +820,73 @@ read_checkpoint <- function(result_path, checkpoint_id = NULL) {
     checkpoint_data_path(checkpoint_dir, "ledger", checkpoint_format),
     checkpoint_format
   )
-  results_df <- read_checkpoint_object(
+  checkpoint_results_df <- read_checkpoint_object(
     checkpoint_data_path(checkpoint_dir, "results", checkpoint_format),
     checkpoint_format
   )
+
+  delta_store <- identical(meta$storage_mode %||% NULL, "delta-v1")
+  if (delta_store) {
+    task_grid <- read_delta_ledger(result_path, checkpoint_id)
+    if (is.null(task_grid)) {
+      cli::cli_warn(
+        "Checkpoint {checkpoint_id} references a missing or corrupt ledger shard"
+      )
+      return(NULL)
+    }
+  }
+
+  outcome_refs <- if (delta_store) {
+    list_delta_shard_refs(
+      file.path(result_path, "outcomes"),
+      "shard_",
+      checkpoint_id
+    )
+  } else {
+    normalize_outcome_shard_refs(meta$outcome_shards %||% NULL)
+  }
+  if (length(outcome_refs) > 0L) {
+    shard_read <- read_outcome_shards(
+      result_path,
+      outcome_refs,
+      load_outcomes = load_outcomes
+    )
+    if (!isTRUE(shard_read$valid)) {
+      cli::cli_warn(
+        "Checkpoint {checkpoint_id} references a missing or corrupt outcome shard"
+      )
+      return(NULL)
+    }
+    task_outcomes <- shard_read$outcomes
+    results_df <- if (isTRUE(load_outcomes)) {
+      results_to_dataframe(task_outcomes)
+    } else {
+      checkpoint_results_df
+    }
+  } else {
+    # Legacy schema: full flat results and optionally full structured outcomes
+    # lived inside each checkpoint directory.
+    outcomes_path <- checkpoint_data_path(
+      checkpoint_dir,
+      "outcomes",
+      checkpoint_format
+    )
+    task_outcomes <- if (isTRUE(load_outcomes) && file.exists(outcomes_path)) {
+      read_checkpoint_object(outcomes_path, checkpoint_format)
+    } else {
+      NULL
+    }
+    results_df <- checkpoint_results_df
+  }
 
   list(
     checkpoint_id = checkpoint_id,
     meta = meta,
     task_grid = task_grid,
-    results_df = results_df
+    results_df = results_df,
+    task_outcomes = task_outcomes,
+    adaptive_next_check = meta$adaptive_next_check %||% NULL,
+    adaptive_state = meta$adaptive_state %||% NULL
   )
 }
 
@@ -637,7 +1030,8 @@ list_checkpoints <- function(result_path) {
 #' }
 get_latest_valid_checkpoint <- function(
   result_path,
-  config_fingerprint = NULL
+  config_fingerprint = NULL,
+  load_outcomes = TRUE
 ) {
   if (is.null(result_path)) {
     return(NULL)
@@ -651,7 +1045,11 @@ get_latest_valid_checkpoint <- function(
 
   # Try checkpoints from newest to oldest
   for (id in rev(checkpoint_ids)) {
-    checkpoint <- read_checkpoint(result_path, checkpoint_id = id)
+    checkpoint <- read_checkpoint(
+      result_path,
+      checkpoint_id = id,
+      load_outcomes = load_outcomes
+    )
 
     if (!is.null(checkpoint)) {
       # If fingerprint validation requested, check it
@@ -665,6 +1063,317 @@ get_latest_valid_checkpoint <- function(
   }
 
   NULL
+}
+
+#' Normalize outcome-shard records read from JSON metadata.
+#' @keywords internal
+normalize_outcome_shard_refs <- function(refs) {
+  if (is.null(refs) || length(refs) == 0L) {
+    return(list())
+  }
+  if (is.character(refs)) {
+    return(lapply(refs, function(file) list(file = file, checksum = NULL)))
+  }
+  if (is.list(refs) && !is.null(refs$file)) {
+    refs <- list(refs)
+  }
+  lapply(refs, function(ref) {
+    if (is.character(ref)) {
+      return(list(file = ref, checksum = NULL))
+    }
+    list(
+      file = ref$file %||% NA_character_,
+      checksum = ref$checksum %||% NULL,
+      mirror = ref$mirror %||% NULL,
+      mirror_checksum = ref$mirror_checksum %||% NULL,
+      n_outcomes = ref$n_outcomes %||% NULL
+    )
+  })
+}
+
+#' Write one immutable shard with an independently checksummed mirror.
+#'
+#' The descriptor is committed last, so readers never observe a partially
+#' published shard. Mirroring keeps later checkpoints readable after damage to
+#' any single historical shard without rewriting accumulated history.
+#' @keywords internal
+write_redundant_shard <- function(object, path) {
+  mirror <- sub("\\.rds$", ".mirror.rds", path)
+  descriptor <- sub("\\.rds$", ".json", path)
+  descriptor_mirror <- sub("\\.rds$", ".mirror.json", path)
+  write_rds_atomic(object, path)
+  write_rds_atomic(object, mirror)
+  ref <- list(
+    file = basename(path),
+    checksum = compute_file_checksum(path),
+    mirror = basename(mirror),
+    mirror_checksum = compute_file_checksum(mirror)
+  )
+  write_json_atomic(ref, descriptor)
+  write_json_atomic(ref, descriptor_mirror)
+  ref
+}
+
+#' Read a checksummed shard, falling back to its mirror.
+#' @keywords internal
+read_redundant_shard <- function(directory, ref) {
+  candidates <- list(
+    list(file = ref$file, checksum = ref$checksum),
+    list(file = ref$mirror, checksum = ref$mirror_checksum)
+  )
+  for (i in seq_along(candidates)) {
+    candidate <- candidates[[i]]
+    if (is.null(candidate$file) || is.null(candidate$checksum)) {
+      next
+    }
+    path <- file.path(directory, candidate$file)
+    valid <- file.exists(path) &&
+      identical(
+        compute_file_checksum(path),
+        candidate$checksum
+      )
+    if (isTRUE(valid)) {
+      value <- tryCatch(readRDS(path), error = function(e) NULL)
+      if (!is.null(value)) {
+        if (i == 2L) {
+          cli::cli_warn("Recovered a corrupt shard from its mirror: {ref$file}")
+        }
+        return(list(valid = TRUE, value = value))
+      }
+    }
+  }
+  list(valid = FALSE, value = NULL)
+}
+
+#' List committed delta-store shard descriptors through a checkpoint.
+#' @keywords internal
+list_delta_shard_refs <- function(directory, prefix, checkpoint_id) {
+  if (!dir.exists(directory)) {
+    return(list())
+  }
+  files <- list.files(
+    directory,
+    pattern = paste0(
+      "^",
+      prefix,
+      "[0-9]{6}(\\.rds|\\.mirror\\.rds|\\.json|\\.mirror\\.json)$"
+    ),
+    full.names = FALSE
+  )
+  ids <- as.integer(sub(
+    paste0("^", prefix, "([0-9]{6}).*$"),
+    "\\1",
+    files
+  ))
+  ids <- sort(unique(ids[!is.na(ids) & ids <= checkpoint_id]))
+  refs <- lapply(ids, function(id) {
+    stem <- sprintf("%s%06d", prefix, id)
+    descriptors <- file.path(
+      directory,
+      c(paste0(stem, ".json"), paste0(stem, ".mirror.json"))
+    )
+    for (i in seq_along(descriptors)) {
+      path <- descriptors[[i]]
+      ref <- tryCatch(jsonlite::read_json(path), error = function(e) NULL)
+      if (!is.null(ref)) {
+        if (i == 2L) {
+          cli::cli_warn(
+            "Recovered a corrupt shard descriptor from its mirror: {stem}"
+          )
+        }
+        return(ref)
+      }
+    }
+    # Preserve the missing/corrupt shard in the returned sequence so callers
+    # fail closed instead of silently assembling an incomplete run.
+    list(file = NA_character_, checksum = NULL)
+  })
+  refs
+}
+
+#' Reconstruct the task ledger from its immutable base and status deltas.
+#' @keywords internal
+read_delta_ledger <- function(result_path, checkpoint_id) {
+  ledger_dir <- file.path(result_path, "ledger")
+  base_refs <- list_delta_shard_refs(ledger_dir, "base_", checkpoint_id)
+  if (length(base_refs) != 1L) {
+    return(NULL)
+  }
+  base <- read_redundant_shard(ledger_dir, base_refs[[1L]])
+  if (!isTRUE(base$valid)) {
+    return(NULL)
+  }
+  ledger <- base$value
+  deltas <- list_delta_shard_refs(ledger_dir, "delta_", checkpoint_id)
+  for (ref in deltas) {
+    delta <- read_redundant_shard(ledger_dir, ref)
+    if (!isTRUE(delta$valid)) {
+      return(NULL)
+    }
+    if (nrow(delta$value) == 0L) {
+      next
+    }
+    hit <- match(delta$value$task_id, ledger$task_id)
+    if (anyNA(hit)) {
+      return(NULL)
+    }
+    for (field in intersect(c("status", "stop_reason"), names(delta$value))) {
+      ledger[[field]][hit] <- delta$value[[field]]
+    }
+  }
+  ledger
+}
+
+#' Validate and optionally materialize accumulated canonical outcome shards.
+#' @keywords internal
+read_outcome_shards <- function(
+  result_path,
+  refs,
+  load_outcomes = TRUE
+) {
+  refs <- normalize_outcome_shard_refs(refs)
+  outcomes <- list()
+  outcome_ids <- character()
+  for (ref in refs) {
+    file <- ref$file
+    if (
+      !is.character(file) ||
+        length(file) != 1L ||
+        is.na(file) ||
+        !identical(basename(file), file)
+    ) {
+      return(list(valid = FALSE, outcomes = NULL))
+    }
+    if (!is.null(ref$mirror)) {
+      recovered <- read_redundant_shard(
+        file.path(result_path, "outcomes"),
+        ref
+      )
+      if (!isTRUE(recovered$valid)) {
+        return(list(valid = FALSE, outcomes = NULL))
+      }
+      shard <- recovered$value
+    } else {
+      path <- file.path(result_path, "outcomes", file)
+      if (!file.exists(path)) {
+        return(list(valid = FALSE, outcomes = NULL))
+      }
+      checksum <- ref$checksum
+      if (
+        !is.null(checksum) &&
+          !identical(compute_file_checksum(path), checksum)
+      ) {
+        return(list(valid = FALSE, outcomes = NULL))
+      }
+      shard <- if (isTRUE(load_outcomes)) {
+        tryCatch(readRDS(path), error = function(e) NULL)
+      } else {
+        list()
+      }
+    }
+    if (!isTRUE(load_outcomes)) {
+      next
+    }
+    if (
+      is.null(shard) ||
+        !all(vapply(shard, is_bayesim_task_result, logical(1)))
+    ) {
+      return(list(valid = FALSE, outcomes = NULL))
+    }
+    # Shards are ordered oldest to newest. Later outcomes replace policy-stop
+    # placeholders for the same task identity while preserving deterministic
+    # task order in the accumulated view.
+    for (outcome in shard) {
+      hit <- match(outcome$task_id, outcome_ids)
+      if (is.na(hit)) {
+        outcomes <- c(outcomes, list(outcome))
+        outcome_ids <- c(outcome_ids, outcome$task_id)
+      } else {
+        outcomes[[hit]] <- outcome
+      }
+    }
+  }
+  list(valid = TRUE, outcomes = if (isTRUE(load_outcomes)) outcomes else NULL)
+}
+
+#' Migrate the legacy flat checkpoint view to canonical task outcomes.
+#' @keywords internal
+task_outcomes_from_dataframe <- function(results_df) {
+  if (is.null(results_df) || nrow(results_df) == 0L) {
+    return(list())
+  }
+  lapply(seq_len(nrow(results_df)), function(i) {
+    row <- results_df[i, , drop = FALSE]
+    status <- as.character(row$status[[1]])
+    truth_cols <- grep("^truth__", names(row), value = TRUE)
+    truth <- if (length(truth_cols) > 0L) {
+      value <- unlist(row[truth_cols], use.names = FALSE)
+      names(value) <- sub("^truth__", "", truth_cols)
+      value
+    } else {
+      NULL
+    }
+    excluded <- c(
+      "task_id",
+      "status",
+      "stop_reason",
+      "error_class",
+      "error_message",
+      "timing_total",
+      truth_cols
+    )
+    metric_cols <- setdiff(names(row), excluded)
+    metrics <- if (identical(status, "success")) {
+      stats::setNames(
+        lapply(metric_cols, function(name) row[[name]][[1]]),
+        metric_cols
+      )
+    } else {
+      NULL
+    }
+    stop_reason <- if (
+      "stop_reason" %in% names(row) && !is.na(row$stop_reason[[1]])
+    ) {
+      as.character(row$stop_reason[[1]])
+    } else {
+      NULL
+    }
+    has_error <- "error_class" %in% names(row) && !is.na(row$error_class[[1]])
+    error <- if (has_error || identical(status, "failed")) {
+      list(
+        error_class = if (has_error) {
+          as.character(row$error_class[[1]])
+        } else {
+          "unknown"
+        },
+        error_message = if (
+          "error_message" %in% names(row) && !is.na(row$error_message[[1]])
+        ) {
+          as.character(row$error_message[[1]])
+        } else {
+          "Task failed"
+        }
+      )
+    } else {
+      NULL
+    }
+    timing <- if (
+      "timing_total" %in% names(row) && is.finite(row$timing_total[[1]])
+    ) {
+      as.numeric(row$timing_total[[1]])
+    } else {
+      0
+    }
+    new_task_result(
+      task_id = as.character(row$task_id[[1]]),
+      status = status,
+      metrics = metrics,
+      timing = list(total = timing),
+      error = error,
+      truth = truth,
+      stop_reason = stop_reason
+    )
+  })
 }
 
 # =============================================================================
@@ -705,7 +1414,8 @@ results_to_dataframe <- function(task_results) {
     # Start with basic task info
     row <- list(
       task_id = tr$task_id,
-      status = tr$status
+      status = tr$status,
+      stop_reason = tr$stop_reason %||% NA_character_
     )
 
     # Add metrics if present (flattening named numeric vectors)

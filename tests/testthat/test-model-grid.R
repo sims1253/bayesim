@@ -1,5 +1,4 @@
 # D3: brms_model() / model_grid() ergonomics.
-skip_on_cran()
 skip_if_not(requireNamespace("brms", quietly = TRUE), "brms not available")
 
 describe("brms_model", {

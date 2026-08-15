@@ -2,19 +2,21 @@
 % Please edit documentation in R/checkpoint.R
 \name{prune_checkpoints}
 \alias{prune_checkpoints}
-\title{Prune old checkpoint snapshots}
+\title{Prune old checkpoint commit directories}
 \usage{
 prune_checkpoints(result_path, keep = 2L)
 }
 \arguments{
 \item{result_path}{Checkpoint result directory.}
 
-\item{keep}{Number of newest complete snapshots to keep; \code{Inf} keeps all.}
+\item{keep}{Number of newest checkpoint commits to keep; \code{Inf} keeps all.
+Removes commit directories only; immutable outcome shards and ledger
+history are never pruned.}
 }
 \value{
 Invisible vector of removed checkpoint IDs.
 }
 \description{
-Prune old checkpoint snapshots
+Prune old checkpoint commit directories
 }
 \keyword{internal}

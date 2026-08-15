@@ -32,7 +32,7 @@ describe("resolve_draw_columns()", {
 })
 
 describe("metrics against a real (tiny) brmsfit", {
-  skip_on_cran()
+  skip_unless_bayesim_backend()
   skip_if_not(requireNamespace("cmdstanr", quietly = TRUE))
   skip_if_not(requireNamespace("brms", quietly = TRUE))
   skip_if_not(requireNamespace("posterior", quietly = TRUE))

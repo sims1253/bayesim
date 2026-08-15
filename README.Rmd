@@ -14,6 +14,15 @@ knitr::opts_chunk$set(
   dpi = 150
 )
 set.seed(1)
+
+# knitr keeps the trailing spaces that tibble and console output use to pad
+# the last column. Strip horizontal whitespace before line breaks only.
+# Delegate to the existing output hook first so comment prefixes, collapse,
+# and all other formatting stay intact.
+existing_output_hook <- knitr::knit_hooks$get("output")
+knitr::knit_hooks$set(output = function(x, options) {
+  gsub("[ \t]+\n", "\n", existing_output_hook(x, options))
+})
 ```
 
 # bayesim
@@ -34,15 +43,18 @@ calibration (SBC), model comparison, and method evaluation.
 A study is declared as a grid of data-generating conditions, models, and
 replicates. bayesim expands the grid into tasks, executes them (sequentially
 or in parallel, with checkpointing and bounded memory), and summarizes the
-results as the performance measures recommended by Morris, White, and
-Crowther (2019) — bias, empirical SE, MSE, and coverage, each with its Monte
-Carlo standard error.
+results as performance measures. Fixed-truth cells use the measures
+recommended by Morris, White, and Crowther (2019) — bias, empirical SE, MSE,
+and coverage, each with its Monte Carlo standard error. Varying-truth cells
+(for example prior-predictive SBC studies) use separately named error
+measures (`mean_error`, `error_sd`, `error_mse`).
 
 Main features:
 
 * Deterministic reproducibility: each task receives its own L'Ecuyer-CMRG
-  RNG stream derived from a single study seed, so sequential, parallel, and
-  resumed runs produce identical results.
+  RNG stream derived from a single study seed, so scientific outputs and
+  canonical outcomes match across sequential, parallel, and resumed runs once
+  volatile wall-clock timing is excluded.
 * Simulation-based calibration with prior-predictive and
   inverse-forward-sampling generators, ESS-aware rank thinning, and ECDF
   plots with simultaneous confidence bands (Säilynoja, Bürkner, and Vehtari,

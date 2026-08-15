@@ -30,7 +30,11 @@ BrmsFitter <- S7::new_class(
   "BrmsFitter",
   parent = Fitter,
   properties = list(
-    # brms-specific properties only (name, supports_* are inherited from Fitter)
+    # brms implements all optional capabilities declared by Fitter.
+    name = S7::new_property(S7::class_character, default = "brms"),
+    supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
+    supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
+    supports_loo = S7::new_property(S7::class_logical, default = TRUE),
     backend = S7::new_property(S7::class_character, default = "cmdstanr"),
     chains = S7::new_property(S7::class_integer, default = 4L),
     iter = S7::new_property(S7::class_integer, default = 2000L),
@@ -270,7 +274,8 @@ update_prefit <- function(
       list(
         fields = names(prefit_struct),
         K = prefit_struct$K,
-        X_ncol = ncol(prefit_struct$X)
+        X_ncol = ncol(prefit_struct$X),
+        levels = .data_levels_sig(prefit$data)
       )
     } else {
       NULL
@@ -279,19 +284,23 @@ update_prefit <- function(
   if (!is.null(cached_struct_sig) && !is.null(task_struct)) {
     # K = number of regression predictors (including intercept); the canonical
     # signal for binary compatibility. Also compare the full field-name set in
-    # case the family induces extra data blocks (e.g. shape, theta for ordinal).
+    # case the family induces extra data blocks (e.g. shape, theta for ordinal),
+    # and the categorical-column levels, whose order silently reorders
+    # coefficients under recompile = FALSE.
     task_sig <- list(
       fields = names(task_struct),
       K = task_struct$K,
-      X_ncol = ncol(task_struct$X)
+      X_ncol = ncol(task_struct$X),
+      levels = .data_levels_sig(data_bundle$train)
     )
     if (!identical(cached_struct_sig, task_sig)) {
       stop(bayesim_internal_error(paste(
         "Model-bank structural mismatch: the task data has a different Stan",
         "data structure than the template used for precompilation",
-        "(predictor count or model-frame shape differs). This means the",
-        "compiled binary cannot be reused. Ensure all data_grid rows produce",
-        "data with the same structure, or set precompile = FALSE."
+        "(predictor count, model-frame shape, or categorical predictor",
+        "levels differ). This means the compiled binary cannot be reused.",
+        "Ensure all data_grid rows produce data with the same structure,",
+        "or set precompile = FALSE."
       )))
     }
   }

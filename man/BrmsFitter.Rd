@@ -5,7 +5,7 @@
 \title{Brms Fitter}
 \usage{
 BrmsFitter(
-  name = character(0),
+  name = "brms",
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,

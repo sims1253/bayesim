@@ -6,10 +6,13 @@
 \title{R-squared Test-Set Metric}
 \usage{
 R2TestMetric(
-  name = character(0),
-  needs = character(0),
+  name = "r2_test",
+  needs = "predictions",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), n_obs
+    = list(role = "count", aggregation = "none", mcse = "none"), undefined = list(role =
+    "diagnostic", aggregation = "none", mcse = "none"))
 )
 
 r2_test_metric(name = "r2_test")

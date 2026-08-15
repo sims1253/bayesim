@@ -8,21 +8,37 @@ run_simulation(
   config,
   resume = c("auto", "never", "must"),
   progress = TRUE,
-  workers = NULL
+  workers = NULL,
+  verbose = TRUE
 )
 }
 \arguments{
 \item{config}{A SimulationConfig S7 object}
 
-\item{resume}{Character strategy: "auto", "never", or "must"}
+\item{resume}{Character strategy:
+\code{"auto"} (default) resumes from \code{result_path} when a compatible
+checkpoint exists and starts fresh otherwise; \code{"never"} starts fresh and
+errors if \code{result_path} already holds a run or unrelated files;
+\code{"must"} resumes and errors when no compatible checkpoint exists. Only
+tasks with terminal status (\code{"success"}/\code{"failed"}) are carried over;
+all other tasks re-run with their original RNG streams.}
 
 \item{progress}{Logical; if TRUE, show progress bar}
 
 \item{workers}{Positive integer, NULL, or "multisession". When non-NULL,
 \code{mirai::daemons(workers)} is set up for the run and torn down on exit —
-the simple path for local parallelism. Must be NULL when daemons are
-already set (use \code{mirai::daemons()} directly for the advanced/HPC path:
-remote daemons, TLS, etc.). Daemons are set before the model bank ships.}
+the simple path for local parallelism. \code{workers = 1} is genuinely
+sequential: no daemons are launched, so package-external S7 fitters and
+metrics keep their method dispatch (S7 method tables are registered per
+process and do not travel to daemon workers). Parallel execution starts
+at \code{workers >= 2}. Must be NULL when daemons are already set (use
+\code{mirai::daemons()} directly for the advanced/HPC path: remote daemons,
+TLS, etc.). Daemons are set before the model bank ships.}
+
+\item{verbose}{Logical; if TRUE (default), print preflight, lifecycle, and
+completion messages. This is independent of \code{progress}: set
+\code{progress = FALSE} to hide the task bar while keeping run messages, or
+\code{verbose = FALSE} for a quiet programmatic run.}
 }
 \value{
 A bayesim_simulation_result S3 object
@@ -37,7 +53,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = "baseline"),
   data_generator = my_data_gen,
   fitter = my_fitter,
-  metrics = list(rmse_metric(), bias_metric()),
+  metrics = list(pred_rmse_metric(), pred_bias_metric()),
   n_replicates = 100L,
   seed = 42L
 )

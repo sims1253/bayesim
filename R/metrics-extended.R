@@ -9,7 +9,8 @@
 
 #' @title MAE Metric
 #' @description Mean absolute error between predictions and the observed
-#'   response on the test set (or training set when no test set).
+#'   response on the test set. Returns NA when no test set is present (no
+#'   training-set fallback).
 #' @param name Character string naming the metric. Defaults to "mae".
 #' @return A `MaeMetric` object.
 #' @keywords internal
@@ -17,9 +18,21 @@ MaeMetric <- S7::new_class(
   "MaeMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "mae"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "mae",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        n_obs = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -30,7 +43,15 @@ MaeMetric <- S7::new_class(
 #' @examples
 #' pred_mae_metric()
 pred_mae_metric <- function(name = "mae") {
-  MaeMetric(name = name, needs = "predictions", required = FALSE)
+  MaeMetric(
+    name = name,
+    needs = "predictions",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      n_obs = list(role = "count", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, MaeMetric) <- function(
@@ -51,12 +72,14 @@ S7::method(compute_metric, MaeMetric) <- function(
   test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
+  validate_prediction_vectors(actual, predicted, metric@name)
   list(value = mean(abs(predicted - actual)), n_obs = length(actual))
 }
 
 #' @title MSE Metric
 #' @description Mean squared error between predictions and the observed
-#'   response on the test set (or training set when no test set).
+#'   response on the test set. Returns NA when no test set is present (no
+#'   training-set fallback).
 #' @param name Character string naming the metric. Defaults to "mse".
 #' @return An `MseMetric` object.
 #' @keywords internal
@@ -64,9 +87,21 @@ MseMetric <- S7::new_class(
   "MseMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "mse"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "mse",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        n_obs = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -77,7 +112,15 @@ MseMetric <- S7::new_class(
 #' @examples
 #' pred_mse_metric()
 pred_mse_metric <- function(name = "mse") {
-  MseMetric(name = name, needs = "predictions", required = FALSE)
+  MseMetric(
+    name = name,
+    needs = "predictions",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      n_obs = list(role = "count", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, MseMetric) <- function(
@@ -98,6 +141,7 @@ S7::method(compute_metric, MseMetric) <- function(
   test_data <- data_bundle$test
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
+  validate_prediction_vectors(actual, predicted, metric@name)
   list(value = mean((predicted - actual)^2), n_obs = length(actual))
 }
 
@@ -111,9 +155,25 @@ PosProbMetric <- S7::new_class(
   "PosProbMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "pos_prob"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "pos_prob",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        by_param = list(
+          role = "binary",
+          aggregation = "proportion",
+          mcse = "binomial"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -124,7 +184,19 @@ PosProbMetric <- S7::new_class(
 #' @examples
 #' pos_prob_metric()
 pos_prob_metric <- function(name = "pos_prob") {
-  PosProbMetric(name = name, needs = character(), required = FALSE)
+  PosProbMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    schema = list(
+      mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      by_param = list(
+        role = "binary",
+        aggregation = "proportion",
+        mcse = "binomial"
+      )
+    )
+  )
 }
 
 S7::method(compute_metric, PosProbMetric) <- function(
@@ -166,10 +238,29 @@ PosteriorSummaryMetric <- S7::new_class(
   "PosteriorSummaryMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "posterior_summary"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "posterior_summary",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
-    prob = S7::new_property(S7::class_numeric, default = 0.95)
+    prob = S7::new_property(
+      S7::class_numeric,
+      default = 0.95,
+      validator = function(value) validate_interval_probability(value, "prob")
+    ),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        median = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        sd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        q_lower = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        q_upper = list(role = "estimate", aggregation = "mean", mcse = "sd")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -181,11 +272,33 @@ PosteriorSummaryMetric <- S7::new_class(
 #' @examples
 #' posterior_summary_metric()
 posterior_summary_metric <- function(name = "posterior_summary", prob = 0.95) {
-  PosteriorSummaryMetric(
-    name = name,
-    needs = character(),
-    required = FALSE,
-    prob = prob
+  tryCatch(
+    PosteriorSummaryMetric(
+      name = name,
+      needs = character(),
+      required = FALSE,
+      prob = prob,
+      schema = list(
+        mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        median = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        sd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        q_lower = list(
+          role = "estimate",
+          aggregation = "mean",
+          mcse = "sd",
+          nominal = prob
+        ),
+        q_upper = list(
+          role = "estimate",
+          aggregation = "mean",
+          mcse = "sd",
+          nominal = prob
+        )
+      )
+    ),
+    error = function(e) {
+      stop(bayesim_config_error(conditionMessage(e)))
+    }
   )
 }
 
@@ -240,9 +353,31 @@ ConvergenceMetric <- S7::new_class(
   "ConvergenceMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "convergence"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "convergence",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        rhat_max = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+        ess_bulk_min = list(
+          role = "diagnostic",
+          aggregation = "mean",
+          mcse = "sd"
+        ),
+        ess_tail_min = list(
+          role = "diagnostic",
+          aggregation = "mean",
+          mcse = "sd"
+        ),
+        divergent = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -253,7 +388,25 @@ ConvergenceMetric <- S7::new_class(
 #' @examples
 #' convergence_metric()
 convergence_metric <- function(name = "convergence") {
-  ConvergenceMetric(name = name, needs = character(), required = FALSE)
+  ConvergenceMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    schema = list(
+      rhat_max = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+      ess_bulk_min = list(
+        role = "diagnostic",
+        aggregation = "mean",
+        mcse = "sd"
+      ),
+      ess_tail_min = list(
+        role = "diagnostic",
+        aggregation = "mean",
+        mcse = "sd"
+      ),
+      divergent = list(role = "count", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, ConvergenceMetric) <- function(
@@ -292,10 +445,23 @@ SamplerDiagnosticsMetric <- S7::new_class(
   properties = list(
     name = S7::new_property(
       S7::class_character,
-      default = "sampler_diagnostics"
+      default = "sampler_diagnostics",
+      validator = validate_metric_name
     ),
     needs = S7::new_property(S7::class_character, default = character()),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        divergent = list(role = "count", aggregation = "none", mcse = "none"),
+        max_treedepth = list(
+          role = "diagnostic",
+          aggregation = "mean",
+          mcse = "sd"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -306,7 +472,19 @@ SamplerDiagnosticsMetric <- S7::new_class(
 #' @examples
 #' sampler_diagnostics_metric()
 sampler_diagnostics_metric <- function(name = "sampler_diagnostics") {
-  SamplerDiagnosticsMetric(name = name, needs = character(), required = FALSE)
+  SamplerDiagnosticsMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    schema = list(
+      divergent = list(role = "count", aggregation = "none", mcse = "none"),
+      max_treedepth = list(
+        role = "diagnostic",
+        aggregation = "mean",
+        mcse = "sd"
+      )
+    )
+  )
 }
 
 S7::method(compute_metric, SamplerDiagnosticsMetric) <- function(
@@ -357,12 +535,20 @@ RankMetric <- S7::new_class(
   "RankMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "rank"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "rank",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
     # E4: per-task ranks are analyzed via sbc_ranks()/plot_rank_*, never by
     # averaging across replicates.
-    summary_type = S7::new_property(S7::class_character, default = "none"),
+    summary_type = S7::new_property(
+      S7::class_character,
+      default = "none",
+      validator = validate_metric_summary_type
+    ),
     thin = S7::new_property(
       S7::new_union(
         S7::class_character,
@@ -371,6 +557,16 @@ RankMetric <- S7::new_class(
         S7::class_double
       ),
       default = "auto"
+    ),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        n_draws = list(role = "count", aggregation = "none", mcse = "none"),
+        stride = list(role = "count", aggregation = "none", mcse = "none"),
+        by_param = list(role = "rank", aggregation = "none", mcse = "none"),
+        n_ranks = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
     )
   )
 )
@@ -384,7 +580,19 @@ RankMetric <- S7::new_class(
 #' rank_metric()
 #' rank_metric(thin = FALSE)
 rank_metric <- function(name = "rank", thin = "auto") {
-  RankMetric(name = name, needs = character(), required = FALSE, thin = thin)
+  RankMetric(
+    name = name,
+    needs = character(),
+    required = FALSE,
+    summary_type = "none",
+    thin = thin,
+    schema = list(
+      n_draws = list(role = "count", aggregation = "none", mcse = "none"),
+      stride = list(role = "count", aggregation = "none", mcse = "none"),
+      by_param = list(role = "rank", aggregation = "none", mcse = "none"),
+      n_ranks = list(role = "count", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 # Auto-thinning stride toward the min bulk-ESS across ranked variable columns.
@@ -516,11 +724,22 @@ RstarMetric <- S7::new_class(
   "RstarMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "rstar"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "rstar",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
     uncertainty = S7::new_property(S7::class_logical, default = FALSE),
-    method = S7::new_property(S7::class_character, default = "rf")
+    method = S7::new_property(S7::class_character, default = "rf"),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "diagnostic", aggregation = "mean", mcse = "sd")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -539,7 +758,10 @@ rstar_metric <- function(name = "rstar", uncertainty = FALSE, method = "rf") {
     needs = character(),
     required = FALSE,
     uncertainty = uncertainty,
-    method = method
+    method = method,
+    schema = list(
+      value = list(role = "diagnostic", aggregation = "mean", mcse = "sd")
+    )
   )
 }
 
@@ -632,10 +854,12 @@ S7::method(compute_metric, RstarMetric) <- function(
       }
     },
     error = function(e) {
-      warning(
-        "rstar_metric failed: ",
-        conditionMessage(e),
-        ". Returning NA_real_."
+      # S7: consistent with the rest of this file, warn once per run rather than
+      # emitting a base warning() per task (rstar runs once per task).
+      .warn_once(
+        "rstar_compute_error",
+        "rstar_metric failed; returning NA_real_.",
+        i = conditionMessage(e)
       )
       NA_real_
     }
@@ -655,9 +879,27 @@ ElpdLooMetric <- S7::new_class(
   "ElpdLooMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "elpd_loo"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "elpd_loo",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "loo"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        p_loo = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        se = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        pareto_k_max = list(
+          role = "diagnostic",
+          aggregation = "mean",
+          mcse = "sd"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -668,7 +910,21 @@ ElpdLooMetric <- S7::new_class(
 #' @examples
 #' elpd_loo_metric()
 elpd_loo_metric <- function(name = "elpd_loo") {
-  ElpdLooMetric(name = name, needs = "loo", required = FALSE)
+  ElpdLooMetric(
+    name = name,
+    needs = "loo",
+    required = FALSE,
+    schema = list(
+      elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      p_loo = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      se = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      pareto_k_max = list(
+        role = "diagnostic",
+        aggregation = "mean",
+        mcse = "sd"
+      )
+    )
+  )
 }
 
 S7::method(compute_metric, ElpdLooMetric) <- function(
@@ -709,9 +965,26 @@ RmseLooMetric <- S7::new_class(
   "RmseLooMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "rmse_loo"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "rmse_loo",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "loo"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        pareto_k_max = list(
+          role = "diagnostic",
+          aggregation = "mean",
+          mcse = "sd"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -722,7 +995,20 @@ RmseLooMetric <- S7::new_class(
 #' @examples
 #' rmse_loo_metric()
 rmse_loo_metric <- function(name = "rmse_loo") {
-  RmseLooMetric(name = name, needs = "loo", required = FALSE)
+  RmseLooMetric(
+    name = name,
+    needs = "loo",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      pareto_k_max = list(
+        role = "diagnostic",
+        aggregation = "mean",
+        mcse = "sd"
+      )
+    )
+  )
 }
 
 S7::method(compute_metric, RmseLooMetric) <- function(
@@ -784,9 +1070,21 @@ R2LooMetric <- S7::new_class(
   "R2LooMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "r2_loo"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "r2_loo",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "loo"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        elpd = list(role = "estimate", aggregation = "mean", mcse = "sd")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -797,7 +1095,16 @@ R2LooMetric <- S7::new_class(
 #' @examples
 #' r2_loo_metric()
 r2_loo_metric <- function(name = "r2_loo") {
-  R2LooMetric(name = name, needs = "loo", required = FALSE)
+  R2LooMetric(
+    name = name,
+    needs = "loo",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      undefined = list(role = "diagnostic", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, R2LooMetric) <- function(
@@ -815,12 +1122,12 @@ S7::method(compute_metric, R2LooMetric) <- function(
   # noise), the PSIS object, and the pointwise log-lik. r2_loo MUST use the
   # expectation, not posterior_predict noise draws — see PLAN.md F3.
   if (is.null(loo) || is.null(psis_obj) || is.null(ll) || is.null(epred)) {
-    return(list(value = NA_real_, elpd = NA_real_))
+    return(list(value = NA_real_, elpd = NA_real_, undefined = NA))
   }
   # As for rmse_loo: LOO quantities live on the training set.
   y <- data_bundle$train[[data_bundle$response]]
   if (is.null(y)) {
-    return(list(value = NA_real_, elpd = NA_real_))
+    return(list(value = NA_real_, elpd = NA_real_, undefined = NA))
   }
   # E_loo mean of the expectation draws = the LOO point prediction.
   yloo <- loo::E_loo(epred, psis_obj, log_ratios = -ll, type = "mean")$value
@@ -836,12 +1143,18 @@ S7::method(compute_metric, R2LooMetric) <- function(
   var_err_loo <- (N / (N - 1)) *
     (rowSums(sweep(weights, 2, err_loo^2, FUN = "*")) -
       rowSums(sweep(weights, 2, err_loo, FUN = "*"))^2)
-  r2 <- 1 - var_err_loo / var_y
-  r2[r2 < -1] <- -1
-  r2[r2 > 1] <- 1
+  undefined <- !is.finite(var_y) | var_y <= 0
+  r2 <- ifelse(undefined, NA_real_, 1 - var_err_loo / var_y)
+  r2[is.finite(r2) & r2 < -1] <- -1
+  r2[is.finite(r2) & r2 > 1] <- 1
   list(
-    value = as.numeric(mean(r2)),
-    elpd = as.numeric(loo$elpd %||% NA_real_)
+    value = if (all(is.na(r2))) {
+      NA_real_
+    } else {
+      as.numeric(mean(r2, na.rm = TRUE))
+    },
+    elpd = as.numeric(loo$elpd %||% NA_real_),
+    undefined = any(undefined)
   )
 }
 
@@ -858,9 +1171,21 @@ ElpdTestMetric <- S7::new_class(
   "ElpdTestMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "elpd_test"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "elpd_test",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "log_lik"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        n_obs = list(role = "count", aggregation = "none", mcse = "none")
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -871,7 +1196,15 @@ ElpdTestMetric <- S7::new_class(
 #' @examples
 #' elpd_test_metric()
 elpd_test_metric <- function(name = "elpd_test") {
-  ElpdTestMetric(name = name, needs = "log_lik", required = FALSE)
+  ElpdTestMetric(
+    name = name,
+    needs = "log_lik",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      n_obs = list(role = "count", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, ElpdTestMetric) <- function(
@@ -921,9 +1254,26 @@ R2TestMetric <- S7::new_class(
   "R2TestMetric",
   parent = Metric,
   properties = list(
-    name = S7::new_property(S7::class_character, default = "r2_test"),
+    name = S7::new_property(
+      S7::class_character,
+      default = "r2_test",
+      validator = validate_metric_name
+    ),
     needs = S7::new_property(S7::class_character, default = "predictions"),
-    required = S7::new_property(S7::class_logical, default = FALSE)
+    required = S7::new_property(S7::class_logical, default = FALSE),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(
+        value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+        n_obs = list(role = "count", aggregation = "none", mcse = "none"),
+        undefined = list(
+          role = "diagnostic",
+          aggregation = "none",
+          mcse = "none"
+        )
+      ),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
 
@@ -934,7 +1284,16 @@ R2TestMetric <- S7::new_class(
 #' @examples
 #' r2_test_metric()
 r2_test_metric <- function(name = "r2_test") {
-  R2TestMetric(name = name, needs = "predictions", required = FALSE)
+  R2TestMetric(
+    name = name,
+    needs = "predictions",
+    required = FALSE,
+    schema = list(
+      value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+      n_obs = list(role = "count", aggregation = "none", mcse = "none"),
+      undefined = list(role = "diagnostic", aggregation = "none", mcse = "none")
+    )
+  )
 }
 
 S7::method(compute_metric, R2TestMetric) <- function(
@@ -946,14 +1305,16 @@ S7::method(compute_metric, R2TestMetric) <- function(
 ) {
   test_data <- data_bundle$test
   if (is.null(test_data) || is.null(context$predictions)) {
-    return(list(value = NA_real_, n_obs = NA_integer_))
+    return(list(value = NA_real_, n_obs = NA_integer_, undefined = NA))
   }
   actual <- test_data[[data_bundle$response]]
   predicted <- context$predictions$predicted_mean
-  n <- min(length(actual), length(predicted))
-  actual <- actual[seq_len(n)]
-  predicted <- predicted[seq_len(n)]
+  validate_prediction_vectors(actual, predicted, metric@name)
+  n <- length(actual)
   ss_res <- sum((actual - predicted)^2)
   ss_tot <- sum((actual - mean(actual))^2)
-  list(value = 1 - ss_res / ss_tot, n_obs = n)
+  if (!is.finite(ss_tot) || ss_tot <= 0) {
+    return(list(value = NA_real_, n_obs = as.integer(n), undefined = TRUE))
+  }
+  list(value = 1 - ss_res / ss_tot, n_obs = as.integer(n), undefined = FALSE)
 }

@@ -6,10 +6,12 @@
 \title{RMSE Metric}
 \usage{
 RmseMetric(
-  name = character(0),
-  needs = character(0),
+  name = "rmse",
+  needs = "predictions",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), n_obs
+    = list(role = "count", aggregation = "none", mcse = "none"))
 )
 
 pred_rmse_metric(name = "rmse")

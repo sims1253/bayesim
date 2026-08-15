@@ -1,5 +1,4 @@
 # I3: adaptive stopping on MCSE targets.
-skip_on_cran()
 library(bayesim)
 
 # Conjugate linear regression generator (mirrors test-performance-measures.R).
@@ -159,6 +158,76 @@ describe("adaptive stopping (stop_on)", {
 
     expect_true(all(successes >= 2L))
     expect_gt(sum(res$summary$status == "skipped"), 0L)
+  })
+
+  it("persists the precision snapshot and replicate round that triggered stop", {
+    result_path <- file.path(withr::local_tempdir(), "adaptive-state")
+    cfg <- simulation_config(
+      data_grid = data.frame(n = 60L, beta = c(0.5, 1)),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 100L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 4L,
+      seed = 18L,
+      result_path = result_path,
+      checkpoint_every = 2L,
+      stop_on = list(
+        estimand = "x",
+        measure = "bias",
+        target_mcse = 100,
+        min_reps = 2L,
+        check_every = 2L
+      )
+    )
+
+    run_simulation(cfg, resume = "never", progress = FALSE, verbose = FALSE)
+    checkpoint <- read_checkpoint(result_path)
+    state <- checkpoint$adaptive_state
+
+    expect_true(isTRUE(state$triggered))
+    expect_equal(state$estimand, "x")
+    expect_equal(state$measure, "bias")
+    expect_gte(state$completed_rounds, 2L)
+    expect_equal(length(state$cells), 2L)
+    expect_true(all(vapply(
+      state$cells,
+      function(x) is.finite(x$mcse),
+      logical(1)
+    )))
+  })
+
+  it("checks at replicate rounds independently of checkpoint cadence", {
+    cfg <- simulation_config(
+      data_grid = data.frame(n = 60L, beta = c(0.5, 1)),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 100L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 30L,
+      seed = 28L,
+      checkpoint_every = 50L,
+      stop_on = list(
+        estimand = "x",
+        measure = "bias",
+        target_mcse = 100,
+        min_reps = 2L,
+        check_every = 2L
+      )
+    )
+
+    result <- run_simulation(
+      cfg,
+      resume = "never",
+      progress = FALSE,
+      verbose = FALSE
+    )
+    successes <- table(factor(
+      result$summary$data_beta[result$summary$status == "success"],
+      levels = c(0.5, 1)
+    ))
+
+    expect_equal(as.integer(successes), c(2L, 2L))
   })
 
   it("NULL stop_on runs every task (control)", {

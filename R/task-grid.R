@@ -97,6 +97,10 @@ make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
 canonicalize_task_grid <- function(task_grid, config) {
   grid <- tibble::as_tibble(task_grid)
 
+  if ("task_id" %in% names(grid) && anyDuplicated(grid$task_id)) {
+    cli::cli_abort("task_grid contains duplicate task_id values")
+  }
+
   if (!"rep_idx" %in% names(grid)) {
     grid$rep_idx <- rep.int(1L, nrow(grid))
   }
@@ -151,8 +155,14 @@ canonicalize_task_grid <- function(task_grid, config) {
     grid$rep_idx,
     widths
   )
+  if (anyDuplicated(grid$task_id)) {
+    cli::cli_abort(
+      "task_grid contains duplicate task identities; data_idx, fit_idx, and rep_idx must be unique"
+    )
+  }
   grid$rng_seed <- I(create_task_rng_streams(config@seed, nrow(grid)))
   grid$status <- "pending"
+  grid$stop_reason <- NA_character_
 
   tibble::as_tibble(grid)
 }
@@ -231,6 +241,7 @@ create_task_grid <- function(config) {
 
   # Initialize status
   grid$status <- "pending"
+  grid$stop_reason <- NA_character_
 
   tibble::as_tibble(grid)
 }
@@ -281,7 +292,8 @@ get_task_spec_at <- function(task_grid, row_idx, config) {
 #'
 #' @param task_grid A task grid tibble.
 #' @param status Character vector of statuses to include.
-#'   Valid statuses: "pending", "success", "failed", "skipped".
+#'   Valid statuses: "pending", "success", "failed", "skipped", or
+#'   "cancelled".
 #'
 #' @return A filtered task grid tibble.
 #'
@@ -377,7 +389,16 @@ parse_task_id <- function(task_id) {
 #' # summary["success"]  # Number of successful tasks
 #' }
 get_task_count_summary <- function(task_grid) {
-  statuses <- c("pending", "success", "failed", "skipped")
+  # Preserve the compact historical shape for ordinary ledgers while exposing
+  # explicit lifecycle states whenever they actually occur.
+  statuses <- c("pending", TASK_TERMINAL_STATUSES, "skipped")
+  statuses <- c(
+    statuses,
+    intersect(
+      setdiff(TASK_RESUMABLE_STATUSES, statuses),
+      unique(task_grid$status)
+    )
+  )
   counts <- table(factor(task_grid$status, levels = statuses))
   stats::setNames(as.integer(counts), statuses)
 }

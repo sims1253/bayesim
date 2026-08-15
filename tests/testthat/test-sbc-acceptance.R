@@ -8,7 +8,7 @@
 # that the model bank compiles exactly once. A second pass swaps in
 # ifs_generator() to exercise the F1 forward-sampling path.
 
-skip_on_cran()
+skip_unless_bayesim_backend()
 skip_if(
   !identical(tolower(Sys.getenv("BAYESIM_RUN_ACCEPTANCE")), "true"),
   "set BAYESIM_RUN_ACCEPTANCE=true to run Stan-backed acceptance tests"

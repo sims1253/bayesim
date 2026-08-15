@@ -51,9 +51,21 @@ S7::method(compute_metric, MADMetric) <- function(
   list(value = stats::median(abs(predicted - actual)))
 }
 
-# A constructor keeps configs readable.
+# Construct the subclass directly; the defaults declared above are honored.
 mad_metric <- function(name = "mad") MADMetric(name = name)
 ```
+
+::: {.callout-note}
+### `Metric` is abstract
+
+`Metric` has no direct instances — `Metric()` itself errors. Subclasses are
+instantiated directly (`MADMetric(name = "mad")`), and because the parent is
+abstract, S7 honors the defaults your subclass declares for the inherited
+`name`, `needs`, `required`, `summary_type`, and `schema` properties:
+`MADMetric()` alone yields `name = "mad"` and `needs = "predictions"`.
+Explicit arguments (as in `mad_metric(name = ...)`) always win over the
+declared defaults.
+:::
 
 `compute_metric()` receives:
 
@@ -91,8 +103,31 @@ list(by_param = c(Intercept = 1, x = 0))
 #> mad__by_param__Intercept, mad__by_param__x
 ```
 
-`validate_metric_output()` enforces this schema; run your metric once against
-a fixture fit in your tests and pass the result through it.
+`validate_metric_output()` enforces this schema. Even better, run
+`validate_metric()` with representative values in your tests — it executes
+`compute_metric()` once, checks the output schema, and verifies that every
+field your `schema` declares is actually produced:
+
+```{r, eval=FALSE}
+validate_metric(
+  mad_metric(),
+  fit_result = new_fit_result(
+    draws = cbind(intercept = rnorm(20), slope = rnorm(20))
+  ),
+  data_bundle = list(
+    train = data.frame(y = rnorm(30), x = rnorm(30)),
+    test = data.frame(y = rnorm(10), x = rnorm(10)),
+    response = "y"
+  ),
+  context = list(
+    predictions = list(
+      predicted_mean = rnorm(10),
+      predicted_samples = matrix(rnorm(20 * 10), 20, 10),
+      predicted_sd = rep(1, 10)
+    )
+  )
+)
+```
 
 ## summary_type: how your metric aggregates
 

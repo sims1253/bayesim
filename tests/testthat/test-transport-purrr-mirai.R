@@ -4,8 +4,6 @@
 # - C1: determinism (sequential == daemons(2)) still holds on the new transport.
 # - C2: workers = 2 matches the sequential summary and leaves daemons unset.
 
-skip_on_cran()
-
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 20L
   list(

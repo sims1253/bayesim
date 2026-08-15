@@ -72,4 +72,6 @@ result <- new_fit_result(
 )
 }
 }
-\keyword{internal}
+\seealso{
+\link{Fitter}, \code{\link[=fit_model]{fit_model()}}
+}

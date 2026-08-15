@@ -6,10 +6,14 @@
 \title{Convergence Metric}
 \usage{
 ConvergenceMetric(
-  name = character(0),
+  name = "convergence",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(rhat_max = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    ess_bulk_min = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    ess_tail_min = list(role = "diagnostic", aggregation = "mean", mcse = "sd"),
+    divergent = list(role = "count", aggregation = "none", mcse = "none"))
 )
 
 convergence_metric(name = "convergence")

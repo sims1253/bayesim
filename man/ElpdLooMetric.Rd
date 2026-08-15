@@ -6,10 +6,14 @@
 \title{ELPD-LOO Metric}
 \usage{
 ElpdLooMetric(
-  name = character(0),
-  needs = character(0),
+  name = "elpd_loo",
+  needs = "loo",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"), p_loo
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"), se = list(role =
+    "estimate", aggregation = "mean", mcse = "sd"), pareto_k_max = list(role =
+    "diagnostic", aggregation = "mean", mcse = "sd"))
 )
 
 elpd_loo_metric(name = "elpd_loo")

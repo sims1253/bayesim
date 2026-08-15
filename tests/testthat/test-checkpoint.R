@@ -1260,6 +1260,33 @@ describe("Resume Logic", {
       expect_equal(result$metric_rmse[result$task_id == "t2"], 0.10)
     })
 
+    it("accepts resume-equivalent rows despite timing and missing-value representation", {
+      old_results <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("success", "success"),
+        metric_rmse = c(0.05, 0.10),
+        timing_total = c(0.5, 0.75),
+        typed_optional = c(NA_integer_, NA_integer_),
+        legacy_optional = c(NA, NA),
+        stringsAsFactors = FALSE
+      )
+      new_results <- data.frame(
+        task_id = c("t2", "t3"),
+        status = c("success", "success"),
+        metric_rmse = c(0.10, 0.15),
+        timing_total = c(2L, 3L),
+        typed_optional = c(NA_real_, NA_real_),
+        stringsAsFactors = FALSE
+      )
+
+      result <- merge_results(old_results, new_results)
+
+      expect_equal(result$task_id, c("t1", "t2", "t3"))
+      expect_equal(result$timing_total[result$task_id == "t2"], 2)
+      expect_true(all(is.na(result$typed_optional)))
+      expect_true(all(is.na(result$legacy_optional)))
+    })
+
     it("errors on conflicting duplicate terminal rows", {
       old_results <- data.frame(
         task_id = c("t1", "t2"),

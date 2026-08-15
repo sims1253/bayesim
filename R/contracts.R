@@ -372,7 +372,23 @@ validate_fit_result_interface <- function(fit_result) {
 #' existence is not checked because S7 dispatches via generics and the base
 #' class raises errors for unimplemented abstract methods.
 #'
+#' When representative values are supplied (`fit_result` plus `data_bundle`),
+#' validation additionally executes `compute_metric()` once and checks that its
+#' output passes the metric output schema and that every field declared in the
+#' metric's `schema` is produced. This catches broken external metrics before a
+#' run starts instead of as thousands of per-task failures.
+#'
 #' @param metric An S7 object to validate as a Metric.
+#' @param fit_result Optional representative `bayesim_fit_result`
+#'   ([new_fit_result()]) driving a conformance execution of
+#'   `compute_metric()`. Must be supplied together with `data_bundle`.
+#' @param data_bundle Optional representative data bundle for the conformance
+#'   execution.
+#' @param context Optional representative context list (e.g. predictions,
+#'   log_lik). Defaults to an empty list; metrics should degrade to `NA` rather
+#'   than erroring when a needed context element is missing.
+#' @param task_ctx Optional representative task context. Defaults to a stable
+#'   placeholder.
 #'
 #' @return The input `metric`, invisibly, if validation passes.
 #'
@@ -382,7 +398,13 @@ validate_fit_result_interface <- function(fit_result) {
 #' @export
 #'
 #' @seealso [Metric], [validate_metric_output()], [validate_fitter()]
-validate_metric <- function(metric) {
+validate_metric <- function(
+  metric,
+  fit_result = NULL,
+  data_bundle = NULL,
+  context = NULL,
+  task_ctx = NULL
+) {
   if (!S7::S7_inherits(metric)) {
     stop(
       bayesim_contract_error(
@@ -429,7 +451,138 @@ validate_metric <- function(metric) {
     )
   }
 
+  name_error <- validate_metric_name(metric_name)
+  if (!is.null(name_error)) {
+    stop(bayesim_contract_error(name_error))
+  }
+
+  summary_type <- tryCatch(metric@summary_type, error = function(e) "mean")
+  summary_error <- validate_metric_summary_type(summary_type)
+  if (!is.null(summary_error)) {
+    stop(bayesim_contract_error(summary_error))
+  }
+
+  schema <- tryCatch(metric@schema, error = function(e) list())
+  schema_error <- validate_metric_schema(schema)
+  if (!is.null(schema_error)) {
+    stop(bayesim_contract_error(schema_error))
+  }
+
+  # Optional representative execution: run compute_metric() once against
+  # caller-supplied fixtures and check output schema + schema/output
+  # consistency. Declaration-only validation (no fixtures) never dispatches,
+  # so metrics whose compute method is registered later still validate.
+  representative_supplied <- !is.null(fit_result) ||
+    !is.null(data_bundle) ||
+    !is.null(context) ||
+    !is.null(task_ctx)
+  if (representative_supplied) {
+    if (is.null(fit_result) || is.null(data_bundle)) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "Representative execution needs both 'fit_result' and ",
+            "'data_bundle'; supply them together or omit both for ",
+            "declaration-only validation"
+          )
+        )
+      )
+    }
+    if (!inherits(fit_result, "bayesim_fit_result")) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "fit_result must be a bayesim_fit_result object ",
+            "(see new_fit_result())"
+          )
+        )
+      )
+    }
+
+    exec_context <- context %||% list()
+    exec_task_ctx <- task_ctx %||%
+      list(
+        task_id = "validate_metric",
+        data_idx = 1L,
+        fit_idx = 1L,
+        rep_idx = 1L,
+        seed = 1L
+      )
+
+    output <- tryCatch(
+      compute_metric(
+        metric,
+        fit_result,
+        data_bundle,
+        exec_context,
+        exec_task_ctx
+      ),
+      error = function(e) {
+        stop(
+          bayesim_validation_error(
+            paste(
+              c(
+                "compute_metric() failed during representative execution:",
+                conditionMessage(e)
+              ),
+              collapse = "\n"
+            )
+          )
+        )
+      }
+    )
+
+    tryCatch(
+      validate_metric_output(output, metric_name),
+      error = function(e) {
+        stop(
+          bayesim_validation_error(
+            paste(
+              c(
+                "compute_metric() output violates the metric output schema:",
+                conditionMessage(e)
+              ),
+              collapse = "\n"
+            )
+          )
+        )
+      }
+    )
+
+    missing_fields <- metric_schema_fields_not_produced(output, schema)
+    if (length(missing_fields) > 0L) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "Metric schema declares field(s) that compute_metric() did not ",
+            "produce: ",
+            paste(missing_fields, collapse = ", ")
+          )
+        )
+      )
+    }
+  }
+
   invisible(metric)
+}
+
+# Which declared schema fields did compute_metric() not produce? Schema fields
+# are declared at the bare output-field level (e.g. `value`, `by_param`), so a
+# field is produced when it appears in the output names directly or as a
+# flattened `<field>__<subname>` prefix.
+metric_schema_fields_not_produced <- function(output, schema) {
+  if (length(schema) == 0L) {
+    return(character())
+  }
+  produced <- names(output)
+  not_produced <- vapply(
+    names(schema),
+    function(field) {
+      !(field %in% produced || any(startsWith(produced, paste0(field, "__"))))
+    },
+    logical(1)
+  )
+  names(schema)[not_produced]
 }
 
 # =============================================================================
@@ -535,7 +688,11 @@ validate_simulation_config <- function(config) {
     }
   }
 
-  # data_generator must be a function with at least 3 args
+  # data_generator must accept at least 2 arguments: (data_spec, task_ctx).
+  # Note: the model bank additionally calls the generator once with
+  # task_ctx$template = TRUE to obtain structurally representative template
+  # data (task_id = "model_bank_template"); generators may branch on this
+  # flag to skip work, but must not change the structure of what they return.
   if (is.null(config@data_generator)) {
     stop(
       bayesim_config_error(

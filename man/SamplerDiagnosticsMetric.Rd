@@ -6,10 +6,12 @@
 \title{Sampler Diagnostics Metric}
 \usage{
 SamplerDiagnosticsMetric(
-  name = character(0),
+  name = "sampler_diagnostics",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(divergent = list(role = "count", aggregation = "none", mcse = "none"),
+    max_treedepth = list(role = "diagnostic", aggregation = "mean", mcse = "sd"))
 )
 
 sampler_diagnostics_metric(name = "sampler_diagnostics")

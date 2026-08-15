@@ -3,6 +3,7 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_dispatch:
 
 name: test-coverage
 
@@ -14,6 +15,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       NOT_CRAN: true
+      BAYESIM_RUN_ACCEPTANCE: "false"
 
     steps:
       - uses: actions/checkout@v7
@@ -27,39 +29,16 @@ jobs:
           extra-packages: any::covr, any::xml2
           needs: coverage
 
-      - name: Fix CmdStan toolchain
-        run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-        shell: Rscript {0}
-
-      - name: Get CmdStan version
-        id: cmdstan-version
+      - name: Fast/core coverage
         run: |
-          version=$(curl -s -H "Authorization: Bearer $GITHUB_PAT" \
-            https://api.github.com/repos/stan-dev/cmdstan/releases/latest \
-            | jq -r .tag_name)
-          if [ -z "$version" ] || [ "$version" = "null" ]; then
-            echo "Failed to resolve latest CmdStan release" >&2
-            exit 1
-          fi
-          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - name: Cache CmdStan
-        uses: actions/cache@v6
-        with:
-          path: ~/.cmdstan
-          key: cmdstan-${{ runner.os }}-${{ steps.cmdstan-version.outputs.version }}
-
-      - name: Install CmdStan
-        run: |
-          if (is.null(cmdstanr::cmdstan_version(error_on_NA = FALSE))) {
-            cmdstanr::install_cmdstan(cores = parallel::detectCores())
-          }
-        shell: Rscript {0}
-
-      - name: Test coverage
-        run: |
+          source("tools/ci/test-tiers.R")
+          coverage_code <- sprintf(
+            "testthat::test_check('bayesim', filter = %s)",
+            deparse(bayesim_test_filter("fast"))
+          )
           cov <- covr::package_coverage(
+            type = "none",
+            code = coverage_code,
             quiet = FALSE,
             clean = FALSE,
             install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"), winslash = "/"), "package")
@@ -70,7 +49,7 @@ jobs:
 
       - uses: codecov/codecov-action@v7
         with:
-          fail_ci_if_error: ${{ github.event_name != 'pull_request' && true || false }}
+          fail_ci_if_error: false
           files: ./cobertura.xml
           plugins: noop
           disable_search: true

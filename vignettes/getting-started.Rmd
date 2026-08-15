@@ -122,6 +122,21 @@ agg
 For each metric you get `<metric>_mean`, `<metric>_median`, `<metric>_sd`, and
 `<metric>_mcse`, plus `n_reps`, `n_failed`, and `failure_rate`.
 
+Studies with several metrics can produce wide summaries -- each metric
+contributes `_n_used`, `_mean`, `_median`, `_sd`, and `_mcse` columns, so the
+aggregate can easily exceed 100 columns. Nothing is dropped or truncated;
+narrow the aggregation with the `metrics` argument, and use `metric_cols()`
+to list the flattened columns of a single metric:
+
+```{r}
+metric_cols(result, "posterior_summary")
+agg_post <- summarize_simulation(
+  result,
+  by = "data_n",
+  metrics = metric_cols(result, "posterior_summary", fields = "mean")
+)
+```
+
 # Performance measures
 
 For estimator-performance measures in the sense of Morris, White & Crowther
@@ -159,8 +174,13 @@ For long-running simulations, write checkpoints to `result_path`:
 
 ```{r, eval=FALSE}
 config <- simulation_config(
-  data_grid = data_grid,
-  fit_grid = fit_grid,
+  data_grid = data.frame(
+    n = c(50, 100),
+    intercept = 1,
+    slope = 2,
+    sigma = 1
+  ),
+  fit_grid = data.frame(model = "linear"),
   data_generator = my_data_generator,
   fitter = LinearRegressionFitter(n_draws = 200L),
   metrics = list(posterior_summary_metric()),
@@ -172,11 +192,17 @@ config <- simulation_config(
 result <- run_simulation(config, resume = "auto")
 ```
 
-If interrupted, resume with:
+If interrupted, resume with the original config:
 
 ```{r, eval=FALSE}
-result <- resume_simulation("my_simulation")
+result <- resume_simulation("my_simulation", config = config)
 ```
+
+Passing the config is required here because `my_data_generator` is a closure
+defined in your script; the run manifest cannot rehydrate script-defined
+closures. The
+configless form `resume_simulation("my_simulation")` works only when every
+generator, fitter, and metric is a namespaced package function or class.
 
 # Metrics
 
@@ -185,7 +211,7 @@ The built-in metric library covers the standard surface: `pred_bias_metric`,
 `pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
 `sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`, and
 LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
-`elpd_test_metric`, `pred_rmse_metric`, `r2_test_metric`).
+`elpd_test_metric`, `r2_test_metric`).
 `rmse_test_metric()` remains as a compatibility name for
 `pred_rmse_metric(name = "rmse_test")`.
 

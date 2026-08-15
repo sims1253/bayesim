@@ -220,7 +220,40 @@ run_task <- function(
   # Step 2: Fit model
   fit_result <- rlang::try_fetch(
     {
-      fit_model(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
+      fit_result <- fit_model(
+        fitter,
+        data_bundle,
+        task$fit_spec,
+        task_seed,
+        task_ctx
+      )
+      validate_fit_result_interface(fit_result)
+      # The public fitter seam is fit_model() + extract_draws(). A backend may
+      # return draws eagerly, but when it returns only its native fit object we
+      # obtain the canonical draws here so downstream metrics and retention
+      # never need backend-specific knowledge.
+      if (
+        isTRUE(fit_result$success) &&
+          is.null(fit_result$draws) &&
+          !is.null(fit_result$fit)
+      ) {
+        fit_result$draws <- tryCatch(
+          extract_draws(fitter, fit_result),
+          error = function(e) {
+            if (is_fatal_error(e)) {
+              stop(e)
+            }
+            stop(bayesim_contract_error(
+              "extract_draws() failed after fit_model(): ",
+              conditionMessage(e)
+            ))
+          }
+        )
+      }
+      if (isTRUE(fit_result$success) && !is.null(fit_result$draws)) {
+        validate_fitter_draws(fit_result$draws)
+      }
+      fit_result
     },
     error = function(e) {
       # C1: fatal errors (config/contract/checkpoint/internal) propagate so the
@@ -369,17 +402,27 @@ build_metric_context <- function(
     all_needs <- unique(c(all_needs, "predictions"))
   }
 
-  # Warn if metrics need features the fitter doesn't support
+  # Warn if metrics need features the fitter doesn't support. Per-task runs
+  # would otherwise re-warn thousands of times; .warn_once keeps it to one per
+  # run (R1b). The same mismatch is also surfaced once by preflight() before the
+  # run, so sequential users see it before any task executes.
   if ("predictions" %in% all_needs && !fitter@supports_predictions) {
-    cli::cli_warn(
+    .warn_once(
+      "unsupported_capability.predictions",
       "Metric requires predictions but fitter does not support them"
     )
   }
   if ("log_lik" %in% all_needs && !fitter@supports_log_lik) {
-    cli::cli_warn("Metric requires log_lik but fitter does not support it")
+    .warn_once(
+      "unsupported_capability.log_lik",
+      "Metric requires log_lik but fitter does not support it"
+    )
   }
   if ("loo" %in% all_needs && !fitter@supports_loo) {
-    cli::cli_warn("Metric requires loo but fitter does not support it")
+    .warn_once(
+      "unsupported_capability.loo",
+      "Metric requires loo but fitter does not support it"
+    )
   }
 
   # Predictions and pointwise log-lik are evaluated on the test set when one
@@ -389,22 +432,79 @@ build_metric_context <- function(
 
   if ("predictions" %in% all_needs && fitter@supports_predictions) {
     context$predictions <- tryCatch(
-      predict_fit(fitter, fit_result, newdata = eval_data, seed = seed),
-      error = function(e) NULL
+      {
+        predictions <- predict_fit(
+          fitter,
+          fit_result,
+          newdata = eval_data,
+          seed = seed
+        )
+        validate_fitter_predictions(
+          predictions,
+          n_obs = if (is.null(eval_data)) {
+            nrow(data_bundle$train)
+          } else {
+            nrow(eval_data)
+          }
+        )
+        predictions
+      },
+      # R1c: a fitter that advertises prediction support but fails to predict is
+      # a real anomaly. Surface it once instead of silently degrading every
+      # prediction metric to NA with no explanation.
+      error = function(e) {
+        if (is_fatal_error(e)) {
+          stop(e)
+        }
+        .warn_once(
+          "predict_fit_failed",
+          "predict_fit() failed; prediction metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
     )
   }
 
   if ("log_lik" %in% all_needs && fitter@supports_log_lik) {
     context$log_lik <- tryCatch(
-      log_lik_matrix(fitter, fit_result, newdata = eval_data),
-      error = function(e) NULL
+      {
+        log_lik <- log_lik_matrix(fitter, fit_result, newdata = eval_data)
+        validate_fitter_log_lik(
+          log_lik,
+          n_obs = if (is.null(eval_data)) {
+            nrow(data_bundle$train)
+          } else {
+            nrow(eval_data)
+          }
+        )
+        log_lik
+      },
+      error = function(e) {
+        if (is_fatal_error(e)) {
+          stop(e)
+        }
+        .warn_once(
+          "log_lik_failed",
+          "log_lik_matrix() failed; log-likelihood metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
     )
   }
 
   if ("loo" %in% all_needs && fitter@supports_loo) {
     loo_ctx <- tryCatch(
       build_loo_context(fitter, fit_result),
-      error = function(e) NULL
+      error = function(e) {
+        .warn_once(
+          "loo_build_failed",
+          "LOO context could not be built; LOO-based metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
     )
     if (!is.null(loo_ctx)) {
       context$loo <- loo_ctx$loo

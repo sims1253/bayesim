@@ -24,15 +24,20 @@ calibration (SBC), model comparison, and method evaluation.
 A study is declared as a grid of data-generating conditions, models, and
 replicates. bayesim expands the grid into tasks, executes them
 (sequentially or in parallel, with checkpointing and bounded memory),
-and summarizes the results as the performance measures recommended by
-Morris, White, and Crowther (2019) — bias, empirical SE, MSE, and
-coverage, each with its Monte Carlo standard error.
+and summarizes the results as performance measures. Fixed-truth cells
+use the measures recommended by Morris, White, and Crowther (2019) —
+bias, empirical SE, MSE, and coverage, each with its Monte Carlo
+standard error. Varying-truth cells (for example prior-predictive SBC
+studies) use separately named error measures (`mean_error`, `error_sd`,
+`error_mse`).
 
 Main features:
 
   - Deterministic reproducibility: each task receives its own
     L’Ecuyer-CMRG RNG stream derived from a single study seed, so
-    sequential, parallel, and resumed runs produce identical results.
+    scientific outputs and canonical outcomes match across sequential,
+    parallel, and resumed runs once volatile wall-clock timing is
+    excluded.
   - Simulation-based calibration with prior-predictive and
     inverse-forward-sampling generators, ESS-aware rank thinning, and
     ECDF plots with simultaneous confidence bands (Säilynoja, Bürkner,
@@ -98,23 +103,24 @@ config <- simulation_config(
 )
 
 result <- run_simulation(config, workers = 2, progress = FALSE)
+#> 300 tasks = 3 data x 1 fit x 100 reps; 2 daemons
 #> ℹ Starting simulation with 300 tasks
 
 # Estimator performance with Monte Carlo standard errors.
 performance_measures(result, by = "data_n")
-#> # A tibble: 54 × 6
-#>    data_n estimand  measure     value     mcse n_sim
-#>     <dbl> <chr>     <chr>       <dbl>    <dbl> <int>
-#>  1     20 Intercept bias      -0.0235  0.0239    100
-#>  2     20 Intercept emp_se     0.239   0.0170    100
-#>  3     20 Intercept mse        0.0573  0.00856   100
-#>  4     20 Intercept model_se   0.204   0.00366   100
-#>  5     20 Intercept coverage   0.83    0.0376    100
-#>  6     20 Intercept n_sim    100      NA         100
-#>  7     50 Intercept bias       0.0178  0.0125    100
-#>  8     50 Intercept emp_se     0.125   0.00889   100
-#>  9     50 Intercept mse        0.0158  0.00191   100
-#> 10     50 Intercept model_se   0.137   0.00158   100
+#> # A tibble: 54 × 7
+#>    data_n estimand  measure     value     mcse n_sim truth_mode
+#>     <dbl> <chr>     <chr>       <dbl>    <dbl> <int> <chr>
+#>  1     20 Intercept bias      -0.0235  0.0239    100 fixed
+#>  2     20 Intercept emp_se     0.239   0.0170    100 fixed
+#>  3     20 Intercept mse        0.0573  0.00856   100 fixed
+#>  4     20 Intercept model_se   0.204   0.00366   100 fixed
+#>  5     20 Intercept coverage   0.83    0.0376    100 fixed
+#>  6     20 Intercept n_sim    100      NA         100 fixed
+#>  7     50 Intercept bias       0.0178  0.0125    100 fixed
+#>  8     50 Intercept emp_se     0.125   0.00889   100 fixed
+#>  9     50 Intercept mse        0.0158  0.00191   100 fixed
+#> 10     50 Intercept model_se   0.137   0.00158   100 fixed
 #> # ℹ 44 more rows
 ```
 

@@ -12,13 +12,15 @@ new_task_result(
   timing = list(total = 0),
   error = NULL,
   warnings = character(),
-  truth = NULL
+  truth = NULL,
+  stop_reason = NULL
 )
 }
 \arguments{
 \item{task_id}{Character scalar identifying the task}
 
-\item{status}{Character scalar: one of "success", "failed", or "skipped"}
+\item{status}{Character scalar: one of "pending", "running", "success",
+"failed", "skipped", or "cancelled"}
 
 \item{metrics}{Named list of computed metrics (NULL if task failed or skipped)}
 
@@ -29,6 +31,9 @@ new_task_result(
 \item{error}{NULL, or a list with \code{error_class} and \code{error_message} if failed}
 
 \item{warnings}{Character vector of warning messages}
+
+\item{stop_reason}{Optional reason a task was not executed, such as
+\code{"max_errors"} or \code{"adaptive_stop"}.}
 }
 \value{
 A validated \code{bayesim_task_result} object

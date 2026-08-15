@@ -1,7 +1,12 @@
 #' @title Metric Abstract Class
 #' @description Abstract base class for defining simulation metrics in bayesim.
 #'   Metrics compute summary statistics or diagnostic values from fitted model
-#'   results and data bundles.
+#'   results and data bundles. `Metric` is abstract: it has no direct
+#'   instances, so calling `Metric()` errors. Subclasses are created with
+#'   `S7::new_class(..., parent = Metric)` and instantiated directly. Because
+#'   the parent is abstract, S7 honors the defaults a subclass declares for
+#'   the inherited `name`/`needs`/`required`/`summary_type`/`schema`
+#'   properties when the subclass constructor is called.
 #'
 #' @param name Character identifier for the metric. Used as a prefix when
 #'   flattening metric output to column names.
@@ -16,13 +21,20 @@
 #' @param summary_type Character; how [summarize_simulation()] aggregates this
 #'   metric's flattened columns: `"mean"` (default, sd/sqrt(n) MCSE),
 #'   `"proportion"` (coverage-style sqrt(p(1-p)/n) MCSE), or `"none"`.
+#' @param schema Named list of field-level metadata. Each emitted field can
+#'   declare a `role` (`estimate`, `binary`, `count`, `diagnostic`, `rank`, or
+#'   `artifact`), an `aggregation` (`mean`, `proportion`, or `none`), an MCSE
+#'   method (`sd`, `binomial`, or `none`), and optional `nominal`, `units`, or
+#'   `dimension` metadata. `summary_type` remains supported as a compatibility
+#'   default for metrics that do not declare a schema.
 #'
-#' @return An S7 class object representing a Metric.
+#' @return An S7 class object representing the abstract Metric base class.
+#'   Construct subclasses directly (e.g. `MyMetric()`); do not call `Metric()`.
 #'
 #' @section Methods:
-#' The `compute()` S7 generic must be implemented by subclasses.
+#' The `compute_metric()` S7 generic must be implemented by subclasses.
 #' \describe{
-#'   \item{compute(metric, fit_result, data_bundle, context, task_ctx)}{
+#'   \item{compute_metric(metric, fit_result, data_bundle, context, task_ctx)}{
 #'     Compute metric values from a fitted model result. This method must be
 #'     implemented by subclasses.
 #'
@@ -32,7 +44,7 @@
 #'         model output (draws, diagnostics, etc.)
 #'       \item data_bundle: A list containing data-related objects including
 #'         train (training data), test (test data if applicable), response
-#'         (response variable), true_params (true parameter values if known),
+#'         (response variable), true_params (true parameter values if known)
 #'       \item context: A list with precomputed values based on the metric's
 #'         `needs` property. May include predictions, log_lik (log-likelihood
 #'         values), loo (leave-one-out cross-validation results), etc.
@@ -76,7 +88,7 @@
 #' S7::method(compute_metric, RMSEMetric) <- function(
 #'   metric, fit_result, data_bundle, context, task_ctx
 #' ) {
-#'   preds <- context$predictions
+#'   preds <- context$predictions$predicted_mean
 #'   actual <- data_bundle$test[[data_bundle$response]]
 #'   list(
 #'     value = sqrt(mean((preds - actual)^2)),
@@ -84,19 +96,277 @@
 #'   )
 #' }
 #'
+#' # Construct the subclass directly; the declared defaults are honored.
+#' RMSEMetric()@name     # "rmse"
+#' RMSEMetric()@needs    # "predictions"
+#' RMSEMetric()@required # FALSE
+#'
 #' @export
 Metric <- S7::new_class(
   "Metric",
+  abstract = TRUE,
   properties = list(
+    # Subclasses provide the concrete default (Metric is abstract, so S7
+    # honors subclass-declared defaults at construction). The public
+    # validator checks the value after subclass construction, avoiding
+    # premature parent validation.
     name = S7::new_property(S7::class_character),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
     # E4: how summarize_simulation aggregates this metric's flattened columns.
     # "mean" (default) — mean/sd/sqrt(n) MCSE; "proportion" — coverage-style
     # sqrt(p(1-p)/n) MCSE; "none" — do not aggregate (e.g. per-task ranks).
-    summary_type = S7::new_property(S7::class_character, default = "mean")
+    summary_type = S7::new_property(
+      S7::class_character,
+      default = "mean",
+      validator = function(value) validate_metric_summary_type(value)
+    ),
+    schema = S7::new_property(
+      S7::class_list,
+      default = list(),
+      validator = function(value) validate_metric_schema(value)
+    )
   )
 )
+
+# =============================================================================
+# Metric metadata and shared validation
+# =============================================================================
+
+METRIC_SCHEMA_ROLES <- c(
+  "estimate",
+  "binary",
+  "count",
+  "diagnostic",
+  "rank",
+  "artifact"
+)
+METRIC_SCHEMA_AGGREGATIONS <- c("mean", "proportion", "none")
+METRIC_SCHEMA_MCSE <- c("sd", "binomial", "none")
+
+# S7 validators return NULL for valid values and a short message otherwise.
+# Keeping these validators here makes built-in metric constructors reject bad
+# configuration before a run starts, while validate_metric() provides the same
+# diagnostics for package-external S7 subclasses.
+validate_metric_name <- function(value) {
+  if (
+    !is.character(value) ||
+      length(value) != 1L ||
+      is.na(value) ||
+      !nzchar(value)
+  ) {
+    return("name must be a non-empty character scalar")
+  }
+  if (grepl("__", value, fixed = TRUE)) {
+    return("name must not contain the '__' flattening separator")
+  }
+  NULL
+}
+
+validate_metric_summary_type <- function(value) {
+  if (
+    !is.character(value) ||
+      length(value) != 1L ||
+      is.na(value) ||
+      !value %in% METRIC_SCHEMA_AGGREGATIONS
+  ) {
+    paste0(
+      "summary_type must be one of: ",
+      paste(METRIC_SCHEMA_AGGREGATIONS, collapse = ", ")
+    )
+  }
+}
+
+validate_interval_probability <- function(value, label = "probability") {
+  if (
+    !is.numeric(value) ||
+      length(value) != 1L ||
+      is.na(value) ||
+      !is.finite(value) ||
+      value <= 0 ||
+      value >= 1
+  ) {
+    paste0(label, " must be a single finite numeric value in (0, 1)")
+  }
+}
+
+validate_metric_schema <- function(schema) {
+  if (is.null(schema)) {
+    return(NULL)
+  }
+  if (!is.list(schema)) {
+    return("schema must be a named list of field metadata")
+  }
+  if (length(schema) == 0L) {
+    return(NULL)
+  }
+  nms <- names(schema)
+  if (
+    is.null(nms) ||
+      anyNA(nms) ||
+      !all(nzchar(nms)) ||
+      anyDuplicated(nms) > 0L
+  ) {
+    return("schema must have unique, non-empty field names")
+  }
+  for (field in nms) {
+    meta <- schema[[field]]
+    if (is.character(meta) && length(meta) == 1L) {
+      if (!meta %in% METRIC_SCHEMA_AGGREGATIONS) {
+        return(paste0("schema field '", field, "' has an invalid aggregation"))
+      }
+      next
+    }
+    if (!is.list(meta)) {
+      return(paste0("schema field '", field, "' must be a metadata list"))
+    }
+    unknown <- setdiff(
+      names(meta),
+      c(
+        "role",
+        "aggregation",
+        "mcse",
+        "nominal",
+        "dimension",
+        "units",
+        "externalize"
+      )
+    )
+    if (length(unknown) > 0L) {
+      return(paste0(
+        "schema field '",
+        field,
+        "' has unknown metadata: ",
+        paste(unknown, collapse = ", ")
+      ))
+    }
+    if (
+      !is.null(meta$role) &&
+        (!is.character(meta$role) ||
+          length(meta$role) != 1L ||
+          is.na(meta$role) ||
+          !meta$role %in% METRIC_SCHEMA_ROLES)
+    ) {
+      return(paste0("schema field '", field, "' has an invalid role"))
+    }
+    if (
+      !is.null(meta$aggregation) &&
+        (!is.character(meta$aggregation) ||
+          length(meta$aggregation) != 1L ||
+          is.na(meta$aggregation) ||
+          !meta$aggregation %in% METRIC_SCHEMA_AGGREGATIONS)
+    ) {
+      return(paste0("schema field '", field, "' has an invalid aggregation"))
+    }
+    if (
+      !is.null(meta$mcse) &&
+        (!is.character(meta$mcse) ||
+          length(meta$mcse) != 1L ||
+          is.na(meta$mcse) ||
+          !meta$mcse %in% METRIC_SCHEMA_MCSE)
+    ) {
+      return(paste0("schema field '", field, "' has an invalid mcse method"))
+    }
+    if (!is.null(meta$nominal)) {
+      probability_error <- validate_interval_probability(
+        meta$nominal,
+        "nominal"
+      )
+      if (!is.null(probability_error)) {
+        return(paste0("schema field '", field, "': ", probability_error))
+      }
+    }
+    if (
+      !is.null(meta$dimension) &&
+        (!is.character(meta$dimension) ||
+          length(meta$dimension) != 1L ||
+          is.na(meta$dimension) ||
+          !nzchar(meta$dimension))
+    ) {
+      return(paste0("schema field '", field, "' has an invalid dimension"))
+    }
+    if (
+      !is.null(meta$units) &&
+        (!is.character(meta$units) ||
+          length(meta$units) != 1L ||
+          is.na(meta$units))
+    ) {
+      return(paste0("schema field '", field, "' has invalid units"))
+    }
+    if (
+      !is.null(meta$externalize) &&
+        (!is.logical(meta$externalize) ||
+          length(meta$externalize) != 1L ||
+          is.na(meta$externalize))
+    ) {
+      return(paste0("schema field '", field, "' has invalid externalize flag"))
+    }
+  }
+  NULL
+}
+
+# Return normalized metadata for a field. Character shorthand means an
+# aggregation rule. A caller can pass a Metric object from any subclass; old
+# subclasses that only declare summary_type continue to work.
+metric_field_metadata <- function(metric, field = NULL) {
+  schema <- tryCatch(metric@schema, error = function(e) list())
+  summary_type <- tryCatch(metric@summary_type, error = function(e) "mean")
+  if (!is.null(field) && length(schema) > 0L && field %in% names(schema)) {
+    meta <- schema[[field]]
+    if (is.character(meta)) meta <- list(aggregation = meta)
+  } else {
+    meta <- list()
+  }
+  if (is.null(meta$aggregation)) {
+    meta$aggregation <- summary_type
+  }
+  if (is.null(meta$mcse)) {
+    meta$mcse <- if (identical(meta$aggregation, "proportion")) {
+      "binomial"
+    } else if (identical(meta$aggregation, "none")) {
+      "none"
+    } else {
+      "sd"
+    }
+  }
+  meta
+}
+
+# Prediction metrics must never rely on R's vector recycling. A malformed
+# fitter result is a contract violation, not a shorter prediction problem;
+# fail at the metric seam so the worker can record a clear metric failure.
+validate_prediction_vectors <- function(actual, predicted, metric_name) {
+  is_vector <- function(x) is.atomic(x) && is.null(dim(x))
+  if (!is_vector(actual) || !is.numeric(actual)) {
+    stop(bayesim_metric_error(
+      sprintf("Metric '%s' requires a numeric response vector", metric_name)
+    ))
+  }
+  if (!is_vector(predicted) || !is.numeric(predicted)) {
+    stop(bayesim_metric_error(
+      sprintf("Metric '%s' requires a numeric prediction vector", metric_name)
+    ))
+  }
+  if (length(actual) == 0L || length(predicted) == 0L) {
+    stop(bayesim_metric_error(
+      sprintf(
+        "Metric '%s' requires non-empty response and prediction vectors",
+        metric_name
+      )
+    ))
+  }
+  if (length(actual) != length(predicted)) {
+    stop(bayesim_metric_error(
+      sprintf(
+        "Metric '%s' received %d responses but %d predictions; lengths must match",
+        metric_name,
+        length(actual),
+        length(predicted)
+      )
+    ))
+  }
+  invisible(NULL)
+}
 
 # =============================================================================
 # S7 Generic for Metric compute method
@@ -203,6 +473,17 @@ validate_metric_output <- function(output, metric_name) {
       )
     )
   }
+  if (anyDuplicated(nms) > 0L) {
+    stop(
+      bayesim_metric_error(
+        sprintf(
+          "Metric '%s' output has duplicate field names: %s",
+          metric_name,
+          paste(unique(nms[duplicated(nms)]), collapse = ", ")
+        )
+      )
+    )
+  }
 
   for (nm in nms) {
     val <- output[[nm]]
@@ -228,7 +509,8 @@ validate_metric_output <- function(output, metric_name) {
     is_named_numeric_vector <- is.double(val) &&
       length(val) > 1 &&
       !is.null(names(val)) &&
-      all(names(val) != "" & !is.na(names(val)))
+      all(names(val) != "" & !is.na(names(val))) &&
+      anyDuplicated(names(val)) == 0L
 
     if (!is_scalar_atomic && !is_named_numeric_vector) {
       if (is.list(val)) {
@@ -333,6 +615,9 @@ flatten_metric_output <- function(output, metric_name) {
     } else if (length(val) == 1) {
       result[[paste0(metric_name, "__", nm)]] <- val
     } else {
+      # Defensive branch: unreachable in practice. validate_metric_output()
+      # only admits scalar atomics or named numeric vectors (length >= 1), so
+      # a length > 1 value without names (or non-numeric) is already rejected.
       for (sub_nm in names(val)) {
         result[[paste0(metric_name, "__", nm, "__", sub_nm)]] <- val[[sub_nm]]
       }

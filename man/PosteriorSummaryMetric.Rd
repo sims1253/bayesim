@@ -6,10 +6,15 @@
 \title{Posterior Summary Metric}
 \usage{
 PosteriorSummaryMetric(
-  name = character(0),
+  name = "posterior_summary",
   needs = character(0),
   required = FALSE,
   summary_type = "mean",
+  schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"), median
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"), sd = list(role =
+    "estimate", aggregation = "mean", mcse = "sd"), q_lower = list(role = "estimate",
+    aggregation = "mean", mcse = "sd"), q_upper = list(role = "estimate", aggregation =
+    "mean", mcse = "sd")),
   prob = 0.95
 )
 

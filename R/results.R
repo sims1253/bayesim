@@ -105,7 +105,8 @@ validate_bayesim_fit_result <- function(x) {
 #' - `timing$total` must be non-negative
 #' - If `draws` is not NULL, it must be a matrix with column names
 #'
-#' @keywords internal
+#' @export
+#' @seealso [Fitter], [fit_model()]
 #' @examples
 #' \dontrun{
 #' # Successful fit
@@ -212,14 +213,13 @@ validate_bayesim_task_result <- function(x) {
     stop(bayesim_contract_error("task_id must be a scalar character"))
   }
 
-  valid_statuses <- c("success", "failed", "skipped")
   if (!is.character(x$status) || length(x$status) != 1) {
     stop(bayesim_contract_error("status must be a scalar character"))
   }
-  if (!(x$status %in% valid_statuses)) {
+  if (!is_valid_task_status(x$status)) {
     stop(bayesim_contract_error(
       "status must be one of: ",
-      paste(valid_statuses, collapse = ", ")
+      paste(TASK_STATUSES, collapse = ", ")
     ))
   }
 
@@ -236,6 +236,15 @@ validate_bayesim_task_result <- function(x) {
         "When status is 'failed', error must not be NULL"
       ))
     }
+  }
+
+  if (
+    !is.null(x$stop_reason) &&
+      (!is.character(x$stop_reason) || length(x$stop_reason) != 1)
+  ) {
+    stop(bayesim_contract_error(
+      "stop_reason must be NULL or a scalar character"
+    ))
   }
 
   if (!is.list(x$timing)) {
@@ -260,12 +269,15 @@ validate_bayesim_task_result <- function(x) {
 #' Constructs a result object from a single simulation task execution.
 #'
 #' @param task_id Character scalar identifying the task
-#' @param status Character scalar: one of "success", "failed", or "skipped"
+#' @param status Character scalar: one of "pending", "running", "success",
+#'   "failed", "skipped", or "cancelled"
 #' @param metrics Named list of computed metrics (NULL if task failed or skipped)
 #' @param diagnostics Named list of diagnostic values (NULL if task failed)
 #' @param timing List containing timing information, must include `total`
 #' @param error NULL, or a list with `error_class` and `error_message` if failed
 #' @param warnings Character vector of warning messages
+#' @param stop_reason Optional reason a task was not executed, such as
+#'   `"max_errors"` or `"adaptive_stop"`.
 #'
 #' @return A validated `bayesim_task_result` object
 #'
@@ -308,7 +320,8 @@ new_task_result <- function(
   timing = list(total = 0),
   error = NULL,
   warnings = character(),
-  truth = NULL
+  truth = NULL,
+  stop_reason = NULL
 ) {
   # Ensure warnings is character vector
   if (is.null(warnings)) {
@@ -334,7 +347,8 @@ new_task_result <- function(
       warnings = warnings,
       # E1: data-generating truth (named numeric or NULL), always retained and
       # flattened to truth__<param> summary columns for recovery analysis.
-      truth = truth
+      truth = truth,
+      stop_reason = stop_reason
     ),
     class = "bayesim_task_result"
   )
@@ -495,7 +509,8 @@ new_simulation_result <- function(
   timing = list(total = 0),
   errors = NULL,
   checkpoint_path = NULL,
-  metric_summary_types = NULL
+  metric_summary_types = NULL,
+  metric_field_metadata = NULL
 ) {
   # Ensure task_results is a list
   if (is.null(task_results)) {
@@ -531,7 +546,10 @@ new_simulation_result <- function(
       checkpoint_path = checkpoint_path,
       # E4: named list mapping metric name -> summary_type ("mean",
       # "proportion", "none"); consumed by summarize_simulation().
-      metric_summary_types = metric_summary_types
+      metric_summary_types = metric_summary_types,
+      # Field-level schema is the preferred analysis contract. Keep the
+      # summary_type map above for results written by older bayesim versions.
+      metric_field_metadata = metric_field_metadata
     ),
     class = "bayesim_simulation_result"
   )
@@ -599,25 +617,25 @@ print.bayesim_task_result <- function(x, ...) {
 print.bayesim_simulation_result <- function(x, ...) {
   cat("<bayesim_simulation_result>\n")
   cat("  Config fingerprint:", x$config_fingerprint, "\n")
-  cat("  Tasks:", length(x$task_results), "\n")
-  n_success <- sum(vapply(
+  task_status <- vapply(
     x$task_results,
-    function(t) t$status == "success",
-    logical(1)
-  ))
-  n_failed <- sum(vapply(
-    x$task_results,
-    function(t) t$status == "failed",
-    logical(1)
-  ))
-  n_skipped <- sum(vapply(
-    x$task_results,
-    function(t) t$status == "skipped",
-    logical(1)
-  ))
-  cat("    - Success:", n_success, "\n")
-  cat("    - Failed:", n_failed, "\n")
-  cat("    - Skipped:", n_skipped, "\n")
+    function(t) if (is.null(t)) "pending" else t$status,
+    character(1)
+  )
+  counts <- table(
+    factor(
+      task_status,
+      levels = c(TASK_TERMINAL_STATUSES, TASK_RESUMABLE_STATUSES)
+    )
+  )
+  cat("  Tasks:", length(task_status), "\n")
+  cat("    - Success:", unname(counts[["success"]]), "\n")
+  cat("    - Failed:", unname(counts[["failed"]]), "\n")
+  cat("    - Pending:", unname(counts[["pending"]]), "\n")
+  cat("    - Skipped (policy-stopped):", unname(counts[["skipped"]]), "\n")
+  if (unname(counts[["cancelled"]]) > 0L) {
+    cat("    - Cancelled:", unname(counts[["cancelled"]]), "\n")
+  }
   # F3: condition grid shape + metrics preview.
   if (!is.null(x$summary) && is.data.frame(x$summary) && nrow(x$summary) > 0) {
     metric_preview <- grep("__", names(x$summary), value = TRUE)
@@ -641,7 +659,17 @@ print.bayesim_simulation_result <- function(x, ...) {
   }
   cat("  Total time:", round(x$timing$total, 2), "s\n")
   if (!is.null(x$checkpoint_path)) {
-    cat("  Checkpoint:", x$checkpoint_path, "\n")
+    checkpoint_path <- normalizePath(
+      x$checkpoint_path,
+      winslash = "/",
+      mustWork = FALSE
+    )
+    cat("  Results:", checkpoint_path, "\n")
+    # F6: only advertise the configless resume command when the run manifest
+    # can actually rehydrate every executable component; otherwise the
+    # guidance asks for the original config (see resume_guidance_lines()).
+    cat(resume_guidance_lines(checkpoint_path), sep = "\n")
+    cat("\n")
   }
   invisible(x)
 }

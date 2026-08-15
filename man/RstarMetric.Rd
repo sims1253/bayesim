@@ -6,10 +6,11 @@
 \title{R* Convergence Metric}
 \usage{
 RstarMetric(
-  name = character(0),
+  name = "rstar",
   needs = character(0),
   required = FALSE,
   summary_type = "mean",
+  schema = list(value = list(role = "diagnostic", aggregation = "mean", mcse = "sd")),
   uncertainty = FALSE,
   method = "rf"
 )

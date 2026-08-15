@@ -310,6 +310,39 @@ model_spec_from_grid_row <- function(fit_grid, i) {
   )
 }
 
+# Levels signature of categorical columns in a data frame.
+#
+# brms maps factor (and character) predictor values onto dummy codes via the
+# column's LEVELS; under `update(recompile = FALSE)` the compiled binary
+# reuses that mapping blindly. A task whose categorical predictors have
+# different levels (or a different level ORDER, which silently reorders the
+# coefficients) must therefore be treated as structurally incompatible with
+# the prefit, even though `make_standata` field names and K are unchanged.
+#
+# Returns a named list of level vectors (factors: `levels()`; character:
+# first-occurrence `unique()`, since brms factors them) or NULL when the data
+# has no categorical columns. Name order and level order are significant.
+.data_levels_sig <- function(data) {
+  if (is.null(data) || !is.data.frame(data)) {
+    return(NULL)
+  }
+  is_cat <- vapply(
+    data,
+    function(col) is.factor(col) || is.character(col),
+    logical(1)
+  )
+  if (!any(is_cat)) {
+    return(NULL)
+  }
+  lapply(data[is_cat], function(col) {
+    if (is.factor(col)) {
+      levels(col)
+    } else {
+      unique(col)
+    }
+  })
+}
+
 #' Build the model bank for a BrmsFitter
 #'
 #' For each DISTINCT row of `fit_grid` (deduped by [model_spec_hash()]), compiles
@@ -333,7 +366,9 @@ model_spec_from_grid_row <- function(fit_grid, i) {
 #'   `options(cmdstanr_write_stan_file_dir)` is set to
 #'   `file.path(result_path, "stan_binaries")` so compiled binaries persist and
 #'   are shared across controller and local daemons.
-#' @param seed Integer seed for the simulation (used only for logging).
+#' @param seed Reserved for compatibility with the simulation call site.
+#'   Prefit compilation uses `brms::brm(chains = 0)` and is deterministic, so
+#'   this seed is not used.
 #'
 #' @return A named list of `brmsfit` prefit objects keyed by
 #'   [model_spec_hash()], or NULL when `precompile` is FALSE.
@@ -448,7 +483,8 @@ build_model_bank <- function(
       list(
         fields = names(prefit_struct),
         K = prefit_struct$K,
-        X_ncol = ncol(prefit_struct$X)
+        X_ncol = ncol(prefit_struct$X),
+        levels = .data_levels_sig(prefit$data)
       )
     } else {
       NULL

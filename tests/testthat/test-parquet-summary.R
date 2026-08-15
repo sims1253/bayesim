@@ -1,8 +1,6 @@
 # tests/testthat/test-parquet-summary.R
 # Workstream I8: optional parquet summary sidecar.
 
-skip_on_cran()
-
 library(bayesim)
 library(testthat)
 

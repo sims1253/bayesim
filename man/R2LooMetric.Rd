@@ -6,10 +6,12 @@
 \title{R-squared LOO Metric}
 \usage{
 R2LooMetric(
-  name = character(0),
-  needs = character(0),
+  name = "r2_loo",
+  needs = "loo",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), elpd
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"))
 )
 
 r2_loo_metric(name = "r2_loo")

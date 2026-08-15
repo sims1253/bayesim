@@ -4,12 +4,13 @@
 \alias{plot_coverage}
 \title{Plot coverage rates per condition/parameter}
 \usage{
-plot_coverage(result, nominal = 0.95, by = NULL)
+plot_coverage(result, nominal = NULL, by = NULL)
 }
 \arguments{
 \item{result}{A \code{bayesim_simulation_result}.}
 
-\item{nominal}{Nominal coverage rate (default 0.95).}
+\item{nominal}{Nominal coverage rate. Defaults to the interval probability
+recorded by the metric schema, or 0.95 for legacy results.}
 
 \item{by}{Character vector of condition columns (passed to
 \code{\link[=performance_measures]{performance_measures()}}).}

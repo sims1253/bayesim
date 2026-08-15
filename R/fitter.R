@@ -13,7 +13,10 @@
 #' @param supports_loo Logical indicating if the fitter supports LOO-CV
 #'
 #' @section Methods:
-#' The following S7 generics must be implemented by subclasses:
+#' The following S7 generics form the fitter interface. A minimal custom
+#' fitter only needs to implement `fit_model()` and `extract_draws()`;
+#' diagnostics default to an empty list and unsupported optional capabilities
+#' default to `NULL`.
 #' \describe{
 #'   \item{`fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)`}{Main fitting method}
 #'   \item{`extract_draws(fitter, fit_result, variables = NULL)`}{Extract posterior draws}
@@ -25,9 +28,10 @@
 #'
 #' @section Creating Custom Fitters:
 #' To create a custom fitter, extend this class and implement methods for the
-#' S7 generics: `fit_model()`, `extract_draws()`, `predict_fit()`,
-#' `log_lik_matrix()`, `loo_fit()`, `fit_diagnostics()`. All matrices follow
-#' the draws-by-observations (S x N) orientation; see
+#' core S7 generics: `fit_model()` and `extract_draws()`. Implement optional
+#' `predict_fit()`, `log_lik_matrix()`, and `loo_fit()` methods only when the
+#' matching `supports_*` property is `TRUE`. All matrices follow the
+#' draws-by-observations (S x N) orientation; see
 #' `vignette("custom-fitters")` for the full contract.
 #'
 #' @return An S7 class object representing the abstract Fitter
@@ -40,11 +44,93 @@ Fitter <- S7::new_class(
   abstract = TRUE,
   properties = list(
     name = S7::new_property(S7::class_character),
-    supports_predictions = S7::new_property(S7::class_logical, default = TRUE),
-    supports_log_lik = S7::new_property(S7::class_logical, default = TRUE),
-    supports_loo = S7::new_property(S7::class_logical, default = TRUE)
+    # Optional capabilities are opt-in. Built-in fitters explicitly declare
+    # the capabilities they implement; a custom fitter is safe by default.
+    supports_predictions = S7::new_property(S7::class_logical, default = FALSE),
+    supports_log_lik = S7::new_property(S7::class_logical, default = FALSE),
+    supports_loo = S7::new_property(S7::class_logical, default = FALSE)
   )
 )
+
+# Validate the small, high-value shape contract at the task seam. Keeping this
+# here gives built-in and package-external fitters one shared diagnostic instead
+# of letting downstream metrics recycle or silently truncate malformed output.
+validate_fitter_draws <- function(draws) {
+  if (!is.matrix(draws) || !is.numeric(draws)) {
+    stop(bayesim_contract_error(
+      "extract_draws() must return a numeric matrix"
+    ))
+  }
+  if (nrow(draws) < 1L || ncol(draws) < 1L) {
+    stop(bayesim_contract_error(
+      "extract_draws() must return a non-empty draws matrix"
+    ))
+  }
+  nms <- colnames(draws)
+  if (is.null(nms) || anyNA(nms) || !all(nzchar(nms)) || anyDuplicated(nms)) {
+    stop(bayesim_contract_error(
+      "extract_draws() must return uniquely named parameter columns"
+    ))
+  }
+  invisible(draws)
+}
+
+validate_fitter_predictions <- function(predictions, n_obs) {
+  if (!is.list(predictions)) {
+    stop(bayesim_contract_error("predict_fit() must return a list"))
+  }
+  required <- c("predicted_mean", "predicted_samples", "predicted_sd")
+  missing <- setdiff(required, names(predictions))
+  if (length(missing)) {
+    stop(bayesim_contract_error(
+      "predict_fit() is missing required fields: ",
+      paste(missing, collapse = ", ")
+    ))
+  }
+  if (
+    length(predictions$predicted_mean) != n_obs ||
+      length(predictions$predicted_sd) != n_obs
+  ) {
+    stop(bayesim_contract_error(
+      "predict_fit() predicted_mean and predicted_sd must have one value per observation"
+    ))
+  }
+  samples <- predictions$predicted_samples
+  if (
+    !is.matrix(samples) ||
+      !is.numeric(samples) ||
+      nrow(samples) < 1L ||
+      ncol(samples) != n_obs
+  ) {
+    stop(bayesim_contract_error(
+      paste0(
+        "predict_fit()$predicted_samples must be a numeric S x N matrix; ",
+        "expected N = ",
+        n_obs,
+        " columns"
+      )
+    ))
+  }
+  invisible(predictions)
+}
+
+validate_fitter_log_lik <- function(log_lik, n_obs) {
+  if (
+    !is.matrix(log_lik) ||
+      !is.numeric(log_lik) ||
+      nrow(log_lik) < 1L ||
+      ncol(log_lik) != n_obs
+  ) {
+    stop(bayesim_contract_error(
+      paste0(
+        "log_lik_matrix() must return a numeric S x N matrix; expected N = ",
+        n_obs,
+        " columns"
+      )
+    ))
+  }
+  invisible(log_lik)
+}
 
 # =============================================================================
 # S7 Generics for Fitter methods
@@ -178,7 +264,7 @@ predict_epred <- S7::new_generic(
 )
 
 # Default: fitters that don't override return NULL (metric degrades to NA).
-S7::method(predict_epred, S7::class_any) <- function(
+S7::method(predict_epred, Fitter) <- function(
   fitter,
   fit_result,
   newdata = NULL
@@ -261,6 +347,36 @@ fit_diagnostics <- S7::new_generic(
     S7::S7_dispatch()
   }
 )
+
+# Optional capability defaults. These are deliberately methods on Fitter rather
+# than abstract methods: a custom fitter can implement just fit_model() and
+# extract_draws() and run studies that do not request predictions, log-lik, or
+# LOO. The capability flags are the public declaration of whether an override
+# is available.
+S7::method(predict_fit, Fitter) <- function(
+  fitter,
+  fit_result,
+  newdata = NULL,
+  seed = NULL
+) {
+  NULL
+}
+
+S7::method(log_lik_matrix, Fitter) <- function(
+  fitter,
+  fit_result,
+  newdata = NULL
+) {
+  NULL
+}
+
+S7::method(loo_fit, Fitter) <- function(fitter, fit_result) {
+  NULL
+}
+
+S7::method(fit_diagnostics, Fitter) <- function(fitter, fit_result) {
+  list()
+}
 
 
 # =============================================================================
@@ -639,6 +755,13 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' @param smoke_test Logical, if TRUE run a quick fit test with sample data to
 #'   verify that methods work correctly end-to-end
 #' @param verbose Logical, if TRUE print progress messages during validation
+#' @param data_bundle Optional representative data bundle for the conformance
+#'   run. Supplying this is recommended for custom fitters whose data contract
+#'   is not a `y ~ x` regression.
+#' @param fit_spec Optional representative fit specification passed to
+#'   `fit_model()` during conformance testing.
+#' @param task_ctx Optional task context passed to `fit_model()` during
+#'   conformance testing.
 #'
 #' @return The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
 #'
@@ -653,12 +776,10 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - `supports_loo` property exists and is logical
 #'
 #' **Method Checks:**
-#' - `fit_model()` method is implemented
-#' - `extract_draws()` method is implemented
-#' - `predict_fit()` method is implemented
-#' - `log_lik_matrix()` method is implemented
-#' - `loo_fit()` method is implemented
-#' - `fit_diagnostics()` method is implemented
+#' - `fit_model()` and `extract_draws()` are implemented (the core contract)
+#' - optional methods are required only when their `supports_*` capability is
+#'   `TRUE`; unsupported methods have safe defaults
+#' - `fit_diagnostics()` may use the default empty-list implementation
 #'
 #' **Smoke Test (when smoke_test = TRUE):**
 #' - Creates simple lm-like test data
@@ -683,7 +804,14 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' my_fitter <- MyCustomFitter()
 #' validate_fitter(my_fitter, smoke_test = TRUE, verbose = TRUE)
 #' }
-validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
+validate_fitter <- function(
+  fitter,
+  smoke_test = FALSE,
+  verbose = FALSE,
+  data_bundle = NULL,
+  fit_spec = NULL,
+  task_ctx = NULL
+) {
   # Helper function for conditional messages
   msg <- function(...) {
     if (verbose) {
@@ -746,14 +874,11 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
   # ===========================================================================
   msg("Checking required S7 methods...")
 
-  required_methods <- c(
-    "fit_model",
-    "extract_draws",
-    "predict_fit",
-    "log_lik_matrix",
-    "loo_fit",
-    "fit_diagnostics"
-  )
+  # A custom fitter needs only the core fit/extraction methods. Optional
+  # capabilities are explicitly opt-in via supports_* and are checked for a
+  # concrete implementation below. The default diagnostics method is a valid
+  # empty result and therefore needs no boilerplate override.
+  required_methods <- c("fit_model", "extract_draws")
   fitter_class <- S7::S7_class(fitter)
 
   for (method_name in required_methods) {
@@ -779,6 +904,62 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     msg("  [OK] Method '", method_name, "()' is implemented")
   }
 
+  optional_methods <- c(
+    predictions = "predict_fit",
+    log_lik = "log_lik_matrix",
+    loo = "loo_fit"
+  )
+  for (capability in names(optional_methods)) {
+    method_name <- optional_methods[[capability]]
+    enabled <- switch(
+      capability,
+      predictions = isTRUE(fitter@supports_predictions),
+      log_lik = isTRUE(fitter@supports_log_lik),
+      loo = isTRUE(fitter@supports_loo)
+    )
+    method_impl <- tryCatch(
+      S7::method(get(method_name), fitter_class),
+      error = function(e) NULL
+    )
+    default_impl <- tryCatch(
+      S7::method(get(method_name), Fitter),
+      error = function(e) NULL
+    )
+    has_override <- !is.null(method_impl) &&
+      (is.null(default_impl) || !identical(method_impl, default_impl))
+
+    if (enabled && !has_override) {
+      rlang::abort(
+        c(
+          paste0(
+            "Fitter declares supports_",
+            capability,
+            " = TRUE but does not implement ",
+            method_name,
+            "()"
+          ),
+          i = paste0(
+            "Implement ",
+            method_name,
+            "() or set supports_",
+            capability,
+            " = FALSE."
+          )
+        ),
+        class = "bayesim_validation_error"
+      )
+    }
+    if (!enabled && !has_override) {
+      msg(
+        "  [OK] Optional method '",
+        method_name,
+        "()' defaults to unsupported"
+      )
+    } else {
+      msg("  [OK] Optional method '", method_name, "()' is implemented")
+    }
+  }
+
   # ===========================================================================
   # Check 4: Smoke test (optional)
   # ===========================================================================
@@ -786,124 +967,50 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
     msg("Running smoke test with sample data...")
 
     # Create simple test data (lm-like)
-    set.seed(12345)
-    n <- 20
+    withr::with_seed(12345L, {
+      n <- 20
 
-    test_data_bundle <- list(
-      train = data.frame(
-        y = rnorm(n),
-        x = rnorm(n)
-      ),
-      test = NULL,
-      response = "y",
-      true_params = c(intercept = 0, beta = 0, sigma = 1),
-      vars_of_interest = c("intercept", "beta", "sigma"),
-      meta = list()
-    )
-
-    test_fit_spec <- data.frame(model = "test")
-    test_task_ctx <- list(
-      task_id = "smoke_test",
-      data_idx = 1L,
-      fit_idx = 1L,
-      rep_idx = 1L
-    )
-
-    # Test fit_model()
-    msg("  Testing fit_model()...")
-    fit_result <- tryCatch(
-      fit_model(
-        fitter,
-        test_data_bundle,
-        test_fit_spec,
-        seed = 12345L,
-        test_task_ctx
-      ),
-      error = function(e) {
-        rlang::abort(
-          c(
-            "fit_model() method failed during smoke test",
-            x = conditionMessage(e)
+      if (is.null(data_bundle)) {
+        test_data_bundle <- list(
+          train = data.frame(
+            y = rnorm(n),
+            x = rnorm(n)
           ),
-          class = "bayesim_validation_error"
+          test = NULL,
+          response = "y",
+          true_params = c(intercept = 0, beta = 0, sigma = 1),
+          vars_of_interest = c("intercept", "beta", "sigma"),
+          meta = list()
         )
+      } else {
+        test_data_bundle <- data_bundle
       }
-    )
+      validate_data_bundle(test_data_bundle)
 
-    # Validate fit_result structure
-    if (!inherits(fit_result, "bayesim_fit_result")) {
-      rlang::abort(
-        c(
-          "fit_model() did not return a bayesim_fit_result object",
-          i = paste0(
-            "Returned class: ",
-            paste(class(fit_result), collapse = ", ")
-          )
-        ),
-        class = "bayesim_validation_error"
-      )
-    }
-
-    if (!isTRUE(fit_result$success)) {
-      rlang::abort(
-        c(
-          "fit_model() returned unsuccessful result during smoke test",
-          i = if (!is.null(fit_result$error)) {
-            conditionMessage(fit_result$error)
-          } else {
-            "No error message"
-          }
-        ),
-        class = "bayesim_validation_error"
-      )
-    }
-    msg("    [OK] fit_model() returns valid bayesim_fit_result")
-
-    # Test extract_draws()
-    msg("  Testing extract_draws()...")
-    draws <- tryCatch(
-      extract_draws(fitter, fit_result),
-      error = function(e) {
-        rlang::abort(
-          c(
-            "extract_draws() method failed during smoke test",
-            x = conditionMessage(e)
-          ),
-          class = "bayesim_validation_error"
+      test_fit_spec <- fit_spec %||% data.frame(model = "test")
+      test_task_ctx <- task_ctx %||%
+        list(
+          task_id = "smoke_test",
+          data_idx = 1L,
+          fit_idx = 1L,
+          rep_idx = 1L
         )
-      }
-    )
+      n <- nrow(test_data_bundle$train)
 
-    if (!is.matrix(draws)) {
-      rlang::abort(
-        c(
-          "extract_draws() did not return a matrix",
-          i = paste0("Returned class: ", paste(class(draws), collapse = ", "))
+      # Test fit_model()
+      msg("  Testing fit_model()...")
+      fit_result <- tryCatch(
+        fit_model(
+          fitter,
+          test_data_bundle,
+          test_fit_spec,
+          seed = 12345L,
+          test_task_ctx
         ),
-        class = "bayesim_validation_error"
-      )
-    }
-
-    if (is.null(colnames(draws))) {
-      rlang::abort(
-        c(
-          "extract_draws() returned matrix without column names",
-          i = "Matrix columns should be named after parameters"
-        ),
-        class = "bayesim_validation_error"
-      )
-    }
-    msg("    [OK] extract_draws() returns matrix with colnames")
-
-    # Test predict_fit() if supported
-    if (isTRUE(fitter@supports_predictions)) {
-      msg("  Testing predict_fit()...")
-      preds <- tryCatch(
-        predict_fit(fitter, fit_result),
         error = function(e) {
           rlang::abort(
             c(
-              "predict_fit() method failed during smoke test",
+              "fit_model() method failed during smoke test",
               x = conditionMessage(e)
             ),
             class = "bayesim_validation_error"
@@ -911,153 +1018,235 @@ validate_fitter <- function(fitter, smoke_test = FALSE, verbose = FALSE) {
         }
       )
 
-      if (is.null(preds)) {
+      # Validate fit_result structure
+      if (!inherits(fit_result, "bayesim_fit_result")) {
         rlang::abort(
           c(
-            "predict_fit() returned NULL but supports_predictions is TRUE",
-            i = "Return a list with predicted_mean, predicted_samples, and predicted_sd"
-          ),
-          class = "bayesim_validation_error"
-        )
-      }
-
-      if (
-        is.null(preds$predicted_mean) ||
-          is.null(preds$predicted_samples) ||
-          is.null(preds$predicted_sd)
-      ) {
-        rlang::abort(
-          c(
-            "predict_fit() result missing required elements",
-            i = "Must contain: predicted_mean, predicted_samples, predicted_sd"
-          ),
-          class = "bayesim_validation_error"
-        )
-      }
-
-      if (length(preds$predicted_mean) != n) {
-        rlang::abort(
-          c(
-            "predict_fit() returned wrong number of predictions",
-            i = paste0("Expected ", n, ", got ", length(preds$predicted_mean))
-          ),
-          class = "bayesim_validation_error"
-        )
-      }
-
-      # Orientation check: predicted_samples must be S x N (draws x
-      # observations). We verify observations-as-columns (N columns). The row
-      # count S is fitter-specific, so only the column count is enforced; this
-      # is robust to fitters whose n_draws happens to equal n_obs by coincidence.
-      if (is.matrix(preds$predicted_samples)) {
-        if (ncol(preds$predicted_samples) != n) {
-          rlang::abort(
-            c(
-              "predict_fit() returned predicted_samples with the wrong orientation",
-              i = paste0(
-                "predicted_samples must be S x N (draws x observations); ",
-                "expected N columns, got ",
-                ncol(preds$predicted_samples)
-              )
-            ),
-            class = "bayesim_validation_error"
-          )
-        }
-      }
-      msg("    [OK] predict_fit() returns valid predictions")
-    } else {
-      msg("  [SKIP] predict_fit() (supports_predictions is FALSE)")
-    }
-
-    # Test log_lik_matrix() if supported.
-    # Convention: log_lik_matrix() must return an S x N matrix (draws x observations),
-    # matching the brms/loo orientation. We check that the number of columns
-    # equals n_obs (one column per observation). The S rows are posterior
-    # draws and their count is fitter-specific, so the row count is not
-    # checked here; this is robust to fitters whose n_draws happens to equal
-    # n_obs only by coincidence.
-    if (isTRUE(fitter@supports_log_lik)) {
-      msg("  Testing log_lik_matrix()...")
-      ll <- tryCatch(
-        log_lik_matrix(fitter, fit_result),
-        error = function(e) {
-          rlang::abort(
-            c(
-              "log_lik_matrix() method failed during smoke test",
-              x = conditionMessage(e)
-            ),
-            class = "bayesim_validation_error"
-          )
-        }
-      )
-
-      if (is.null(ll)) {
-        rlang::abort(
-          c(
-            "log_lik_matrix() returned NULL but supports_log_lik is TRUE",
-            i = "Return an S x N matrix of pointwise log-likelihoods (draws x observations)"
-          ),
-          class = "bayesim_validation_error"
-        )
-      }
-
-      if (!is.matrix(ll)) {
-        rlang::abort(
-          c(
-            "log_lik_matrix() did not return a matrix",
-            i = paste0("Returned class: ", paste(class(ll), collapse = ", "))
-          ),
-          class = "bayesim_validation_error"
-        )
-      }
-
-      if (ncol(ll) != n) {
-        rlang::abort(
-          c(
-            "log_lik_matrix() returned wrong number of columns",
+            "fit_model() did not return a bayesim_fit_result object",
             i = paste0(
-              "Expected N columns (one per observation), got ",
-              ncol(ll),
-              " (expected ",
-              n,
-              ")"
+              "Returned class: ",
+              paste(class(fit_result), collapse = ", ")
             )
           ),
           class = "bayesim_validation_error"
         )
       }
-      msg("    [OK] log_lik_matrix() returns valid matrix")
-    } else {
-      msg("  [SKIP] log_lik_matrix() (supports_log_lik is FALSE)")
-    }
 
-    # Test fit_diagnostics()
-    msg("  Testing fit_diagnostics()...")
-    diag <- tryCatch(
-      fit_diagnostics(fitter, fit_result),
-      error = function(e) {
+      if (!isTRUE(fit_result$success)) {
         rlang::abort(
           c(
-            "fit_diagnostics() method failed during smoke test",
-            x = conditionMessage(e)
+            "fit_model() returned unsuccessful result during smoke test",
+            i = if (!is.null(fit_result$error)) {
+              conditionMessage(fit_result$error)
+            } else {
+              "No error message"
+            }
           ),
           class = "bayesim_validation_error"
         )
       }
-    )
+      msg("    [OK] fit_model() returns valid bayesim_fit_result")
 
-    if (!is.list(diag)) {
-      rlang::abort(
-        c(
-          "fit_diagnostics() did not return a list",
-          i = paste0("Returned class: ", paste(class(diag), collapse = ", "))
-        ),
-        class = "bayesim_validation_error"
+      # Test extract_draws()
+      msg("  Testing extract_draws()...")
+      draws <- tryCatch(
+        extract_draws(fitter, fit_result),
+        error = function(e) {
+          rlang::abort(
+            c(
+              "extract_draws() method failed during smoke test",
+              x = conditionMessage(e)
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
       )
-    }
-    msg("    [OK] fit_diagnostics() returns list")
 
-    msg("Smoke test completed successfully!")
+      if (!is.matrix(draws)) {
+        rlang::abort(
+          c(
+            "extract_draws() did not return a matrix",
+            i = paste0("Returned class: ", paste(class(draws), collapse = ", "))
+          ),
+          class = "bayesim_validation_error"
+        )
+      }
+
+      if (is.null(colnames(draws))) {
+        rlang::abort(
+          c(
+            "extract_draws() returned matrix without column names",
+            i = "Matrix columns should be named after parameters"
+          ),
+          class = "bayesim_validation_error"
+        )
+      }
+      msg("    [OK] extract_draws() returns matrix with colnames")
+
+      # Test predict_fit() if supported
+      if (isTRUE(fitter@supports_predictions)) {
+        msg("  Testing predict_fit()...")
+        preds <- tryCatch(
+          predict_fit(fitter, fit_result),
+          error = function(e) {
+            rlang::abort(
+              c(
+                "predict_fit() method failed during smoke test",
+                x = conditionMessage(e)
+              ),
+              class = "bayesim_validation_error"
+            )
+          }
+        )
+
+        if (is.null(preds)) {
+          rlang::abort(
+            c(
+              "predict_fit() returned NULL but supports_predictions is TRUE",
+              i = "Return a list with predicted_mean, predicted_samples, and predicted_sd"
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (
+          is.null(preds$predicted_mean) ||
+            is.null(preds$predicted_samples) ||
+            is.null(preds$predicted_sd)
+        ) {
+          rlang::abort(
+            c(
+              "predict_fit() result missing required elements",
+              i = "Must contain: predicted_mean, predicted_samples, predicted_sd"
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (length(preds$predicted_mean) != n) {
+          rlang::abort(
+            c(
+              "predict_fit() returned wrong number of predictions",
+              i = paste0("Expected ", n, ", got ", length(preds$predicted_mean))
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        # Orientation check: predicted_samples must be S x N (draws x
+        # observations). We verify observations-as-columns (N columns). The row
+        # count S is fitter-specific, so only the column count is enforced; this
+        # is robust to fitters whose n_draws happens to equal n_obs by coincidence.
+        if (is.matrix(preds$predicted_samples)) {
+          if (ncol(preds$predicted_samples) != n) {
+            rlang::abort(
+              c(
+                "predict_fit() returned predicted_samples with the wrong orientation",
+                i = paste0(
+                  "predicted_samples must be S x N (draws x observations); ",
+                  "expected N columns, got ",
+                  ncol(preds$predicted_samples)
+                )
+              ),
+              class = "bayesim_validation_error"
+            )
+          }
+        }
+        msg("    [OK] predict_fit() returns valid predictions")
+      } else {
+        msg("  [SKIP] predict_fit() (supports_predictions is FALSE)")
+      }
+
+      # Test log_lik_matrix() if supported.
+      # Convention: log_lik_matrix() must return an S x N matrix (draws x observations),
+      # matching the brms/loo orientation. We check that the number of columns
+      # equals n_obs (one column per observation). The S rows are posterior
+      # draws and their count is fitter-specific, so the row count is not
+      # checked here; this is robust to fitters whose n_draws happens to equal
+      # n_obs only by coincidence.
+      if (isTRUE(fitter@supports_log_lik)) {
+        msg("  Testing log_lik_matrix()...")
+        ll <- tryCatch(
+          log_lik_matrix(fitter, fit_result),
+          error = function(e) {
+            rlang::abort(
+              c(
+                "log_lik_matrix() method failed during smoke test",
+                x = conditionMessage(e)
+              ),
+              class = "bayesim_validation_error"
+            )
+          }
+        )
+
+        if (is.null(ll)) {
+          rlang::abort(
+            c(
+              "log_lik_matrix() returned NULL but supports_log_lik is TRUE",
+              i = "Return an S x N matrix of pointwise log-likelihoods (draws x observations)"
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (!is.matrix(ll)) {
+          rlang::abort(
+            c(
+              "log_lik_matrix() did not return a matrix",
+              i = paste0("Returned class: ", paste(class(ll), collapse = ", "))
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+
+        if (ncol(ll) != n) {
+          rlang::abort(
+            c(
+              "log_lik_matrix() returned wrong number of columns",
+              i = paste0(
+                "Expected N columns (one per observation), got ",
+                ncol(ll),
+                " (expected ",
+                n,
+                ")"
+              )
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+        msg("    [OK] log_lik_matrix() returns valid matrix")
+      } else {
+        msg("  [SKIP] log_lik_matrix() (supports_log_lik is FALSE)")
+      }
+
+      # Test fit_diagnostics()
+      msg("  Testing fit_diagnostics()...")
+      diag <- tryCatch(
+        fit_diagnostics(fitter, fit_result),
+        error = function(e) {
+          rlang::abort(
+            c(
+              "fit_diagnostics() method failed during smoke test",
+              x = conditionMessage(e)
+            ),
+            class = "bayesim_validation_error"
+          )
+        }
+      )
+
+      if (!is.list(diag)) {
+        rlang::abort(
+          c(
+            "fit_diagnostics() did not return a list",
+            i = paste0("Returned class: ", paste(class(diag), collapse = ", "))
+          ),
+          class = "bayesim_validation_error"
+        )
+      }
+      msg("    [OK] fit_diagnostics() returns list")
+
+      msg("Smoke test completed successfully!")
+    })
   }
 
   msg("Validation passed!")

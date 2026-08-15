@@ -29,16 +29,19 @@ rep_idx, status, and metric columns).}
 }
 \value{
 A tidy tibble with columns: the \code{by} columns, \code{estimand},
-\code{measure}, \code{value}, \code{mcse}, \code{n_sim}. One row per condition x estimand x
-measure. \code{measure} is one of \code{bias}, \code{emp_se}, \code{mse}, \code{coverage},
-\code{model_se}, \code{n_sim}.
+\code{measure}, \code{value}, \code{mcse}, \code{n_sim}, \code{truth_mode}. One row per condition x
+estimand x measure. Fixed-truth measures use \code{bias}, \code{emp_se}, and \code{mse};
+varying-truth measures use \code{mean_error}, \code{error_sd}, and \code{error_mse}.
+Both modes may also include \code{coverage}, \code{model_se}, and \code{n_sim}.
 }
 \description{
-Computes the Morris, White & Crowther (2019, \emph{Stat Med}) estimator-
-performance measures — \strong{bias}, \strong{empirical SE}, \strong{MSE}, \strong{coverage},
-\strong{average model SE}, and \code{n_sim} — for each estimand (parameter) and
-condition cell, each with its MCSE. This is the function a methods paper
-actually needs; it is the centerpiece of the analysis layer (E3).
+For condition cells with fixed data-generating truth, computes the Morris,
+White & Crowther (2019, \emph{Stat Med}) estimator-performance measures:
+\strong{bias}, \strong{empirical SE}, \strong{MSE}, \strong{coverage}, \strong{average model SE}, and
+\code{n_sim}, each with its MCSE. When truth varies across replicates (as in a
+prior-predictive SBC study), the fixed-truth Morris names are not returned.
+Instead, the error distribution is described by \code{mean_error}, \code{error_sd},
+and \code{error_mse}; coverage and average model SE remain available.
 
 For each parameter the function pairs the data-generating \verb{truth__<param>}
 column with the per-task \verb{posterior_summary__*__<param>} columns (point
@@ -46,7 +49,7 @@ estimate \code{mean}, posterior \code{sd}, and interval \code{q_lower}/\code{q_u
 uses the interval when available; otherwise it falls back to a
 \verb{coverage__by_param__<param>} column if present.
 
-MCSE formulas follow Morris et al. / rsimsum:
+Fixed-truth MCSE formulas follow Morris et al. / rsimsum:
 \itemize{
 \item bias MCSE = sd(point_est) / sqrt(n)
 \item empSE MCSE = sd / sqrt(2(n-1))
@@ -54,6 +57,9 @@ MCSE formulas follow Morris et al. / rsimsum:
 \item coverage MCSE = sqrt(p(1-p) / n)
 \item modelSE MCSE = sd(posterior_sd) / sqrt(n)
 }
+For varying truth, \code{mean_error} uses \code{sd(est-truth) / sqrt(n)}, \code{error_sd}
+uses \code{error_sd / sqrt(2(n-1))}, and \code{error_mse} uses
+\code{sqrt(Var((est-truth)^2) / n)}.
 }
 \examples{
 \dontrun{

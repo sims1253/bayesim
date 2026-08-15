@@ -13,8 +13,23 @@ devtools::test()
 devtools::check()
 ```
 
-The default test loop skips the slow Stan-backed SBC acceptance suite. Run it
-explicitly when changing brms, cmdstanr, model-bank, transport, or SBC code:
+Tests are split into two explicit tiers, defined in `tools/ci/test-tiers.R`:
+
+```r
+source("tools/ci/test-tiers.R")
+run_bayesim_test_tier("fast")    # no Stan required; the test-fast CI job
+run_bayesim_test_tier("backend") # needs brms, cmdstanr, and CmdStan
+```
+
+The `fast` tier covers the analytic engine, contracts, and analysis layer; CI
+runs it on every push and pull request. The `backend` tier covers brms,
+cmdstanr, model-bank, transport, LOO parity, and SBC acceptance; CI runs it
+nightly. Backend-tier tests skip unless `BAYESIM_TEST_TIER=backend` is set, so
+a plain `devtools::test()` runs only the no-Stan suites. Run the backend tier
+locally when you change brms, cmdstanr, model-bank, transport, or SBC code.
+
+The Stan-backed SBC acceptance suite additionally requires
+`BAYESIM_RUN_ACCEPTANCE=true`:
 
 ```sh
 BAYESIM_RUN_ACCEPTANCE=true Rscript -e 'devtools::test(filter = "sbc-acceptance")'

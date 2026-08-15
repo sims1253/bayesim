@@ -4,14 +4,21 @@
 \alias{plot_recovery}
 \title{Plot parameter recovery (truth vs posterior estimate)}
 \usage{
-plot_recovery(result, var, by = NULL)
+plot_recovery(result, estimand = NULL, by = NULL, var = NULL)
 }
 \arguments{
 \item{result}{A \code{bayesim_simulation_result}.}
 
-\item{var}{Parameter name (a vars_of_interest entry).}
+\item{estimand}{Parameter name (a \code{vars_of_interest} entry); the preferred
+terminology, matching \code{\link[=performance_measures]{performance_measures()}}.}
 
 \item{by}{Optional name of a condition column to facet by (E7).}
+
+\item{var}{Legacy alias for \code{estimand}, kept for backward compatibility
+with earlier bayesim versions. It is a silent compatibility alias, not a
+deprecated argument, and emits no deprecation warning. When both
+\code{estimand} and \code{var} are supplied they must name the same parameter;
+conflicting values are an error.}
 }
 \value{
 A ggplot object.
@@ -24,7 +31,9 @@ been computed and the truth recorded (E1).
 }
 \examples{
 \dontrun{
-plot_recovery(result, "b_x")
-plot_recovery(result, "b_x", by = "data_n")
+plot_recovery(result, estimand = "b_x")
+plot_recovery(result, estimand = "b_x", by = "data_n")
+# Legacy spelling, identical result:
+plot_recovery(result, var = "b_x")
 }
 }

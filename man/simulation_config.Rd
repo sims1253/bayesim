@@ -57,15 +57,24 @@ excluded from the config fingerprint — it is runtime policy.)}
 single knob also bounds the number of task results held in memory at once
 (B4: the former separate \code{chunk_size} knob was merged into this).}
 
-\item{keep_checkpoints}{Positive integer. Number of complete checkpoint
-snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
-plus one fallback for corruption recovery. Runtime policy; excluded from
-the config fingerprint.}
+\item{keep_checkpoints}{Positive integer. Number of checkpoint commit
+directories to retain. Defaults to 2, preserving the newest commit plus
+one older fallback for corruption recovery. Pruning removes old commit
+directories only; the immutable outcome shards and ledger history are
+never pruned, so durable storage grows roughly linearly with completed
+tasks. Runtime policy; excluded from the config fingerprint.}
 
 \item{retain}{Character vector. What to retain in results. Must be subset of
 \code{c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")}.
-(B4: excluded from the config fingerprint — changing retention must not
-invalidate resume.)}
+A single profile name is also accepted: \code{"minimal"} (metrics only),
+\code{"standard"} (metrics, diagnostics, warnings), or \code{"debug"} (everything).
+Alternatively, a named list with \code{success}, \code{warning}, and \code{error}
+entries to retain more for tasks that warn or fail. \code{"metrics"} is always
+retained.
+(B4: excluded from the config fingerprint, but exclusion does not make
+every retention change legal on resume: a compatible resume may narrow
+retention, while widening is rejected once completed outcomes lack the
+requested artifacts — discarded artifacts cannot be recreated.)}
 
 \item{max_errors}{Numeric. Maximum errors before stopping. Use \code{Inf} for no
 limit. (B4: excluded from the config fingerprint.)}
@@ -85,8 +94,9 @@ are marked \code{"skipped"} and the run stops. (I3: excluded from the config
 fingerprint — it is runtime policy.)}
 
 \item{summary_format}{Character scalar. Output format for the final summary.
-\code{"rds"} (default) writes nothing extra -- the canonical rds checkpoint
-carries the summary and remains the resume artifact. \code{"parquet"}
+\code{"rds"} (default) writes nothing extra -- the durable run store (outcome
+shards plus ledger) carries the results and remains the resume artifact.
+\code{"parquet"}
 additionally writes \verb{<result_path>/summary.parquet} using the suggested
 \code{nanoparquet} package, for downstream consumption (pandas, arrow, polars).
 (I8: excluded from the config fingerprint -- runtime policy.)}

@@ -15,8 +15,13 @@
 #' condensed one-line summary.
 #'
 #' @param config A `SimulationConfig`.
-#' @param pilot Logical; if TRUE, time a single pilot task to estimate total
-#'   wall-clock time (default FALSE). Experimental.
+#' @param pilot Logical; if TRUE, run a single pilot task and extrapolate its
+#'   wall-clock time to an estimate of the total study time (default FALSE). The
+#'   estimate is printed and returned in the `pilot_seconds` and
+#'   `estimated_total_seconds` elements of the returned list. A pilot that
+#'   cannot execute (e.g. a Stan fitter with no CmdStan installed) yields NA
+#'   estimates rather than failing the preflight. Note that for Stan fitters a
+#'   pilot compiles the model, so it is not instant.
 #' @param condensed Logical; if TRUE, print a single one-line summary instead of
 #'   the full report (used by run_simulation).
 #' @return Invisibly, a named list of preflight information.
@@ -85,12 +90,28 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
     fitter_capabilities = caps,
     unmet_needs = unmet,
     daemons_set = daemons_set,
-    n_compile = n_compile
+    n_compile = n_compile,
+    pilot_seconds = NA_real_,
+    estimated_total_seconds = NA_real_
   )
 
+  # R4: opt-in pilot timing. Run the first grid cell once and extrapolate.
+  if (pilot) {
+    pilot_seconds <- run_pilot_task(config)
+    if (!is.null(pilot_seconds)) {
+      info$pilot_seconds <- pilot_seconds
+      info$estimated_total_seconds <- pilot_seconds * n_tasks
+    }
+  }
+
   if (condensed) {
+    # mirai::daemons() (no args) is not an accessor in mirai >= 2.x — it errors
+    # with "argument n is missing". Use status()$connections for the count.
     workers_str <- if (daemons_set) {
-      paste0("; ", mirai::daemons()$daemons, " daemons")
+      n_daemons <- tryCatch(mirai::status()$connections, error = function(e) {
+        NULL
+      })
+      if (length(n_daemons)) paste0("; ", n_daemons, " daemons") else ""
     } else {
       ""
     }
@@ -102,6 +123,16 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
     cli::cli_inform(
       "{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} reps{compile_str}{workers_str}"
     )
+    # R1a: surface unmet metric needs in condensed mode too — this is the path
+    # run_simulation() uses by default, so an all-NA study is never a silent
+    # surprise.
+    if (length(unmet)) {
+      cli::cli_warn(c(
+        "Metrics need capabilities the fitter does not support.",
+        i = paste("unmet needs:", paste(unmet, collapse = ", "))
+      ))
+    }
+    if (pilot) print_pilot_estimate(info)
   } else {
     cli::cli_h1("bayesim preflight")
     cli::cli_text(
@@ -122,10 +153,115 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
       )
     }
     cli::cli_text("Daemons set: {daemons_set}")
-    if (pilot) cli::cli_text("(pilot timing not implemented in this build)")
+    if (pilot) print_pilot_estimate(info)
   }
 
   invisible(info)
+}
+
+# Print the pilot timing estimate (R4). Shared by the condensed and full
+# preflight reports.
+print_pilot_estimate <- function(info) {
+  if (is.finite(info$estimated_total_seconds)) {
+    cli::cli_text(
+      "Pilot task: {round(info$pilot_seconds, 3)}s; estimated total ~{round(info$estimated_total_seconds, 1)}s"
+    )
+  } else {
+    cli::cli_text("(pilot timing unavailable for this configuration)")
+  }
+  invisible(NULL)
+}
+
+# R4: run a single representative task (the first grid cell) to measure
+# per-task wall-clock time. Returns seconds (numeric scalar) or NULL when the
+# pilot cannot execute for this configuration (e.g. a Stan fitter with no
+# CmdStan installed). Used by preflight(pilot = TRUE). Runs sequentially on the
+# controller with no result_path, so no metric artifacts leak into a real
+# results directory, and restores the caller's RNG state on exit.
+run_pilot_task <- function(config) {
+  if (!is.null(config@task_grid)) {
+    # The custom task_grid may carry data_spec/fit_spec list-columns, plain
+    # data_idx/fit_idx indices, or (after canonicalization) both. Handle each.
+    if ("data_spec" %in% names(config@task_grid)) {
+      data_spec <- config@task_grid$data_spec[[1L]]
+      data_idx <- config@task_grid$data_idx[[1L]] %||% 1L
+    } else if (!is.null(config@data_grid)) {
+      data_idx <- config@task_grid$data_idx[[1L]] %||% 1L
+      data_spec <- as.list(config@data_grid[data_idx, , drop = FALSE])
+    } else {
+      return(NULL)
+    }
+    if ("fit_spec" %in% names(config@task_grid)) {
+      fit_spec <- config@task_grid$fit_spec[[1L]]
+      fit_idx <- config@task_grid$fit_idx[[1L]] %||% 1L
+    } else if (!is.null(config@fit_grid)) {
+      fit_idx <- config@task_grid$fit_idx[[1L]] %||% 1L
+      fit_spec <- as.list(config@fit_grid[fit_idx, , drop = FALSE])
+    } else {
+      return(NULL)
+    }
+  } else {
+    data_idx <- 1L
+    fit_idx <- 1L
+    data_spec <- as.list(config@data_grid[1L, , drop = FALSE])
+    fit_spec <- as.list(config@fit_grid[1L, , drop = FALSE])
+  }
+
+  # Restore the caller's RNG after the pilot (run_task_safe advances the global
+  # .Random.seed via the task stream).
+  old_seed <- if (
+    exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  ) {
+    get(".Random.seed", envir = .GlobalEnv)
+  } else {
+    NULL
+  }
+  on.exit(
+    {
+      if (is.null(old_seed)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      } else {
+        assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      }
+    },
+    add = TRUE
+  )
+
+  task_ctx <- list(
+    task_id = "d001_f001_r00001",
+    data_idx = data_idx,
+    fit_idx = fit_idx,
+    rep_idx = 1L
+  )
+  streams <- create_task_rng_streams(config@seed, 1L)
+
+  task <- list(
+    task_id = task_ctx$task_id,
+    data_spec = data_spec,
+    fit_spec = fit_spec,
+    task_ctx = task_ctx,
+    rng_seed = streams[[1L]]
+  )
+
+  config_spec <- as_config_spec(config)
+  config_spec$data_generator <- config@data_generator
+  config_spec$result_path <- NULL
+  config_spec$package_name <- utils::packageName()
+
+  result <- tryCatch(
+    run_task_safe(
+      task,
+      config_spec,
+      config@fitter,
+      config@metrics,
+      retain = config@retain
+    ),
+    error = function(e) NULL
+  )
+  if (is.null(result) || !identical(result$status, "success")) {
+    return(NULL)
+  }
+  result$timing$total
 }
 
 # F2: failure surfacing ---------------------------------------------------

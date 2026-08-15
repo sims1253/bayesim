@@ -1,8 +1,6 @@
 # Workstream I1: fitter-agnostic generators (prior_draws_generator,
 # forward_sim_generator). Tested with LinearRegressionFitter (no Stan).
 
-skip_on_cran()
-
 # A predictor generator that consumes the ambient RNG state.
 gaussian_predictors <- function(data_spec, task_ctx) {
   n <- as.integer(data_spec$n %||% 20L)

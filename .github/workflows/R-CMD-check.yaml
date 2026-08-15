@@ -22,13 +22,15 @@ jobs:
           - {os: macos-latest,   r: 'release', acceptance: false}
           - {os: windows-latest, r: 'release', acceptance: false}
           - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release', acceptance: false}
-          - {os: ubuntu-latest,  r: 'release', acceptance: true}
+          - {os: ubuntu-latest,  r: 'release', acceptance: false}
           - {os: ubuntu-latest,  r: 'oldrel-1', acceptance: false}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      NOT_CRAN: true
+      # Package checks are a separate compatibility gate; no-Stan integration
+      # coverage is provided by test-fast and Stan validation by nightly.
+      NOT_CRAN: false
       BAYESIM_RUN_ACCEPTANCE: ${{ matrix.config.acceptance }}
 
     steps:
@@ -46,39 +48,6 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
-
-      # CmdStan toolchain: make sure the compiler setup is usable (installs
-      # RTools pieces on Windows if needed), then install CmdStan into
-      # ~/.cmdstan unless the cache already restored a build.
-      - name: Fix CmdStan toolchain
-        run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)
-        shell: Rscript {0}
-
-      - name: Get CmdStan version
-        id: cmdstan-version
-        run: |
-          version=$(curl -s -H "Authorization: Bearer $GITHUB_PAT" \
-            https://api.github.com/repos/stan-dev/cmdstan/releases/latest \
-            | jq -r .tag_name)
-          if [ -z "$version" ] || [ "$version" = "null" ]; then
-            echo "Failed to resolve latest CmdStan release" >&2
-            exit 1
-          fi
-          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
-        shell: bash
-
-      - name: Cache CmdStan
-        uses: actions/cache@v6
-        with:
-          path: ~/.cmdstan
-          key: cmdstan-${{ runner.os }}-${{ steps.cmdstan-version.outputs.version }}
-
-      - name: Install CmdStan
-        run: |
-          if (is.null(cmdstanr::cmdstan_version(error_on_NA = FALSE))) {
-            cmdstanr::install_cmdstan(cores = parallel::detectCores())
-          }
-        shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@v2
         with:
