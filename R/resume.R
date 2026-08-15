@@ -9,19 +9,16 @@ NULL
 #' - latest.json points to a valid checkpoint_id
 #' - The referenced checkpoint can be read and validated
 #'
+#' This is a cheap existence/validity probe: the checkpoint is validated
+#' (checksums, ledger, shard integrity) with `load_outcomes = FALSE`, so the
+#' full outcome history is never deserialized here. Callers that need the
+#' outcomes use [load_for_resume()] instead.
+#'
 #' @param result_path Character; path to results directory containing checkpoints.
 #'
 #' @return TRUE if a valid run can be resumed, FALSE otherwise.
 #'
 #' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' if (can_resume("/path/to/results")) {
-#'   summary <- get_resume_summary("/path/to/results")
-#'   cli::cli_alert_info("Found {summary$n_completed} completed tasks")
-#' }
-#' }
 can_resume <- function(result_path) {
   if (is.null(result_path)) {
     return(FALSE)
@@ -44,9 +41,9 @@ can_resume <- function(result_path) {
     return(FALSE)
   }
 
-  # Verify checkpoint can be read
+  # Verify checkpoint can be read (without materializing outcomes)
   checkpoint <- tryCatch(
-    read_checkpoint(result_path, latest$checkpoint_id),
+    read_checkpoint(result_path, latest$checkpoint_id, load_outcomes = FALSE),
     error = function(e) NULL
   )
 
@@ -744,70 +741,4 @@ normalize_manifest_stop_on <- function(x) {
     return(x)
   }
   Map(normalize_manifest_property, x, names(x))
-}
-
-#' Get Resume Summary
-#'
-#' Returns a summary of what would be resumed from a checkpoint.
-#' Useful for informing users about resume state before actually
-#' loading and resuming.
-#'
-#' @param result_path Character; path to results directory containing checkpoints.
-#'
-#' @return A list with elements:
-#'   - `checkpoint_id`: ID of the checkpoint
-#'   - `n_total`: Total number of tasks
-#'   - `n_completed`: Number of completed (success + failed) tasks
-#'   - `n_pending`: Number of pending tasks
-#'
-#' Returns NULL if no valid resume state exists.
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' summary <- get_resume_summary("/path/to/results")
-#' if (!is.null(summary)) {
-#'   cli::cli_alert_info("Checkpoint: {summary$checkpoint_id}")
-#'   cli::cli_alert_info("Completed: {summary$n_completed}/{summary$n_total}")
-#'   cli::cli_alert_info("Remaining: {summary$n_pending}")
-#' }
-#' }
-get_resume_summary <- function(result_path) {
-  if (!can_resume(result_path)) {
-    return(NULL)
-  }
-
-  latest_path <- file.path(result_path, "latest.json")
-  latest <- tryCatch(
-    jsonlite::read_json(latest_path),
-    error = function(e) NULL
-  )
-
-  if (is.null(latest) || is.null(latest$checkpoint_id)) {
-    return(NULL)
-  }
-
-  checkpoint <- tryCatch(
-    read_checkpoint(result_path, latest$checkpoint_id),
-    error = function(e) NULL
-  )
-
-  if (is.null(checkpoint)) {
-    return(NULL)
-  }
-
-  # Extract metadata
-  meta <- checkpoint$meta
-
-  if (is.null(meta)) {
-    return(NULL)
-  }
-
-  list(
-    checkpoint_id = checkpoint$checkpoint_id,
-    n_total = meta$n_tasks,
-    n_completed = meta$n_success + meta$n_failed,
-    n_pending = meta$n_pending
-  )
 }

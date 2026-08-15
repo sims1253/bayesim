@@ -32,12 +32,36 @@ new_run_store <- function(
   if (is.null(result_path)) {
     state <- new.env(parent = emptyenv())
     state$checkpoint_id <- 0L
-    state$checkpoint <- NULL
+    state$task_grid <- NULL
+    state$outcomes <- list()
+    state$adaptive_next_check <- NULL
+    state$adaptive_state <- NULL
     store <- list(
       backend = "memory",
       path = NULL,
       initialize = function() invisible(TRUE),
-      read = function() state$checkpoint,
+      # results_df is materialized lazily here from the accumulated outcomes so
+      # that write() stays proportional to the batch instead of re-flattening
+      # the entire accumulated history on every checkpoint.
+      read = function() {
+        if (state$checkpoint_id == 0L) {
+          return(NULL)
+        }
+        state$checkpoint <- list(
+          checkpoint_id = state$checkpoint_id,
+          task_grid = state$task_grid,
+          task_outcomes = state$outcomes,
+          results_df = results_to_dataframe(state$outcomes),
+          adaptive_next_check = state$adaptive_next_check,
+          adaptive_state = state$adaptive_state,
+          meta = list(
+            adaptive_next_check = state$adaptive_next_check,
+            adaptive_state = state$adaptive_state,
+            run_policy = run_policy_spec
+          )
+        )
+        state$checkpoint
+      },
       write = function(
         task_grid,
         task_results,
@@ -55,36 +79,28 @@ new_run_store <- function(
           function(x) !is.null(x) && is_bayesim_task_result(x),
           prior_task_results %||% list()
         )
-        outcomes <- prior_outcomes
+        # Accumulate by task identity across writes, matching the filesystem
+        # adapter's append-only shards: outcomes from earlier writes survive,
+        # and later writes replace earlier outcomes for the same task.
+        outcomes <- state$outcomes
         outcome_ids <- if (length(outcomes) > 0L) {
           vapply(outcomes, function(x) x$task_id, character(1))
         } else {
           character()
         }
-        # Assigning current outcomes last makes a store write an atomic
-        # replacement by task identity, matching the filesystem adapter.
-        for (outcome in current_outcomes) {
-          hit <- match(outcome$task_id, outcome_ids)
+        for (replacement in c(prior_outcomes, current_outcomes)) {
+          hit <- match(replacement$task_id, outcome_ids)
           if (is.na(hit)) {
-            outcomes <- c(outcomes, list(outcome))
-            outcome_ids <- c(outcome_ids, outcome$task_id)
+            outcomes <- c(outcomes, list(replacement))
+            outcome_ids <- c(outcome_ids, replacement$task_id)
           } else {
-            outcomes[[hit]] <- outcome
+            outcomes[[hit]] <- replacement
           }
         }
-        state$checkpoint <- list(
-          checkpoint_id = state$checkpoint_id,
-          task_grid = task_grid,
-          task_outcomes = outcomes,
-          results_df = results_to_dataframe(outcomes),
-          adaptive_next_check = adaptive_next_check,
-          adaptive_state = adaptive_state,
-          meta = list(
-            adaptive_next_check = adaptive_next_check,
-            adaptive_state = adaptive_state,
-            run_policy = run_policy_spec
-          )
-        )
+        state$task_grid <- task_grid
+        state$outcomes <- outcomes
+        state$adaptive_next_check <- adaptive_next_check
+        state$adaptive_state <- adaptive_state
         invisible(state$checkpoint_id)
       }
     )

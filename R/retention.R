@@ -355,31 +355,6 @@ estimate_size <- function(x) {
   as.numeric(utils::object.size(x))
 }
 
-#' Check if result row exceeds size threshold
-#'
-#' Determines whether a task result exceeds a specified memory threshold,
-#' useful for deciding whether to externalize large artifacts.
-#'
-#' @param task_result A bayesim_task_result object
-#' @param threshold_bytes Maximum allowed size in bytes. Default is 5 MB.
-#'
-#' @return TRUE if the task_result exceeds the threshold, FALSE otherwise
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' result <- list(metrics = list(rmse = 0.1), diagnostics = list(rhat = 1.01))
-#' exceeds_size_threshold(result)
-#' exceeds_size_threshold(result, threshold_bytes = 10)
-#' }
-exceeds_size_threshold <- function(
-  task_result,
-  threshold_bytes = 5 * 1024 * 1024
-) {
-  estimate_size(task_result) > threshold_bytes
-}
-
 ## Externalization -------------------------------------------------------------
 
 #' Externalize large artifact

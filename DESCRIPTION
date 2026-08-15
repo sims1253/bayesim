@@ -41,7 +41,6 @@ Collate:
     'rng.R'
     'task-grid.R'
     'worker.R'
-    'mori.R'
     'simulate.R'
     'checkpoint.R'
     'run-store.R'
@@ -77,15 +76,12 @@ Imports:
     withr (>= 2.5.0)
 Suggests:
     brms (>= 2.22.0),
-    caret,
     cmdstanr (>= 0.7.0),
     ggplot2,
     knitr,
     MASS,
-    mori,
     nanoparquet,
     quarto,
-    randomForest,
     ranger,
     rmarkdown,
     rstan (>= 2.32.0),

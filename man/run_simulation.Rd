@@ -15,13 +15,16 @@ run_simulation(
 \arguments{
 \item{config}{A SimulationConfig S7 object}
 
-\item{resume}{Character strategy:
-\code{"auto"} (default) resumes from \code{result_path} when a compatible
-checkpoint exists and starts fresh otherwise; \code{"never"} starts fresh and
-errors if \code{result_path} already holds a run or unrelated files;
-\code{"must"} resumes and errors when no compatible checkpoint exists. Only
-tasks with terminal status (\code{"success"}/\code{"failed"}) are carried over;
-all other tasks re-run with their original RNG streams.}
+\item{resume}{Character strategy controlling how an existing \code{result_path}
+is treated: \code{"auto"} (default) resumes when the path holds a compatible
+run and starts fresh only when the path is absent or empty — an existing
+run that is incompatible or corrupt aborts rather than being silently
+overwritten, as does a non-empty directory without a run manifest;
+\code{"never"} starts fresh and errors if \code{result_path} already holds a run
+or unrelated files; \code{"must"} resumes and errors when no compatible
+checkpoint exists. Only tasks with terminal status
+(\code{"success"}/\code{"failed"}) are carried over; all other tasks re-run with
+their original RNG streams.}
 
 \item{progress}{Logical; if TRUE, show progress bar}
 

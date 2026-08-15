@@ -9,8 +9,7 @@ build_model_bank(
   fit_grid,
   data_generator,
   data_spec_template,
-  result_path = NULL,
-  seed = NULL
+  result_path = NULL
 )
 }
 \arguments{
@@ -29,10 +28,6 @@ used to generate template data.}
 \code{options(cmdstanr_write_stan_file_dir)} is set to
 \code{file.path(result_path, "stan_binaries")} so compiled binaries persist and
 are shared across controller and local daemons.}
-
-\item{seed}{Reserved for compatibility with the simulation call site.
-Prefit compilation uses \code{brms::brm(chains = 0)} and is deterministic, so
-this seed is not used.}
 }
 \value{
 A named list of \code{brmsfit} prefit objects keyed by

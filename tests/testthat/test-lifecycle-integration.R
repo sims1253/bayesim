@@ -198,46 +198,77 @@ test_that("checkpoint round-trip retains canonical task truth", {
   expect_false("truth" %in% names(checkpoint$task_outcomes[[1]]$metrics))
 })
 
-test_that("memory and filesystem run stores round-trip one canonical outcome", {
-  outcome <- new_task_result(
-    task_id = "d001_f001_r00001",
-    status = "success",
-    metrics = list(bias = 0.25),
-    diagnostics = list(rhat = 1.01),
-    timing = list(total = 0.125),
-    warnings = "test warning",
-    truth = c(beta = 1.25)
+test_that("memory and filesystem run stores round-trip across several batches", {
+  # Three writes of five outcomes each: the second and third writes append a
+  # batch to an existing store, matching how execute_tasks() checkpoints
+  # successive batches. The in-memory adapter must accumulate (not re-flatten
+  # from scratch) and read() must return the same outcomes and the same flat
+  # results_df as the filesystem adapter.
+  make_outcome <- function(i) {
+    new_task_result(
+      task_id = sprintf("d001_f001_r%05d", i),
+      status = "success",
+      metrics = list(bias = 0.25 + i),
+      diagnostics = list(rhat = 1.01),
+      timing = list(total = 0.125 + i),
+      warnings = "test warning",
+      truth = c(beta = 1.25)
+    )
+  }
+  batches <- lapply(
+    list(1:5, 6:10, 11:15),
+    function(ids) lapply(ids, make_outcome)
   )
-  grid <- data.frame(
-    task_id = outcome$task_id,
-    status = outcome$status,
-    stop_reason = NA_character_,
-    stringsAsFactors = FALSE
-  )
+  # The engine always checkpoints the FULL task grid with updated statuses
+  # (never a growing grid), so each write passes all 15 rows.
+  make_grid <- function(n_success) {
+    data.frame(
+      task_id = sprintf("d001_f001_r%05d", seq_len(15L)),
+      status = ifelse(seq_len(15L) <= n_success, "success", "pending"),
+      stop_reason = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  }
   path <- file.path(withr::local_tempdir(), "run")
 
   memory <- new_run_store()
   memory$initialize()
-  memory$write(grid, list(outcome))
-  memory_outcome <- memory$read()$task_outcomes[[1]]
-
   filesystem <- new_run_store(
     result_path = path,
     config_fingerprint = "store-test",
     checkpoint_format = "rds"
   )
   filesystem$initialize()
-  filesystem$write(grid, list(outcome))
-  filesystem_outcome <- filesystem$read()$task_outcomes[[1]]
 
-  for (round_trip in list(memory_outcome, filesystem_outcome)) {
-    expect_equal(round_trip$task_id, outcome$task_id)
-    expect_equal(round_trip$status, outcome$status)
-    expect_equal(round_trip$metrics, outcome$metrics)
-    expect_equal(round_trip$diagnostics, outcome$diagnostics)
-    expect_equal(round_trip$warnings, outcome$warnings)
-    expect_equal(round_trip$truth, outcome$truth)
+  completed <- c(5L, 10L, 15L)
+  for (b in seq_along(batches)) {
+    memory$write(make_grid(completed[[b]]), batches[[b]])
+    filesystem$write(make_grid(completed[[b]]), batches[[b]])
   }
+
+  memory_checkpoint <- memory$read()
+  filesystem_checkpoint <- filesystem$read()
+
+  expect_length(memory_checkpoint$task_outcomes, 15L)
+  expect_length(filesystem_checkpoint$task_outcomes, 15L)
+
+  # The adapters agree on the accumulated outcomes and the derived flat view.
+  expect_equal(
+    lapply(memory_checkpoint$task_outcomes, `[[`, "task_id"),
+    lapply(filesystem_checkpoint$task_outcomes, `[[`, "task_id")
+  )
+  for (field in c("status", "metrics", "diagnostics", "warnings", "truth")) {
+    expect_equal(
+      lapply(memory_checkpoint$task_outcomes, `[[`, field),
+      lapply(filesystem_checkpoint$task_outcomes, `[[`, field)
+    )
+  }
+  expect_equal(memory_checkpoint$results_df, filesystem_checkpoint$results_df)
+  # The flat view matches a direct flattening of the accumulated outcomes.
+  expect_equal(
+    memory_checkpoint$results_df,
+    results_to_dataframe(filesystem_checkpoint$task_outcomes)
+  )
 })
 
 test_that("resume rejects retention widening for completed outcomes", {
@@ -578,5 +609,99 @@ test_that("configless resume uses the latest effective run policy", {
       verbose = FALSE
     ),
     "Cannot widen retention"
+  )
+})
+
+test_that("a fatal mid-batch error checkpoints the batch's successful outcomes", {
+  gen <- function(data_spec, task_ctx) {
+    list(
+      train = data.frame(y = rnorm(10), x = rnorm(10)),
+      test = NULL,
+      response = "y",
+      true_params = c(beta = 1),
+      vars_of_interest = "beta",
+      meta = list()
+    )
+  }
+  # Fails fatally (bayesim-classified, non-recoverable) on replicate 2 only;
+  # its batch siblings succeed.
+  FatalMidBatchFitter <- S7::new_class(
+    "FatalMidBatchFitter",
+    parent = LinearRegressionFitter,
+    properties = list(
+      name = S7::new_property(S7::class_character, default = "fatal_mid_batch")
+    )
+  )
+  S7::method(fit_model, FatalMidBatchFitter) <- function(
+    fitter,
+    data_bundle,
+    fit_spec,
+    seed,
+    task_ctx
+  ) {
+    if (identical(task_ctx$rep_idx, 2L)) {
+      stop(bayesim_config_error("fatal mid-batch fitter failure"))
+    }
+    fit_model(
+      LinearRegressionFitter(n_draws = fitter@n_draws),
+      data_bundle,
+      fit_spec,
+      seed,
+      task_ctx
+    )
+  }
+
+  path <- file.path(withr::local_tempdir(), "fatal-mid-batch")
+  cfg <- simulation_config(
+    data_grid = data.frame(n = 10L),
+    fit_grid = data.frame(model = "lm"),
+    data_generator = gen,
+    fitter = FatalMidBatchFitter(n_draws = 10L),
+    metrics = list(),
+    n_replicates = 6L,
+    seed = 21L,
+    result_path = path,
+    checkpoint_every = 3L
+  )
+
+  expect_error(
+    run_simulation(cfg, resume = "never", progress = FALSE, verbose = FALSE),
+    class = "bayesim_config_error"
+  )
+
+  # The successful siblings of the fatal task were persisted before the
+  # re-raise; the fatal task itself stayed pending (it has no outcome).
+  checkpoint <- read_checkpoint(path)
+  expect_false(is.null(checkpoint))
+  persisted <- vapply(
+    checkpoint$task_outcomes,
+    function(x) x$task_id,
+    character(1)
+  )
+  expect_equal(
+    sort(persisted),
+    sort(c("d001_f001_r00001", "d001_f001_r00003"))
+  )
+  expect_true(all(vapply(
+    checkpoint$task_outcomes,
+    function(x) identical(x$status, "success"),
+    logical(1)
+  )))
+  expect_false(
+    "d001_f001_r00002" %in%
+      checkpoint$task_grid$task_id[
+        checkpoint$task_grid$status %in% c("success", "failed")
+      ]
+  )
+
+  # The emergency checkpoint is a valid resume point.
+  resume_state <- load_for_resume(path, cfg)
+  expect_equal(nrow(resume_state$prior_results), 2L)
+  expect_length(resume_state$prior_task_results, 2L)
+  expect_equal(
+    resume_state$task_grid$status[
+      resume_state$task_grid$task_id == "d001_f001_r00002"
+    ],
+    "pending"
   )
 })

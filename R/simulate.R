@@ -10,13 +10,16 @@ NULL
 #' Executes a complete simulation study with deterministic reproducibility.
 #'
 #' @param config A SimulationConfig S7 object
-#' @param resume Character strategy:
-#'   `"auto"` (default) resumes from `result_path` when a compatible
-#'   checkpoint exists and starts fresh otherwise; `"never"` starts fresh and
-#'   errors if `result_path` already holds a run or unrelated files;
-#'   `"must"` resumes and errors when no compatible checkpoint exists. Only
-#'   tasks with terminal status (`"success"`/`"failed"`) are carried over;
-#'   all other tasks re-run with their original RNG streams.
+#' @param resume Character strategy controlling how an existing `result_path`
+#'   is treated: `"auto"` (default) resumes when the path holds a compatible
+#'   run and starts fresh only when the path is absent or empty — an existing
+#'   run that is incompatible or corrupt aborts rather than being silently
+#'   overwritten, as does a non-empty directory without a run manifest;
+#'   `"never"` starts fresh and errors if `result_path` already holds a run
+#'   or unrelated files; `"must"` resumes and errors when no compatible
+#'   checkpoint exists. Only tasks with terminal status
+#'   (`"success"`/`"failed"`) are carried over; all other tasks re-run with
+#'   their original RNG streams.
 #' @param progress Logical; if TRUE, show progress bar
 #' @param workers Positive integer, NULL, or "multisession". When non-NULL,
 #'   `mirai::daemons(workers)` is set up for the run and torn down on exit —
@@ -161,8 +164,6 @@ run_simulation <- function(
 
     if (!inherits(resume_attempt, "error")) {
       resume_data <- resume_attempt
-    } else if (identical(resume, "must")) {
-      stop(resume_attempt)
     } else {
       stop(resume_attempt)
     }
@@ -225,8 +226,7 @@ run_simulation <- function(
       fit_grid = config@fit_grid,
       data_generator = config@data_generator,
       data_spec_template = as.list(config@data_grid[1L, , drop = FALSE]),
-      result_path = run_policy$result_path,
-      seed = config@seed
+      result_path = run_policy$result_path
     )
     set_model_bank(model_bank)
     # F6: clear the session bank after the run so it does not leak across runs
@@ -424,7 +424,7 @@ execute_tasks <- function(
 
   # I3: optional adaptive stopping policy (NULL => run all tasks). The check
   # fires after each batch whose completed-task count reaches a check_every
-  # boundary AND >= min_reps. bayesim_adaptive_check never throws.
+  # boundary AND >= min_reps. bayesim_adaptive_evaluate never throws.
   if (!is.null(stop_on)) {
     adaptive_next_check <- as.integer(
       adaptive_next_check %||% stop_on$min_reps
@@ -450,13 +450,6 @@ execute_tasks <- function(
     if (isTRUE(mirai::daemons_set())) {
       model_bank <- get_model_bank()
       if (!is.null(model_bank)) {
-        # mori: when daemons are all local, write the bank into a single
-        # shared-memory region so each daemon maps it zero-copy instead of
-        # deserializing a private copy. Returns the bank unchanged for remote
-        # daemons or sequential runs. The shared object is held in
-        # `model_bank` for the duration of execute_tasks() so mori's region is
-        # not reclaimed before daemons map it.
-        model_bank <- .maybe_share_bank(model_bank)
         mirai::everywhere(
           options(bayesim.model_bank = mb),
           .args = list(mb = model_bank)
@@ -522,7 +515,12 @@ execute_tasks <- function(
 
       # C1: re-raise fatal conditions after collecting the batch. run_task_safe
       # captured them (rather than throwing across the daemon boundary) and
-      # marked error$fatal with the full condition class chain.
+      # marked error$fatal with the full condition class chain. Before
+      # re-raising, checkpoint the successful and recoverable outcomes this
+      # batch produced: a fatal error kills the run, but its siblings are
+      # genuine completed outcomes and must survive for resume. The fatal task
+      # itself is reset to pending — it never produced a scientific outcome,
+      # so resume must retry it rather than treat it as terminal.
       fatal_result <- batch_results[
         vapply(
           batch_results,
@@ -534,6 +532,41 @@ execute_tasks <- function(
       ]
       if (length(fatal_result) > 0L) {
         fr <- fatal_result[[1]]
+        fatal_positions <- match(
+          vapply(fatal_result, function(r) r$task_id, character(1)),
+          task_grid$task_id
+        )
+        task_grid$status[fatal_positions] <- "pending"
+        if ("stop_reason" %in% names(task_grid)) {
+          task_grid$stop_reason[fatal_positions] <- NA_character_
+        }
+        task_results[fatal_positions] <- list(NULL)
+
+        if (!is.null(config_fingerprint)) {
+          tryCatch(
+            {
+              non_null_indices <- which(
+                !vapply(task_results, is.null, logical(1))
+              )
+              run_store$write(
+                task_grid = task_grid,
+                task_results = task_results[non_null_indices],
+                prior_results_df = prior_results_df,
+                prior_task_results = prior_task_results,
+                adaptive_next_check = adaptive_next_check,
+                adaptive_state = adaptive_state
+              )
+            },
+            error = function(e) {
+              cli::cli_warn(c(
+                "Could not checkpoint completed outcomes before stopping.",
+                i = conditionMessage(e)
+              ))
+              NULL
+            }
+          )
+        }
+
         err <- fr$error
         cond_class <- err$condition_class %||%
           c("bayesim_internal_error", "bayesim_error", "error", "condition")
@@ -697,8 +730,10 @@ execute_tasks <- function(
 #'
 #' `run_task_safe()` is total (never throws), so transport is pure transport:
 #' every returned element is a `bayesim_task_result`. Transport-level failures
-#' (e.g. daemon death) surface as errors from `purrr::map()` and are re-raised
-#' as a bayesim fatal error by the caller.
+#' (e.g. daemon death) surface as errors from `purrr::map()` and propagate
+#' unchanged out of [execute_tasks()] and `run_simulation()`: they abort the
+#' run, and outcomes from the interrupted batch are lost to that call (the last
+#' committed checkpoint still holds everything before it).
 #'
 #' @param batch_tasks List of task specification lists
 #' @param config_spec Plain list config spec for worker transport
@@ -779,40 +814,10 @@ materialize_task_results <- function(
       return(NULL)
     }
 
-    row <- row[1, , drop = FALSE]
-    excluded <- c(
-      "task_id",
-      "status",
-      "error_class",
-      "error_message",
-      "timing_total"
-    )
-    metric_cols <- setdiff(names(row), excluded)
-    metrics <- lapply(metric_cols, function(col) row[[col]][[1]])
-    names(metrics) <- metric_cols
-
-    if (identical(row$status[[1]], "failed")) {
-      new_task_result(
-        task_id = row$task_id[[1]],
-        status = "failed",
-        metrics = NULL,
-        timing = list(total = row$timing_total[[1]] %||% 0),
-        error = list(
-          error_class = row$error_class[[1]] %||% "unknown",
-          error_message = row$error_message[[1]] %||% "Task failed"
-        ),
-        stop_reason = row$stop_reason[[1]] %||% NULL
-      )
-    } else {
-      new_task_result(
-        task_id = row$task_id[[1]],
-        status = row$status[[1]],
-        metrics = metrics,
-        timing = list(total = row$timing_total[[1]] %||% 0),
-        warnings = character(),
-        stop_reason = row$stop_reason[[1]] %||% NULL
-      )
-    }
+    # Legacy fallback (flat summary rows only): rebuild the canonical outcome
+    # via the shared migration helper so truth, stop_reason, error, and
+    # diagnostics are routed to their proper fields instead of $metrics.
+    task_outcomes_from_dataframe(row[1, , drop = FALSE])[[1]]
   })
 }
 
@@ -1243,6 +1248,17 @@ bayesim_adaptive_evaluate <- function(
       )
     },
     error = function(e) {
+      # Keep the non-throwing contract (a broken precision check must not kill
+      # the run), but do not swallow the failure silently: surface it once per
+      # run with the condition message. The detail is also persisted in
+      # state$cells$error for post-hoc inspection.
+      .warn_once(
+        "adaptive_evaluate_error",
+        c(
+          "Adaptive precision evaluation failed; continuing without a stop decision.",
+          i = conditionMessage(e)
+        )
+      )
       list(
         stop = FALSE,
         state = list(

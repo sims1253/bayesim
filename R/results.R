@@ -269,8 +269,8 @@ validate_bayesim_task_result <- function(x) {
 #' Constructs a result object from a single simulation task execution.
 #'
 #' @param task_id Character scalar identifying the task
-#' @param status Character scalar: one of "pending", "running", "success",
-#'   "failed", "skipped", or "cancelled"
+#' @param status Character scalar: one of "pending", "success", "failed", or
+#'   "skipped"
 #' @param metrics Named list of computed metrics (NULL if task failed or skipped)
 #' @param diagnostics Named list of diagnostic values (NULL if task failed)
 #' @param timing List containing timing information, must include `total`
@@ -633,9 +633,6 @@ print.bayesim_simulation_result <- function(x, ...) {
   cat("    - Failed:", unname(counts[["failed"]]), "\n")
   cat("    - Pending:", unname(counts[["pending"]]), "\n")
   cat("    - Skipped (policy-stopped):", unname(counts[["skipped"]]), "\n")
-  if (unname(counts[["cancelled"]]) > 0L) {
-    cat("    - Cancelled:", unname(counts[["cancelled"]]), "\n")
-  }
   # F3: condition grid shape + metrics preview.
   if (!is.null(x$summary) && is.data.frame(x$summary) && nrow(x$summary) > 0) {
     metric_preview <- grep("__", names(x$summary), value = TRUE)

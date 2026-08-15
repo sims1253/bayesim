@@ -74,8 +74,7 @@ describe("BrmsFitter model bank", {
         fit_grid = fit_grid,
         data_generator = gaussian_data_generator,
         data_spec_template = list(n = 20),
-        result_path = NULL,
-        seed = 42L
+        result_path = NULL
       ),
       "explicit priors"
     )
@@ -96,8 +95,7 @@ describe("BrmsFitter model bank", {
       fit_grid = fit_grid,
       data_generator = gaussian_data_generator,
       data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+      result_path = NULL
     )
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
@@ -152,8 +150,7 @@ describe("BrmsFitter model bank", {
       fit_grid = fit_grid,
       data_generator = gaussian_data_generator,
       data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+      result_path = NULL
     )
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
@@ -204,8 +201,7 @@ describe("BrmsFitter model bank", {
       fit_grid = fit_grid,
       data_generator = gaussian_data_generator,
       data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+      result_path = NULL
     )
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
@@ -291,8 +287,7 @@ describe("BrmsFitter model bank", {
       ),
       data_generator = gaussian_data_generator,
       data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+      result_path = NULL
     )
     expect_null(bank)
 
@@ -435,8 +430,7 @@ describe("BrmsFitter warning capture (F5)", {
       fit_grid = fit_grid,
       data_generator = gaussian_data_generator,
       data_spec_template = list(n = 20),
-      result_path = NULL,
-      seed = 42L
+      result_path = NULL
     )
     bayesim:::set_model_bank(bank)
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
@@ -455,5 +449,29 @@ describe("BrmsFitter warning capture (F5)", {
     expect_true(result$success)
     expect_vector(result$warnings, character())
     expect_gt(length(result$warnings), 0L)
+  })
+})
+
+# B1 companion to test-api-no-masking.R: that fast-tier file proves bayesim
+# does not export the masked names; this backend-tier test exercises the brms
+# dispatch they used to clobber, in the tier where it actually runs.
+describe("B1: renamed generics do not mask foreign packages", {
+  it("log_lik(brmsfit) still resolves to brms after loading bayesim", {
+    fit <- suppressWarnings(brms::brm(
+      y ~ x,
+      data = data.frame(y = rnorm(20), x = rnorm(20)),
+      family = gaussian(),
+      backend = "cmdstanr",
+      chains = 1L,
+      iter = 50L,
+      warmup = 25L,
+      silent = 2L,
+      refresh = 0L
+    ))
+
+    # bayesim exports log_lik_matrix, never log_lik, so brms dispatch is
+    # intact regardless of attachment order.
+    ll <- brms::log_lik(fit)
+    expect_true(is.matrix(ll))
   })
 })

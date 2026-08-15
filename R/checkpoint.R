@@ -431,6 +431,7 @@ write_checkpoint <- function(
   # Create temporary directory
   dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
   new_shard_path <- NULL
+  new_ledger_path <- NULL
 
   # Use tryCatch to ensure cleanup on error
   tryCatch(
@@ -539,6 +540,7 @@ write_checkpoint <- function(
           ledger_to_write,
           file.path(ledger_dir, ledger_name)
         )
+        new_ledger_path <- file.path(ledger_dir, ledger_name)
         ledger_ref$n_rows <- nrow(ledger_to_write)
       }
 
@@ -577,15 +579,13 @@ write_checkpoint <- function(
       )
       write_json_atomic(meta, file.path(tmp_dir, "meta.json"))
 
-      ledger_path <- checkpoint_data_path(tmp_dir, "ledger", checkpoint_format)
-      results_path <- checkpoint_data_path(
-        tmp_dir,
-        "results",
-        checkpoint_format
-      )
+      # Only the "rds" format is supported (asserted above), so the data files
+      # are addressed and (de)serialized directly.
+      ledger_path <- file.path(tmp_dir, "ledger.rds")
+      results_path <- file.path(tmp_dir, "results.rds")
 
       # Write ledger (task grid)
-      write_checkpoint_object(ledger_to_write, ledger_path, checkpoint_format)
+      write_rds_atomic(ledger_to_write, ledger_path)
 
       # The flat checkpoint view is a delta matching this checkpoint's new
       # canonical shard. read_checkpoint() derives the accumulated flat view
@@ -599,23 +599,17 @@ write_checkpoint <- function(
         # supplies canonical outcomes and therefore takes the delta path.
         results_to_dataframe(task_results)
       }
-      write_checkpoint_object(results_df, results_path, checkpoint_format)
+      write_rds_atomic(results_df, results_path)
 
       # Read-back validation
-      test_grid <- tryCatch(
-        read_checkpoint_object(ledger_path, checkpoint_format),
-        error = function(e) NULL
-      )
+      test_grid <- tryCatch(readRDS(ledger_path), error = function(e) NULL)
       if (is.null(test_grid)) {
         stop(bayesim_checkpoint_error(
           "Checkpoint read-back validation failed for ledger"
         ))
       }
 
-      test_results <- tryCatch(
-        read_checkpoint_object(results_path, checkpoint_format),
-        error = function(e) NULL
-      )
+      test_results <- tryCatch(readRDS(results_path), error = function(e) NULL)
       if (is.null(test_results)) {
         stop(bayesim_checkpoint_error(
           "Checkpoint read-back validation failed for results"
@@ -676,12 +670,26 @@ write_checkpoint <- function(
       if (dir.exists(tmp_dir)) {
         unlink(tmp_dir, recursive = TRUE)
       }
-      if (
-        !dir.exists(checkpoint_dir) &&
-          !is.null(new_shard_path) &&
-          file.exists(new_shard_path)
-      ) {
-        unlink(new_shard_path)
+      # A failed commit must leave no half-published files outside the commit
+      # directory either: remove the outcome shard and the ledger shard this
+      # attempt wrote, together with their redundant mirrors and checksum
+      # descriptors (.mirror.rds / .json / .mirror.json siblings). Only do so
+      # when the commit directory itself never materialized — otherwise the
+      # files belong to an existing checkpoint commit.
+      if (!dir.exists(checkpoint_dir)) {
+        shard_stems <- character()
+        if (!is.null(new_shard_path)) {
+          shard_stems <- c(shard_stems, sub("\\.rds$", "", new_shard_path))
+        }
+        if (!is.null(new_ledger_path)) {
+          shard_stems <- c(shard_stems, sub("\\.rds$", "", new_ledger_path))
+        }
+        for (stem in unique(shard_stems)) {
+          unlink(paste0(
+            stem,
+            c(".rds", ".mirror.rds", ".json", ".mirror.json")
+          ))
+        }
       }
       stop(e)
     }
@@ -814,16 +822,11 @@ read_checkpoint <- function(
   checkpoint_format <- manifest$checkpoint_format %||% "rds"
   assert_supported_checkpoint_format(checkpoint_format)
 
-  # Read checkpoint files
+  # Read checkpoint files (the supported format is always "rds", asserted via
+  # the manifest above, so the files are addressed directly)
   meta <- jsonlite::read_json(file.path(checkpoint_dir, "meta.json"))
-  task_grid <- read_checkpoint_object(
-    checkpoint_data_path(checkpoint_dir, "ledger", checkpoint_format),
-    checkpoint_format
-  )
-  checkpoint_results_df <- read_checkpoint_object(
-    checkpoint_data_path(checkpoint_dir, "results", checkpoint_format),
-    checkpoint_format
-  )
+  task_grid <- readRDS(file.path(checkpoint_dir, "ledger.rds"))
+  checkpoint_results_df <- readRDS(file.path(checkpoint_dir, "results.rds"))
 
   delta_store <- identical(meta$storage_mode %||% NULL, "delta-v1")
   if (delta_store) {
@@ -866,13 +869,9 @@ read_checkpoint <- function(
   } else {
     # Legacy schema: full flat results and optionally full structured outcomes
     # lived inside each checkpoint directory.
-    outcomes_path <- checkpoint_data_path(
-      checkpoint_dir,
-      "outcomes",
-      checkpoint_format
-    )
+    outcomes_path <- file.path(checkpoint_dir, "outcomes.rds")
     task_outcomes <- if (isTRUE(load_outcomes) && file.exists(outcomes_path)) {
-      read_checkpoint_object(outcomes_path, checkpoint_format)
+      readRDS(outcomes_path)
     } else {
       NULL
     }
@@ -1297,6 +1296,16 @@ read_outcome_shards <- function(
 }
 
 #' Migrate the legacy flat checkpoint view to canonical task outcomes.
+#'
+#' The flat view produced by [results_to_dataframe()] lays columns out in a
+#' fixed order: `task_id`, `status`, `stop_reason`, metric columns,
+#' `truth__*` columns, diagnostic columns, then the optional
+#' `error_class`/`error_message`/`timing_total` trailer. Metric and diagnostic
+#' columns share a namespace, so the two groups are separated positionally
+#' around the `truth__` block. When a row carries no truth block the groups are
+#' contiguous and indistinguishable; every value column is then restored as a
+#' metric so the flat representation still round-trips unchanged.
+#'
 #' @keywords internal
 task_outcomes_from_dataframe <- function(results_df) {
   if (is.null(results_df) || nrow(results_df) == 0L) {
@@ -1322,12 +1331,25 @@ task_outcomes_from_dataframe <- function(results_df) {
       "timing_total",
       truth_cols
     )
-    metric_cols <- setdiff(names(row), excluded)
-    metrics <- if (identical(status, "success")) {
-      stats::setNames(
-        lapply(metric_cols, function(name) row[[name]][[1]]),
-        metric_cols
-      )
+    value_cols <- setdiff(names(row), excluded)
+    metric_cols <- value_cols
+    diagnostic_cols <- character()
+    if (length(truth_cols) > 0L) {
+      value_positions <- match(value_cols, names(row))
+      truth_positions <- match(truth_cols, names(row))
+      metric_cols <- value_cols[value_positions < min(truth_positions)]
+      diagnostic_cols <- value_cols[value_positions > max(truth_positions)]
+    }
+    restore <- function(cols) {
+      if (length(cols) == 0L) {
+        NULL
+      } else {
+        stats::setNames(lapply(cols, function(name) row[[name]][[1]]), cols)
+      }
+    }
+    metrics <- if (identical(status, "success")) restore(metric_cols) else NULL
+    diagnostics <- if (identical(status, "success")) {
+      restore(diagnostic_cols)
     } else {
       NULL
     }
@@ -1368,6 +1390,7 @@ task_outcomes_from_dataframe <- function(results_df) {
       task_id = as.character(row$task_id[[1]]),
       status = status,
       metrics = metrics,
+      diagnostics = diagnostics,
       timing = list(total = timing),
       error = error,
       truth = truth,
@@ -1511,22 +1534,6 @@ read_run_manifest <- function(result_path) {
   }
 
   jsonlite::read_json(manifest_path)
-}
-
-checkpoint_data_path <- function(directory, stem, checkpoint_format = "rds") {
-  if (!identical(checkpoint_format, "rds")) {
-    cli::cli_abort("Unsupported checkpoint format '{checkpoint_format}'")
-  }
-
-  file.path(directory, paste0(stem, ".rds"))
-}
-
-write_checkpoint_object <- function(x, path, checkpoint_format = "rds") {
-  write_rds_atomic(x, path)
-}
-
-read_checkpoint_object <- function(path, checkpoint_format = "rds") {
-  readRDS(path)
 }
 
 assert_supported_checkpoint_format <- function(checkpoint_format) {

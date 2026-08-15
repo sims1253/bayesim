@@ -232,15 +232,13 @@ normalize_stanvars <- function(stanvars) {
 #'
 #' @param data_generator The simulation data generator function.
 #' @param data_spec A named list (one row of `data_grid` as a list).
-#' @param seed Deprecated internal argument retained for compatibility; ignored.
 #'
 #' @return A data.frame suitable for `brms::brm(data =)`.
 #'
 #' @keywords internal
 generate_template_data <- function(
   data_generator,
-  data_spec,
-  seed = 0L
+  data_spec
 ) {
   task_ctx <- list(
     task_id = "model_bank_template",
@@ -366,9 +364,6 @@ model_spec_from_grid_row <- function(fit_grid, i) {
 #'   `options(cmdstanr_write_stan_file_dir)` is set to
 #'   `file.path(result_path, "stan_binaries")` so compiled binaries persist and
 #'   are shared across controller and local daemons.
-#' @param seed Reserved for compatibility with the simulation call site.
-#'   Prefit compilation uses `brms::brm(chains = 0)` and is deterministic, so
-#'   this seed is not used.
 #'
 #' @return A named list of `brmsfit` prefit objects keyed by
 #'   [model_spec_hash()], or NULL when `precompile` is FALSE.
@@ -379,8 +374,7 @@ build_model_bank <- function(
   fit_grid,
   data_generator,
   data_spec_template,
-  result_path = NULL,
-  seed = NULL
+  result_path = NULL
 ) {
   if (!isTRUE(fitter@precompile)) {
     return(NULL)
@@ -392,8 +386,7 @@ build_model_bank <- function(
   # determines Stan code, not the data values).
   template_data <- generate_template_data(
     data_generator = data_generator,
-    data_spec = data_spec_template,
-    seed = 0L
+    data_spec = data_spec_template
   )
 
   # Configure persistent cmdstanr binary output dir so binaries survive across

@@ -32,7 +32,9 @@ managed by \code{\link[=execute_tasks]{execute_tasks()}}.
 \details{
 \code{run_task_safe()} is total (never throws), so transport is pure transport:
 every returned element is a \code{bayesim_task_result}. Transport-level failures
-(e.g. daemon death) surface as errors from \code{purrr::map()} and are re-raised
-as a bayesim fatal error by the caller.
+(e.g. daemon death) surface as errors from \code{purrr::map()} and propagate
+unchanged out of \code{\link[=execute_tasks]{execute_tasks()}} and \code{run_simulation()}: they abort the
+run, and outcomes from the interrupted batch are lost to that call (the last
+committed checkpoint still holds everything before it).
 }
 \keyword{internal}

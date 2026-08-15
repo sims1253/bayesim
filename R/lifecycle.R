@@ -10,11 +10,9 @@ NULL
 
 TASK_STATUSES <- c(
   "pending",
-  "running",
   "success",
   "failed",
-  "skipped",
-  "cancelled"
+  "skipped"
 )
 
 TASK_TERMINAL_STATUSES <- c("success", "failed")

@@ -292,8 +292,7 @@ get_task_spec_at <- function(task_grid, row_idx, config) {
 #'
 #' @param task_grid A task grid tibble.
 #' @param status Character vector of statuses to include.
-#'   Valid statuses: "pending", "success", "failed", "skipped", or
-#'   "cancelled".
+#'   Valid statuses: "pending", "success", "failed", or "skipped".
 #'
 #' @return A filtered task grid tibble.
 #'
@@ -325,51 +324,6 @@ filter_tasks_by_status <- function(task_grid, status) {
 #' }
 get_pending_tasks <- function(task_grid) {
   filter_tasks_by_status(task_grid, "pending")
-}
-
-#' Validate Task ID Format
-#'
-#' Checks if a string is a valid task ID in the format "dXXX_fXXX_rXXXXX".
-#'
-#' @param task_id Character string to validate.
-#'
-#' @return TRUE if valid, FALSE otherwise.
-#'
-#' @keywords internal
-validate_task_id <- function(task_id) {
-  grepl("^d[0-9]+_f[0-9]+_r[0-9]+$", task_id)
-}
-
-#' Parse Task ID Components
-#'
-#' Extracts the data_idx, fit_idx, and rep_idx from a task ID string.
-#'
-#' @param task_id Character task ID in format "dXXX_fXXX_rXXXXX".
-#'
-#' @return Named integer vector with elements data_idx, fit_idx, rep_idx,
-#'   or NULL if the task_id format is invalid.
-#'
-#' @keywords internal
-#'
-#' @examples
-#' \dontrun{
-#' components <- parse_task_id("d002_f003_r00042")
-#' # components$data_idx == 2
-#' # components$fit_idx == 3
-#' # components$rep_idx == 42
-#' }
-parse_task_id <- function(task_id) {
-  if (!validate_task_id(task_id)) {
-    return(NULL)
-  }
-
-  parts <- strsplit(task_id, "_")[[1]]
-
-  list(
-    data_idx = as.integer(sub("^d", "", parts[1])),
-    fit_idx = as.integer(sub("^f", "", parts[2])),
-    rep_idx = as.integer(sub("^r", "", parts[3]))
-  )
 }
 
 #' Get Task Count Summary

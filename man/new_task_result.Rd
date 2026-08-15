@@ -19,8 +19,8 @@ new_task_result(
 \arguments{
 \item{task_id}{Character scalar identifying the task}
 
-\item{status}{Character scalar: one of "pending", "running", "success",
-"failed", "skipped", or "cancelled"}
+\item{status}{Character scalar: one of "pending", "success", "failed", or
+"skipped"}
 
 \item{metrics}{Named list of computed metrics (NULL if task failed or skipped)}
 
