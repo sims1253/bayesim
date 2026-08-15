@@ -9,13 +9,24 @@ permissions: read-all
 
 jobs:
   release-check:
-    name: R release check
-    runs-on: ubuntu-latest
+    name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    runs-on: ${{ matrix.config.os }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      NOT_CRAN: false
-      BAYESIM_RUN_ACCEPTANCE: false
+
+    strategy:
+      fail-fast: false
+      # Full supported matrix: DESCRIPTION requires R >= 4.1, so the oldest
+      # supported release line is oldrel-1.
+      matrix:
+        config:
+          - {os: macos-latest,   r: 'release'}
+          - {os: macos-latest,   r: 'oldrel-1'}
+          - {os: windows-latest, r: 'release'}
+          - {os: windows-latest, r: 'oldrel-1'}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: ubuntu-latest,  r: 'oldrel-1'}
 
     steps:
       - uses: actions/checkout@v7
@@ -24,7 +35,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r@v2
         with:
-          r-version: release
+          r-version: ${{ matrix.config.r }}
           use-public-rspm: true
 
       - uses: r-lib/actions/setup-r-dependencies@v2
@@ -44,7 +55,6 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      NOT_CRAN: true
       BAYESIM_RUN_ACCEPTANCE: "true"
       BAYESIM_TEST_TIER: backend
 

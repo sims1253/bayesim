@@ -275,4 +275,91 @@ describe("adaptive stopping (stop_on)", {
       class = "bayesim_config_error"
     )
   })
+
+  it("resumes an early-stopped run under a stricter threshold (plan workflow 5)", {
+    result_path <- file.path(withr::local_tempdir(), "adaptive-resume")
+    base <- list(
+      data_grid = data.frame(n = 60L, beta = c(0.5, 1)),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 100L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 12L,
+      seed = 31L,
+      result_path = result_path,
+      checkpoint_every = 2L
+    )
+    loose_policy <- list(
+      estimand = "x",
+      measure = "bias",
+      target_mcse = 100, # unreachable-by-accident: met after min_reps
+      min_reps = 2L,
+      check_every = 2L
+    )
+    strict_policy <- list(
+      estimand = "x",
+      measure = "bias",
+      target_mcse = 1e-9, # unreachable: the resumed run must exhaust the grid
+      min_reps = 2L,
+      check_every = 2L
+    )
+
+    cfg_loose <- do.call(
+      simulation_config,
+      c(base, list(stop_on = loose_policy))
+    )
+    res_loose <- run_simulation(
+      cfg_loose,
+      resume = "never",
+      progress = FALSE,
+      verbose = FALSE
+    )
+    n_loose <- sum(res_loose$summary$status == "success")
+    expect_gt(sum(res_loose$summary$status == "skipped"), 0L)
+    expect_lt(n_loose, 24L) # stopped short of 2 cells x 12 reps
+
+    # stop_on is runtime policy and excluded from the design fingerprint, so
+    # the same result_path accepts the stricter policy.
+    cfg_strict <- do.call(
+      simulation_config,
+      c(base, list(stop_on = strict_policy))
+    )
+    expect_equal(
+      config_fingerprint(cfg_strict),
+      config_fingerprint(cfg_loose)
+    )
+
+    res_strict <- run_simulation(
+      cfg_strict,
+      resume = "auto",
+      progress = FALSE,
+      verbose = FALSE
+    )
+
+    # The resumed run completes the full grid...
+    expect_equal(sum(res_strict$summary$status == "success"), 24L)
+    # ...by executing additional replicates rather than restarting: every
+    # outcome from the first run is carried over (skipped tasks are resumable,
+    # never terminal), with identical per-task estimates from the per-task RNG
+    # streams.
+    ids_loose <- res_loose$summary$task_id[
+      res_loose$summary$status == "success"
+    ]
+    expect_true(all(ids_loose %in% res_strict$summary$task_id))
+    est_col <- "posterior_summary__mean__x"
+    pos <- match(ids_loose, res_strict$summary$task_id)
+    expect_true(all(is.finite(res_strict$summary[[est_col]][pos])))
+    expect_equal(
+      res_loose$summary[[est_col]][res_loose$summary$status == "success"],
+      res_strict$summary[[est_col]][pos]
+    )
+    # Outcomes accumulate in the checkpoint too: the ledger on disk holds one
+    # outcome per grid task after the resumed run.
+    checkpoint <- read_checkpoint(result_path)
+    expect_equal(nrow(checkpoint$task_grid), 24L)
+    expect_equal(
+      sum(checkpoint$task_grid$status == "success"),
+      24L
+    )
+  })
 })

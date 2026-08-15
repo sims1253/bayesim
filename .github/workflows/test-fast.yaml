@@ -15,9 +15,11 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
-      # The allow-listed core tier is intentionally independent of Stan.
-      NOT_CRAN: true
-      BAYESIM_RUN_ACCEPTANCE: false
+      # The fast tier is Stan-free by construction; run_bayesim_test_tier()
+      # restricts testthat to the fast-tier files listed in
+      # tools/ci/test-tiers.R and exports this tier marker so backend-gated
+      # skips stay skipped.
+      BAYESIM_TEST_TIER: fast
 
     steps:
       - uses: actions/checkout@v7
@@ -27,6 +29,8 @@ jobs:
           r-version: release
           use-public-rspm: true
 
+      # needs: check installs Depends/Imports/Suggests, which covers ggplot2
+      # (Suggests) required by the fast tier's plot assertions.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::testthat

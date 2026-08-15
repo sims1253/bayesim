@@ -14,8 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
-      NOT_CRAN: true
-      BAYESIM_RUN_ACCEPTANCE: "false"
+      # Coverage runs the core tier (fast + the rest of the analytic suite):
+      # the Stan backend suite is out of scope here by design.
+      BAYESIM_TEST_TIER: core
 
     steps:
       - uses: actions/checkout@v7
@@ -29,12 +30,12 @@ jobs:
           extra-packages: any::covr, any::xml2
           needs: coverage
 
-      - name: Fast/core coverage
+      - name: Core-tier coverage
         run: |
           source("tools/ci/test-tiers.R")
           coverage_code <- sprintf(
             "testthat::test_check('bayesim', filter = %s)",
-            deparse(bayesim_test_filter("fast"))
+            deparse(bayesim_test_filter("core"))
           )
           cov <- covr::package_coverage(
             type = "none",

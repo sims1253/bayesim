@@ -19,19 +19,17 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: macos-latest,   r: 'release', acceptance: false}
-          - {os: windows-latest, r: 'release', acceptance: false}
-          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release', acceptance: false}
-          - {os: ubuntu-latest,  r: 'release', acceptance: false}
-          - {os: ubuntu-latest,  r: 'oldrel-1', acceptance: false}
+          - {os: macos-latest,   r: 'release'}
+          - {os: windows-latest, r: 'release'}
+          - {os: ubuntu-latest,  r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-latest,  r: 'release'}
+          - {os: ubuntu-latest,  r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
       # Package checks are a separate compatibility gate; no-Stan integration
       # coverage is provided by test-fast and Stan validation by nightly.
-      NOT_CRAN: false
-      BAYESIM_RUN_ACCEPTANCE: ${{ matrix.config.acceptance }}
 
     steps:
       - uses: actions/checkout@v7
