@@ -89,6 +89,7 @@ reference:
       - log_lik_matrix
       - loo_fit
       - fit_diagnostics
+      - new_fit_result
 
   - title: Generators
     desc: >
@@ -110,9 +111,7 @@ reference:
       - coverage_metric
       - rank_metric
       - pos_prob_metric
-      - convergence_metric
       - sampler_diagnostics_metric
-      - rstar_metric
       - pred_rmse_metric
       - pred_bias_metric
       - pred_mae_metric
@@ -121,7 +120,6 @@ reference:
       - rmse_loo_metric
       - r2_loo_metric
       - elpd_test_metric
-      - rmse_test_metric
       - r2_test_metric
 
   - title: Analysis and reporting
@@ -138,7 +136,7 @@ reference:
       - plot_recovery
       - plot_coverage
       - plot_metric
-      - report
+      - render_report
       - read_summary
 
   - title: Extension support
@@ -149,6 +147,7 @@ reference:
       - validate_fitter
       - validate_metric
       - bayesim_config_error
+      - bayesim_contract_error
       - bayesim_data_error
       - bayesim_fit_error
       - bayesim_metric_error

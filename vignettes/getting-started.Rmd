@@ -84,7 +84,7 @@ config <- simulation_config(
   fitter = LinearRegressionFitter(n_draws = 500L),
   metrics = list(
     posterior_summary_metric(),
-    convergence_metric()
+    sampler_diagnostics_metric()
   ),
   n_replicates = 4L,
   seed = 42L
@@ -208,12 +208,10 @@ generator, fitter, and metric is a namespaced package function or class.
 
 The built-in metric library covers the standard surface: `pred_bias_metric`,
 `pred_rmse_metric`, `pred_mae_metric`, `pred_mse_metric`, `coverage_metric`,
-`pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
-`sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`, and
+`pos_prob_metric`, `posterior_summary_metric`, `sampler_diagnostics_metric`
+(convergence and sampler diagnostics), `rank_metric` (SBC ranks), and
 LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
 `elpd_test_metric`, `r2_test_metric`).
-`rmse_test_metric()` remains as a compatibility name for
-`pred_rmse_metric(name = "rmse_test")`.
 
 To write your own metric, extend the `Metric` class and implement
 `compute_metric()`; `vignette("custom-metrics")` covers the full contract,

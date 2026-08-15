@@ -95,7 +95,7 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     list()
   }
   field_schemas <- if (!is.data.frame(result)) {
-    result$metric_field_metadata %||% result$metric_schemas %||% list()
+    result$metric_field_metadata %||% list()
   } else {
     list()
   }
@@ -852,9 +852,7 @@ plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
 plot_coverage <- function(result, nominal = NULL, by = NULL) {
   rlang::check_installed("ggplot2", "to use plot_coverage()")
   if (is.null(nominal)) {
-    schemas <- result$metric_field_metadata %||%
-      result$metric_schemas %||%
-      list()
+    schemas <- result$metric_field_metadata %||% list()
     df <- if (is.data.frame(result)) result else result$summary
     lower_params <- sub(
       "^posterior_summary__q_lower__",
@@ -1392,6 +1390,10 @@ n_replicates_for_target <- function(
 #' Requires the `quarto` R package AND the Quarto CLI. If the CLI is not
 #' available, an informative error is thrown pointing to <https://quarto.org>.
 #'
+#' `render_report()` was previously named `report()`; the old name collided
+#' with the generic of the easystats *report* package and now lives on as a
+#' deprecated alias (see [report()]).
+#'
 #' @param result A `bayesim_simulation_result` from [run_simulation()].
 #' @param output_file Path to the rendered HTML output file (default
 #'   `"bayesim-report.html"`).
@@ -1399,9 +1401,6 @@ n_replicates_for_target <- function(
 #'   sessions) the rendered report is opened in a viewer/browser. Forwarded to
 #'   [quarto::quarto_render()] via its `open` handling where supported; on
 #'   systems without that argument the file path is still returned.
-#' @param estimands Optional character vector of estimands (parameter names) to
-#'   restrict the report to. Currently informational; the template auto-detects
-#'   estimands from the summary when `NULL` (default).
 #'
 #' @return The path to the rendered HTML file (invisibly).
 #' @export
@@ -1410,17 +1409,16 @@ n_replicates_for_target <- function(
 #' @examples
 #' \dontrun{
 #' result <- run_simulation(config, progress = FALSE)
-#' report(result, output_file = "my-study.html")
+#' render_report(result, output_file = "my-study.html")
 #' }
-report <- function(
+render_report <- function(
   result,
   output_file = "bayesim-report.html",
-  open = interactive(),
-  estimands = NULL
+  open = interactive()
 ) {
   if (!inherits(result, "bayesim_simulation_result")) {
     stop(bayesim_config_error(
-      "report() requires a bayesim_simulation_result object"
+      "render_report() requires a bayesim_simulation_result object"
     ))
   }
 
@@ -1428,7 +1426,7 @@ report <- function(
   if (is.null(quarto::quarto_path())) {
     stop(bayesim_config_error(paste(
       "The Quarto CLI was not found. Install it from https://quarto.org",
-      "and ensure it is on your PATH, then call report() again."
+      "and ensure it is on your PATH, then call render_report() again."
     )))
   }
 
@@ -1475,4 +1473,39 @@ report <- function(
   }
 
   invisible(out)
+}
+
+# Once-per-session flag for the report() deprecation warning. Unlike
+# .warn_once() in metrics-built-in.R (reset at every run_simulation()), a
+# deprecation warning should fire at most once per session, not once per run.
+.report_deprecated_env <- new.env(parent = emptyenv())
+
+#' Deprecated alias for render_report()
+#'
+#' @description
+#' `report()` was renamed to [render_report()] because the old name collided
+#' with the generic of the easystats *report* package. The alias forwards to
+#' `render_report()` and emits a deprecation warning once per session; it will
+#' be removed in a future release.
+#'
+#' @param estimands Ignored. The argument was accepted (and documented as
+#'   informational only) by `report()` but never used; it is kept in the
+#'   signature purely so existing calls do not error.
+#' @inheritParams render_report
+#' @export
+#' @keywords internal
+report <- function(
+  result,
+  output_file = "bayesim-report.html",
+  open = interactive(),
+  estimands = NULL
+) {
+  if (is.null(.report_deprecated_env$warned)) {
+    .report_deprecated_env$warned <- TRUE
+    cli::cli_warn(c(
+      "{.fn report} was renamed to {.fn render_report} and is deprecated.",
+      i = "The alias keeps working but will be removed in a future release."
+    ))
+  }
+  render_report(result, output_file = output_file, open = open)
 }

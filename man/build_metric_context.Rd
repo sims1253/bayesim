@@ -45,8 +45,7 @@ in NULL values for that context element.
 
 Evaluation data: \code{predictions} and \code{log_lik} are computed on the TEST set
 when \code{data_bundle$test} is present, otherwise on the training set. Every
-built-in metric that consumes them (\verb{pred_*}, \code{elpd_test}, \code{rmse_test},
-\code{r2_test}) compares against the test response, so the predictions must be
+built-in metric that consumes them (\verb{pred_*}, \code{elpd_test}, \code{r2_test}) compares against the test response, so the predictions must be
 for the test rows. The LOO context is always built on the training set —
 leave-one-out is in-sample by construction.
 }

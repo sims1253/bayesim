@@ -1,3 +1,50 @@
+# bayesim (development version)
+
+Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
+
+## Engine and resume
+
+* Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
+  longer lose or mangle recorded truths and fit diagnostics when prior task
+  results are reloaded from a checkpoint.
+* Fatal mid-batch errors now persist the batch's already-completed sibling
+  outcomes before re-raising, so a crash no longer discards finished work.
+* Resume no longer double-loads the full run history (prior results were
+  loaded once to resume and again during the run).
+* In-memory (`result_path = NULL`) run-store writes are now linear in the
+  number of completed tasks instead of repeatedly rewriting the full state.
+* Adaptive stopping now warns when its evaluation step fails instead of
+  passing silently.
+
+## Metrics
+
+* Removed the unvalidated mori shared-memory model-bank integration; model
+  banks travel to daemons by ordinary serialization.
+* Removed `rstar_metric()` (and with it the caret/randomForest
+  dependencies) and the `rmse_test_metric()` alias, and merged
+  `convergence_metric()` into an extended `sampler_diagnostics_metric()`
+  (now emitting `rhat_max`, `ess_bulk_min`, `ess_tail_min`, `divergent`,
+  and `max_treedepth`).
+* `pos_prob_metric()`'s `by_param` field now declares mean/sd aggregation
+  instead of a binomial MCSE, which was wrong for a posterior probability
+  mean.
+* Metric NA-degradation paths now emit schema-conformant fields (present
+  with `NA` values) instead of dropping fields from the flattened summary.
+
+## Fitters and errors
+
+* New `supports_epred` fitter capability gating `predict_epred()` — `TRUE`
+  for `LinearRegressionFitter()`/`BrmsFitter()`, dynamic (set when an
+  `epred` generated quantity is declared) for `CmdStanFitter()`.
+* `bayesim_contract_error()` is now exported.
+
+## Analysis and reporting
+
+* `report()` was renamed to `render_report()` to stop colliding with the
+  generic of the easystats *report* package. `report()` remains as a
+  deprecated alias that forwards to `render_report()` and warns once per
+  session.
+
 # bayesim 2.0.0
 
 A ground-up rewrite of the simulation engine, fitters, generators, metrics, and
@@ -180,7 +227,8 @@ masking `generics::fit`, `dplyr::compute`, and `brms::log_lik`.
   `plot_metric()`. Plotting requires ggplot2 (Suggests, loaded on demand).
 
 ## Breaking changes
-* Public API contracted to a curated surface of ~25 exports (see `_pkgdown.yml`).
+* Public API contracted to a curated surface of 65 exports (see
+  `_pkgdown.yml`).
 * The `loo` S7 generic was renamed `loo_fit` to avoid clashing with
   `loo::loo()`. Custom fitters must implement `loo_fit`.
 * Operators `%+%` and `%||%` are no longer exported (use `rlang::%||%` or the

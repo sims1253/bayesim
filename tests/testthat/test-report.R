@@ -1,4 +1,5 @@
-# Workstream I4: report() renders a Quarto HTML report.
+# Workstream I4: render_report() renders a Quarto HTML report; the legacy
+# report() alias still works and warns once per session.
 
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 50L
@@ -15,27 +16,46 @@
   )
 }
 
-describe("report()", {
-  it("renders an HTML report for a small LinearRegressionFitter study", {
-    skip_if_not(
-      requireNamespace("quarto", quietly = TRUE) &&
-        (nzchar(Sys.which("quarto")) || !is.null(quarto::quarto_path())),
-      "quarto CLI not available"
-    )
+.has_quarto <- function() {
+  requireNamespace("quarto", quietly = TRUE) &&
+    (nzchar(Sys.which("quarto")) || !is.null(quarto::quarto_path()))
+}
 
-    config <- simulation_config(
-      data_grid = data.frame(n = 50L, beta = 0.5),
-      fit_grid = data.frame(model = "lm"),
-      data_generator = .gen,
-      fitter = LinearRegressionFitter(n_draws = 100L),
-      metrics = list(posterior_summary_metric()),
-      n_replicates = 3L,
-      seed = 7L
-    )
-    result <- run_simulation(config, resume = "never", progress = FALSE)
+.small_result <- function() {
+  config <- simulation_config(
+    data_grid = data.frame(n = 50L, beta = 0.5),
+    fit_grid = data.frame(model = "lm"),
+    data_generator = .gen,
+    fitter = LinearRegressionFitter(n_draws = 100L),
+    metrics = list(posterior_summary_metric()),
+    n_replicates = 3L,
+    seed = 7L
+  )
+  run_simulation(config, resume = "never", progress = FALSE)
+}
+
+describe("render_report()", {
+  it("renders an HTML report for a small LinearRegressionFitter study", {
+    skip_if_not(.has_quarto(), "quarto CLI not available")
+
+    result <- .small_result()
 
     out <- tempfile(fileext = ".html")
-    res <- report(result, output_file = out, open = FALSE)
+    res <- render_report(result, output_file = out, open = FALSE)
+    expect_true(file.exists(res))
+    expect_gt(file.info(res)$size, 0)
+  })
+
+  it("report() is a deprecated alias that still renders and warns", {
+    skip_if_not(.has_quarto(), "quarto CLI not available")
+
+    result <- .small_result()
+
+    out <- tempfile(fileext = ".html")
+    expect_warning(
+      res <- report(result, output_file = out, open = FALSE),
+      "deprecated"
+    )
     expect_true(file.exists(res))
     expect_gt(file.info(res)$size, 0)
   })

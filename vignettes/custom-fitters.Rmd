@@ -34,6 +34,7 @@ The public fitter contract is:
 | `extract_draws(fitter, fit_result, variables)` | required | numeric draws matrix (rows = draws, cols = parameters, with unique colnames) |
 | `predict_fit(fitter, fit_result, newdata, seed)` | optional; `supports_predictions = TRUE` | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
 | `log_lik_matrix(fitter, fit_result, newdata)` | optional; `supports_log_lik = TRUE` | numeric log-likelihood matrix (S x N) |
+| `predict_epred(fitter, fit_result, newdata)` | optional; `supports_epred = TRUE` | numeric expectation matrix (S x N), or `NULL` when unsupported (`r2_loo` then degrades to NA) |
 | `loo_fit(fitter, fit_result)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k` |
 | `fit_diagnostics(fitter, fit_result)` | optional | named diagnostic list; the default is `list()` |
 

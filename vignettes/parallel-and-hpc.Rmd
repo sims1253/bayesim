@@ -53,9 +53,33 @@ extension as a package and load it on every daemon — for example with
 
 For local multi-core work, pass `workers` to `run_simulation()`:
 
-```{r, eval=FALSE}
-result <- run_simulation(config, workers = 4)
-# mirai::daemons(4) is called for you and torn down on exit.
+```{r}
+# A small study used by the chunks below.
+sim_gen <- function(data_spec, task_ctx) {
+  x <- stats::rnorm(data_spec$n)
+  y <- x + stats::rnorm(data_spec$n)
+  list(
+    train = data.frame(y = y, x = x),
+    response = "y",
+    true_params = c(slope = 1),
+    vars_of_interest = "slope"
+  )
+}
+
+config <- simulation_config(
+  data_grid = data.frame(n = 50L),
+  fit_grid = data.frame(model = "linear"),
+  data_generator = sim_gen,
+  fitter = LinearRegressionFitter(n_draws = 100L),
+  metrics = list(posterior_summary_metric()),
+  n_replicates = 4L,
+  seed = 42L
+)
+
+result <- run_simulation(
+  config, workers = 2, progress = FALSE, verbose = FALSE
+)
+# mirai::daemons(2) is called for you and torn down on exit.
 ```
 
 This is the recommended path for development and moderate task counts.
@@ -79,6 +103,7 @@ This split maps cleanly onto a batch scheduler: the dispatcher runs on the
 head node, the daemons on the compute nodes.
 
 ```{r, eval=FALSE}
+# Cluster-only: needs remote mirai daemons reachable over TLS.
 library(bayesim)
 library(mirai)
 
@@ -132,6 +157,8 @@ wait
 And the dispatcher R script:
 
 ```{r, eval=FALSE}
+# Cluster-only: dispatcher script for the SLURM job above; references the
+# cluster's data grids and generators.
 # dispatcher.R
 args <- commandArgs(trailingOnly = TRUE)
 url <- args[1]
@@ -196,6 +223,7 @@ on each daemon before tasks start. The `daemon_setup` argument of
 the task grid ships:
 
 ```{r, eval=FALSE}
+# Cluster-only: configures the cluster's cmdstan install on every daemon.
 config <- simulation_config(
   ...,
   daemon_setup = function() {
@@ -241,14 +269,26 @@ batches of this size, writes a checkpoint after each batch (when
 `result_path` is set), and lightens completed results per the retention
 profile before starting the next batch.
 
-```{r, eval=FALSE}
+```{r}
+# The same study, now checkpointed to disk in batches (tempdir keeps the
+# vignette self-cleaning; use a real directory for an actual study).
+run_dir <- file.path(tempdir(), "big-study")
+
 config <- simulation_config(
-  ...,
-  result_path = "results/big_study",
-  checkpoint_every = 50L,
+  data_grid = data.frame(n = 50L),
+  fit_grid = data.frame(model = "linear"),
+  data_generator = sim_gen,
+  fitter = LinearRegressionFitter(n_draws = 100L),
+  metrics = list(posterior_summary_metric()),
+  n_replicates = 4L,
+  seed = 42L,
+  result_path = run_dir,
+  checkpoint_every = 2L,
   keep_checkpoints = 2L,
   retain = "metrics"
 )
+
+result <- run_simulation(config, progress = FALSE, verbose = FALSE)
 ```
 
 When using daemons, each daemon holds its own copies of in-flight task
@@ -276,11 +316,16 @@ Increase it only when you want a longer commit history for audits.
 Point `result_path` at a directory (on shared scratch, for clusters) and pass
 `resume = "auto"` so an interrupted run picks up where it left off:
 
-```{r, eval=FALSE}
-result <- run_simulation(config, resume = "auto", workers = NULL)
+```{r}
+# Every task is already terminal, so this picks up the completed run at once.
+result <- run_simulation(
+  config, resume = "auto", workers = NULL, progress = FALSE, verbose = FALSE
+)
 
 # Or force a resume from a specific directory:
-result <- resume_simulation("/scratch/user/bayesim-sim", config = config)
+result <- resume_simulation(
+  run_dir, config = config, progress = FALSE, verbose = FALSE
+)
 ```
 
 `resume_simulation()` rehydrates the config from the run manifest when you

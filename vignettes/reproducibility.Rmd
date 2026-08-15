@@ -52,7 +52,7 @@ and metric name. Adding or reordering metrics therefore does not change the
 random draws used by another metric. `run_simulation()` also restores the
 caller's RNG kind and state when it returns.
 
-```{r, eval=FALSE}
+```{r}
 library(bayesim)
 
 config <- simulation_config(
@@ -83,13 +83,17 @@ daemon runs produce the same scientific outputs and canonical task outcomes.
 Volatile timing fields are the only difference, so the example drops them
 before comparing:
 
-```{r, eval=FALSE}
+```{r}
 # Sequential
-seq_result <- run_simulation(config, resume = "never", progress = FALSE)
+seq_result <- run_simulation(
+  config, resume = "never", progress = FALSE, verbose = FALSE
+)
 
 # Parallel via mirai
 mirai::daemons(2)
-par_result <- run_simulation(config, resume = "never", progress = FALSE)
+par_result <- run_simulation(
+  config, resume = "never", progress = FALSE, verbose = FALSE
+)
 mirai::daemons(0)
 
 # Timing columns record wall-clock time, so drop them before comparing.

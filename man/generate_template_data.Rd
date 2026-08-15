@@ -4,14 +4,12 @@
 \alias{generate_template_data}
 \title{Generate template data for prefit compilation}
 \usage{
-generate_template_data(data_generator, data_spec, seed = 0L)
+generate_template_data(data_generator, data_spec)
 }
 \arguments{
 \item{data_generator}{The simulation data generator function.}
 
 \item{data_spec}{A named list (one row of \code{data_grid} as a list).}
-
-\item{seed}{Deprecated internal argument retained for compatibility; ignored.}
 }
 \value{
 A data.frame suitable for \code{brms::brm(data =)}.

@@ -128,7 +128,7 @@ config <- simulation_config(
   metrics = list(
     elpd_loo_metric(),
     posterior_summary_metric(),
-    convergence_metric()
+    sampler_diagnostics_metric()
   ),
   n_replicates = 50L,
   seed = 42L

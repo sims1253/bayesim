@@ -2,7 +2,7 @@
 % Please edit documentation in R/analysis.R
 \name{report}
 \alias{report}
-\title{Render a simulation-study report}
+\title{Deprecated alias for render_report()}
 \usage{
 report(
   result,
@@ -22,34 +22,14 @@ sessions) the rendered report is opened in a viewer/browser. Forwarded to
 \code{\link[quarto:quarto_render]{quarto::quarto_render()}} via its \code{open} handling where supported; on
 systems without that argument the file path is still returned.}
 
-\item{estimands}{Optional character vector of estimands (parameter names) to
-restrict the report to. Currently informational; the template auto-detects
-estimands from the summary when \code{NULL} (default).}
-}
-\value{
-The path to the rendered HTML file (invisibly).
+\item{estimands}{Ignored. The argument was accepted (and documented as
+informational only) by \code{report()} but never used; it is kept in the
+signature purely so existing calls do not error.}
 }
 \description{
-Renders a standard Quarto HTML report for a \code{bayesim_simulation_result},
-covering the study design table, \code{\link[=performance_measures]{performance_measures()}}, parameter
-recovery plots per estimand, credible-interval coverage, and SBC rank ECDF
-panels (when a rank metric was computed). The report template lives at
-\code{inst/report/simulation-report.qmd}.
-
-Each section is wrapped in \code{tryCatch}, so a missing metric (e.g. no rank
-data, no recorded truths) degrades gracefully instead of failing the whole
-render.
-
-Requires the \code{quarto} R package AND the Quarto CLI. If the CLI is not
-available, an informative error is thrown pointing to \url{https://quarto.org}.
+\code{report()} was renamed to \code{\link[=render_report]{render_report()}} because the old name collided
+with the generic of the easystats \emph{report} package. The alias forwards to
+\code{render_report()} and emits a deprecation warning once per session; it will
+be removed in a future release.
 }
-\examples{
-\dontrun{
-result <- run_simulation(config, progress = FALSE)
-report(result, output_file = "my-study.html")
-}
-}
-\seealso{
-\code{\link[=performance_measures]{performance_measures()}}, \code{\link[=plot_recovery]{plot_recovery()}}, \code{\link[=plot_coverage]{plot_coverage()}},
-\code{\link[=plot_rank_ecdf]{plot_rank_ecdf()}}.
-}
+\keyword{internal}
