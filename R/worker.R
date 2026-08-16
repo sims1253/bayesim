@@ -55,16 +55,76 @@ run_task_safe <- function(
   rlang::try_fetch(
     run_task(task, config_spec, fitter, metrics, retain),
     error = function(e) {
-      err_info <- capture_error_info(e)
-      # Mark fatal conditions so the controller re-raises them after the batch.
-      err_info$fatal <- is_fatal_error(e)
-      # Preserve the full condition class chain for faithful reconstruction.
-      err_info$condition_class <- class(e)
-      new_task_result(
-        task_id = task$task_id,
-        status = "failed",
-        timing = list(total = 0),
-        error = err_info
+      # C1: the handler itself must stay total. On mirai daemons without an
+      # installed bayesim (source-loaded controller), namespace resolution of
+      # package helpers can fail inside this handler, turning a recoverable
+      # task error into a fatal transport error. Fall back to a base-R-only
+      # capture that preserves every field the controller consumes.
+      tryCatch(
+        {
+          err_info <- capture_error_info(e)
+          # Mark fatal conditions so the controller re-raises them after the
+          # batch.
+          err_info$fatal <- is_fatal_error(e)
+          # Preserve the full condition class chain for reconstruction.
+          err_info$condition_class <- class(e)
+          new_task_result(
+            task_id = task$task_id,
+            status = "failed",
+            timing = list(total = 0),
+            error = err_info
+          )
+        },
+        error = function(handler_error) {
+          structure(
+            list(
+              task_id = task$task_id,
+              status = "failed",
+              metrics = NULL,
+              diagnostics = NULL,
+              timing = list(total = 0),
+              error = list(
+                error_class = paste(class(e), collapse = ", "),
+                error_message = tryCatch(
+                  paste(conditionMessage(e)),
+                  error = function(cond) "unknown error"
+                ),
+                call = tryCatch(
+                  {
+                    cl <- conditionCall(e)
+                    if (is.null(cl)) NULL else deparse(cl)[1]
+                  },
+                  error = function(cond) NULL
+                ),
+                traceback = character(0),
+                fatal = length(intersect(
+                  class(e),
+                  c(
+                    "bayesim_config_error",
+                    "bayesim_contract_error",
+                    "bayesim_checkpoint_error",
+                    "bayesim_internal_error"
+                  )
+                )) >
+                  0L,
+                condition_class = class(e),
+                handler_error = tryCatch(
+                  paste(
+                    "error handler fell back to base capture:",
+                    conditionMessage(handler_error)
+                  ),
+                  error = function(cond) {
+                    "error handler fell back to base capture"
+                  }
+                )
+              ),
+              warnings = character(0),
+              truth = NULL,
+              stop_reason = NULL
+            ),
+            class = "bayesim_task_result"
+          )
+        }
       )
     }
   )

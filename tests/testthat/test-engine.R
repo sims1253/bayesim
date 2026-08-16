@@ -545,6 +545,37 @@ describe("Worker", {
       expect_true(is.list(result$timing))
       expect_true("total" %in% names(result$timing))
     })
+
+    it("stays total when error-capture helpers themselves fail", {
+      # Mirai daemons without an installed bayesim (source-loaded controller)
+      # can fail to resolve the handler's package helpers; the handler must
+      # fall back to base-R capture instead of dying (PR #49 review).
+      task <- create_test_task()
+      config_spec <- list(
+        data_generator = function(data_spec, task_ctx) {
+          stop("Data generation error")
+        }
+      )
+
+      testthat::local_mocked_bindings(
+        capture_error_info = function(e) stop("namespace unavailable"),
+        .package = "bayesim"
+      )
+      result <- run_task_safe(task, config_spec, MockFitter(), list())
+
+      expect_s3_class(result, "bayesim_task_result")
+      expect_equal(result$status, "failed")
+      expect_equal(result$task_id, "d001_f001_r00001")
+      # run_task() itself calls capture_error_info() on generator errors, so
+      # the captured condition may be the mock's error rather than the
+      # generator's; either way the fallback must record a non-empty message
+      # and flag the degradation.
+      expect_type(result$error$error_message, "character")
+      expect_true(nzchar(result$error$error_message))
+      expect_match(result$error$handler_error, "fell back to base capture")
+      expect_false(result$error$fatal)
+      expect_type(result$error$condition_class, "character")
+    })
   })
 
   describe("run_task()", {
