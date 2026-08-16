@@ -28,7 +28,6 @@ jobs:
         with:
           r-version: release
           use-public-rspm: true
-          extra-repositories: https://stan-dev.r-universe.dev
 
       # needs: check installs Depends/Imports/Suggests, which covers ggplot2
       # (Suggests) required by the fast tier's plot assertions.
@@ -36,7 +35,7 @@ jobs:
         with:
           # local::. also installs the package so mirai daemons can resolve
           # the bayesim namespace; tests still run against the source tree.
-          extra-packages: any::testthat, local::.
+          extra-packages: any::testthat, local::., stan-dev/cmdstanr
           needs: check
 
       - name: Run fast tests

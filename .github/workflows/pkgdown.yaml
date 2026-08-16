@@ -34,12 +34,11 @@ jobs:
         if: github.event.action != 'closed'
         with:
           use-public-rspm: true
-          extra-repositories: https://stan-dev.r-universe.dev
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         if: github.event.action != 'closed'
         with:
-          extra-packages: any::pkgdown, local::.
+          extra-packages: any::pkgdown, local::., stan-dev/cmdstanr
           needs: website
 
       - name: Build site (main branch)
