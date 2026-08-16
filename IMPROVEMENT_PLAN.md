@@ -365,7 +365,7 @@ Once integration coverage exists, remove repetitive tests for constructor
 defaults, individual class hierarchy entries, shallow wrappers, and every
 minor invalid-input permutation.
 
-### Backend suite: nightly or release
+### Backend suite: on merge or release
 
 Run on one cached Linux job:
 
@@ -382,7 +382,7 @@ Do not install CmdStan on every operating-system/R-version package-check job.
 
 - **Pull request:** package check without CmdStan, fast integration suite,
   formatting, and linting.
-- **Nightly:** cached Stan backend suite and heavier statistical acceptance.
+- **Merge to master:** cached Stan backend suite and heavier statistical acceptance.
 - **Release:** full supported R/OS matrix plus backend acceptance on the chosen
   reference platform.
 - **Coverage:** fast/core suite only; use coverage to find untested behavior,

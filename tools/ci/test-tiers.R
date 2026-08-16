@@ -13,7 +13,7 @@
 #            secondary suites (engine internals, parallel transport, report
 #            rendering) live here. CI: test-coverage.
 # - backend: requires a compiled Stan backend (brms/cmdstanr/CmdStan). Skipped
-#            unless BAYESIM_TEST_TIER=backend. CI: test-nightly and the
+#            unless BAYESIM_TEST_TIER=backend. CI: test-backend and the
 #            release-check backend acceptance job.
 bayesim_test_tier_fast <- c(
   "adaptive-stop",
