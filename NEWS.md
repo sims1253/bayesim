@@ -13,6 +13,10 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ## Engine and resume
 
+* Fixed a `merge_results()` crash on resume-to-completion: when the resumed
+  execution re-covered every prior task and the new rows carried columns the
+  prior rows lacked (e.g. diagnostics after a failed-only prior run), the
+  schema-alignment step assigned a length-1 `NA` into a 0-row frame (#63).
 * Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
   longer lose or mangle recorded truths and fit diagnostics when prior task
   results are reloaded from a checkpoint.
