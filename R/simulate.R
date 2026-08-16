@@ -307,12 +307,11 @@ run_simulation <- function(
     checkpoint_path = run_policy$result_path
   )
 
-  # F2: compact failure summary when any task failed.
-  if (
-    !is.null(result$summary) &&
-      any(result$summary$status == "failed", na.rm = TRUE)
-  ) {
-    if (isTRUE(verbose)) print_failure_summary(result)
+  # F7 (issue #53): one end-of-run block — completion status, task counts,
+  # stop reason, results path, and the literal resume command when work
+  # remains. Subsumes the F2 failure detail. Gated by verbose only.
+  if (isTRUE(verbose)) {
+    print_run_summary(result)
   }
 
   result

@@ -147,6 +147,242 @@ describe("F5 run reporting", {
   })
 })
 
+describe("F7 end-of-run summary", {
+  # All cli alerts (any visual level) signal cliMessage conditions, which
+  # inherit from "message"; the warning handler additionally collects genuine
+  # warnings the run may emit (e.g. cli_warn). Run verbosely, collect every
+  # emitted condition into one searchable text block, and return the result
+  # alongside it.
+  .run_messages <- function(config, ...) {
+    conds <- character()
+    result <- withCallingHandlers(
+      run_simulation(config, ...),
+      message = function(m) {
+        conds <<- c(conds, conditionMessage(m))
+        invokeRestart("muffleMessage")
+      },
+      warning = function(w) {
+        conds <<- c(conds, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+    list(text = paste(conds, collapse = "\n"), result = result)
+  }
+
+  it("prints completion, counts, and path; no resume line when done", {
+    path <- withr::local_tempdir()
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 2L,
+      seed = 41L,
+      result_path = file.path(path, "complete")
+    )
+    out <- .run_messages(config, resume = "never", progress = FALSE)
+
+    expect_match(out$text, "Simulation complete: 2/2 tasks succeeded")
+    expect_match(out$text, "Results:", fixed = TRUE)
+    # Nothing left to resume: no resume instruction in the completed block.
+    expect_false(grepl("Resume with", out$text, fixed = TRUE))
+    expect_s3_class(out$result, "bayesim_simulation_result")
+  })
+
+  it("reports failed counts and per-class detail for a finished run", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = function(data_spec, task_ctx) {
+        stop("Intentional failure")
+      },
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 3L,
+      seed = 42L,
+      max_errors = Inf
+    )
+    out <- .run_messages(config, resume = "never", progress = FALSE)
+
+    expect_match(out$text, "Simulation finished: 0/3 tasks succeeded, 3 failed")
+    expect_match(out$text, "3 task(s) failed", fixed = TRUE)
+    # All tasks are terminal: no resume instruction.
+    expect_false(grepl("Resume with", out$text, fixed = TRUE))
+  })
+
+  it("prints remaining work and the literal resume call after max_errors", {
+    path <- withr::local_tempdir()
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = function(data_spec, task_ctx) {
+        stop("Intentional failure")
+      },
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 4L,
+      seed = 43L,
+      max_errors = 1L,
+      result_path = file.path(path, "stopped")
+    )
+    out <- .run_messages(config, resume = "never", progress = FALSE)
+
+    expect_match(
+      out$text,
+      "Simulation stopped early \\(error budget exhausted\\): 0 succeeded, 1 failed, 3 of 4 tasks not run"
+    )
+    # The exact, copyable resume command for this run's path.
+    expect_match(out$text, 'Resume with: resume_simulation\\("[^"]+/stopped"')
+    expect_false(grepl("Simulation complete", out$text, fixed = TRUE))
+    expect_equal(sum(out$result$task_grid$status == "skipped"), 3L)
+  })
+
+  it("labels adaptive stops and prints the resume call", {
+    path <- withr::local_tempdir()
+    .conj_gen <- function(data_spec, task_ctx) {
+      n <- data_spec$n
+      b <- data_spec$beta
+      x <- stats::rnorm(n)
+      y <- 1 + b * x + stats::rnorm(n)
+      list(
+        train = data.frame(y = y, x = x),
+        test = NULL,
+        response = "y",
+        true_params = c(Intercept = 1, x = b, sigma = 1),
+        vars_of_interest = c("Intercept", "x", "sigma"),
+        meta = list()
+      )
+    }
+    config <- simulation_config(
+      data_grid = data.frame(n = 60L, beta = c(0.5, 1)),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .conj_gen,
+      fitter = LinearRegressionFitter(n_draws = 100L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 6L,
+      seed = 44L,
+      result_path = file.path(path, "adaptive"),
+      checkpoint_every = 2L,
+      stop_on = list(
+        estimand = "x",
+        measure = "bias",
+        target_mcse = 100,
+        min_reps = 2L,
+        check_every = 2L
+      )
+    )
+    out <- .run_messages(config, resume = "never", progress = FALSE)
+
+    expect_match(
+      out$text,
+      "Simulation stopped early \\(adaptive stopping target reached\\)"
+    )
+    expect_match(out$text, "tasks not run")
+    expect_match(out$text, "Resume with: resume_simulation", fixed = TRUE)
+  })
+
+  it("reports cumulative counts after resuming to completion", {
+    path <- withr::local_tempdir()
+    # Fails the first replicate only: run 1 exhausts the error budget on the
+    # rep-1 failure, and resume re-runs the remaining (skipped) replicates,
+    # which succeed.
+    flaky_gen <- function(data_spec, task_ctx) {
+      if (identical(task_ctx$rep_idx, 1L)) {
+        stop("Intentional failure")
+      }
+      n <- data_spec$n
+      x <- stats::rnorm(n)
+      y <- x + stats::rnorm(n)
+      list(
+        train = data.frame(y = y, x = x),
+        test = NULL,
+        response = "y",
+        true_params = c(x = 1),
+        vars_of_interest = "x",
+        meta = list()
+      )
+    }
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = flaky_gen,
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 4L,
+      seed = 46L,
+      max_errors = 1L,
+      checkpoint_every = 1L,
+      result_path = file.path(path, "flaky")
+    )
+    stopped <- .run_messages(config, resume = "never", progress = FALSE)
+    expect_match(
+      stopped$text,
+      "Simulation stopped early \\(error budget exhausted\\): 0 succeeded, 1 failed, 3 of 4 tasks not run"
+    )
+
+    # Raising the error budget is runtime policy, so the same study resumes
+    # compatibly. The advertised resume path completes the study: counts are
+    # cumulative across the resume (the prior failure is terminal), and the
+    # completion block offers no resume command.
+    config@max_errors <- Inf
+    resumed <- .run_messages(
+      config,
+      resume = "must",
+      progress = FALSE
+    )
+    expect_match(
+      resumed$text,
+      "Simulation finished: 3/4 tasks succeeded, 1 failed"
+    )
+    expect_false(grepl("Resume with", resumed$text, fixed = TRUE))
+    expect_match(resumed$text, "Results:", fixed = TRUE)
+  })
+
+  it("stays silent when verbose = FALSE", {
+    path <- withr::local_tempdir()
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = function(data_spec, task_ctx) {
+        stop("Intentional failure")
+      },
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 4L,
+      seed = 45L,
+      max_errors = 1L,
+      result_path = file.path(path, "quiet")
+    )
+    expect_silent(
+      run_simulation(
+        config,
+        resume = "never",
+        progress = FALSE,
+        verbose = FALSE
+      )
+    )
+  })
+
+  it("falls back to task results when the grid is absent", {
+    tr <- new_task_result(
+      task_id = "t1",
+      status = "success",
+      metrics = list(),
+      timing = list(total = 0.1)
+    )
+    result <- new_simulation_result(
+      config_fingerprint = "abc",
+      task_results = list(tr),
+      timing = list(total = 0.2)
+    )
+    expect_message(
+      print_run_summary(result),
+      "Simulation complete: 1/1 tasks succeeded"
+    )
+  })
+})
+
 describe("F6 truthful resume instructions", {
   configless_line <- 'Resume with: resume_simulation\\("[^"]+"\\)$'
 

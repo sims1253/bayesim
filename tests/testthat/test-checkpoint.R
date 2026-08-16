@@ -1260,6 +1260,33 @@ describe("Resume Logic", {
       expect_equal(result$metric_rmse[result$task_id == "t2"], 0.10)
     })
 
+    it("handles a resume that re-covers every prior task with new columns", {
+      # Regression test for #63: execute_tasks() flattens restored prior
+      # outcomes alongside re-run ones, so a resume-to-completion presents
+      # every prior task_id as a duplicate. prior_only is then a 0-row frame,
+      # and the schema-alignment loops must still add columns only the new
+      # rows carry (a bare NA assignment into 0 rows used to error).
+      old_results <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("failed", "skipped"),
+        stringsAsFactors = FALSE
+      )
+      new_results <- data.frame(
+        task_id = c("t1", "t2", "t3"),
+        status = c("failed", "success", "success"),
+        # The restored failed row carries no value (NA on both sides counts
+        # as equivalent); the re-run successes carry real values.
+        truth__x = c(NA_real_, 1, 2),
+        stringsAsFactors = FALSE
+      )
+
+      result <- merge_results(old_results, new_results)
+
+      expect_equal(result$task_id, c("t1", "t2", "t3"))
+      expect_equal(result$status, c("failed", "success", "success"))
+      expect_equal(result$truth__x, c(NA_real_, 1, 2))
+    })
+
     it("accepts resume-equivalent rows despite timing and missing-value representation", {
       old_results <- data.frame(
         task_id = c("t1", "t2"),

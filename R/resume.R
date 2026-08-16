@@ -347,13 +347,15 @@ merge_results <- function(prior_results, new_results) {
   # Checkpoints from adjacent schema versions may differ only by an all-NA
   # optional column. Align the union before binding so an equivalent duplicate
   # can be replaced by the new row without making unrelated prior rows
-  # impossible to retain.
+  # impossible to retain. Assign row-count-length NA vectors: a bare NA errors
+  # when the receiving side is a 0-row frame, which happens when the resumed
+  # execution re-covers every prior task (resume-to-completion; #63).
   all_cols <- union(names(prior_only), names(new_results))
   for (col in setdiff(all_cols, names(prior_only))) {
-    prior_only[[col]] <- NA
+    prior_only[[col]] <- rep(NA, nrow(prior_only))
   }
   for (col in setdiff(all_cols, names(new_results))) {
-    new_results[[col]] <- NA
+    new_results[[col]] <- rep(NA, nrow(new_results))
   }
   combined <- rbind(
     prior_only[, all_cols, drop = FALSE],
