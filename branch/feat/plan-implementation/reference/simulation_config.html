@@ -142,17 +142,26 @@ single knob also bounds the number of task results held in memory at once
 
 
 <dt id="arg-keep-checkpoints">keep_checkpoints<a class="anchor" aria-label="anchor" href="#arg-keep-checkpoints"></a></dt>
-<dd><p>Positive integer. Number of complete checkpoint
-snapshots to retain on disk. Defaults to 2, preserving the latest snapshot
-plus one fallback for corruption recovery. Runtime policy; excluded from
-the config fingerprint.</p></dd>
+<dd><p>Positive integer. Number of checkpoint commit
+directories to retain. Defaults to 2, preserving the newest commit plus
+one older fallback for corruption recovery. Pruning removes old commit
+directories only; the immutable outcome shards and ledger history are
+never pruned, so durable storage grows roughly linearly with completed
+tasks. Runtime policy; excluded from the config fingerprint.</p></dd>
 
 
 <dt id="arg-retain">retain<a class="anchor" aria-label="anchor" href="#arg-retain"></a></dt>
 <dd><p>Character vector. What to retain in results. Must be subset of
 <code>c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")</code>.
-(B4: excluded from the config fingerprint — changing retention must not
-invalidate resume.)</p></dd>
+A single profile name is also accepted: <code>"minimal"</code> (metrics only),
+<code>"standard"</code> (metrics, diagnostics, warnings), or <code>"debug"</code> (everything).
+Alternatively, a named list with <code>success</code>, <code>warning</code>, and <code>error</code>
+entries to retain more for tasks that warn or fail. <code>"metrics"</code> is always
+retained.
+(B4: excluded from the config fingerprint, but exclusion does not make
+every retention change legal on resume: a compatible resume may narrow
+retention, while widening is rejected once completed outcomes lack the
+requested artifacts — discarded artifacts cannot be recreated.)</p></dd>
 
 
 <dt id="arg-max-errors">max_errors<a class="anchor" aria-label="anchor" href="#arg-max-errors"></a></dt>
@@ -180,8 +189,9 @@ fingerprint — it is runtime policy.)</p></dd>
 
 <dt id="arg-summary-format">summary_format<a class="anchor" aria-label="anchor" href="#arg-summary-format"></a></dt>
 <dd><p>Character scalar. Output format for the final summary.
-<code>"rds"</code> (default) writes nothing extra – the canonical rds checkpoint
-carries the summary and remains the resume artifact. <code>"parquet"</code>
+<code>"rds"</code> (default) writes nothing extra – the durable run store (outcome
+shards plus ledger) carries the results and remains the resume artifact.
+<code>"parquet"</code>
 additionally writes <code>&lt;result_path&gt;/summary.parquet</code> using the suggested
 <code>nanoparquet</code> package, for downstream consumption (pandas, arrow, polars).
 (I8: excluded from the config fingerprint – runtime policy.)</p></dd>

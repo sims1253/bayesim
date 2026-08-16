@@ -41,7 +41,16 @@ and use
 [`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
 /
 [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md);
-the SBC workflow below is identical.
+the SBC workflow below is identical. One caveat:
+[`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
+draws theta from the model prior (valid SBC by construction when the
+fitting prior matches), but
+[`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+draws theta from a preconditioning posterior, so its ranks are only
+uniform if the fitting prior is set to match that preconditioning
+distribution — with a diffuse/unmatched fitting prior, cap-shaped ranks
+are expected and do not indicate sampler error (see
+[`?ifs_generator`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)).
 
 ## Running SBC
 
@@ -206,8 +215,11 @@ contain the truth about 95% of the time?
 [`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md)
 shows this per estimand with MCSE error bars;
 [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
-reports the same quantity in a table alongside bias, empirical SE, MSE,
-and average model SE.
+reports the same quantity in a table. Because SBC draws a new truth from
+the prior for every replicate, this is a **varying-truth** study.
+Accordingly, the table labels error summaries as `mean_error`,
+`error_sd`, and `error_mse`; it does not label them as the fixed-truth
+Morris measures `bias`, `emp_se`, or `mse`.
 
 ``` r
 
@@ -220,21 +232,26 @@ plot_coverage(result)
 
 pm <- performance_measures(result, estimand = "x")
 pm
-#> # A tibble: 6 × 7
-#>   data_n fit_model estimand measure     value     mcse n_sim
-#>    <int> <chr>     <chr>    <chr>       <dbl>    <dbl> <int>
-#> 1     40 lm        x        bias       0.0209  0.134     150
-#> 2     40 lm        x        emp_se     1.64    0.0947    150
-#> 3     40 lm        x        mse        0.0228  0.00396   150
-#> 4     40 lm        x        model_se   0.140   0.00441   150
-#> 5     40 lm        x        coverage   0.94    0.0194    150
-#> 6     40 lm        x        n_sim    150      NA         150
+#> # A tibble: 6 × 8
+#>   data_n fit_model estimand measure       value     mcse n_sim truth_mode
+#>    <int> <chr>     <chr>    <chr>         <dbl>    <dbl> <int> <chr>     
+#> 1     40 lm        x        mean_error   0.0209  0.0122    150 varying   
+#> 2     40 lm        x        error_sd     0.150   0.00869   150 varying   
+#> 3     40 lm        x        error_mse    0.0228  0.00396   150 varying   
+#> 4     40 lm        x        model_se     0.140   0.00441   150 varying   
+#> 5     40 lm        x        coverage     0.94    0.0194    150 varying   
+#> 6     40 lm        x        n_sim      150      NA         150 varying
 ```
 
 The `coverage` row reports the empirical coverage of the 95% posterior
 interval for the `x` coefficient, with its Monte Carlo standard error.
 For the conjugate fitter this should sit close to the nominal 0.95
-(within a couple of MCSEs).
+(within a couple of MCSEs). The `truth_mode` column is `"varying"`. Here
+`mean_error` is the average replicate-level difference
+`estimate - truth`, and its MCSE is computed from those replicate-level
+errors; `error_sd` describes the spread of that error distribution.
+These are useful calibration summaries, but they are not the empirical
+sampling SE or bias of an estimator at one fixed truth.
 
 **Coverage vs SBC.** Coverage and SBC agree when the model is
 well-behaved, but they probe different things. Coverage is a
@@ -245,7 +262,9 @@ over-dispersed in the tails and under-dispersed in the middle. SBC, by
 contrast, checks the full posterior shape through rank uniformity. In
 practice, run both: SBC as the global self-consistency test, and
 [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
-coverage as the interval-level summary a methods paper reports.
+coverage as the interval-level summary a methods paper reports. Use a
+fixed-truth data generator when the scientific target is the Morris
+estimator-performance measures `bias`, `emp_se`, and `mse`.
 
 ## Further reading
 

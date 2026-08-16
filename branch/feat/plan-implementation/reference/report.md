@@ -1,19 +1,12 @@
-# Render a simulation-study report
+# Deprecated alias for render_report()
 
-Renders a standard Quarto HTML report for a `bayesim_simulation_result`,
-covering the study design table,
-[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md),
-parameter recovery plots per estimand, credible-interval coverage, and
-SBC rank ECDF panels (when a rank metric was computed). The report
-template lives at `inst/report/simulation-report.qmd`.
-
-Each section is wrapped in `tryCatch`, so a missing metric (e.g. no rank
-data, no recorded truths) degrades gracefully instead of failing the
-whole render.
-
-Requires the `quarto` R package AND the Quarto CLI. If the CLI is not
-available, an informative error is thrown pointing to
-<https://quarto.org>.
+`report()` was renamed to
+[`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+because the old name collided with the generic of the easystats *report*
+package. The alias forwards to
+[`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+and emits a deprecation warning once per session; it will be removed in
+a future release.
 
 ## Usage
 
@@ -48,26 +41,6 @@ report(
 
 - estimands:
 
-  Optional character vector of estimands (parameter names) to restrict
-  the report to. Currently informational; the template auto-detects
-  estimands from the summary when `NULL` (default).
-
-## Value
-
-The path to the rendered HTML file (invisibly).
-
-## See also
-
-[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md),
-[`plot_recovery()`](https://sims1253.github.io/bayesim/reference/plot_recovery.md),
-[`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md),
-[`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md).
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-result <- run_simulation(config, progress = FALSE)
-report(result, output_file = "my-study.html")
-} # }
-```
+  Ignored. The argument was accepted (and documented as informational
+  only) by `report()` but never used; it is kept in the signature purely
+  so existing calls do not error.

@@ -8,10 +8,14 @@ Constructor for ElpdLooMetric.
 
 ``` r
 ElpdLooMetric(
-  name = character(0),
-  needs = character(0),
+  name = "elpd_loo",
+  needs = "loo",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(elpd = list(role = "estimate", aggregation = "mean", mcse = "sd"), p_loo
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"), se = list(role =
+    "estimate", aggregation = "mean", mcse = "sd"), pareto_k_max = list(role =
+    "diagnostic", aggregation = "mean", mcse = "sd"))
 )
 
 elpd_loo_metric(name = "elpd_loo")
@@ -38,4 +42,21 @@ elpd_loo_metric()
 #>  @ needs       : chr "loo"
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
+#>  @ schema      :List of 4
+#>  .. $ elpd        :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ p_loo       :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ se          :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ pareto_k_max:List of 3
+#>  ..  ..$ role       : chr "diagnostic"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
 ```

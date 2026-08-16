@@ -60,6 +60,6 @@ computation result in NULL values for that context element.
 Evaluation data: `predictions` and `log_lik` are computed on the TEST
 set when `data_bundle$test` is present, otherwise on the training set.
 Every built-in metric that consumes them (`pred_*`, `elpd_test`,
-`rmse_test`, `r2_test`) compares against the test response, so the
-predictions must be for the test rows. The LOO context is always built
-on the training set — leave-one-out is in-sample by construction.
+`r2_test`) compares against the test response, so the predictions must
+be for the test rows. The LOO context is always built on the training
+set — leave-one-out is in-sample by construction.

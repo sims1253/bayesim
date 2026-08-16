@@ -78,7 +78,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -196,15 +196,15 @@ tell signal from noise. bayesim computes every MCSE for you.</p>
 <span></span>
 <span><span class="va">pm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/performance_measures.html">performance_measures</a></span><span class="op">(</span><span class="va">result</span>, estimand <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">pm</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
-<span><span class="co">#&gt;   data_n data_beta fit_model estimand measure    value      mcse n_sim</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    100       0.5 lm        x        bias     -<span style="color: #BB0000;">0.021</span><span style="color: #BB0000; text-decoration: underline;">1</span>  0.012<span style="text-decoration: underline;">2</span>      80</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>    100       0.5 lm        x        emp_se    0.110   0.008<span style="text-decoration: underline;">71</span>     80</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>    100       0.5 lm        x        mse       0.012<span style="text-decoration: underline;">3</span>  0.002<span style="text-decoration: underline;">11</span>     80</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>    100       0.5 lm        x        model_se  0.097<span style="text-decoration: underline;">9</span>  0.000<span style="text-decoration: underline;">996</span>    80</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>    100       0.5 lm        x        coverage  0.938   0.027<span style="text-decoration: underline;">1</span>      80</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>    100       0.5 lm        x        n_sim    80      <span style="color: #BB0000;">NA</span>           80</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 9</span></span></span>
+<span><span class="co">#&gt;   data_n data_beta fit_model estimand measure    value     mcse n_sim truth_mode</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>    100       0.5 lm        x        bias     -<span style="color: #BB0000;">0.021</span><span style="color: #BB0000; text-decoration: underline;">1</span>  1.22<span style="color: #949494;">e</span><span style="color: #BB0000;">-2</span>    80 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>    100       0.5 lm        x        emp_se    0.110   8.71<span style="color: #949494;">e</span><span style="color: #BB0000;">-3</span>    80 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>    100       0.5 lm        x        mse       0.012<span style="text-decoration: underline;">3</span>  2.11<span style="color: #949494;">e</span><span style="color: #BB0000;">-3</span>    80 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>    100       0.5 lm        x        model_se  0.097<span style="text-decoration: underline;">9</span>  9.96<span style="color: #949494;">e</span><span style="color: #BB0000;">-4</span>    80 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>    100       0.5 lm        x        coverage  0.938   2.71<span style="color: #949494;">e</span><span style="color: #BB0000;">-2</span>    80 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>    100       0.5 lm        x        n_sim    80      <span style="color: #BB0000;">NA</span>   <span style="color: #949494;"> </span>      80 fixed</span></span></code></pre></div>
 <p>The tidy tibble has one row per <code>estimand x measure</code>, with
 the <code>value</code> and its <code>mcse</code>. For the conjugate
 fitter on this DGP we expect: bias near zero, emp_se and model_se close
@@ -232,8 +232,8 @@ calculation for simulation.</p>
 <code class="sourceCode R"><span><span class="co"># Target: coverage MCSE of 0.03 at the conservative p = 0.5.</span></span>
 <span><span class="fu"><a href="../reference/n_replicates_for_target.html">n_replicates_for_target</a></span><span class="op">(</span>target_mcse <span class="op">=</span> <span class="fl">0.03</span>, metric_type <span class="op">=</span> <span class="st">"coverage"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 278</span></span></code></pre></div>
-<p>So <strong>1,667</strong> replicates (ceiling) are needed to estimate
-a coverage rate to within <code>+/- 0.03</code> (one MCSE) at the
+<p>So <strong>278</strong> replicates (ceiling) are needed to estimate a
+coverage rate to within <code>+/- 0.03</code> (one MCSE) at the
 worst-case variance. If the coverage is expected near the nominal 0.95,
 supply <code>p = 0.95</code> for a tighter, smaller estimate:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
@@ -292,19 +292,19 @@ the summary with a <code>data_</code> prefix, so we group by
 <span>  <span class="va">design_result</span>, estimand <span class="op">=</span> <span class="st">"x"</span>, by <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"data_n"</span>, <span class="st">"data_beta"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">pm_design</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 24 × 7</span></span></span>
-<span><span class="co">#&gt;    data_n data_beta estimand measure     value     mcse n_sim</span></span>
-<span><span class="co">#&gt;     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>     60       0.5 x        bias     -<span style="color: #BB0000;">0.002</span><span style="color: #BB0000; text-decoration: underline;">45</span>  0.015<span style="text-decoration: underline;">8</span>     60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>     60       0.5 x        emp_se    0.122    0.011<span style="text-decoration: underline;">2</span>     60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>     60       0.5 x        mse       0.014<span style="text-decoration: underline;">7</span>   0.002<span style="text-decoration: underline;">79</span>    60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>     60       0.5 x        model_se  0.130    0.002<span style="text-decoration: underline;">05</span>    60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>     60       0.5 x        coverage  0.95     0.028<span style="text-decoration: underline;">1</span>     60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>     60       0.5 x        n_sim    60       <span style="color: #BB0000;">NA</span>          60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>    120       0.5 x        bias      0.003<span style="text-decoration: underline;">54</span>  0.013<span style="text-decoration: underline;">1</span>     60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>    120       0.5 x        emp_se    0.102    0.009<span style="text-decoration: underline;">36</span>    60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>    120       0.5 x        mse       0.010<span style="text-decoration: underline;">2</span>   0.001<span style="text-decoration: underline;">61</span>    60</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>    120       0.5 x        model_se  0.091<span style="text-decoration: underline;">2</span>   0.001<span style="text-decoration: underline;">22</span>    60</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 24 × 8</span></span></span>
+<span><span class="co">#&gt;    data_n data_beta estimand measure     value     mcse n_sim truth_mode</span></span>
+<span><span class="co">#&gt;     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>     60       0.5 x        bias     -<span style="color: #BB0000;">0.002</span><span style="color: #BB0000; text-decoration: underline;">45</span>  0.015<span style="text-decoration: underline;">8</span>     60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span>     60       0.5 x        emp_se    0.122    0.011<span style="text-decoration: underline;">2</span>     60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span>     60       0.5 x        mse       0.014<span style="text-decoration: underline;">7</span>   0.002<span style="text-decoration: underline;">79</span>    60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span>     60       0.5 x        model_se  0.130    0.002<span style="text-decoration: underline;">05</span>    60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span>     60       0.5 x        coverage  0.95     0.028<span style="text-decoration: underline;">1</span>     60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span>     60       0.5 x        n_sim    60       <span style="color: #BB0000;">NA</span>          60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span>     60       1   x        bias     -<span style="color: #BB0000;">0.016</span><span style="color: #BB0000; text-decoration: underline;">4</span>   0.017<span style="text-decoration: underline;">7</span>     60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span>     60       1   x        emp_se    0.137    0.012<span style="text-decoration: underline;">6</span>     60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span>     60       1   x        mse       0.018<span style="text-decoration: underline;">7</span>   0.002<span style="text-decoration: underline;">64</span>    60 fixed     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>     60       1   x        model_se  0.126    0.002<span style="text-decoration: underline;">30</span>    60 fixed     </span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 14 more rows</span></span></span></code></pre></div>
 <p>Read each row as one condition cell. As <code>n</code> grows, the
 empirical SE and MSE should shrink (more data, tighter inference); as
@@ -325,8 +325,11 @@ posterior-mean estimates against the truth, faceted by a condition
 column — a direct visual check that the estimator recovers the estimand
 across the design:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_recovery.html">plot_recovery</a></span><span class="op">(</span><span class="va">design_result</span>, <span class="st">"x"</span>, by <span class="op">=</span> <span class="st">"data_n"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_recovery.html">plot_recovery</a></span><span class="op">(</span><span class="va">design_result</span>, estimand <span class="op">=</span> <span class="st">"x"</span>, by <span class="op">=</span> <span class="st">"data_n"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="design-of-simulation-studies_files/figure-html/recovery-1.png" class="r-plt" alt="" width="576"></p>
+<p>The parameter argument is named <code>estimand</code>, the same term
+<code><a href="../reference/performance_measures.html">performance_measures()</a></code> uses (<code>var =</code> remains
+accepted as a compatibility alias).</p>
 </div>
 <div class="section level2">
 <h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>

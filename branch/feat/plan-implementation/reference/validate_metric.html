@@ -3,11 +3,21 @@
 valid name property. This is the canonical metric validator (B3 merges the
 former internal validate_metric_interface into this exported name). Method
 existence is not checked because S7 dispatches via generics and the base
-class raises errors for unimplemented abstract methods."><meta property="og:description" content="Validates that a metric object is an S7 instance of the Metric class with a
+class raises errors for unimplemented abstract methods.
+When representative values are supplied (fit_result plus data_bundle),
+validation additionally executes compute_metric() once and checks that its
+output passes the metric output schema and that every field declared in the
+metric's schema is produced. This catches broken external metrics before a
+run starts instead of as thousands of per-task failures."><meta property="og:description" content="Validates that a metric object is an S7 instance of the Metric class with a
 valid name property. This is the canonical metric validator (B3 merges the
 former internal validate_metric_interface into this exported name). Method
 existence is not checked because S7 dispatches via generics and the base
-class raises errors for unimplemented abstract methods."></head><body>
+class raises errors for unimplemented abstract methods.
+When representative values are supplied (fit_result plus data_bundle),
+validation additionally executes compute_metric() once and checks that its
+output passes the metric output schema and that every field declared in the
+metric's schema is produced. This catches broken external metrics before a
+run starts instead of as thousands of per-task failures."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -64,11 +74,22 @@ valid <code>name</code> property. This is the canonical metric validator (B3 mer
 former internal <code>validate_metric_interface</code> into this exported name). Method
 existence is not checked because S7 dispatches via generics and the base
 class raises errors for unimplemented abstract methods.</p>
+<p>When representative values are supplied (<code>fit_result</code> plus <code>data_bundle</code>),
+validation additionally executes <code><a href="compute_metric.html">compute_metric()</a></code> once and checks that its
+output passes the metric output schema and that every field declared in the
+metric's <code>schema</code> is produced. This catches broken external metrics before a
+run starts instead of as thousands of per-task failures.</p>
     </div>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">validate_metric</span><span class="op">(</span><span class="va">metric</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">validate_metric</span><span class="op">(</span></span>
+<span>  <span class="va">metric</span>,</span>
+<span>  fit_result <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  data_bundle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  context <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  task_ctx <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -77,6 +98,28 @@ class raises errors for unimplemented abstract methods.</p>
 
 <dl><dt id="arg-metric">metric<a class="anchor" aria-label="anchor" href="#arg-metric"></a></dt>
 <dd><p>An S7 object to validate as a Metric.</p></dd>
+
+
+<dt id="arg-fit-result">fit_result<a class="anchor" aria-label="anchor" href="#arg-fit-result"></a></dt>
+<dd><p>Optional representative <code>bayesim_fit_result</code>
+(<code><a href="new_fit_result.html">new_fit_result()</a></code>) driving a conformance execution of
+<code><a href="compute_metric.html">compute_metric()</a></code>. Must be supplied together with <code>data_bundle</code>.</p></dd>
+
+
+<dt id="arg-data-bundle">data_bundle<a class="anchor" aria-label="anchor" href="#arg-data-bundle"></a></dt>
+<dd><p>Optional representative data bundle for the conformance
+execution.</p></dd>
+
+
+<dt id="arg-context">context<a class="anchor" aria-label="anchor" href="#arg-context"></a></dt>
+<dd><p>Optional representative context list (e.g. predictions,
+log_lik). Defaults to an empty list; metrics should degrade to <code>NA</code> rather
+than erroring when a needed context element is missing.</p></dd>
+
+
+<dt id="arg-task-ctx">task_ctx<a class="anchor" aria-label="anchor" href="#arg-task-ctx"></a></dt>
+<dd><p>Optional representative task context. Defaults to a stable
+placeholder.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -87,7 +130,8 @@ class raises errors for unimplemented abstract methods.</p>
     <h2 id="errors">Errors<a class="anchor" aria-label="anchor" href="#errors"></a></h2>
 
 
-<p>Throws a <code>bayesim_contract_error</code> condition if validation fails.</p>
+<p>Throws a <code>bayesim_contract_error</code> condition if validation fails (or its
+subclass <code>bayesim_validation_error</code> for representative-execution failures).</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

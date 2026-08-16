@@ -120,8 +120,12 @@ then to <code>"y"</code>.</p></dd>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>Unlike <code><a href="prior_draws_generator.html">prior_draws_generator()</a></code> (which targets the prior), this generator
-concentrates the truth draw in a region of high posterior mass — the
-canonical SBC generator for models with diffuse or improper priors.</p>
+concentrates the truth draw in a region of high posterior mass, which is
+practical for diffuse or improper priors. Note this is not by itself a
+valid SBC configuration: valid SBC requires the fitting prior to match the
+theta-generating distribution (here the pilot posterior), so a diffuse or
+unmatched fitting prior yields systematically non-uniform (cap-shaped)
+ranks; see the caveat in <code><a href="ifs_generator.html">ifs_generator()</a></code>.</p>
 <p>Because forward simulation here relies on <code><a href="predict_fit.html">predict_fit()</a></code>, the response is
 drawn exactly as the fitter implements its posterior-predictive sampling,
 which respects the fitter's response distribution and link function. Each

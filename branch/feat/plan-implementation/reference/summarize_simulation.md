@@ -13,6 +13,15 @@ are excluded from aggregation. Columns from unknown or user-defined
 sources default to `"mean"`. MCSE formulas follow rsimsum (Gasparini,
 2018).
 
+Wide summaries: several metrics legitimately flatten to dozens of
+columns each, so the default aggregation can return 100+ columns.
+Nothing is ever dropped or truncated. Narrow the output with the
+`metrics` argument, and discover a single metric's flattened columns
+with
+[`metric_cols()`](https://sims1253.github.io/bayesim/reference/metric_cols.md).
+In interactive sessions only, a wide default call prints a one-line hint
+pointing at these; programmatic and noninteractive use is always silent.
+
 ## Usage
 
 ``` r

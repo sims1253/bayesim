@@ -67,8 +67,7 @@ data. Returns a named list of prefit objects keyed by spec hash.</p>
 <span>  <span class="va">fit_grid</span>,</span>
 <span>  <span class="va">data_generator</span>,</span>
 <span>  <span class="va">data_spec_template</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  seed <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  result_path <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -101,10 +100,6 @@ used to generate template data.</p></dd>
 <code>file.path(result_path, "stan_binaries")</code> so compiled binaries persist and
 are shared across controller and local daemons.</p></dd>
 
-
-<dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
-<dd><p>Integer seed for the simulation (used only for logging).</p></dd>
-
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -117,6 +112,12 @@ are shared across controller and local daemons.</p></dd>
 back to a fresh <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> per task).</p>
 <p>A compile failure is fatal: it raises a <code><a href="bayesim_internal_error.html">bayesim_internal_error()</a></code> since the
 simulation cannot proceed without a compilable model.</p>
+<p>A model spec without an explicit <code>prior</code> is likewise fatal (a
+<code><a href="bayesim_config_error.html">bayesim_config_error()</a></code>, raised before any compilation work for that spec)
+unless the fitter opts in via <code>allow_default_priors = TRUE</code>: brms
+data-derived default priors from the template dataset would otherwise stay
+embedded in the compiled model reused for every task. When opted in, a
+one-time notice is emitted instead.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

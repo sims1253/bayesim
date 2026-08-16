@@ -78,7 +78,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
@@ -110,7 +110,14 @@ Normal-Inverse-Gamma Bayesian linear regression (real posteriors, no
 Stan, milliseconds per fit). For Stan/brms models, swap the fitter for
 <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> or <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> and use
 <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code> /
-<code><a href="../reference/ifs_generator.html">ifs_generator()</a></code>; the SBC workflow below is identical.</p>
+<code><a href="../reference/ifs_generator.html">ifs_generator()</a></code>; the SBC workflow below is identical. One
+caveat: <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code> draws theta from the
+model prior (valid SBC by construction when the fitting prior matches),
+but <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> draws theta from a preconditioning
+posterior, so its ranks are only uniform if the fitting prior is set to
+match that preconditioning distribution — with a diffuse/unmatched
+fitting prior, cap-shaped ranks are expected and do not indicate sampler
+error (see <code><a href="../reference/ifs_generator.html">?ifs_generator</a></code>).</p>
 </div>
 <div class="section level2">
 <h2 id="running-sbc">Running SBC<a class="anchor" aria-label="anchor" href="#running-sbc"></a>
@@ -262,26 +269,38 @@ more familiar check is <strong>interval coverage</strong>: does the
 nominal 95% credible interval contain the truth about 95% of the time?
 <code><a href="../reference/plot_coverage.html">plot_coverage()</a></code> shows this per estimand with MCSE error
 bars; <code><a href="../reference/performance_measures.html">performance_measures()</a></code> reports the same quantity in a
-table alongside bias, empirical SE, MSE, and average model SE.</p>
+table. Because SBC draws a new truth from the prior for every replicate,
+this is a <strong>varying-truth</strong> study. Accordingly, the table
+labels error summaries as <code>mean_error</code>,
+<code>error_sd</code>, and <code>error_mse</code>; it does not label
+them as the fixed-truth Morris measures <code>bias</code>,
+<code>emp_se</code>, or <code>mse</code>.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_coverage.html">plot_coverage</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sbc-and-calibration_files/figure-html/coverage-1.png" class="r-plt" alt="" width="576"></p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/performance_measures.html">performance_measures</a></span><span class="op">(</span><span class="va">result</span>, estimand <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">pm</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
-<span><span class="co">#&gt;   data_n fit_model estimand measure     value     mcse n_sim</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     40 lm        x        bias       0.020<span style="text-decoration: underline;">9</span>  0.134     150</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     40 lm        x        emp_se     1.64    0.094<span style="text-decoration: underline;">7</span>    150</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     40 lm        x        mse        0.022<span style="text-decoration: underline;">8</span>  0.003<span style="text-decoration: underline;">96</span>   150</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     40 lm        x        model_se   0.140   0.004<span style="text-decoration: underline;">41</span>   150</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     40 lm        x        coverage   0.94    0.019<span style="text-decoration: underline;">4</span>    150</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     40 lm        x        n_sim    150      <span style="color: #BB0000;">NA</span>         150</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 8</span></span></span>
+<span><span class="co">#&gt;   data_n fit_model estimand measure       value     mcse n_sim truth_mode</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     40 lm        x        mean_error   0.020<span style="text-decoration: underline;">9</span>  0.012<span style="text-decoration: underline;">2</span>    150 varying   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     40 lm        x        error_sd     0.150   0.008<span style="text-decoration: underline;">69</span>   150 varying   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     40 lm        x        error_mse    0.022<span style="text-decoration: underline;">8</span>  0.003<span style="text-decoration: underline;">96</span>   150 varying   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     40 lm        x        model_se     0.140   0.004<span style="text-decoration: underline;">41</span>   150 varying   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     40 lm        x        coverage     0.94    0.019<span style="text-decoration: underline;">4</span>    150 varying   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     40 lm        x        n_sim      150      <span style="color: #BB0000;">NA</span>         150 varying</span></span></code></pre></div>
 <p>The <code>coverage</code> row reports the empirical coverage of the
 95% posterior interval for the <code>x</code> coefficient, with its
 Monte Carlo standard error. For the conjugate fitter this should sit
-close to the nominal 0.95 (within a couple of MCSEs).</p>
+close to the nominal 0.95 (within a couple of MCSEs). The
+<code>truth_mode</code> column is <code>"varying"</code>. Here
+<code>mean_error</code> is the average replicate-level difference
+<code>estimate - truth</code>, and its MCSE is computed from those
+replicate-level errors; <code>error_sd</code> describes the spread of
+that error distribution. These are useful calibration summaries, but
+they are not the empirical sampling SE or bias of an estimator at one
+fixed truth.</p>
 <p><strong>Coverage vs SBC.</strong> Coverage and SBC agree when the
 model is well-behaved, but they probe different things. Coverage is a
 single-number summary of one interval and can miss miscalibration that
@@ -291,7 +310,9 @@ over-dispersed in the tails and under-dispersed in the middle. SBC, by
 contrast, checks the full posterior shape through rank uniformity. In
 practice, run both: SBC as the global self-consistency test, and
 <code><a href="../reference/performance_measures.html">performance_measures()</a></code> coverage as the interval-level
-summary a methods paper reports.</p>
+summary a methods paper reports. Use a fixed-truth data generator when
+the scientific target is the Morris estimator-performance measures
+<code>bias</code>, <code>emp_se</code>, and <code>mse</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a>

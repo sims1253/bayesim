@@ -14,8 +14,7 @@ build_model_bank(
   fit_grid,
   data_generator,
   data_spec_template,
-  result_path = NULL,
-  seed = NULL
+  result_path = NULL
 )
 ```
 
@@ -47,10 +46,6 @@ build_model_bank(
   `file.path(result_path, "stan_binaries")` so compiled binaries persist
   and are shared across controller and local daemons.
 
-- seed:
-
-  Integer seed for the simulation (used only for logging).
-
 ## Value
 
 A named list of `brmsfit` prefit objects keyed by
@@ -67,3 +62,11 @@ task).
 A compile failure is fatal: it raises a
 [`bayesim_internal_error()`](https://sims1253.github.io/bayesim/reference/bayesim_internal_error.md)
 since the simulation cannot proceed without a compilable model.
+
+A model spec without an explicit `prior` is likewise fatal (a
+[`bayesim_config_error()`](https://sims1253.github.io/bayesim/reference/bayesim_config_error.md),
+raised before any compilation work for that spec) unless the fitter opts
+in via `allow_default_priors = TRUE`: brms data-derived default priors
+from the template dataset would otherwise stay embedded in the compiled
+model reused for every task. When opted in, a one-time notice is emitted
+instead.

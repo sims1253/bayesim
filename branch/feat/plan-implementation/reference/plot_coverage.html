@@ -68,7 +68,7 @@ rate. Requires <code><a href="PosteriorSummaryMetric.html">posterior_summary_met
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_coverage</span><span class="op">(</span><span class="va">result</span>, nominal <span class="op">=</span> <span class="fl">0.95</span>, by <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_coverage</span><span class="op">(</span><span class="va">result</span>, nominal <span class="op">=</span> <span class="cn">NULL</span>, by <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -80,7 +80,8 @@ rate. Requires <code><a href="PosteriorSummaryMetric.html">posterior_summary_met
 
 
 <dt id="arg-nominal">nominal<a class="anchor" aria-label="anchor" href="#arg-nominal"></a></dt>
-<dd><p>Nominal coverage rate (default 0.95).</p></dd>
+<dd><p>Nominal coverage rate. Defaults to the interval probability
+recorded by the metric schema, or 0.95 for legacy results.</p></dd>
 
 
 <dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>

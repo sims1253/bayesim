@@ -51,9 +51,11 @@ constants are embedded in the compiled model and cannot be refreshed by
 `update(recompile = FALSE)`. Therefore, always supply explicit priors in
 every
 [`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
-when `precompile = TRUE`; bayesim warns when a model-bank row omits
-them. Use `precompile = FALSE` if task-specific default priors are part
-of the study design.
+when `precompile = TRUE`; bayesim raises a fatal configuration error
+when a model-bank row omits them (opt in with
+`BrmsFitter(allow_default_priors = TRUE)` if you deliberately want
+template-derived priors). Use `precompile = FALSE` if task-specific
+default priors are part of the study design.
 
 ## Declaring models: `brms_model()` and `model_grid()`
 
@@ -130,7 +132,7 @@ config <- simulation_config(
   metrics = list(
     elpd_loo_metric(),
     posterior_summary_metric(),
-    convergence_metric()
+    sampler_diagnostics_metric()
   ),
   n_replicates = 50L,
   seed = 42L

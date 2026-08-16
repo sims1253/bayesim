@@ -8,7 +8,7 @@ types) so the compiled binary matches the real task data.
 ## Usage
 
 ``` r
-generate_template_data(data_generator, data_spec, seed = 0L)
+generate_template_data(data_generator, data_spec)
 ```
 
 ## Arguments
@@ -20,10 +20,6 @@ generate_template_data(data_generator, data_spec, seed = 0L)
 - data_spec:
 
   A named list (one row of `data_grid` as a list).
-
-- seed:
-
-  Deprecated internal argument retained for compatibility; ignored.
 
 ## Value
 

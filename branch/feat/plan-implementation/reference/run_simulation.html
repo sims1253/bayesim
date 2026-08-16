@@ -60,7 +60,8 @@
 <span>  <span class="va">config</span>,</span>
 <span>  resume <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"never"</span>, <span class="st">"must"</span><span class="op">)</span>,</span>
 <span>  progress <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  workers <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  workers <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -73,7 +74,16 @@
 
 
 <dt id="arg-resume">resume<a class="anchor" aria-label="anchor" href="#arg-resume"></a></dt>
-<dd><p>Character strategy: "auto", "never", or "must"</p></dd>
+<dd><p>Character strategy controlling how an existing <code>result_path</code>
+is treated: <code>"auto"</code> (default) resumes when the path holds a compatible
+run and starts fresh only when the path is absent or empty — an existing
+run that is incompatible or corrupt aborts rather than being silently
+overwritten, as does a non-empty directory without a run manifest;
+<code>"never"</code> starts fresh and errors if <code>result_path</code> already holds a run
+or unrelated files; <code>"must"</code> resumes and errors when no compatible
+checkpoint exists. Only tasks with terminal status
+(<code>"success"</code>/<code>"failed"</code>) are carried over; all other tasks re-run with
+their original RNG streams.</p></dd>
 
 
 <dt id="arg-progress">progress<a class="anchor" aria-label="anchor" href="#arg-progress"></a></dt>
@@ -83,9 +93,20 @@
 <dt id="arg-workers">workers<a class="anchor" aria-label="anchor" href="#arg-workers"></a></dt>
 <dd><p>Positive integer, NULL, or "multisession". When non-NULL,
 <code>mirai::daemons(workers)</code> is set up for the run and torn down on exit —
-the simple path for local parallelism. Must be NULL when daemons are
-already set (use <code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> directly for the advanced/HPC path:
-remote daemons, TLS, etc.). Daemons are set before the model bank ships.</p></dd>
+the simple path for local parallelism. <code>workers = 1</code> is genuinely
+sequential: no daemons are launched, so package-external S7 fitters and
+metrics keep their method dispatch (S7 method tables are registered per
+process and do not travel to daemon workers). Parallel execution starts
+at <code>workers &gt;= 2</code>. Must be NULL when daemons are already set (use
+<code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> directly for the advanced/HPC path: remote daemons,
+TLS, etc.). Daemons are set before the model bank ships.</p></dd>
+
+
+<dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
+<dd><p>Logical; if TRUE (default), print preflight, lifecycle, and
+completion messages. This is independent of <code>progress</code>: set
+<code>progress = FALSE</code> to hide the task bar while keeping run messages, or
+<code>verbose = FALSE</code> for a quiet programmatic run.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -101,7 +122,7 @@ remote daemons, TLS, etc.). Daemons are set before the model bank ships.</p></dd
 <span class="r-in"><span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"baseline"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  data_generator <span class="op">=</span> <span class="va">my_data_gen</span>,</span></span>
 <span class="r-in"><span>  fitter <span class="op">=</span> <span class="va">my_fitter</span>,</span></span>
-<span class="r-in"><span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu">rmse_metric</span><span class="op">(</span><span class="op">)</span>, <span class="fu">bias_metric</span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="RmseMetric.html">pred_rmse_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="BiasMetric.html">pred_bias_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  n_replicates <span class="op">=</span> <span class="fl">100L</span>,</span></span>
 <span class="r-in"><span>  seed <span class="op">=</span> <span class="fl">42L</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>

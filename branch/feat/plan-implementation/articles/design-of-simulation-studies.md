@@ -123,15 +123,15 @@ result <- run_simulation(config, progress = FALSE)
 
 pm <- performance_measures(result, estimand = "x")
 pm
-#> # A tibble: 6 × 8
-#>   data_n data_beta fit_model estimand measure    value      mcse n_sim
-#>    <int>     <dbl> <chr>     <chr>    <chr>      <dbl>     <dbl> <int>
-#> 1    100       0.5 lm        x        bias     -0.0211  0.0122      80
-#> 2    100       0.5 lm        x        emp_se    0.110   0.00871     80
-#> 3    100       0.5 lm        x        mse       0.0123  0.00211     80
-#> 4    100       0.5 lm        x        model_se  0.0979  0.000996    80
-#> 5    100       0.5 lm        x        coverage  0.938   0.0271      80
-#> 6    100       0.5 lm        x        n_sim    80      NA           80
+#> # A tibble: 6 × 9
+#>   data_n data_beta fit_model estimand measure    value     mcse n_sim truth_mode
+#>    <int>     <dbl> <chr>     <chr>    <chr>      <dbl>    <dbl> <int> <chr>     
+#> 1    100       0.5 lm        x        bias     -0.0211  1.22e-2    80 fixed     
+#> 2    100       0.5 lm        x        emp_se    0.110   8.71e-3    80 fixed     
+#> 3    100       0.5 lm        x        mse       0.0123  2.11e-3    80 fixed     
+#> 4    100       0.5 lm        x        model_se  0.0979  9.96e-4    80 fixed     
+#> 5    100       0.5 lm        x        coverage  0.938   2.71e-2    80 fixed     
+#> 6    100       0.5 lm        x        n_sim    80      NA          80 fixed
 ```
 
 The tidy tibble has one row per `estimand x measure`, with the `value`
@@ -167,7 +167,7 @@ n_replicates_for_target(target_mcse = 0.03, metric_type = "coverage")
 #> [1] 278
 ```
 
-So **1,667** replicates (ceiling) are needed to estimate a coverage rate
+So **278** replicates (ceiling) are needed to estimate a coverage rate
 to within `+/- 0.03` (one MCSE) at the worst-case variance. If the
 coverage is expected near the nominal 0.95, supply `p = 0.95` for a
 tighter, smaller estimate:
@@ -239,19 +239,19 @@ pm_design <- performance_measures(
   design_result, estimand = "x", by = c("data_n", "data_beta")
 )
 pm_design
-#> # A tibble: 24 × 7
-#>    data_n data_beta estimand measure     value     mcse n_sim
-#>     <dbl>     <dbl> <chr>    <chr>       <dbl>    <dbl> <int>
-#>  1     60       0.5 x        bias     -0.00245  0.0158     60
-#>  2     60       0.5 x        emp_se    0.122    0.0112     60
-#>  3     60       0.5 x        mse       0.0147   0.00279    60
-#>  4     60       0.5 x        model_se  0.130    0.00205    60
-#>  5     60       0.5 x        coverage  0.95     0.0281     60
-#>  6     60       0.5 x        n_sim    60       NA          60
-#>  7    120       0.5 x        bias      0.00354  0.0131     60
-#>  8    120       0.5 x        emp_se    0.102    0.00936    60
-#>  9    120       0.5 x        mse       0.0102   0.00161    60
-#> 10    120       0.5 x        model_se  0.0912   0.00122    60
+#> # A tibble: 24 × 8
+#>    data_n data_beta estimand measure     value     mcse n_sim truth_mode
+#>     <dbl>     <dbl> <chr>    <chr>       <dbl>    <dbl> <int> <chr>     
+#>  1     60       0.5 x        bias     -0.00245  0.0158     60 fixed     
+#>  2     60       0.5 x        emp_se    0.122    0.0112     60 fixed     
+#>  3     60       0.5 x        mse       0.0147   0.00279    60 fixed     
+#>  4     60       0.5 x        model_se  0.130    0.00205    60 fixed     
+#>  5     60       0.5 x        coverage  0.95     0.0281     60 fixed     
+#>  6     60       0.5 x        n_sim    60       NA          60 fixed     
+#>  7     60       1   x        bias     -0.0164   0.0177     60 fixed     
+#>  8     60       1   x        emp_se    0.137    0.0126     60 fixed     
+#>  9     60       1   x        mse       0.0187   0.00264    60 fixed     
+#> 10     60       1   x        model_se  0.126    0.00230    60 fixed     
 #> # ℹ 14 more rows
 ```
 
@@ -283,10 +283,14 @@ estimand across the design:
 
 ``` r
 
-plot_recovery(design_result, "x", by = "data_n")
+plot_recovery(design_result, estimand = "x", by = "data_n")
 ```
 
 ![](design-of-simulation-studies_files/figure-html/recovery-1.png)
+
+The parameter argument is named `estimand`, the same term
+[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+uses (`var =` remains accepted as a compatibility alias).
 
 ## Summary
 

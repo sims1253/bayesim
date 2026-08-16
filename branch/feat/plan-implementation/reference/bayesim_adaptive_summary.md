@@ -5,9 +5,7 @@ Internal helper for adaptive stopping: flattens the non-NULL entries of
 [`results_to_dataframe()`](https://sims1253.github.io/bayesim/reference/results_to_dataframe.md)
 and enriches it with data_grid/fit_grid/rep_idx columns (matching what
 [`build_simulation_result()`](https://sims1253.github.io/bayesim/reference/build_simulation_result.md)
-produces). Used by
-[`bayesim_adaptive_check()`](https://sims1253.github.io/bayesim/reference/bayesim_adaptive_check.md)
-so it can call
+produces). Used by the internal adaptive evaluator so it can call
 [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
 mid-run.
 

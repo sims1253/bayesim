@@ -14,7 +14,8 @@ as_config_spec(config)
 
 - config:
 
-  An S7 SimulationConfig object.
+  An S7 SimulationConfig object or a `StudySpec` created by
+  [`new_study_spec()`](https://sims1253.github.io/bayesim/reference/new_study_spec.md).
 
 ## Value
 

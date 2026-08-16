@@ -70,18 +70,22 @@ for caching and deduplication purposes.</p>
 
 
 <dl><dt id="arg-config">config<a class="anchor" aria-label="anchor" href="#arg-config"></a></dt>
-<dd><p>An S7 SimulationConfig object.</p></dd>
+<dd><p>An S7 SimulationConfig object or a <code>StudySpec</code> created by
+<code><a href="new_study_spec.html">new_study_spec()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A character string containing the SHA256 hash of the configuration.</p>
+    <p>A character string containing the SHA256 hash of the study design.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The fingerprint excludes runtime policy settings (B4):</p><ul><li><p><code>result_path</code>: Output location doesn't affect simulation identity</p></li>
 <li><p><code>checkpoint_every</code> / <code>checkpoint_format</code>: checkpoint cadence/format is runtime optimization</p></li>
-<li><p><code>retain</code>: retention policy must not invalidate resume</p></li>
+<li><p><code>retain</code>: retention is runtime policy; fingerprint exclusion does not
+make every retention change legal on resume (a compatible resume may
+narrow retention; widening is rejected once completed outcomes lack the
+requested artifacts)</p></li>
 <li><p><code>max_errors</code>: error tolerance is runtime policy</p></li>
 </ul></div>
 

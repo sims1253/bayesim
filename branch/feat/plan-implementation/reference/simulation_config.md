@@ -87,17 +87,26 @@ simulation_config(
 
 - keep_checkpoints:
 
-  Positive integer. Number of complete checkpoint snapshots to retain on
-  disk. Defaults to 2, preserving the latest snapshot plus one fallback
-  for corruption recovery. Runtime policy; excluded from the config
-  fingerprint.
+  Positive integer. Number of checkpoint commit directories to retain.
+  Defaults to 2, preserving the newest commit plus one older fallback
+  for corruption recovery. Pruning removes old commit directories only;
+  the immutable outcome shards and ledger history are never pruned, so
+  durable storage grows roughly linearly with completed tasks. Runtime
+  policy; excluded from the config fingerprint.
 
 - retain:
 
   Character vector. What to retain in results. Must be subset of
   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
-  (B4: excluded from the config fingerprint — changing retention must
-  not invalidate resume.)
+  A single profile name is also accepted: `"minimal"` (metrics only),
+  `"standard"` (metrics, diagnostics, warnings), or `"debug"`
+  (everything). Alternatively, a named list with `success`, `warning`,
+  and `error` entries to retain more for tasks that warn or fail.
+  `"metrics"` is always retained. (B4: excluded from the config
+  fingerprint, but exclusion does not make every retention change legal
+  on resume: a compatible resume may narrow retention, while widening is
+  rejected once completed outcomes lack the requested artifacts —
+  discarded artifacts cannot be recreated.)
 
 - max_errors:
 
@@ -126,11 +135,12 @@ simulation_config(
 - summary_format:
 
   Character scalar. Output format for the final summary. `"rds"`
-  (default) writes nothing extra – the canonical rds checkpoint carries
-  the summary and remains the resume artifact. `"parquet"` additionally
-  writes `<result_path>/summary.parquet` using the suggested
-  `nanoparquet` package, for downstream consumption (pandas, arrow,
-  polars). (I8: excluded from the config fingerprint – runtime policy.)
+  (default) writes nothing extra – the durable run store (outcome shards
+  plus ledger) carries the results and remains the resume artifact.
+  `"parquet"` additionally writes `<result_path>/summary.parquet` using
+  the suggested `nanoparquet` package, for downstream consumption
+  (pandas, arrow, polars). (I8: excluded from the config fingerprint –
+  runtime policy.)
 
 ## Value
 

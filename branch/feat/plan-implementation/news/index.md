@@ -1,5 +1,89 @@
 # Changelog
 
+## bayesim (development version)
+
+Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
+
+### Engine and resume
+
+- Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
+  longer lose or mangle recorded truths and fit diagnostics when prior
+  task results are reloaded from a checkpoint.
+- Fatal mid-batch errors now persist the batch’s already-completed
+  sibling outcomes before re-raising, so a crash no longer discards
+  finished work.
+- Resume no longer double-loads the full run history (prior results were
+  loaded once to resume and again during the run).
+- In-memory (`result_path = NULL`) run-store writes are now linear in
+  the number of completed tasks instead of repeatedly rewriting the full
+  state.
+- Adaptive stopping now warns when its evaluation step fails instead of
+  passing silently.
+
+### Metrics
+
+- Removed the unvalidated mori shared-memory model-bank integration;
+  model banks travel to daemons by ordinary serialization.
+- Removed `rstar_metric()` (and with it the caret/randomForest
+  dependencies) and the `rmse_test_metric()` alias, and merged
+  `convergence_metric()` into an extended
+  [`sampler_diagnostics_metric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
+  (now emitting `rhat_max`, `ess_bulk_min`, `ess_tail_min`, `divergent`,
+  and `max_treedepth`).
+- [`pos_prob_metric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)’s
+  `by_param` field now declares mean/sd aggregation instead of a
+  binomial MCSE, which was wrong for a posterior probability mean.
+- Metric NA-degradation paths now emit schema-conformant fields (present
+  with `NA` values) instead of dropping fields from the flattened
+  summary.
+
+### Fitters and errors
+
+- New `supports_epred` fitter capability gating
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  — `TRUE` for
+  [`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)/[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md),
+  dynamic (set when an `epred` generated quantity is declared) for
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md).
+- [`bayesim_contract_error()`](https://sims1253.github.io/bayesim/reference/bayesim_contract_error.md)
+  is now exported.
+- Precompiled model banks now reject model specs without an explicit
+  prior with a configuration error instead of warning: brms derives
+  data-dependent default priors from the template data and embeds them
+  in the reused binary, silently fitting the whole study with the
+  template’s priors. Opt back in with
+  `BrmsFitter(allow_default_priors = TRUE)`.
+
+### Analysis and reporting
+
+- [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
+  was renamed to
+  [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  to stop colliding with the generic of the easystats *report* package.
+  [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
+  remains as a deprecated alias that forwards to
+  [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  and warns once per session.
+- [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  normalizes each task’s ranks by that task’s own post-thinning support
+  instead of the panel maximum, so pooling tasks with different
+  `n_ranks` (ESS-aware thinning) no longer manufactures miscalibration;
+  mixed-support panels warn that the simultaneous band is approximate.
+- The fixed-truth bias MCSE uniformly uses `sd(est - truth) / sqrt(n)`,
+  matching the varying-truth `mean_error` measures (Morris, White &
+  Crowther 2019, Table 2).
+
+### SBC documentation
+
+- [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+  and
+  [`forward_sim_generator()`](https://sims1253.github.io/bayesim/reference/forward_sim_generator.md)
+  now state the Talts et al. (2018) condition for valid SBC — the
+  fitting prior must match the parameter-generating distribution —
+  instead of calling inverse forward sampling the canonical SBC
+  generator unconditionally. With an unmatched fitting prior, cap-shaped
+  ranks are expected and do not indicate sampler error.
+
 ## bayesim 2.0.0
 
 A ground-up rewrite of the simulation engine, fitters, generators,
@@ -22,9 +106,13 @@ lifecycle-experimental.
 - [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
   restores the caller’s RNG state and kind. Stochastic metrics use
   stable metric-specific sub-seeds, so metric order is irrelevant.
-- Task-grid bookkeeping is vectorized by batch. Checkpoint snapshots are
-  pruned to `keep_checkpoints = 2L` by default, retaining one corruption
-  fallback while bounding disk growth.
+- Task-grid bookkeeping is vectorized by batch. The run store is
+  append-only: completed outcomes are written once as immutable,
+  mirrored outcome shards, and each checkpoint commit directory records
+  its deltas plus metadata. `keep_checkpoints = 2L` by default prunes
+  old checkpoint commits, keeping one fallback commit; immutable
+  outcome/ledger history is never pruned, so durable storage grows
+  roughly linearly with completed tasks.
 - Fixed S7 class checks that had made automatic BrmsFitter model-bank
   and generator shortcuts unreachable. Precompiled brms models now warn
   when explicit priors are missing, and preflight reports deduplicated
@@ -32,8 +120,7 @@ lifecycle-experimental.
 - Added exported
   [`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md),
   repaired the targets/HPC/SBC vignettes, consolidated
-  [`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
-  onto
+  `rmse_test_metric()` onto
   [`pred_rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md),
   and removed unused dependencies, helpers, and a committed Stan binary.
 
@@ -103,6 +190,16 @@ and
   daemons for the run (the simple path);
   [`mirai::daemons()`](https://mirai.r-lib.org/reference/daemons.html)
   remains for advanced/HPC.
+- The model bank is now shared across local daemons via
+  [mori](https://shikokuchuo.net/mori/) shared memory, so each daemon
+  zero-copy maps the bank instead of deserializing a private copy.
+  Locality is auto-detected from the mirai daemon URL (machine-local
+  transports and loopback TCP qualify); remote and wildcard-bound
+  daemons, and sequential runs, are passed through unchanged. `mori` is
+  an optional suggested dependency because its current releases require
+  R \>= 4.3 while bayesim supports R \>= 4.1. Without it, or when shared
+  memory creation fails, bayesim safely uses ordinary serialized
+  dispatch.
 
 ### Metrics and analysis (Morris et al. framing)
 
@@ -131,8 +228,8 @@ and
   training response (LOO is in-sample by construction).
 - `true_params` / `vars_of_interest` are now optional (truth-free
   studies run).
-- [`rstar_metric()`](https://sims1253.github.io/bayesim/reference/RstarMetric.md)
-  reimplemented for real (was a placebo returning NA): uses
+- `rstar_metric()` reimplemented for real (was a placebo returning NA):
+  uses
   [`posterior::rstar()`](https://mc-stan.org/posterior/reference/rstar.html)
   on per-chain draws from the underlying fit; degrades to NA with a
   one-time warning for chain-less fitters.
@@ -237,7 +334,7 @@ and
 
 ### Breaking changes
 
-- Public API contracted to a curated surface of ~25 exports (see
+- Public API contracted to a curated surface of 65 exports (see
   `_pkgdown.yml`).
 - The `loo` S7 generic was renamed `loo_fit` to avoid clashing with
   [`loo::loo()`](https://mc-stan.org/loo/reference/loo.html). Custom
@@ -430,8 +527,7 @@ capabilities, and memory-bounded execution.
   [`write_rds_atomic()`](https://sims1253.github.io/bayesim/reference/write_rds_atomic.md)
 - Config fingerprinting:
   [`compute_config_fingerprint()`](https://sims1253.github.io/bayesim/reference/compute_config_fingerprint.md)
-- Task ID formatting: `format_task_id()`,
-  [`parse_task_id()`](https://sims1253.github.io/bayesim/reference/parse_task_id.md)
+- Task ID formatting: `format_task_id()`, `parse_task_id()`
 - Timing utilities:
   [`make_timer()`](https://sims1253.github.io/bayesim/reference/make_timer.md)
 - Error capture:
@@ -522,8 +618,7 @@ capabilities, and memory-bounded execution.
   checks for valid resumable run
 - [`load_for_resume()`](https://sims1253.github.io/bayesim/reference/load_for_resume.md)
   loads previous state with validation
-- [`get_resume_summary()`](https://sims1253.github.io/bayesim/reference/get_resume_summary.md)
-  shows resumption summary
+- `get_resume_summary()` shows resumption summary
 - [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
   merges task status from checkpoint
 - [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
@@ -557,8 +652,7 @@ capabilities, and memory-bounded execution.
   adds retained fields to task results
 - [`estimate_size()`](https://sims1253.github.io/bayesim/reference/estimate_size.md)
   estimates object memory size
-- [`exceeds_size_threshold()`](https://sims1253.github.io/bayesim/reference/exceeds_size_threshold.md)
-  checks if result exceeds size limit
+- `exceeds_size_threshold()` checks if result exceeds size limit
 - [`externalize_artifact()`](https://sims1253.github.io/bayesim/reference/externalize_artifact.md)
   moves large artifacts to external files
 

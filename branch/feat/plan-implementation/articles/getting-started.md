@@ -81,7 +81,7 @@ config <- simulation_config(
   fitter = LinearRegressionFitter(n_draws = 500L),
   metrics = list(
     posterior_summary_metric(),
-    convergence_metric()
+    sampler_diagnostics_metric()
   ),
   n_replicates = 4L,
   seed = 42L
@@ -97,14 +97,15 @@ result <- run_simulation(config, progress = FALSE)
 #> ℹ Starting simulation with 8 tasks
 print(result)
 #> <bayesim_simulation_result>
-#>   Config fingerprint: 7c33484f0c944248c810573873c79e6a282ae74e56d7a2b2a1342d040d481836 
+#>   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 
 #>   Tasks: 8 
 #>     - Success: 8 
 #>     - Failed: 0 
-#>     - Skipped: 0 
+#>     - Pending: 0 
+#>     - Skipped (policy-stopped): 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
-#>   Task grid: 8 rows x 6 cols
-#>   Total time: 0.2 s
+#>   Task grid: 8 rows x 7 cols
+#>   Total time: 0.22 s
 ```
 
 ### Examine Results
@@ -112,13 +113,13 @@ print(result)
 ``` r
 
 head(result$summary)
-#>            task_id  status posterior_summary__mean__Intercept
-#> 1 d001_f001_r00001 success                          0.8448899
-#> 2 d001_f001_r00002 success                          1.0002337
-#> 3 d001_f001_r00003 success                          0.9888108
-#> 4 d001_f001_r00004 success                          0.9185220
-#> 5 d002_f001_r00001 success                          0.9700026
-#> 6 d002_f001_r00002 success                          1.1828572
+#>            task_id  status stop_reason posterior_summary__mean__Intercept
+#> 1 d001_f001_r00001 success        <NA>                          0.8448899
+#> 2 d001_f001_r00002 success        <NA>                          1.0002337
+#> 3 d001_f001_r00003 success        <NA>                          0.9888108
+#> 4 d001_f001_r00004 success        <NA>                          0.9185220
+#> 5 d002_f001_r00001 success        <NA>                          0.9700026
+#> 6 d002_f001_r00002 success        <NA>                          1.1828572
 #>   posterior_summary__mean__x posterior_summary__mean__sigma
 #> 1                   1.854738                      0.8546019
 #> 2                   1.859731                      0.9285260
@@ -168,34 +169,41 @@ head(result$summary)
 #> 4                      2.042422                          1.148037
 #> 5                      2.230406                          1.104865
 #> 6                      2.060749                          1.168051
-#>   convergence__rhat_max convergence__ess_bulk_min convergence__ess_tail_min
-#> 1                     1                        NA                        NA
-#> 2                     1                        NA                        NA
-#> 3                     1                        NA                        NA
-#> 4                     1                        NA                        NA
-#> 5                     1                        NA                        NA
-#> 6                     1                        NA                        NA
-#>   convergence__divergent truth__Intercept truth__x truth__sigma rhat_max
-#> 1                      0                1        2            1        1
-#> 2                      0                1        2            1        1
-#> 3                      0                1        2            1        1
-#> 4                      0                1        2            1        1
-#> 5                      0                1        2            1        1
-#> 6                      0                1        2            1        1
-#>   ess_bulk ess_tail divergent max_treedepth timing_total rep_idx data_n
-#> 1      500      500         0             0  0.018351316       1     50
-#> 2      500      500         0             0  0.035759449       2     50
-#> 3      500      500         0             0  0.004430532       3     50
-#> 4      500      500         0             0  0.004460573       4     50
-#> 5      500      500         0             0  0.004014015       1    100
-#> 6      500      500         0             0  0.003907204       2    100
-#>   data_intercept data_slope data_sigma fit_model
-#> 1              1          2          1    linear
-#> 2              1          2          1    linear
-#> 3              1          2          1    linear
-#> 4              1          2          1    linear
-#> 5              1          2          1    linear
-#> 6              1          2          1    linear
+#>   sampler_diagnostics__rhat_max sampler_diagnostics__ess_bulk_min
+#> 1                             1                                NA
+#> 2                             1                                NA
+#> 3                             1                                NA
+#> 4                             1                                NA
+#> 5                             1                                NA
+#> 6                             1                                NA
+#>   sampler_diagnostics__ess_tail_min sampler_diagnostics__divergent
+#> 1                                NA                              0
+#> 2                                NA                              0
+#> 3                                NA                              0
+#> 4                                NA                              0
+#> 5                                NA                              0
+#> 6                                NA                              0
+#>   sampler_diagnostics__max_treedepth truth__Intercept truth__x truth__sigma
+#> 1                                  0                1        2            1
+#> 2                                  0                1        2            1
+#> 3                                  0                1        2            1
+#> 4                                  0                1        2            1
+#> 5                                  0                1        2            1
+#> 6                                  0                1        2            1
+#>   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx
+#> 1        1      500      500         0             0  0.015084982       1
+#> 2        1      500      500         0             0  0.033234358       2
+#> 3        1      500      500         0             0  0.038297653       3
+#> 4        1      500      500         0             0  0.004620075       4
+#> 5        1      500      500         0             0  0.004062176       1
+#> 6        1      500      500         0             0  0.004142284       2
+#>   data_n data_intercept data_slope data_sigma fit_model
+#> 1     50              1          2          1    linear
+#> 2     50              1          2          1    linear
+#> 3     50              1          2          1    linear
+#> 4     50              1          2          1    linear
+#> 5    100              1          2          1    linear
+#> 6    100              1          2          1    linear
 ```
 
 Each row is one task. Columns include `task_id`, `status`,
@@ -232,6 +240,39 @@ For each metric you get `<metric>_mean`, `<metric>_median`,
 `<metric>_sd`, and `<metric>_mcse`, plus `n_reps`, `n_failed`, and
 `failure_rate`.
 
+Studies with several metrics can produce wide summaries – each metric
+contributes `_n_used`, `_mean`, `_median`, `_sd`, and `_mcse` columns,
+so the aggregate can easily exceed 100 columns. Nothing is dropped or
+truncated; narrow the aggregation with the `metrics` argument, and use
+[`metric_cols()`](https://sims1253.github.io/bayesim/reference/metric_cols.md)
+to list the flattened columns of a single metric:
+
+``` r
+
+metric_cols(result, "posterior_summary")
+#>                         mean__Intercept                                 mean__x 
+#>    "posterior_summary__mean__Intercept"            "posterior_summary__mean__x" 
+#>                             mean__sigma                       median__Intercept 
+#>        "posterior_summary__mean__sigma"  "posterior_summary__median__Intercept" 
+#>                               median__x                           median__sigma 
+#>          "posterior_summary__median__x"      "posterior_summary__median__sigma" 
+#>                           sd__Intercept                                   sd__x 
+#>      "posterior_summary__sd__Intercept"              "posterior_summary__sd__x" 
+#>                               sd__sigma                      q_lower__Intercept 
+#>          "posterior_summary__sd__sigma" "posterior_summary__q_lower__Intercept" 
+#>                              q_lower__x                          q_lower__sigma 
+#>         "posterior_summary__q_lower__x"     "posterior_summary__q_lower__sigma" 
+#>                      q_upper__Intercept                              q_upper__x 
+#> "posterior_summary__q_upper__Intercept"         "posterior_summary__q_upper__x" 
+#>                          q_upper__sigma 
+#>     "posterior_summary__q_upper__sigma"
+agg_post <- summarize_simulation(
+  result,
+  by = "data_n",
+  metrics = metric_cols(result, "posterior_summary", fields = "mean")
+)
+```
+
 ## Performance measures
 
 For estimator-performance measures in the sense of Morris, White &
@@ -243,7 +284,7 @@ each with its MCSE – use
 
 pm <- performance_measures(result, estimand = "x")
 pm
-#> # A tibble: 12 × 10
+#> # A tibble: 12 × 11
 #>    data_n data_intercept data_slope data_sigma fit_model estimand measure 
 #>     <dbl>          <dbl>      <dbl>      <dbl> <chr>     <chr>    <chr>   
 #>  1     50              1          2          1 linear    x        bias    
@@ -258,7 +299,7 @@ pm
 #> 10    100              1          2          1 linear    x        model_se
 #> 11    100              1          2          1 linear    x        coverage
 #> 12    100              1          2          1 linear    x        n_sim   
-#> # ℹ 3 more variables: value <dbl>, mcse <dbl>, n_sim <int>
+#> # ℹ 4 more variables: value <dbl>, mcse <dbl>, n_sim <int>, truth_mode <chr>
 ```
 
 This pairs `truth__x` with the per-task posterior summary to give, per
@@ -293,8 +334,13 @@ For long-running simulations, write checkpoints to `result_path`:
 ``` r
 
 config <- simulation_config(
-  data_grid = data_grid,
-  fit_grid = fit_grid,
+  data_grid = data.frame(
+    n = c(50, 100),
+    intercept = 1,
+    slope = 2,
+    sigma = 1
+  ),
+  fit_grid = data.frame(model = "linear"),
   data_generator = my_data_generator,
   fitter = LinearRegressionFitter(n_draws = 200L),
   metrics = list(posterior_summary_metric()),
@@ -306,26 +352,28 @@ config <- simulation_config(
 result <- run_simulation(config, resume = "auto")
 ```
 
-If interrupted, resume with:
+If interrupted, resume with the original config:
 
 ``` r
 
-result <- resume_simulation("my_simulation")
+result <- resume_simulation("my_simulation", config = config)
 ```
+
+Passing the config is required here because `my_data_generator` is a
+closure defined in your script; the run manifest cannot rehydrate
+script-defined closures. The configless form
+`resume_simulation("my_simulation")` works only when every generator,
+fitter, and metric is a namespaced package function or class.
 
 ## Metrics
 
 The built-in metric library covers the standard surface:
 `pred_bias_metric`, `pred_rmse_metric`, `pred_mae_metric`,
 `pred_mse_metric`, `coverage_metric`, `pos_prob_metric`,
-`posterior_summary_metric`, `convergence_metric`,
-`sampler_diagnostics_metric`, `rank_metric` (SBC ranks), `rstar_metric`,
-and LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`,
-`r2_loo_metric`, `elpd_test_metric`, `pred_rmse_metric`,
-`r2_test_metric`).
-[`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
-remains as a compatibility name for
-`pred_rmse_metric(name = "rmse_test")`.
+`posterior_summary_metric`, `sampler_diagnostics_metric` (convergence
+and sampler diagnostics), `rank_metric` (SBC ranks), and LOO/test-set
+variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
+`elpd_test_metric`, `r2_test_metric`).
 
 To write your own metric, extend the `Metric` class and implement
 [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md);

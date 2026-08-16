@@ -25,10 +25,14 @@ Constructor for RankMetric.
 
 ``` r
 RankMetric(
-  name = character(0),
+  name = "rank",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean",
+  summary_type = "none",
+  schema = list(n_draws = list(role = "count", aggregation = "none", mcse = "none"),
+    stride = list(role = "count", aggregation = "none", mcse = "none"), by_param =
+    list(role = "rank", aggregation = "none", mcse = "none"), n_ranks = list(role =
+    "count", aggregation = "none", mcse = "none")),
   thin = "auto"
 )
 
@@ -59,13 +63,47 @@ rank_metric()
 #>  @ name        : chr "rank"
 #>  @ needs       : chr(0) 
 #>  @ required    : logi FALSE
-#>  @ summary_type: chr "mean"
+#>  @ summary_type: chr "none"
+#>  @ schema      :List of 4
+#>  .. $ n_draws :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ stride  :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ by_param:List of 3
+#>  ..  ..$ role       : chr "rank"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ n_ranks :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
 #>  @ thin        : chr "auto"
 rank_metric(thin = FALSE)
 #> <bayesim::RankMetric>
 #>  @ name        : chr "rank"
 #>  @ needs       : chr(0) 
 #>  @ required    : logi FALSE
-#>  @ summary_type: chr "mean"
+#>  @ summary_type: chr "none"
+#>  @ schema      :List of 4
+#>  .. $ n_draws :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ stride  :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ by_param:List of 3
+#>  ..  ..$ role       : chr "rank"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
+#>  .. $ n_ranks :List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
 #>  @ thin        : logi FALSE
 ```

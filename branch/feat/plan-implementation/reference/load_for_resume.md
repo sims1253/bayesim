@@ -6,7 +6,7 @@ and configuration fingerprint before allowing resume.
 ## Usage
 
 ``` r
-load_for_resume(result_path, config)
+load_for_resume(result_path, config, run_store = NULL)
 ```
 
 ## Arguments
@@ -18,6 +18,13 @@ load_for_resume(result_path, config)
 - config:
 
   SimulationConfig; current configuration object.
+
+- run_store:
+
+  Optional internal
+  [`new_run_store()`](https://sims1253.github.io/bayesim/reference/new_run_store.md)
+  adapter. When supplied, it owns checkpoint reads and corruption
+  fallback.
 
 ## Value
 

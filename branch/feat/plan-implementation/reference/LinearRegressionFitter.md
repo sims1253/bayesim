@@ -19,6 +19,7 @@ LinearRegressionFitter(
   supports_predictions = TRUE,
   supports_log_lik = TRUE,
   supports_loo = TRUE,
+  supports_epred = TRUE,
   n_draws = 1000L,
   prior_mean = 0,
   prior_precision = 1e-06,
@@ -44,6 +45,12 @@ LinearRegressionFitter(
 - supports_loo:
 
   Logical; whether LOO-CV is supported.
+
+- supports_epred:
+
+  Logical; whether posterior expectation predictions
+  ([`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md))
+  are supported.
 
 - n_draws:
 

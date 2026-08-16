@@ -13,7 +13,8 @@ new_task_result(
   timing = list(total = 0),
   error = NULL,
   warnings = character(),
-  truth = NULL
+  truth = NULL,
+  stop_reason = NULL
 )
 ```
 
@@ -25,7 +26,7 @@ new_task_result(
 
 - status:
 
-  Character scalar: one of "success", "failed", or "skipped"
+  Character scalar: one of "pending", "success", "failed", or "skipped"
 
 - metrics:
 
@@ -46,6 +47,11 @@ new_task_result(
 - warnings:
 
   Character vector of warning messages
+
+- stop_reason:
+
+  Optional reason a task was not executed, such as `"max_errors"` or
+  `"adaptive_stop"`.
 
 ## Value
 

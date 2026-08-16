@@ -50,6 +50,46 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="bayesim-development-version">bayesim (development version)<a class="anchor" aria-label="anchor" href="#bayesim-development-version"></a></h2>
+<p>Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.</p>
+<div class="section level3">
+<h3 id="engine-and-resume-development-version">Engine and resume<a class="anchor" aria-label="anchor" href="#engine-and-resume-development-version"></a></h3>
+<ul><li>Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no longer lose or mangle recorded truths and fit diagnostics when prior task results are reloaded from a checkpoint.</li>
+<li>Fatal mid-batch errors now persist the batch’s already-completed sibling outcomes before re-raising, so a crash no longer discards finished work.</li>
+<li>Resume no longer double-loads the full run history (prior results were loaded once to resume and again during the run).</li>
+<li>In-memory (<code>result_path = NULL</code>) run-store writes are now linear in the number of completed tasks instead of repeatedly rewriting the full state.</li>
+<li>Adaptive stopping now warns when its evaluation step fails instead of passing silently.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="metrics-development-version">Metrics<a class="anchor" aria-label="anchor" href="#metrics-development-version"></a></h3>
+<ul><li>Removed the unvalidated mori shared-memory model-bank integration; model banks travel to daemons by ordinary serialization.</li>
+<li>Removed <code>rstar_metric()</code> (and with it the caret/randomForest dependencies) and the <code>rmse_test_metric()</code> alias, and merged <code>convergence_metric()</code> into an extended <code><a href="../reference/SamplerDiagnosticsMetric.html">sampler_diagnostics_metric()</a></code> (now emitting <code>rhat_max</code>, <code>ess_bulk_min</code>, <code>ess_tail_min</code>, <code>divergent</code>, and <code>max_treedepth</code>).</li>
+<li>
+<code><a href="../reference/PosProbMetric.html">pos_prob_metric()</a></code>’s <code>by_param</code> field now declares mean/sd aggregation instead of a binomial MCSE, which was wrong for a posterior probability mean.</li>
+<li>Metric NA-degradation paths now emit schema-conformant fields (present with <code>NA</code> values) instead of dropping fields from the flattened summary.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="fitters-and-errors-development-version">Fitters and errors<a class="anchor" aria-label="anchor" href="#fitters-and-errors-development-version"></a></h3>
+<ul><li>New <code>supports_epred</code> fitter capability gating <code><a href="../reference/predict_epred.html">predict_epred()</a></code> — <code>TRUE</code> for <code><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter()</a></code>/<code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code>, dynamic (set when an <code>epred</code> generated quantity is declared) for <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code>.</li>
+<li>
+<code><a href="../reference/bayesim_contract_error.html">bayesim_contract_error()</a></code> is now exported.</li>
+<li>Precompiled model banks now reject model specs without an explicit prior with a configuration error instead of warning: brms derives data-dependent default priors from the template data and embeds them in the reused binary, silently fitting the whole study with the template’s priors. Opt back in with <code>BrmsFitter(allow_default_priors = TRUE)</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="analysis-and-reporting-development-version">Analysis and reporting<a class="anchor" aria-label="anchor" href="#analysis-and-reporting-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/report.html">report()</a></code> was renamed to <code><a href="../reference/render_report.html">render_report()</a></code> to stop colliding with the generic of the easystats <em>report</em> package. <code><a href="../reference/report.html">report()</a></code> remains as a deprecated alias that forwards to <code><a href="../reference/render_report.html">render_report()</a></code> and warns once per session.</li>
+<li>
+<code><a href="../reference/plot_rank_ecdf.html">plot_rank_ecdf()</a></code> normalizes each task’s ranks by that task’s own post-thinning support instead of the panel maximum, so pooling tasks with different <code>n_ranks</code> (ESS-aware thinning) no longer manufactures miscalibration; mixed-support panels warn that the simultaneous band is approximate.</li>
+<li>The fixed-truth bias MCSE uniformly uses <code>sd(est - truth) / sqrt(n)</code>, matching the varying-truth <code>mean_error</code> measures (Morris, White &amp; Crowther 2019, Table 2).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="sbc-documentation-development-version">SBC documentation<a class="anchor" aria-label="anchor" href="#sbc-documentation-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> and <code><a href="../reference/forward_sim_generator.html">forward_sim_generator()</a></code> now state the Talts et al. (2018) condition for valid SBC — the fitting prior must match the parameter-generating distribution — instead of calling inverse forward sampling the canonical SBC generator unconditionally. With an unmatched fitting prior, cap-shaped ranks are expected and do not indicate sampler error.</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="2.0.0" id="bayesim-200">bayesim 2.0.0<a class="anchor" aria-label="anchor" href="#bayesim-200"></a></h2>
 <p>A ground-up rewrite of the simulation engine, fitters, generators, metrics, and analysis layer, redesigned around the needs of simulation-method studies (Morris, White &amp; Crowther 2019). Breaking across the public API; the package remains GitHub-only and lifecycle-experimental.</p>
 <div class="section level3">
@@ -59,9 +99,9 @@
 <li>Retained predictions are computed and returned even without a prediction metric; checkpoint lightening now honors all explicit retention options and preserves truths.</li>
 <li>
 <code><a href="../reference/run_simulation.html">run_simulation()</a></code> restores the caller’s RNG state and kind. Stochastic metrics use stable metric-specific sub-seeds, so metric order is irrelevant.</li>
-<li>Task-grid bookkeeping is vectorized by batch. Checkpoint snapshots are pruned to <code>keep_checkpoints = 2L</code> by default, retaining one corruption fallback while bounding disk growth.</li>
+<li>Task-grid bookkeeping is vectorized by batch. The run store is append-only: completed outcomes are written once as immutable, mirrored outcome shards, and each checkpoint commit directory records its deltas plus metadata. <code>keep_checkpoints = 2L</code> by default prunes old checkpoint commits, keeping one fallback commit; immutable outcome/ledger history is never pruned, so durable storage grows roughly linearly with completed tasks.</li>
 <li>Fixed S7 class checks that had made automatic BrmsFitter model-bank and generator shortcuts unreachable. Precompiled brms models now warn when explicit priors are missing, and preflight reports deduplicated compile counts.</li>
-<li>Added exported <code><a href="../reference/config_fingerprint.html">config_fingerprint()</a></code>, repaired the targets/HPC/SBC vignettes, consolidated <code><a href="../reference/rmse_test_metric.html">rmse_test_metric()</a></code> onto <code><a href="../reference/RmseMetric.html">pred_rmse_metric()</a></code>, and removed unused dependencies, helpers, and a committed Stan binary.</li>
+<li>Added exported <code><a href="../reference/config_fingerprint.html">config_fingerprint()</a></code>, repaired the targets/HPC/SBC vignettes, consolidated <code>rmse_test_metric()</code> onto <code><a href="../reference/RmseMetric.html">pred_rmse_metric()</a></code>, and removed unused dependencies, helpers, and a committed Stan binary.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="fitters-and-the-fitter-contract-2-0-0">Fitters and the fitter contract<a class="anchor" aria-label="anchor" href="#fitters-and-the-fitter-contract-2-0-0"></a></h3>
@@ -98,6 +138,7 @@
 <ul><li>Dispatch is now a single <code><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">purrr::map()</a></code> + <code><a href="https://purrr.tidyverse.org/reference/in_parallel.html" class="external-link">purrr::in_parallel()</a></code> code path; mirai remains the daemon engine. <code><a href="../reference/run_task_safe.html">run_task_safe()</a></code> is total (fatal conditions are captured and re-raised after the batch with their full class chain), removing the cross-boundary condition-restoration machinery.</li>
 <li>
 <code>run_simulation(config, workers = N)</code> sets up and tears down mirai daemons for the run (the simple path); <code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> remains for advanced/HPC.</li>
+<li>The model bank is now shared across local daemons via <a href="https://shikokuchuo.net/mori/" class="external-link">mori</a> shared memory, so each daemon zero-copy maps the bank instead of deserializing a private copy. Locality is auto-detected from the mirai daemon URL (machine-local transports and loopback TCP qualify); remote and wildcard-bound daemons, and sequential runs, are passed through unchanged. <code>mori</code> is an optional suggested dependency because its current releases require R &gt;= 4.3 while bayesim supports R &gt;= 4.1. Without it, or when shared memory creation fails, bayesim safely uses ordinary serialized dispatch.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="metrics-and-analysis-morris-et-al-framing-2-0-0">Metrics and analysis (Morris et al. framing)<a class="anchor" aria-label="anchor" href="#metrics-and-analysis-morris-et-al-framing-2-0-0"></a></h3>
@@ -111,7 +152,7 @@
 <li>
 <code>true_params</code> / <code>vars_of_interest</code> are now optional (truth-free studies run).</li>
 <li>
-<code><a href="../reference/RstarMetric.html">rstar_metric()</a></code> reimplemented for real (was a placebo returning NA): uses <code><a href="https://mc-stan.org/posterior/reference/rstar.html" class="external-link">posterior::rstar()</a></code> on per-chain draws from the underlying fit; degrades to NA with a one-time warning for chain-less fitters.</li>
+<code>rstar_metric()</code> reimplemented for real (was a placebo returning NA): uses <code><a href="https://mc-stan.org/posterior/reference/rstar.html" class="external-link">posterior::rstar()</a></code> on per-chain draws from the underlying fit; degrades to NA with a one-time warning for chain-less fitters.</li>
 <li>
 <code><a href="../reference/plot_coverage.html">plot_coverage()</a></code> redesigned as a point-range plot with MCSE error bars.</li>
 </ul></div>
@@ -172,7 +213,7 @@
 </div>
 <div class="section level3">
 <h3 id="breaking-changes-2-0-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-2-0-0"></a></h3>
-<ul><li>Public API contracted to a curated surface of ~25 exports (see <code>_pkgdown.yml</code>).</li>
+<ul><li>Public API contracted to a curated surface of 65 exports (see <code>_pkgdown.yml</code>).</li>
 <li>The <code>loo</code> S7 generic was renamed <code>loo_fit</code> to avoid clashing with <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo()</a></code>. Custom fitters must implement <code>loo_fit</code>.</li>
 <li>Operators <code>%+%</code> and <code>%||%</code> are no longer exported (use <code>rlang::%||%</code> or the public equivalents).</li>
 </ul></div>
@@ -275,7 +316,7 @@
 </li>
 <li>Config fingerprinting: <code><a href="../reference/compute_config_fingerprint.html">compute_config_fingerprint()</a></code>
 </li>
-<li>Task ID formatting: <code>format_task_id()</code>, <code><a href="../reference/parse_task_id.html">parse_task_id()</a></code>
+<li>Task ID formatting: <code>format_task_id()</code>, <code>parse_task_id()</code>
 </li>
 <li>Timing utilities: <code><a href="../reference/make_timer.html">make_timer()</a></code>
 </li>
@@ -369,7 +410,7 @@
 <li>
 <code><a href="../reference/load_for_resume.html">load_for_resume()</a></code> loads previous state with validation</li>
 <li>
-<code><a href="../reference/get_resume_summary.html">get_resume_summary()</a></code> shows resumption summary</li>
+<code>get_resume_summary()</code> shows resumption summary</li>
 <li>
 <code><a href="../reference/merge_task_grid_status.html">merge_task_grid_status()</a></code> merges task status from checkpoint</li>
 <li>
@@ -405,7 +446,7 @@
 <li>
 <code><a href="../reference/estimate_size.html">estimate_size()</a></code> estimates object memory size</li>
 <li>
-<code><a href="../reference/exceeds_size_threshold.html">exceeds_size_threshold()</a></code> checks if result exceeds size limit</li>
+<code>exceeds_size_threshold()</code> checks if result exceeds size limit</li>
 <li>
 <code><a href="../reference/externalize_artifact.html">externalize_artifact()</a></code> moves large artifacts to external files</li>
 </ul></div>

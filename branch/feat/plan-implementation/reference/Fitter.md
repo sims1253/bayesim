@@ -12,9 +12,10 @@ log-likelihoods, and performing model diagnostics.
 ``` r
 Fitter(
   name = character(0),
-  supports_predictions = TRUE,
-  supports_log_lik = TRUE,
-  supports_loo = TRUE
+  supports_predictions = FALSE,
+  supports_log_lik = FALSE,
+  supports_loo = FALSE,
+  supports_epred = FALSE
 )
 ```
 
@@ -36,13 +37,26 @@ Fitter(
 
   Logical indicating if the fitter supports LOO-CV
 
+- supports_epred:
+
+  Logical indicating if the fitter supports posterior expectation
+  predictions
+  ([`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md);
+  required by the `r2_loo` / `rmse_loo` LOO metrics)
+
 ## Value
 
 An S7 class object representing the abstract Fitter
 
 ## Methods
 
-The following S7 generics must be implemented by subclasses:
+The following S7 generics form the fitter interface. A minimal custom
+fitter only needs to implement
+[`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+and
+[`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md);
+diagnostics default to an empty list and unsupported optional
+capabilities default to `NULL`.
 
 - `fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)`:
 
@@ -71,14 +85,17 @@ The following S7 generics must be implemented by subclasses:
 ## Creating Custom Fitters
 
 To create a custom fitter, extend this class and implement methods for
-the S7 generics:
-[`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md),
-[`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md),
+the core S7 generics:
+[`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+and
+[`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md).
+Implement optional
 [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md),
 [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md),
-[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md),
-[`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md).
-All matrices follow the draws-by-observations (S x N) orientation; see
+and
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+methods only when the matching `supports_*` property is `TRUE`. All
+matrices follow the draws-by-observations (S x N) orientation; see
 [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md)
 for the full contract.
 

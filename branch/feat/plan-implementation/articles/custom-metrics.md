@@ -42,9 +42,21 @@ S7::method(compute_metric, MADMetric) <- function(
   list(value = stats::median(abs(predicted - actual)))
 }
 
-# A constructor keeps configs readable.
+# Construct the subclass directly; the defaults declared above are honored.
 mad_metric <- function(name = "mad") MADMetric(name = name)
 ```
+
+### `Metric` is abstract
+
+`Metric` has no direct instances —
+[`Metric()`](https://sims1253.github.io/bayesim/reference/Metric.md)
+itself errors. Subclasses are instantiated directly
+(`MADMetric(name = "mad")`), and because the parent is abstract, S7
+honors the defaults your subclass declares for the inherited `name`,
+`needs`, `required`, `summary_type`, and `schema` properties:
+`MADMetric()` alone yields `name = "mad"` and `needs = "predictions"`.
+Explicit arguments (as in `mad_metric(name = ...)`) always win over the
+declared defaults.
 
 [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
 receives:
@@ -88,8 +100,34 @@ list(by_param = c(Intercept = 1, x = 0))
 ```
 
 [`validate_metric_output()`](https://sims1253.github.io/bayesim/reference/validate_metric_output.md)
-enforces this schema; run your metric once against a fixture fit in your
-tests and pass the result through it.
+enforces this schema. Even better, run
+[`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
+with representative values in your tests — it executes
+[`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
+once, checks the output schema, and verifies that every field your
+`schema` declares is actually produced:
+
+``` r
+
+validate_metric(
+  mad_metric(),
+  fit_result = new_fit_result(
+    draws = cbind(intercept = rnorm(20), slope = rnorm(20))
+  ),
+  data_bundle = list(
+    train = data.frame(y = rnorm(30), x = rnorm(30)),
+    test = data.frame(y = rnorm(10), x = rnorm(10)),
+    response = "y"
+  ),
+  context = list(
+    predictions = list(
+      predicted_mean = rnorm(10),
+      predicted_samples = matrix(rnorm(20 * 10), 20, 10),
+      predicted_sd = rep(1, 10)
+    )
+  )
+)
+```
 
 ## summary_type: how your metric aggregates
 
@@ -169,10 +207,10 @@ result <- run_simulation(config, progress = FALSE)
 #> 4 tasks = 1 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 4 tasks
 summarize_simulation(result, metrics = "mad__value")
-#> # A tibble: 1 × 10
-#>   data_n fit_model n_reps n_failed failure_rate mad__value_n_used
-#>    <dbl> <chr>      <int>    <int>        <dbl>             <int>
-#> 1     50 linear         4        0            0                 0
+#> # A tibble: 1 × 11
+#>   data_n fit_model stop_reason n_reps n_failed failure_rate mad__value_n_used
+#>    <dbl> <chr>     <chr>        <int>    <int>        <dbl>             <int>
+#> 1     50 linear    NA               4        0            0                 4
 #> # ℹ 4 more variables: mad__value_mean <dbl>, mad__value_median <dbl>,
 #> #   mad__value_sd <dbl>, mad__value_mcse <dbl>
 ```

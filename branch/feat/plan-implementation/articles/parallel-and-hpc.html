@@ -78,7 +78,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
 <p>This vignette covers running studies beyond a single core and a
 single sitting: the purrr/mirai execution model, <code>workers</code> vs
 user-managed <code><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">mirai::daemons()</a></code> (including remote/TLS daemons
@@ -94,7 +94,8 @@ underneath. There is a single code path: with no daemons set, purrr runs
 tasks sequentially in the current process; with daemons set, the same
 tasks are crated and shipped to the workers. Determinism is unaffected —
 every task carries its own precomputed L’Ecuyer-CMRG RNG stream, so
-sequential and parallel runs produce identical results (see
+sequential and parallel runs produce the same scientific outputs and
+canonical task outcomes once volatile timing fields are excluded (see
 <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code>).</p>
 <p>Task lambdas are shipped to daemons via
 <code><a href="https://rdrr.io/pkg/carrier/man/crate.html" class="external-link">carrier::crate()</a></code>, which strips their environment. Your data
@@ -102,6 +103,13 @@ generator and any custom fitters/metrics are crated into the transport,
 so they must be self-contained: reference package functions by namespace
 and pass data through <code>data_spec</code>, not through free variables
 captured from your session.</p>
+<p>Crating moves task data and objects, not registrations.
+<code><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">S7::method()</a></code> registrations live in the process that ran
+them, so they do not travel to daemons with a crated fitter object. Run
+script-defined external S7 extensions in-process
+(<code>workers = 1</code>, or no daemons set), or install the extension
+as a package and load it on every daemon — for example with
+<code>daemon_setup</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="local-parallelism-workers">Local parallelism: <code>workers</code><a class="anchor" aria-label="anchor" href="#local-parallelism-workers"></a>
@@ -109,13 +117,41 @@ captured from your session.</p>
 <p>For local multi-core work, pass <code>workers</code> to
 <code><a href="../reference/run_simulation.html">run_simulation()</a></code>:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="co"># mirai::daemons(4) is called for you and torn down on exit.</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># A small study used by the chunks below.</span></span>
+<span><span class="va">sim_gen</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n</span><span class="op">)</span></span>
+<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
+<span>    response <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>    true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>slope <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    vars_of_interest <span class="op">=</span> <span class="st">"slope"</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
+<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">50L</span><span class="op">)</span>,</span>
+<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
+<span>  data_generator <span class="op">=</span> <span class="va">sim_gen</span>,</span>
+<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span>,</span>
+<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  n_replicates <span class="op">=</span> <span class="fl">4L</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, workers <span class="op">=</span> <span class="fl">2</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co"># mirai::daemons(2) is called for you and torn down on exit.</span></span></code></pre></div>
 <p>This is the recommended path for development and moderate task
-counts. <code>workers</code> errors if daemons are already set (it will
-not silently stack a second daemon pool on top of yours); everything
-below is for daemons the <code>workers</code> argument cannot manage
-itself — remote nodes, TLS, per-daemon setup.</p>
+counts. <code>workers = 1</code> is genuinely sequential: no daemons are
+launched and tasks run in-process, which also preserves method dispatch
+for S7 fitters and metrics defined outside a package (see
+<code><a href="../articles/custom-fitters.html">vignette("custom-fitters")</a></code>). <code>workers</code> errors if
+daemons are already set (it will not silently stack a second daemon pool
+on top of yours); everything below is for daemons the
+<code>workers</code> argument cannot manage itself — remote nodes, TLS,
+per-daemon setup.</p>
 </div>
 <div class="section level2">
 <h2 id="remote-daemons-mirai-url-scheme">Remote daemons (mirai URL scheme)<a class="anchor" aria-label="anchor" href="#remote-daemons-mirai-url-scheme"></a>
@@ -133,7 +169,8 @@ tasks.</li>
 <p>This split maps cleanly onto a batch scheduler: the dispatcher runs
 on the head node, the daemons on the compute nodes.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Cluster-only: needs remote mirai daemons reachable over TLS.</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mirai.r-lib.org" class="external-link">mirai</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># On the dispatcher: advertise 16 worker slots at a TLS-secured URL.</span></span>
@@ -181,12 +218,14 @@ head node:</p>
 <span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="bu">wait</span></span></code></pre></div>
 <p>And the dispatcher R script:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># dispatcher.R</span></span>
+<code class="sourceCode R"><span><span class="co"># Cluster-only: dispatcher script for the SLURM job above; references the</span></span>
+<span><span class="co"># cluster's data grids and generators.</span></span>
+<span><span class="co"># dispatcher.R</span></span>
 <span><span class="va">args</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">url</span> <span class="op">&lt;-</span> <span class="va">args</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">args</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
 <span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span>url <span class="op">=</span> <span class="va">url</span>, n <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
@@ -211,9 +250,9 @@ split.</p>
 <h3 id="tls-configuration">TLS configuration<a class="anchor" aria-label="anchor" href="#tls-configuration"></a>
 </h3>
 <p>Remote daemons should connect over TLS. mirai uses standard PEM
-material; see the <a href="https://mirai.r-lib.org/articles/tls.html" class="external-link">mirai security
-documentation</a> for the full reference. A self-signed CA plus server
-certs is enough to get started:</p>
+material; see the <a href="https://mirai.r-lib.org/articles/v1-daemons.html#tls-secure-connections" class="external-link">mirai
+TLS documentation</a> for the full reference. A self-signed CA plus
+server certs is enough to get started:</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Run once, on a trusted host. Keep the private keys private.</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-x509</span> <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="at">-days</span> 365 <span class="dt">\</span></span>
 <span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">-keyout</span> ca-key.pem <span class="at">-out</span> ca.pem <span class="dt">\</span></span>
@@ -242,7 +281,8 @@ must be set up on each daemon before tasks start. The
 runs once per daemon via <code><a href="https://mirai.r-lib.org/reference/everywhere.html" class="external-link">mirai::everywhere()</a></code> before the
 task grid ships:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># Cluster-only: configures the cluster's cmdstan install on every daemon.</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
 <span>  <span class="va">...</span>,</span>
 <span>  daemon_setup <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="co"># Point cmdstanr at the cluster's cmdstan install.</span></span>
@@ -321,22 +361,44 @@ processes tasks in batches of this size, writes a checkpoint after each
 batch (when <code>result_path</code> is set), and lightens completed
 results per the retention profile before starting the next batch.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"results/big_study"</span>,</span>
-<span>  checkpoint_every <span class="op">=</span> <span class="fl">50L</span>,</span>
+<code class="sourceCode R"><span><span class="co"># The same study, now checkpointed to disk in batches (tempdir keeps the</span></span>
+<span><span class="co"># vignette self-cleaning; use a real directory for an actual study).</span></span>
+<span><span class="va">run_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"big-study"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
+<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">50L</span><span class="op">)</span>,</span>
+<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
+<span>  data_generator <span class="op">=</span> <span class="va">sim_gen</span>,</span>
+<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">100L</span><span class="op">)</span>,</span>
+<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  n_replicates <span class="op">=</span> <span class="fl">4L</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">42L</span>,</span>
+<span>  result_path <span class="op">=</span> <span class="va">run_dir</span>,</span>
+<span>  checkpoint_every <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  keep_checkpoints <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  retain <span class="op">=</span> <span class="st">"metrics"</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 <p>When using daemons, each daemon holds its own copies of in-flight
 task artifacts; <code>checkpoint_every</code> bounds the in-flight work
 and the retention profile bounds per-task size.</p>
-<p>Each checkpoint is a complete cumulative snapshot so it can be
-validated and resumed independently. <code>keep_checkpoints = 2L</code>
-(the default) prunes older snapshots after a successful write, bounding
-checkpoint disk usage while preserving one fallback if the newest
-snapshot is corrupted. Increase it only when you need a longer audit
-history.</p>
+<p>On disk, the run store is append-only. A <em>checkpoint commit</em>
+is an atomic directory under <code>checkpoints/</code> that records one
+batch: its metadata, its ledger delta view, and its results delta view.
+Completed task outcomes are written once as immutable <em>outcome
+shards</em> under <code>outcomes/</code>, and task statuses are written
+under <code>ledger/</code> as a base ledger plus status deltas (each a
+<em>ledger delta</em>). Each shard keeps a redundantly mirrored second
+copy with its own checksum, so a single corrupt shard file is recovered
+from its mirror; older commit records also support fallback while the
+shards they reference remain valid.</p>
+<p><code>keep_checkpoints = 2L</code> (the default) prunes old
+checkpoint commit directories after a successful write, keeping one
+older commit as a fallback. It does not prune the immutable outcome
+shards or the ledger history, so durable storage grows roughly linearly
+with the number of completed tasks. Increase it only when you want a
+longer commit history for audits.</p>
 </div>
 </div>
 <div class="section level2">
@@ -346,16 +408,31 @@ history.</p>
 clusters) and pass <code>resume = "auto"</code> so an interrupted run
 picks up where it left off:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"auto"</span>, workers <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="co"># Every task is already terminal, so this picks up the completed run at once.</span></span>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"auto"</span>, workers <span class="op">=</span> <span class="cn">NULL</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Or force a resume from a specific directory:</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resume_simulation.html">resume_simulation</a></span><span class="op">(</span><span class="st">"/scratch/user/bayesim-sim"</span><span class="op">)</span></span></code></pre></div>
-<p>The directory contains everything needed to resume and audit a
-run:</p>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resume_simulation.html">resume_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">run_dir</span>, config <span class="op">=</span> <span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/resume_simulation.html">resume_simulation()</a></code> rehydrates the config from the run
+manifest when you omit <code>config</code>, but that works only if every
+generator, fitter, and metric is a namespaced package function or class.
+The run manifest cannot rehydrate script-defined closures (including the
+return value of <code><a href="../reference/fixed_truth_generator.html">fixed_truth_generator()</a></code>): R can serialize
+closures, but configless resume intentionally does not restore arbitrary
+executable closures. Supply the original config for those runs.</p>
+<p>The directory holds bayesim’s durable run state and scientific
+results; non-rehydratable executable components still require the
+original config:</p>
 <pre><code>results/my-study/
 ├── run_manifest.json      # config fingerprint, schema version, spec summary
-├── latest.json            # pointer to the newest complete checkpoint
-├── checkpoints/           # atomic rds checkpoints (task grid + results)
+├── latest.json            # pointer to the newest checkpoint commit
+├── checkpoints/           # atomic checkpoint commits (cp_XXXXXX directories)
+├── outcomes/              # immutable, redundantly mirrored outcome shards
+├── ledger/                # base ledger plus status deltas
 ├── artifacts/             # externalized large metric outputs
 │   └── metrics/
 ├── stan_binaries/         # shared compiled-model cache (Stan backends)
@@ -366,8 +443,10 @@ fitter or metric specs) between submissions. Runtime policy —
 <code>retain</code>, <code>max_errors</code>,
 <code>checkpoint_every</code>, <code>keep_checkpoints</code>,
 <code>checkpoint_format</code> — is deliberately <em>excluded</em> from
-the fingerprint: you can change retention or error tolerance and still
-resume.</p>
+the fingerprint: you can change error tolerance, checkpoint cadence, or
+narrow retention and still resume. Widening retention is rejected while
+the checkpoint holds completed tasks: artifacts the earlier run
+discarded cannot be recreated, and bayesim refuses to promise them.</p>
 </div>
 <div class="section level2">
 <h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
@@ -375,7 +454,8 @@ resume.</p>
 <ul>
 <li>
 <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code> — why resuming and
-parallelizing produce identical results.</li>
+parallelizing preserve scientific outputs and canonical task
+outcomes.</li>
 <li>
 <code><a href="../articles/brms-studies.html">vignette("brms-studies")</a></code> — the model bank and
 warning-conditional retention.</li>

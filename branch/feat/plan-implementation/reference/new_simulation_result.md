@@ -13,7 +13,8 @@ new_simulation_result(
   timing = list(total = 0),
   errors = NULL,
   checkpoint_path = NULL,
-  metric_summary_types = NULL
+  metric_summary_types = NULL,
+  metric_field_metadata = NULL
 )
 ```
 

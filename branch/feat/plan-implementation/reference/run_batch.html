@@ -107,8 +107,10 @@ managed by <code><a href="execute_tasks.html">execute_tasks()</a></code>.</p>
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p><code><a href="run_task_safe.html">run_task_safe()</a></code> is total (never throws), so transport is pure transport:
 every returned element is a <code>bayesim_task_result</code>. Transport-level failures
-(e.g. daemon death) surface as errors from <code><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">purrr::map()</a></code> and are re-raised
-as a bayesim fatal error by the caller.</p>
+(e.g. daemon death) surface as errors from <code><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">purrr::map()</a></code> and propagate
+unchanged out of <code><a href="execute_tasks.html">execute_tasks()</a></code> and <code><a href="run_simulation.html">run_simulation()</a></code>: they abort the
+run, and outcomes from the interrupted batch are lost to that call (the last
+committed checkpoint still holds everything before it).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

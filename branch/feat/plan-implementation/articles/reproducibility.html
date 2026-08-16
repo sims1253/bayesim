@@ -82,25 +82,29 @@
 </h2>
 <p>bayesim is designed so that simulation results are reproducible
 across sequential, parallel, interrupted-and-resumed, and re-run
-executions, given a fixed seed.</p>
+executions, given a fixed seed. Full result objects also record
+wall-clock timings, and those change between runs, so the guarantee
+covers scientific outputs and canonical task outcomes, not timing
+fields.</p>
 <div class="section level3">
 <h3 id="what-is-guaranteed">What is guaranteed<a class="anchor" aria-label="anchor" href="#what-is-guaranteed"></a>
 </h3>
 <ul>
 <li>
 <strong>Same seed + same package/backend versions + same
-platform</strong> produces <strong>identical</strong> results
-(bit-for-bit), whether the run is sequential, uses mirai daemons, or is
-interrupted and resumed.</li>
+platform</strong>: scientific outputs and canonical task outcomes match
+across sequential, parallel, re-run, and interrupted-and-resumed
+execution once volatile timing fields are excluded. Timing fields record
+wall-clock time, so they differ between runs.</li>
 <li>
 <strong>Across platforms</strong> (or when the Stan/brms/cmdstanr
 version changes), results are <strong>statistically equivalent</strong>
 but may differ in the least significant bits due to floating-point
 ordering and backend differences.</li>
 </ul>
-<p>This is the honest, qualified statement; bit-identical
-reproducibility cannot be promised across Stan versions or operating
-systems.</p>
+<p>Bit-identical reproducibility of the full result object is not
+promised on any platform: the object records wall-clock timings, and
+those change between runs.</p>
 </div>
 <div class="section level3">
 <h3 id="how-determinism-is-achieved">How determinism is achieved<a class="anchor" aria-label="anchor" href="#how-determinism-is-achieved"></a>
@@ -119,7 +123,7 @@ not change the random draws used by another metric.
 <code><a href="../reference/run_simulation.html">run_simulation()</a></code> also restores the caller’s RNG kind and
 state when it returns.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
 <span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -144,18 +148,30 @@ state when it returns.</p>
 <div class="section level4">
 <h4 id="determinism-across-executors">Determinism across executors<a class="anchor" aria-label="anchor" href="#determinism-across-executors"></a>
 </h4>
-<p>Because the RNG is per-task and stream-derived, a study produces
-identical summaries whether run sequentially or via mirai daemons:</p>
+<p>Because the RNG is per-task and stream-derived, sequential runs and
+mirai daemon runs produce the same scientific outputs and canonical task
+outcomes. Volatile timing fields are the only difference, so the example
+drops them before comparing:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Sequential</span></span>
-<span><span class="va">seq_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">seq_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Parallel via mirai</span></span>
 <span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">par_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">par_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
 <span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">seq_result</span><span class="op">$</span><span class="va">summary</span>, <span class="va">par_result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span> <span class="co"># TRUE (ignoring timing columns)</span></span></code></pre></div>
+<span><span class="co"># Timing columns record wall-clock time, so drop them before comparing.</span></span>
+<span><span class="va">drop_timing</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">df</span><span class="op">)</span> <span class="va">df</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^timing_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span></span>
+<span>  <span class="fu">drop_timing</span><span class="op">(</span><span class="va">seq_result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span>,</span>
+<span>  <span class="fu">drop_timing</span><span class="op">(</span><span class="va">par_result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span>
+<span><span class="op">)</span> <span class="co"># TRUE</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 </div>
 <div class="section level4">
 <h4 id="determinism-under-resume">Determinism under resume<a class="anchor" aria-label="anchor" href="#determinism-under-resume"></a>
@@ -164,7 +180,8 @@ identical summaries whether run sequentially or via mirai daemons:</p>
 task’s RNG stream) is recomputed deterministically from the seed, and
 only terminal task statuses are copied from the checkpoint. Resuming
 therefore completes the remaining tasks with the exact RNG streams they
-would have had in a full run, producing identical results.</p>
+would have had in a full run. The resumed study then matches a single
+uninterrupted run once volatile timing fields are excluded.</p>
 </div>
 </div>
 <div class="section level3">

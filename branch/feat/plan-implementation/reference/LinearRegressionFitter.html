@@ -82,6 +82,7 @@ default <code>response ~ .</code>). Posterior draws use plain parameter names
 <span>  supports_predictions <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  supports_log_lik <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  supports_loo <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  supports_epred <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  n_draws <span class="op">=</span> <span class="fl">1000L</span>,</span>
 <span>  prior_mean <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  prior_precision <span class="op">=</span> <span class="fl">1e-06</span>,</span>
@@ -108,6 +109,11 @@ default <code>response ~ .</code>). Posterior draws use plain parameter names
 
 <dt id="arg-supports-loo">supports_loo<a class="anchor" aria-label="anchor" href="#arg-supports-loo"></a></dt>
 <dd><p>Logical; whether LOO-CV is supported.</p></dd>
+
+
+<dt id="arg-supports-epred">supports_epred<a class="anchor" aria-label="anchor" href="#arg-supports-epred"></a></dt>
+<dd><p>Logical; whether posterior expectation predictions
+(<code><a href="predict_epred.html">predict_epred()</a></code>) are supported.</p></dd>
 
 
 <dt id="arg-n-draws">n_draws<a class="anchor" aria-label="anchor" href="#arg-n-draws"></a></dt>

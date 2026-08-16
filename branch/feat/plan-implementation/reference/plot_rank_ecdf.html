@@ -4,12 +4,34 @@
 Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
 under correct calibration, the entire ECDF stays within it with
 probability alpha; deviations anywhere along the band therefore indicate
-miscalibration at level 1 - alpha."><meta property="og:description" content="Plots the empirical CDF of SBC ranks against the uniform CDF
+miscalibration at level 1 - alpha.
+Ranks are normalized per task: each task's ranks are scaled by that
+task's own support, (rank + 0.5) / n_ranks with n_ranks = support +
+1 (kept post-thinning draws + 1). When tasks in a panel have different
+supports (e.g. rank_metric() with thin = &quot;auto&quot; under
+autocorrelation), pooling on the panel maximum would squash
+small-support tasks' ranks toward zero and manufacture apparent
+miscalibration; per-task normalization avoids that artifact, and a
+warning notes that the simultaneous band, which assumes iid ranks on a
+common support, is then approximate. Legacy results without a recorded
+n_ranks fall back per task to n_draws; with a historical thinning
+stride &amp;gt; 1 the true support is unknown, so that fallback only bounds it."><meta property="og:description" content="Plots the empirical CDF of SBC ranks against the uniform CDF
 (the diagonal), with a simultaneous confidence band following
 Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
 under correct calibration, the entire ECDF stays within it with
 probability alpha; deviations anywhere along the band therefore indicate
-miscalibration at level 1 - alpha."></head><body>
+miscalibration at level 1 - alpha.
+Ranks are normalized per task: each task's ranks are scaled by that
+task's own support, (rank + 0.5) / n_ranks with n_ranks = support +
+1 (kept post-thinning draws + 1). When tasks in a panel have different
+supports (e.g. rank_metric() with thin = &quot;auto&quot; under
+autocorrelation), pooling on the panel maximum would squash
+small-support tasks' ranks toward zero and manufacture apparent
+miscalibration; per-task normalization avoids that artifact, and a
+warning notes that the simultaneous band, which assumes iid ranks on a
+common support, is then approximate. Legacy results without a recorded
+n_ranks fall back per task to n_draws; with a historical thinning
+stride &amp;gt; 1 the true support is unknown, so that fallback only bounds it."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -67,6 +89,17 @@ Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
 under correct calibration, the <em>entire</em> ECDF stays within it with
 probability alpha; deviations anywhere along the band therefore indicate
 miscalibration at level 1 - alpha.</p>
+<p>Ranks are normalized per task: each task's ranks are scaled by that
+task's own support, <code>(rank + 0.5) / n_ranks</code> with <code>n_ranks</code> = support +
+1 (kept post-thinning draws + 1). When tasks in a panel have different
+supports (e.g. <code><a href="RankMetric.html">rank_metric()</a></code> with <code>thin = "auto"</code> under
+autocorrelation), pooling on the panel maximum would squash
+small-support tasks' ranks toward zero and manufacture apparent
+miscalibration; per-task normalization avoids that artifact, and a
+warning notes that the simultaneous band, which assumes iid ranks on a
+common support, is then approximate. Legacy results without a recorded
+<code>n_ranks</code> fall back per task to <code>n_draws</code>; with a historical thinning
+stride &gt; 1 the true support is unknown, so that fallback only bounds it.</p>
     </div>
 
     <div class="section level2">

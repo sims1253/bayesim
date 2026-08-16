@@ -6,18 +6,20 @@ The Stan program may declare generated-quantities blocks for log_lik (a
 vector of pointwise log-likelihoods) and optionally epred (the expectation
 mu). Declare their names via the log_lik / epred arguments.
 Newdata prediction is out of scope (raw Stan has no newdata semantics):
-supports_predictions is FALSE unless epred is given, in which case
-predict_epred returns the in-sample GQ matrix and predict_fit is
-unsupported. Test-set metrics require brms or a custom fitter."><meta property="og:description" content="Run user-supplied Stan programs via cmdstanr without brms. Compilation is
+supports_predictions is always FALSE. When epred is supplied,
+predict_epred returns the in-sample GQ matrix for LOO-based metrics, while
+predict_fit remains unsupported. Test-set metrics require brms or a custom
+fitter."><meta property="og:description" content="Run user-supplied Stan programs via cmdstanr without brms. Compilation is
 cached by cmdstanr (by file hash); each daemon compiles-or-cache-hits on
 first use, so there is no model-bank integration (D2).
 The Stan program may declare generated-quantities blocks for log_lik (a
 vector of pointwise log-likelihoods) and optionally epred (the expectation
 mu). Declare their names via the log_lik / epred arguments.
 Newdata prediction is out of scope (raw Stan has no newdata semantics):
-supports_predictions is FALSE unless epred is given, in which case
-predict_epred returns the in-sample GQ matrix and predict_fit is
-unsupported. Test-set metrics require brms or a custom fitter."></head><body>
+supports_predictions is always FALSE. When epred is supplied,
+predict_epred returns the in-sample GQ matrix for LOO-based metrics, while
+predict_fit remains unsupported. Test-set metrics require brms or a custom
+fitter."></head><body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
 
 
@@ -76,9 +78,10 @@ first use, so there is no model-bank integration (D2).</p>
 vector of pointwise log-likelihoods) and optionally <code>epred</code> (the expectation
 <code>mu</code>). Declare their names via the <code>log_lik</code> / <code>epred</code> arguments.</p>
 <p><strong>Newdata prediction is out of scope</strong> (raw Stan has no newdata semantics):
-<code>supports_predictions</code> is FALSE unless <code>epred</code> is given, in which case
-<code>predict_epred</code> returns the in-sample GQ matrix and <code>predict_fit</code> is
-unsupported. Test-set metrics require brms or a custom fitter.</p>
+<code>supports_predictions</code> is always FALSE. When <code>epred</code> is supplied,
+<code>predict_epred</code> returns the in-sample GQ matrix for LOO-based metrics, while
+<code>predict_fit</code> remains unsupported. Test-set metrics require brms or a custom
+fitter.</p>
     </div>
 
     <div class="section level2">
@@ -126,8 +129,8 @@ program, or NULL if the program has no log_lik GQ. When NULL,
 
 <dt id="arg-epred">epred<a class="anchor" aria-label="anchor" href="#arg-epred"></a></dt>
 <dd><p>Optional name of an epred/mu GQ matrix or vector. When supplied,
-<code>supports_predictions</code> is TRUE and <code>predict_epred</code> returns the in-sample GQ
-matrix (S x N).</p></dd>
+<code>predict_epred</code> returns the in-sample GQ matrix (S x N) for LOO-based
+metrics; it does not enable newdata predictions.</p></dd>
 
 
 <dt id="arg-chains">chains<a class="anchor" aria-label="anchor" href="#arg-chains"></a></dt>

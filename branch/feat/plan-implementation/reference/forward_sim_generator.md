@@ -64,8 +64,13 @@ A generator function `(data_spec, task_ctx) -> data_bundle`.
 Unlike
 [`prior_draws_generator()`](https://sims1253.github.io/bayesim/reference/prior_draws_generator.md)
 (which targets the prior), this generator concentrates the truth draw in
-a region of high posterior mass — the canonical SBC generator for models
-with diffuse or improper priors.
+a region of high posterior mass, which is practical for diffuse or
+improper priors. Note this is not by itself a valid SBC configuration:
+valid SBC requires the fitting prior to match the theta-generating
+distribution (here the pilot posterior), so a diffuse or unmatched
+fitting prior yields systematically non-uniform (cap-shaped) ranks; see
+the caveat in
+[`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md).
 
 Because forward simulation here relies on
 [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md),

@@ -25,13 +25,11 @@ can_resume(result_path)
 
 TRUE if a valid run can be resumed, FALSE otherwise.
 
-## Examples
+## Details
 
-``` r
-if (FALSE) { # \dontrun{
-if (can_resume("/path/to/results")) {
-  summary <- get_resume_summary("/path/to/results")
-  cli::cli_alert_info("Found {summary$n_completed} completed tasks")
-}
-} # }
-```
+This is a cheap existence/validity probe: the checkpoint is validated
+(checksums, ledger, shard integrity) with `load_outcomes = FALSE`, so
+the full outcome history is never deserialized here. Callers that need
+the outcomes use
+[`load_for_resume()`](https://sims1253.github.io/bayesim/reference/load_for_resume.md)
+instead.

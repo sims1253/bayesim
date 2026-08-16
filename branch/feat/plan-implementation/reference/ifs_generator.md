@@ -77,5 +77,17 @@ Unlike
 [`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
 (which samples from the prior), IFS samples from a preconditioning
 posterior, concentrating the truth draw in a region of high posterior
-mass. This is the canonical SBC generator for models with diffuse or
-improper priors.
+mass. This is practically attractive for models with diffuse or improper
+priors, where prior-predictive draws would almost never land in a region
+the posterior can resolve.
+
+SBC validity caveat: valid SBC (Talts et al., 2018, Theorem 1) requires
+the theta-GENERATING distribution to equal the prior used for FITTING.
+Because `ifs_generator()` draws theta from the preconditioning posterior
+(not from the fitting prior), rank uniformity only holds when the
+fitting prior is set to a representation of that same preconditioning
+posterior (cf. Talts et al., 2018, Section 6.1). With a diffuse or
+otherwise unmatched fitting prior, systematically non-uniform (typically
+cap-shaped) rank distributions are EXPECTED and do not by themselves
+indicate sampler error. To run valid SBC with this generator, set the
+model-grid `prior` to match the preconditioning distribution.

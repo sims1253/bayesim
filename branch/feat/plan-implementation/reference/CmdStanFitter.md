@@ -10,10 +10,10 @@ expectation `mu`). Declare their names via the `log_lik` / `epred`
 arguments.
 
 **Newdata prediction is out of scope** (raw Stan has no newdata
-semantics): `supports_predictions` is FALSE unless `epred` is given, in
-which case `predict_epred` returns the in-sample GQ matrix and
-`predict_fit` is unsupported. Test-set metrics require brms or a custom
-fitter.
+semantics): `supports_predictions` is always FALSE. When `epred` is
+supplied, `predict_epred` returns the in-sample GQ matrix for LOO-based
+metrics, while `predict_fit` remains unsupported. Test-set metrics
+require brms or a custom fitter.
 
 ## Usage
 
@@ -60,8 +60,8 @@ CmdStanFitter(
 - epred:
 
   Optional name of an epred/mu GQ matrix or vector. When supplied,
-  `supports_predictions` is TRUE and `predict_epred` returns the
-  in-sample GQ matrix (S x N).
+  `predict_epred` returns the in-sample GQ matrix (S x N) for LOO-based
+  metrics; it does not enable newdata predictions.
 
 - chains:
 

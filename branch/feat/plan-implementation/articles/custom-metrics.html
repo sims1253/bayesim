@@ -78,7 +78,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
 <p>A metric computes one row’s worth of values per task — a summary of a
 single fit against a single generated dataset. Aggregation
 <em>across</em> tasks (bias, coverage, MCSEs) happens later, in
@@ -113,8 +113,23 @@ and how large outputs are externalized.</p>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/median.html" class="external-link">median</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">abs</a></span><span class="op">(</span><span class="va">predicted</span> <span class="op">-</span> <span class="va">actual</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># A constructor keeps configs readable.</span></span>
+<span><span class="co"># Construct the subclass directly; the defaults declared above are honored.</span></span>
 <span><span class="va">mad_metric</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">name</span> <span class="op">=</span> <span class="st">"mad"</span><span class="op">)</span> <span class="fu">MADMetric</span><span class="op">(</span>name <span class="op">=</span> <span class="va">name</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3 callout-note">
+<h3 id="metric-is-abstract">
+<code>Metric</code> is abstract<a class="anchor" aria-label="anchor" href="#metric-is-abstract"></a>
+</h3>
+<p><code>Metric</code> has no direct instances — <code><a href="../reference/Metric.html">Metric()</a></code>
+itself errors. Subclasses are instantiated directly
+(<code>MADMetric(name = "mad")</code>), and because the parent is
+abstract, S7 honors the defaults your subclass declares for the
+inherited <code>name</code>, <code>needs</code>, <code>required</code>,
+<code>summary_type</code>, and <code>schema</code> properties:
+<code>MADMetric()</code> alone yields <code>name = "mad"</code> and
+<code>needs = "predictions"</code>. Explicit arguments (as in
+<code>mad_metric(name = ...)</code>) always win over the declared
+defaults.</p>
+</div>
 <p><code><a href="../reference/compute_metric.html">compute_metric()</a></code> receives:</p>
 <ul>
 <li>
@@ -160,9 +175,30 @@ expand per element:</p>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>by_param <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Intercept <span class="op">=</span> <span class="fl">1</span>, x <span class="op">=</span> <span class="fl">0</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; mad__by_param__Intercept, mad__by_param__x</span></span></code></pre></div>
-<p><code><a href="../reference/validate_metric_output.html">validate_metric_output()</a></code> enforces this schema; run your
-metric once against a fixture fit in your tests and pass the result
-through it.</p>
+<p><code><a href="../reference/validate_metric_output.html">validate_metric_output()</a></code> enforces this schema. Even
+better, run <code><a href="../reference/validate_metric.html">validate_metric()</a></code> with representative values in
+your tests — it executes <code><a href="../reference/compute_metric.html">compute_metric()</a></code> once, checks the
+output schema, and verifies that every field your <code>schema</code>
+declares is actually produced:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/validate_metric.html">validate_metric</a></span><span class="op">(</span></span>
+<span>  <span class="fu">mad_metric</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  fit_result <span class="op">=</span> <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
+<span>    draws <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">20</span><span class="op">)</span>, slope <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">20</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  data_bundle <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">30</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    test <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    response <span class="op">=</span> <span class="st">"y"</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  context <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    predictions <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      predicted_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">10</span><span class="op">)</span>,</span>
+<span>      predicted_samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">20</span> <span class="op">*</span> <span class="fl">10</span><span class="op">)</span>, <span class="fl">20</span>, <span class="fl">10</span><span class="op">)</span>,</span>
+<span>      predicted_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="summary_type-how-your-metric-aggregates">summary_type: how your metric aggregates<a class="anchor" aria-label="anchor" href="#summary_type-how-your-metric-aggregates"></a>
@@ -182,7 +218,7 @@ each metric’s columns across replicates. Declare it with the
 analyzed as a distribution via <code><a href="../reference/sbc_ranks.html">sbc_ranks()</a></code>, not
 averaged).</li>
 </ul>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">HitMetric</span> <span class="op">&lt;-</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
 <span>  <span class="st">"HitMetric"</span>,</span>
 <span>  parent <span class="op">=</span> <span class="va">Metric</span>,</span>
@@ -218,7 +254,7 @@ large vectors are inlined as usual.</p>
 <div class="section level2">
 <h2 id="using-a-custom-metric">Using a custom metric<a class="anchor" aria-label="anchor" href="#using-a-custom-metric"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
 <span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">n</span><span class="op">)</span></span>
@@ -247,10 +283,10 @@ large vectors are inlined as usual.</p>
 <span><span class="co">#&gt; 4 tasks = 1 data x 1 fit x 4 reps</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 4 tasks</span></span>
 <span><span class="fu"><a href="../reference/summarize_simulation.html">summarize_simulation</a></span><span class="op">(</span><span class="va">result</span>, metrics <span class="op">=</span> <span class="st">"mad__value"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 10</span></span></span>
-<span><span class="co">#&gt;   data_n fit_model n_reps n_failed failure_rate mad__value_n_used</span></span>
-<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     50 linear         4        0            0                 0</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 11</span></span></span>
+<span><span class="co">#&gt;   data_n fit_model stop_reason n_reps n_failed failure_rate mad__value_n_used</span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;int&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>             <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     50 linear    <span style="color: #BB0000;">NA</span>               4        0            0                 4</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># ℹ 4 more variables: mad__value_mean &lt;dbl&gt;, mad__value_median &lt;dbl&gt;,</span></span></span>
 <span><span class="co">#&gt; <span style="color: #949494;">#   mad__value_sd &lt;dbl&gt;, mad__value_mcse &lt;dbl&gt;</span></span></span></code></pre></div>
 </div>

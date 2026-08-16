@@ -59,7 +59,11 @@ checkpoint with valid checksums. Used for corruption recovery.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_latest_valid_checkpoint</span><span class="op">(</span><span class="va">result_path</span>, config_fingerprint <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">get_latest_valid_checkpoint</span><span class="op">(</span></span>
+<span>  <span class="va">result_path</span>,</span>
+<span>  config_fingerprint <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  load_outcomes <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">

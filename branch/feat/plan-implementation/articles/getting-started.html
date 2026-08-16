@@ -112,7 +112,7 @@ Stan/brms models, swap it for <code><a href="../reference/BrmsFitter.html">BrmsF
 <h3 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="define-a-data-generator">Define a Data Generator<a class="anchor" aria-label="anchor" href="#define-a-data-generator"></a>
@@ -162,7 +162,7 @@ sampling) use the factory constructors
 <span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span>,</span>
 <span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/ConvergenceMetric.html">convergence_metric</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="../reference/SamplerDiagnosticsMetric.html">sampler_diagnostics_metric</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  n_replicates <span class="op">=</span> <span class="fl">4L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
@@ -177,27 +177,28 @@ sampling) use the factory constructors
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 8 tasks</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;bayesim_simulation_result&gt;</span></span>
-<span><span class="co">#&gt;   Config fingerprint: 7c33484f0c944248c810573873c79e6a282ae74e56d7a2b2a1342d040d481836 </span></span>
+<span><span class="co">#&gt;   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 </span></span>
 <span><span class="co">#&gt;   Tasks: 8 </span></span>
 <span><span class="co">#&gt;     - Success: 8 </span></span>
 <span><span class="co">#&gt;     - Failed: 0 </span></span>
-<span><span class="co">#&gt;     - Skipped: 0 </span></span>
+<span><span class="co">#&gt;     - Pending: 0 </span></span>
+<span><span class="co">#&gt;     - Skipped (policy-stopped): 0 </span></span>
 <span><span class="co">#&gt;   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... </span></span>
-<span><span class="co">#&gt;   Task grid: 8 rows x 6 cols</span></span>
-<span><span class="co">#&gt;   Total time: 0.2 s</span></span></code></pre></div>
+<span><span class="co">#&gt;   Task grid: 8 rows x 7 cols</span></span>
+<span><span class="co">#&gt;   Total time: 0.22 s</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="examine-results">Examine Results<a class="anchor" aria-label="anchor" href="#examine-results"></a>
 </h3>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span>
-<span><span class="co">#&gt;            task_id  status posterior_summary__mean__Intercept</span></span>
-<span><span class="co">#&gt; 1 d001_f001_r00001 success                          0.8448899</span></span>
-<span><span class="co">#&gt; 2 d001_f001_r00002 success                          1.0002337</span></span>
-<span><span class="co">#&gt; 3 d001_f001_r00003 success                          0.9888108</span></span>
-<span><span class="co">#&gt; 4 d001_f001_r00004 success                          0.9185220</span></span>
-<span><span class="co">#&gt; 5 d002_f001_r00001 success                          0.9700026</span></span>
-<span><span class="co">#&gt; 6 d002_f001_r00002 success                          1.1828572</span></span>
+<span><span class="co">#&gt;            task_id  status stop_reason posterior_summary__mean__Intercept</span></span>
+<span><span class="co">#&gt; 1 d001_f001_r00001 success        &lt;NA&gt;                          0.8448899</span></span>
+<span><span class="co">#&gt; 2 d001_f001_r00002 success        &lt;NA&gt;                          1.0002337</span></span>
+<span><span class="co">#&gt; 3 d001_f001_r00003 success        &lt;NA&gt;                          0.9888108</span></span>
+<span><span class="co">#&gt; 4 d001_f001_r00004 success        &lt;NA&gt;                          0.9185220</span></span>
+<span><span class="co">#&gt; 5 d002_f001_r00001 success        &lt;NA&gt;                          0.9700026</span></span>
+<span><span class="co">#&gt; 6 d002_f001_r00002 success        &lt;NA&gt;                          1.1828572</span></span>
 <span><span class="co">#&gt;   posterior_summary__mean__x posterior_summary__mean__sigma</span></span>
 <span><span class="co">#&gt; 1                   1.854738                      0.8546019</span></span>
 <span><span class="co">#&gt; 2                   1.859731                      0.9285260</span></span>
@@ -247,34 +248,41 @@ sampling) use the factory constructors
 <span><span class="co">#&gt; 4                      2.042422                          1.148037</span></span>
 <span><span class="co">#&gt; 5                      2.230406                          1.104865</span></span>
 <span><span class="co">#&gt; 6                      2.060749                          1.168051</span></span>
-<span><span class="co">#&gt;   convergence__rhat_max convergence__ess_bulk_min convergence__ess_tail_min</span></span>
-<span><span class="co">#&gt; 1                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt; 2                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt; 3                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt; 4                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt; 5                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt; 6                     1                        NA                        NA</span></span>
-<span><span class="co">#&gt;   convergence__divergent truth__Intercept truth__x truth__sigma rhat_max</span></span>
-<span><span class="co">#&gt; 1                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt; 2                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt; 3                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt; 4                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt; 5                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt; 6                      0                1        2            1        1</span></span>
-<span><span class="co">#&gt;   ess_bulk ess_tail divergent max_treedepth timing_total rep_idx data_n</span></span>
-<span><span class="co">#&gt; 1      500      500         0             0  0.018351316       1     50</span></span>
-<span><span class="co">#&gt; 2      500      500         0             0  0.035759449       2     50</span></span>
-<span><span class="co">#&gt; 3      500      500         0             0  0.004430532       3     50</span></span>
-<span><span class="co">#&gt; 4      500      500         0             0  0.004460573       4     50</span></span>
-<span><span class="co">#&gt; 5      500      500         0             0  0.004014015       1    100</span></span>
-<span><span class="co">#&gt; 6      500      500         0             0  0.003907204       2    100</span></span>
-<span><span class="co">#&gt;   data_intercept data_slope data_sigma fit_model</span></span>
-<span><span class="co">#&gt; 1              1          2          1    linear</span></span>
-<span><span class="co">#&gt; 2              1          2          1    linear</span></span>
-<span><span class="co">#&gt; 3              1          2          1    linear</span></span>
-<span><span class="co">#&gt; 4              1          2          1    linear</span></span>
-<span><span class="co">#&gt; 5              1          2          1    linear</span></span>
-<span><span class="co">#&gt; 6              1          2          1    linear</span></span></code></pre></div>
+<span><span class="co">#&gt;   sampler_diagnostics__rhat_max sampler_diagnostics__ess_bulk_min</span></span>
+<span><span class="co">#&gt; 1                             1                                NA</span></span>
+<span><span class="co">#&gt; 2                             1                                NA</span></span>
+<span><span class="co">#&gt; 3                             1                                NA</span></span>
+<span><span class="co">#&gt; 4                             1                                NA</span></span>
+<span><span class="co">#&gt; 5                             1                                NA</span></span>
+<span><span class="co">#&gt; 6                             1                                NA</span></span>
+<span><span class="co">#&gt;   sampler_diagnostics__ess_tail_min sampler_diagnostics__divergent</span></span>
+<span><span class="co">#&gt; 1                                NA                              0</span></span>
+<span><span class="co">#&gt; 2                                NA                              0</span></span>
+<span><span class="co">#&gt; 3                                NA                              0</span></span>
+<span><span class="co">#&gt; 4                                NA                              0</span></span>
+<span><span class="co">#&gt; 5                                NA                              0</span></span>
+<span><span class="co">#&gt; 6                                NA                              0</span></span>
+<span><span class="co">#&gt;   sampler_diagnostics__max_treedepth truth__Intercept truth__x truth__sigma</span></span>
+<span><span class="co">#&gt; 1                                  0                1        2            1</span></span>
+<span><span class="co">#&gt; 2                                  0                1        2            1</span></span>
+<span><span class="co">#&gt; 3                                  0                1        2            1</span></span>
+<span><span class="co">#&gt; 4                                  0                1        2            1</span></span>
+<span><span class="co">#&gt; 5                                  0                1        2            1</span></span>
+<span><span class="co">#&gt; 6                                  0                1        2            1</span></span>
+<span><span class="co">#&gt;   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx</span></span>
+<span><span class="co">#&gt; 1        1      500      500         0             0  0.015084982       1</span></span>
+<span><span class="co">#&gt; 2        1      500      500         0             0  0.033234358       2</span></span>
+<span><span class="co">#&gt; 3        1      500      500         0             0  0.038297653       3</span></span>
+<span><span class="co">#&gt; 4        1      500      500         0             0  0.004620075       4</span></span>
+<span><span class="co">#&gt; 5        1      500      500         0             0  0.004062176       1</span></span>
+<span><span class="co">#&gt; 6        1      500      500         0             0  0.004142284       2</span></span>
+<span><span class="co">#&gt;   data_n data_intercept data_slope data_sigma fit_model</span></span>
+<span><span class="co">#&gt; 1     50              1          2          1    linear</span></span>
+<span><span class="co">#&gt; 2     50              1          2          1    linear</span></span>
+<span><span class="co">#&gt; 3     50              1          2          1    linear</span></span>
+<span><span class="co">#&gt; 4     50              1          2          1    linear</span></span>
+<span><span class="co">#&gt; 5    100              1          2          1    linear</span></span>
+<span><span class="co">#&gt; 6    100              1          2          1    linear</span></span></code></pre></div>
 <p>Each row is one task. Columns include <code>task_id</code>,
 <code>status</code>, <code>timing_total</code>, the grid columns, and
 one column per metric field (<code>posterior_summary__mean__x</code>,
@@ -306,6 +314,36 @@ by condition, with Monte Carlo standard errors (MCSE):</p>
 <code>&lt;metric&gt;_median</code>, <code>&lt;metric&gt;_sd</code>, and
 <code>&lt;metric&gt;_mcse</code>, plus <code>n_reps</code>,
 <code>n_failed</code>, and <code>failure_rate</code>.</p>
+<p>Studies with several metrics can produce wide summaries – each metric
+contributes <code>_n_used</code>, <code>_mean</code>,
+<code>_median</code>, <code>_sd</code>, and <code>_mcse</code> columns,
+so the aggregate can easily exceed 100 columns. Nothing is dropped or
+truncated; narrow the aggregation with the <code>metrics</code>
+argument, and use <code><a href="../reference/metric_cols.html">metric_cols()</a></code> to list the flattened
+columns of a single metric:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/metric_cols.html">metric_cols</a></span><span class="op">(</span><span class="va">result</span>, <span class="st">"posterior_summary"</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                         mean__Intercept                                 mean__x </span></span>
+<span><span class="co">#&gt;    "posterior_summary__mean__Intercept"            "posterior_summary__mean__x" </span></span>
+<span><span class="co">#&gt;                             mean__sigma                       median__Intercept </span></span>
+<span><span class="co">#&gt;        "posterior_summary__mean__sigma"  "posterior_summary__median__Intercept" </span></span>
+<span><span class="co">#&gt;                               median__x                           median__sigma </span></span>
+<span><span class="co">#&gt;          "posterior_summary__median__x"      "posterior_summary__median__sigma" </span></span>
+<span><span class="co">#&gt;                           sd__Intercept                                   sd__x </span></span>
+<span><span class="co">#&gt;      "posterior_summary__sd__Intercept"              "posterior_summary__sd__x" </span></span>
+<span><span class="co">#&gt;                               sd__sigma                      q_lower__Intercept </span></span>
+<span><span class="co">#&gt;          "posterior_summary__sd__sigma" "posterior_summary__q_lower__Intercept" </span></span>
+<span><span class="co">#&gt;                              q_lower__x                          q_lower__sigma </span></span>
+<span><span class="co">#&gt;         "posterior_summary__q_lower__x"     "posterior_summary__q_lower__sigma" </span></span>
+<span><span class="co">#&gt;                      q_upper__Intercept                              q_upper__x </span></span>
+<span><span class="co">#&gt; "posterior_summary__q_upper__Intercept"         "posterior_summary__q_upper__x" </span></span>
+<span><span class="co">#&gt;                          q_upper__sigma </span></span>
+<span><span class="co">#&gt;     "posterior_summary__q_upper__sigma"</span></span>
+<span><span class="va">agg_post</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/summarize_simulation.html">summarize_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">result</span>,</span>
+<span>  by <span class="op">=</span> <span class="st">"data_n"</span>,</span>
+<span>  metrics <span class="op">=</span> <span class="fu"><a href="../reference/metric_cols.html">metric_cols</a></span><span class="op">(</span><span class="va">result</span>, <span class="st">"posterior_summary"</span>, fields <span class="op">=</span> <span class="st">"mean"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="performance-measures">Performance measures<a class="anchor" aria-label="anchor" href="#performance-measures"></a>
@@ -313,10 +351,10 @@ by condition, with Monte Carlo standard errors (MCSE):</p>
 <p>For estimator-performance measures in the sense of Morris, White
 &amp; Crowther (2019) – bias, empirical SE, MSE, coverage, average model
 SE, each with its MCSE – use <code><a href="../reference/performance_measures.html">performance_measures()</a></code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pm</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/performance_measures.html">performance_measures</a></span><span class="op">(</span><span class="va">result</span>, estimand <span class="op">=</span> <span class="st">"x"</span><span class="op">)</span></span>
 <span><span class="va">pm</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 12 × 10</span></span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 12 × 11</span></span></span>
 <span><span class="co">#&gt;    data_n data_intercept data_slope data_sigma fit_model estimand measure </span></span>
 <span><span class="co">#&gt;     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span>     50              1          2          1 linear    x        bias    </span></span>
@@ -331,7 +369,7 @@ SE, each with its MCSE – use <code><a href="../reference/performance_measures.
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span>    100              1          2          1 linear    x        model_se</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">11</span>    100              1          2          1 linear    x        coverage</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">12</span>    100              1          2          1 linear    x        n_sim   </span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 3 more variables: value &lt;dbl&gt;, mcse &lt;dbl&gt;, n_sim &lt;int&gt;</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 4 more variables: value &lt;dbl&gt;, mcse &lt;dbl&gt;, n_sim &lt;int&gt;, truth_mode &lt;chr&gt;</span></span></span></code></pre></div>
 <p>This pairs <code>truth__x</code> with the per-task posterior summary
 to give, per condition cell, the bias and calibration of the estimator.
 It is the function a methods paper actually needs.</p>
@@ -342,7 +380,7 @@ It is the function a methods paper actually needs.</p>
 <p>Parallelism is owned by the engine and uses <a href="https://mirai.r-lib.org/" class="external-link">mirai</a> via <a href="https://purrr.tidyverse.org/" class="external-link">purrr</a>’s
 <code>in_parallel()</code> integration. The simple path is the
 <code>workers</code> argument:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co"># daemons are set up for the run and torn down on exit</span></span></code></pre></div>
 <p>For the advanced/HPC path (remote daemons, TLS), call
@@ -357,10 +395,15 @@ cluster).</p>
 </h2>
 <p>For long-running simulations, write checkpoints to
 <code>result_path</code>:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="va">data_grid</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,</span>
+<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span><span class="op">)</span>,</span>
+<span>    intercept <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>    slope <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>    sigma <span class="op">=</span> <span class="fl">1</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
 <span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
 <span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">200L</span><span class="op">)</span>,</span>
 <span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -370,9 +413,15 @@ cluster).</p>
 <span>  checkpoint_every <span class="op">=</span> <span class="fl">50L</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span></span></code></pre></div>
-<p>If interrupted, resume with:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resume_simulation.html">resume_simulation</a></span><span class="op">(</span><span class="st">"my_simulation"</span><span class="op">)</span></span></code></pre></div>
+<p>If interrupted, resume with the original config:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/resume_simulation.html">resume_simulation</a></span><span class="op">(</span><span class="st">"my_simulation"</span>, config <span class="op">=</span> <span class="va">config</span><span class="op">)</span></span></code></pre></div>
+<p>Passing the config is required here because
+<code>my_data_generator</code> is a closure defined in your script; the
+run manifest cannot rehydrate script-defined closures. The configless
+form <code>resume_simulation("my_simulation")</code> works only when
+every generator, fitter, and metric is a namespaced package function or
+class.</p>
 </div>
 <div class="section level2">
 <h2 id="metrics">Metrics<a class="anchor" aria-label="anchor" href="#metrics"></a>
@@ -381,14 +430,12 @@ cluster).</p>
 <code>pred_bias_metric</code>, <code>pred_rmse_metric</code>,
 <code>pred_mae_metric</code>, <code>pred_mse_metric</code>,
 <code>coverage_metric</code>, <code>pos_prob_metric</code>,
-<code>posterior_summary_metric</code>, <code>convergence_metric</code>,
-<code>sampler_diagnostics_metric</code>, <code>rank_metric</code> (SBC
-ranks), <code>rstar_metric</code>, and LOO/test-set variants
-(<code>elpd_loo_metric</code>, <code>rmse_loo_metric</code>,
+<code>posterior_summary_metric</code>,
+<code>sampler_diagnostics_metric</code> (convergence and sampler
+diagnostics), <code>rank_metric</code> (SBC ranks), and LOO/test-set
+variants (<code>elpd_loo_metric</code>, <code>rmse_loo_metric</code>,
 <code>r2_loo_metric</code>, <code>elpd_test_metric</code>,
-<code>pred_rmse_metric</code>, <code>r2_test_metric</code>).
-<code><a href="../reference/rmse_test_metric.html">rmse_test_metric()</a></code> remains as a compatibility name for
-<code>pred_rmse_metric(name = "rmse_test")</code>.</p>
+<code>r2_test_metric</code>).</p>
 <p>To write your own metric, extend the <code>Metric</code> class and
 implement <code><a href="../reference/compute_metric.html">compute_metric()</a></code>;
 <code><a href="../articles/custom-metrics.html">vignette("custom-metrics")</a></code> covers the full contract, the

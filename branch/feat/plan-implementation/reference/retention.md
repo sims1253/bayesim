@@ -7,7 +7,7 @@ results to manage memory usage during large-scale simulations.
 
 Useful links:
 
-- <https://sims1253.github.io/bayesim>
+- <https://sims1253.github.io/bayesim/>
 
 - <https://github.com/sims1253/bayesim>
 

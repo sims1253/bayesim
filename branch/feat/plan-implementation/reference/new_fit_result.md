@@ -71,6 +71,11 @@ Validation rules:
 
 - If `draws` is not NULL, it must be a matrix with column names
 
+## See also
+
+[Fitter](https://sims1253.github.io/bayesim/reference/Fitter.md),
+[`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+
 ## Examples
 
 ``` r

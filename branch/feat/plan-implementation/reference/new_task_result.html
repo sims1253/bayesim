@@ -64,7 +64,8 @@
 <span>  timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>total <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
 <span>  error <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  warnings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  truth <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  truth <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  stop_reason <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -77,7 +78,8 @@
 
 
 <dt id="arg-status">status<a class="anchor" aria-label="anchor" href="#arg-status"></a></dt>
-<dd><p>Character scalar: one of "success", "failed", or "skipped"</p></dd>
+<dd><p>Character scalar: one of "pending", "success", "failed", or
+"skipped"</p></dd>
 
 
 <dt id="arg-metrics">metrics<a class="anchor" aria-label="anchor" href="#arg-metrics"></a></dt>
@@ -98,6 +100,11 @@
 
 <dt id="arg-warnings">warnings<a class="anchor" aria-label="anchor" href="#arg-warnings"></a></dt>
 <dd><p>Character vector of warning messages</p></dd>
+
+
+<dt id="arg-stop-reason">stop_reason<a class="anchor" aria-label="anchor" href="#arg-stop-reason"></a></dt>
+<dd><p>Optional reason a task was not executed, such as
+<code>"max_errors"</code> or <code>"adaptive_stop"</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

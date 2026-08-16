@@ -47,6 +47,8 @@ Classes and generics for fitting Bayesian models
   : Compute LOO-CV
 - [`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md)
   : Extract Fit Diagnostics
+- [`new_fit_result()`](https://sims1253.github.io/bayesim/reference/new_fit_result.md)
+  : Create a new bayesim_fit_result object
 
 ## Generators
 
@@ -83,15 +85,9 @@ Classes and built-in metrics for computing simulation results
 - [`PosProbMetric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)
   [`pos_prob_metric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)
   : Positivity Probability Metric
-- [`ConvergenceMetric()`](https://sims1253.github.io/bayesim/reference/ConvergenceMetric.md)
-  [`convergence_metric()`](https://sims1253.github.io/bayesim/reference/ConvergenceMetric.md)
-  : Convergence Metric
 - [`SamplerDiagnosticsMetric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
   [`sampler_diagnostics_metric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
   : Sampler Diagnostics Metric
-- [`RstarMetric()`](https://sims1253.github.io/bayesim/reference/RstarMetric.md)
-  [`rstar_metric()`](https://sims1253.github.io/bayesim/reference/RstarMetric.md)
-  : R\* Convergence Metric
 - [`RmseMetric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
   [`pred_rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
   : RMSE Metric
@@ -116,8 +112,6 @@ Classes and built-in metrics for computing simulation results
 - [`ElpdTestMetric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
   [`elpd_test_metric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
   : ELPD Test-Set Metric
-- [`rmse_test_metric()`](https://sims1253.github.io/bayesim/reference/rmse_test_metric.md)
-  : Test-set RMSE compatibility constructor
 - [`R2TestMetric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
   [`r2_test_metric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
   : R-squared Test-Set Metric
@@ -148,8 +142,8 @@ results
   : Plot coverage rates per condition/parameter
 - [`plot_metric()`](https://sims1253.github.io/bayesim/reference/plot_metric.md)
   : Plot a metric across conditions
-- [`report()`](https://sims1253.github.io/bayesim/reference/report.md) :
-  Render a simulation-study report
+- [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  : Render a simulation-study report
 - [`read_summary()`](https://sims1253.github.io/bayesim/reference/read_summary.md)
   : Read a simulation summary file
 
@@ -165,6 +159,8 @@ Validators, error constructors, and classifiers for extending bayesim
   : Validate a Metric Object
 - [`bayesim_config_error()`](https://sims1253.github.io/bayesim/reference/bayesim_config_error.md)
   : Configuration validation error (Fatal)
+- [`bayesim_contract_error()`](https://sims1253.github.io/bayesim/reference/bayesim_contract_error.md)
+  : Contract/interface violation error (Fatal)
 - [`bayesim_data_error()`](https://sims1253.github.io/bayesim/reference/bayesim_data_error.md)
   : Data generation/validation error (Recoverable)
 - [`bayesim_fit_error()`](https://sims1253.github.io/bayesim/reference/bayesim_fit_error.md)

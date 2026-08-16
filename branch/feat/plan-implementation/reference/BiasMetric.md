@@ -8,10 +8,11 @@ Constructor for BiasMetric.
 
 ``` r
 BiasMetric(
-  name = character(0),
-  needs = character(0),
+  name = "bias",
+  needs = "predictions",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"))
 )
 
 pred_bias_metric(name = "bias")

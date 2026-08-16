@@ -14,10 +14,12 @@ Constructor for R2LooMetric.
 
 ``` r
 R2LooMetric(
-  name = character(0),
-  needs = character(0),
+  name = "r2_loo",
+  needs = "loo",
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), elpd
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"))
 )
 
 r2_loo_metric(name = "r2_loo")
@@ -44,4 +46,17 @@ r2_loo_metric()
 #>  @ needs       : chr "loo"
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
+#>  @ schema      :List of 3
+#>  .. $ value    :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ elpd     :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ undefined:List of 3
+#>  ..  ..$ role       : chr "diagnostic"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
 ```

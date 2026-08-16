@@ -9,10 +9,12 @@ Constructor for PosProbMetric.
 
 ``` r
 PosProbMetric(
-  name = character(0),
+  name = "pos_prob",
   needs = character(0),
   required = FALSE,
-  summary_type = "mean"
+  summary_type = "mean",
+  schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+    by_param = list(role = "estimate", aggregation = "mean", mcse = "sd"))
 )
 
 pos_prob_metric(name = "pos_prob")
@@ -39,4 +41,13 @@ pos_prob_metric()
 #>  @ needs       : chr(0) 
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
+#>  @ schema      :List of 2
+#>  .. $ mean    :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ by_param:List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
 ```

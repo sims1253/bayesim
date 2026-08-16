@@ -9,10 +9,15 @@ Constructor for PosteriorSummaryMetric.
 
 ``` r
 PosteriorSummaryMetric(
-  name = character(0),
+  name = "posterior_summary",
   needs = character(0),
   required = FALSE,
   summary_type = "mean",
+  schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"), median
+    = list(role = "estimate", aggregation = "mean", mcse = "sd"), sd = list(role =
+    "estimate", aggregation = "mean", mcse = "sd"), q_lower = list(role = "estimate",
+    aggregation = "mean", mcse = "sd"), q_upper = list(role = "estimate", aggregation =
+    "mean", mcse = "sd")),
   prob = 0.95
 )
 
@@ -44,5 +49,28 @@ posterior_summary_metric()
 #>  @ needs       : chr(0) 
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
+#>  @ schema      :List of 5
+#>  .. $ mean   :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ median :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ sd     :List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ q_lower:List of 4
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  ..  ..$ nominal    : num 0.95
+#>  .. $ q_upper:List of 4
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  ..  ..$ nominal    : num 0.95
 #>  @ prob        : num 0.95
 ```

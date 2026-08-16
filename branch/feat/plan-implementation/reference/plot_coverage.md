@@ -12,7 +12,7 @@ at the nominal rate. Requires
 ## Usage
 
 ``` r
-plot_coverage(result, nominal = 0.95, by = NULL)
+plot_coverage(result, nominal = NULL, by = NULL)
 ```
 
 ## Arguments
@@ -23,7 +23,8 @@ plot_coverage(result, nominal = 0.95, by = NULL)
 
 - nominal:
 
-  Nominal coverage rate (default 0.95).
+  Nominal coverage rate. Defaults to the interval probability recorded
+  by the metric schema, or 0.95 for legacy results.
 
 - by:
 

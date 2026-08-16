@@ -59,7 +59,7 @@ specified. Verifies checksums before returning data.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_checkpoint</span><span class="op">(</span><span class="va">result_path</span>, checkpoint_id <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">read_checkpoint</span><span class="op">(</span><span class="va">result_path</span>, checkpoint_id <span class="op">=</span> <span class="cn">NULL</span>, load_outcomes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -74,6 +74,12 @@ If NULL, the function returns NULL immediately.</p></dd>
 <dt id="arg-checkpoint-id">checkpoint_id<a class="anchor" aria-label="anchor" href="#arg-checkpoint-id"></a></dt>
 <dd><p>Integer specifying the checkpoint ID to read.
 If NULL (default), reads the latest checkpoint from latest.json.</p></dd>
+
+
+<dt id="arg-load-outcomes">load_outcomes<a class="anchor" aria-label="anchor" href="#arg-load-outcomes"></a></dt>
+<dd><p>Logical; when FALSE, validate shard integrity but omit
+materializing accumulated outcomes. Used by the filesystem RunStore while
+appending the next ledger checkpoint.</p></dd>
 
 </dl></div>
     <div class="section level2">

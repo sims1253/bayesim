@@ -7,7 +7,14 @@ class instance with all required properties and methods implemented.
 ## Usage
 
 ``` r
-validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
+validate_fitter(
+  fitter,
+  smoke_test = FALSE,
+  verbose = FALSE,
+  data_bundle = NULL,
+  fit_spec = NULL,
+  task_ctx = NULL
+)
 ```
 
 ## Arguments
@@ -24,6 +31,24 @@ validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
 - verbose:
 
   Logical, if TRUE print progress messages during validation
+
+- data_bundle:
+
+  Optional representative data bundle for the conformance run. Supplying
+  this is recommended for custom fitters whose data contract is not a
+  `y ~ x` regression.
+
+- fit_spec:
+
+  Optional representative fit specification passed to
+  [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+  during conformance testing.
+
+- task_ctx:
+
+  Optional task context passed to
+  [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+  during conformance testing.
 
 ## Value
 
@@ -46,25 +71,20 @@ The validation performs the following checks:
 
 - `supports_loo` property exists and is logical
 
+- `supports_epred` property exists and is logical
+
 **Method Checks:**
 
 - [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
-  method is implemented
+  and
+  [`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md)
+  are implemented (the core contract)
 
-- [`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md)
-  method is implemented
-
-- [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md)
-  method is implemented
-
-- [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md)
-  method is implemented
-
-- [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
-  method is implemented
+- optional methods are required only when their `supports_*` capability
+  is `TRUE`; unsupported methods have safe defaults
 
 - [`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md)
-  method is implemented
+  may use the default empty-list implementation
 
 **Smoke Test (when smoke_test = TRUE):**
 
@@ -84,6 +104,10 @@ The validation performs the following checks:
 
 - If `supports_log_lik`, calls
   [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md)
+  and verifies matrix output
+
+- If `supports_epred`, calls
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
   and verifies matrix output
 
 - Calls

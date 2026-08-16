@@ -17,7 +17,7 @@ filter_tasks_by_status(task_grid, status)
 - status:
 
   Character vector of statuses to include. Valid statuses: "pending",
-  "success", "failed", "skipped".
+  "success", "failed", or "skipped".
 
 ## Value
 

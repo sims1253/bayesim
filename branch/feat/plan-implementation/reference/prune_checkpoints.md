@@ -1,6 +1,6 @@
-# Prune old checkpoint snapshots
+# Prune old checkpoint commit directories
 
-Prune old checkpoint snapshots
+Prune old checkpoint commit directories
 
 ## Usage
 
@@ -16,7 +16,9 @@ prune_checkpoints(result_path, keep = 2L)
 
 - keep:
 
-  Number of newest complete snapshots to keep; `Inf` keeps all.
+  Number of newest checkpoint commits to keep; `Inf` keeps all. Removes
+  commit directories only; immutable outcome shards and ledger history
+  are never pruned.
 
 ## Value
 

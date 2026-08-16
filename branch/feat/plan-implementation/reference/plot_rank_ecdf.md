@@ -7,6 +7,20 @@ correct calibration, the *entire* ECDF stays within it with probability
 alpha; deviations anywhere along the band therefore indicate
 miscalibration at level 1 - alpha.
 
+Ranks are normalized per task: each task's ranks are scaled by that
+task's own support, `(rank + 0.5) / n_ranks` with `n_ranks` = support +
+1 (kept post-thinning draws + 1). When tasks in a panel have different
+supports (e.g.
+[`rank_metric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md)
+with `thin = "auto"` under autocorrelation), pooling on the panel
+maximum would squash small-support tasks' ranks toward zero and
+manufacture apparent miscalibration; per-task normalization avoids that
+artifact, and a warning notes that the simultaneous band, which assumes
+iid ranks on a common support, is then approximate. Legacy results
+without a recorded `n_ranks` fall back per task to `n_draws`; with a
+historical thinning stride \> 1 the true support is unknown, so that
+fallback only bounds it.
+
 ## Usage
 
 ``` r

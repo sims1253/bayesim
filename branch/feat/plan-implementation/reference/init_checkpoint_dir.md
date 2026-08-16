@@ -1,8 +1,9 @@
 # Initialize checkpoint directory
 
 Creates the checkpoint directory structure for a new simulation run.
-This includes the base result path, checkpoints subdirectory, run
-manifest, and initial latest pointer.
+This includes the base result path, checkpoints and outcomes
+subdirectories, run manifest, and initial latest pointer. The ledger
+subdirectory is created lazily at the first delta write.
 
 ## Usage
 
@@ -11,7 +12,9 @@ init_checkpoint_dir(
   result_path,
   config_fingerprint,
   config_spec = NULL,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  retention_spec = NULL,
+  run_policy_spec = NULL
 )
 ```
 
@@ -48,7 +51,9 @@ The directory structure created is:
     result_path/
     +-- run_manifest.json    # run-level metadata and schema versions
     +-- latest.json          # pointer to latest valid checkpoint ID
-    +-- checkpoints/         # directory for checkpoint snapshots
+    +-- checkpoints/         # atomic checkpoint commit directories
+    +-- outcomes/            # immutable, redundantly mirrored outcome shards
+    +-- ledger/              # base ledger plus status deltas (lazy)
 
 The run manifest contains:
 

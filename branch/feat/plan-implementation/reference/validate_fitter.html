@@ -62,7 +62,14 @@ all required properties and methods implemented.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">validate_fitter</span><span class="op">(</span><span class="va">fitter</span>, smoke_test <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">validate_fitter</span><span class="op">(</span></span>
+<span>  <span class="va">fitter</span>,</span>
+<span>  smoke_test <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  data_bundle <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  fit_spec <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  task_ctx <span class="op">=</span> <span class="cn">NULL</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -81,6 +88,22 @@ verify that methods work correctly end-to-end</p></dd>
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>Logical, if TRUE print progress messages during validation</p></dd>
 
+
+<dt id="arg-data-bundle">data_bundle<a class="anchor" aria-label="anchor" href="#arg-data-bundle"></a></dt>
+<dd><p>Optional representative data bundle for the conformance
+run. Supplying this is recommended for custom fitters whose data contract
+is not a <code>y ~ x</code> regression.</p></dd>
+
+
+<dt id="arg-fit-spec">fit_spec<a class="anchor" aria-label="anchor" href="#arg-fit-spec"></a></dt>
+<dd><p>Optional representative fit specification passed to
+<code><a href="fit_model.html">fit_model()</a></code> during conformance testing.</p></dd>
+
+
+<dt id="arg-task-ctx">task_ctx<a class="anchor" aria-label="anchor" href="#arg-task-ctx"></a></dt>
+<dd><p>Optional task context passed to <code><a href="fit_model.html">fit_model()</a></code> during
+conformance testing.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -94,17 +117,17 @@ verify that methods work correctly end-to-end</p></dd>
 <li><p><code>supports_predictions</code> property exists and is logical</p></li>
 <li><p><code>supports_log_lik</code> property exists and is logical</p></li>
 <li><p><code>supports_loo</code> property exists and is logical</p></li>
-</ul><p><strong>Method Checks:</strong></p><ul><li><p><code><a href="fit_model.html">fit_model()</a></code> method is implemented</p></li>
-<li><p><code><a href="extract_draws.html">extract_draws()</a></code> method is implemented</p></li>
-<li><p><code><a href="predict_fit.html">predict_fit()</a></code> method is implemented</p></li>
-<li><p><code><a href="log_lik_matrix.html">log_lik_matrix()</a></code> method is implemented</p></li>
-<li><p><code><a href="loo_fit.html">loo_fit()</a></code> method is implemented</p></li>
-<li><p><code><a href="fit_diagnostics.html">fit_diagnostics()</a></code> method is implemented</p></li>
+<li><p><code>supports_epred</code> property exists and is logical</p></li>
+</ul><p><strong>Method Checks:</strong></p><ul><li><p><code><a href="fit_model.html">fit_model()</a></code> and <code><a href="extract_draws.html">extract_draws()</a></code> are implemented (the core contract)</p></li>
+<li><p>optional methods are required only when their <code>supports_*</code> capability is
+<code>TRUE</code>; unsupported methods have safe defaults</p></li>
+<li><p><code><a href="fit_diagnostics.html">fit_diagnostics()</a></code> may use the default empty-list implementation</p></li>
 </ul><p><strong>Smoke Test (when smoke_test = TRUE):</strong></p><ul><li><p>Creates simple lm-like test data</p></li>
 <li><p>Calls <code><a href="fit_model.html">fit_model()</a></code> and verifies <code>bayesim_fit_result</code> structure</p></li>
 <li><p>Calls <code><a href="extract_draws.html">extract_draws()</a></code> and verifies matrix with colnames</p></li>
 <li><p>If <code>supports_predictions</code>, calls <code><a href="predict_fit.html">predict_fit()</a></code> and verifies output</p></li>
 <li><p>If <code>supports_log_lik</code>, calls <code><a href="log_lik_matrix.html">log_lik_matrix()</a></code> and verifies matrix output</p></li>
+<li><p>If <code>supports_epred</code>, calls <code><a href="predict_epred.html">predict_epred()</a></code> and verifies matrix output</p></li>
 <li><p>Calls <code><a href="fit_diagnostics.html">fit_diagnostics()</a></code> and verifies list output</p></li>
 </ul></div>
     <div class="section level2">

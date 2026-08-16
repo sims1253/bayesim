@@ -50,5 +50,11 @@ A list of bayesim_task_result objects
 is total (never throws), so transport is pure transport: every returned
 element is a `bayesim_task_result`. Transport-level failures (e.g.
 daemon death) surface as errors from
-[`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) and are
-re-raised as a bayesim fatal error by the caller.
+[`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) and
+propagate unchanged out of
+[`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md)
+and
+[`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md):
+they abort the run, and outcomes from the interrupted batch are lost to
+that call (the last committed checkpoint still holds everything before
+it).
