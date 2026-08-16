@@ -323,6 +323,95 @@ print_failure_summary <- function(result) {
   invisible(NULL)
 }
 
+# F7: end-of-run summary ----------------------------------------------------
+
+# Human phrasing for the stop_reason values execute_tasks() records on tasks
+# that were never executed (policy-stopped work is resumable by design).
+format_stop_reasons <- function(reasons) {
+  labels <- c(
+    max_errors = "error budget exhausted",
+    adaptive_stop = "adaptive stopping target reached"
+  )
+  known <- labels[reasons]
+  unknown <- is.na(known)
+  if (any(unknown)) {
+    known[unknown] <- reasons[unknown]
+  }
+  paste(unique(known), collapse = "; ")
+}
+
+# Print the single end-of-run block: completion status, task counts, stop
+# reason, results path, and — when unexecuted work remains — the literal
+# resume command (truthful about configless resume, see resume_guidance_lines),
+# followed by the per-class failure detail. Called by run_simulation() when
+# verbose = TRUE; independent of the task progress bar.
+print_run_summary <- function(result) {
+  grid <- result$task_grid
+  statuses <- if (is.data.frame(grid) && nrow(grid) > 0L) {
+    grid$status
+  } else {
+    vapply(
+      result$task_results,
+      function(tr) if (is.null(tr)) "pending" else tr$status,
+      character(1)
+    )
+  }
+  n_total <- length(statuses)
+  n_success <- sum(statuses == "success", na.rm = TRUE)
+  n_failed <- sum(statuses == "failed", na.rm = TRUE)
+  n_remaining <- sum(is.na(statuses) | statuses %in% TASK_RESUMABLE_STATUSES)
+  elapsed <- round(result$timing$total, 1)
+
+  if (n_remaining == 0L) {
+    if (n_failed == 0L) {
+      cli::cli_alert_success(
+        "Simulation complete: {n_success}/{n_total} tasks succeeded in {elapsed}s"
+      )
+    } else {
+      cli::cli_alert_warning(
+        "Simulation finished: {n_success}/{n_total} tasks succeeded, {n_failed} failed in {elapsed}s"
+      )
+    }
+  } else {
+    reasons <- if (
+      is.data.frame(grid) &&
+        nrow(grid) > 0L &&
+        "stop_reason" %in% names(grid)
+    ) {
+      unique(stats::na.omit(grid$stop_reason))
+    } else {
+      character()
+    }
+    reason <- if (length(reasons) > 0L) {
+      format_stop_reasons(reasons)
+    } else {
+      "stopped early"
+    }
+    cli::cli_alert_warning(
+      "Simulation stopped early ({reason}): {n_success} succeeded, {n_failed} failed, {n_remaining} of {n_total} tasks not run"
+    )
+  }
+
+  if (!is.null(result$checkpoint_path)) {
+    path <- normalizePath(
+      result$checkpoint_path,
+      winslash = "/",
+      mustWork = FALSE
+    )
+    cli::cli_text("Results: {path}")
+    if (n_remaining > 0L) {
+      # verbatim: the guidance lines are pre-formatted (own indentation, no
+      # cli markup), and paths may contain characters cli would interpolate.
+      for (line in resume_guidance_lines(path)) {
+        cli::cli_verbatim(line)
+      }
+    }
+  }
+
+  print_failure_summary(result)
+  invisible(NULL)
+}
+
 # F3: as_tibble for simulation results ------------------------------------
 
 # Registered as an S3 method for tibble::as_tibble via registerS3method on load

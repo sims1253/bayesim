@@ -2,6 +2,15 @@
 
 Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
+## Runtime UX
+
+* `run_simulation()` now prints a single end-of-run summary block when
+  `verbose = TRUE`: completion status, task counts (succeeded, failed, not
+  run), the stop reason for early stops (`max_errors` or adaptive
+  stopping), the results path, and — when unexecuted work remains — the
+  literal `resume_simulation()` command for that run. The block subsumes
+  the former standalone failure summary.
+
 ## Engine and resume
 
 * Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
