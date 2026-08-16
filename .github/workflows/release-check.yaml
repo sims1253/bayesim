@@ -49,6 +49,9 @@ jobs:
 
       - uses: r-lib/actions/check-r-package@v2
         with:
+          # See R-CMD-check.yaml: the remaining WARNING is the documented
+          # S7/codoc false positive on metric class constructors.
+          error_on: '"error"'
           upload-snapshots: true
           build_args: 'c("--no-manual", "--compact-vignettes=gs+qpdf")'
 
