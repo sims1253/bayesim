@@ -56,6 +56,6 @@ jobs:
           # The single remaining WARNING is the documented S7/codoc false
           # positive on metric class constructors (CONTRIBUTING.md, "Known
           # check warnings"); fail on errors only until it is fixed upstream.
-          error_on: '"error"'
+          error-on: '"error"'
           upload-snapshots: true
           build_args: 'c("--no-manual", "--compact-vignettes=gs+qpdf")'

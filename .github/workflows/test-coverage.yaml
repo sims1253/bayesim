@@ -36,14 +36,7 @@ jobs:
 
       - name: Core-tier coverage
         run: |
-          source("tools/ci/test-tiers.R")
-          coverage_code <- sprintf(
-            "testthat::test_check('bayesim', filter = %s)",
-            deparse(bayesim_test_filter("core"))
-          )
           cov <- covr::package_coverage(
-            type = "none",
-            code = coverage_code,
             quiet = FALSE,
             clean = FALSE,
             install_path = file.path(normalizePath(Sys.getenv("RUNNER_TEMP"), winslash = "/"), "package")
