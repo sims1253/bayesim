@@ -207,7 +207,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 4 tasks = 1 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 4 tasks
 #> 
-#> ✔ Simulation complete: 4/4 tasks succeeded in 0.1s
+#> ✔ Simulation complete: 4/4 tasks succeeded in 0.2s
 summarize_simulation(result, metrics = "mad__value")
 #> # A tibble: 1 × 11
 #>   data_n fit_model stop_reason n_reps n_failed failure_rate mad__value_n_used
