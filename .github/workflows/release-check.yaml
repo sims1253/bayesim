@@ -42,6 +42,7 @@ jobs:
         with:
           extra-packages: any::rcmdcheck
           needs: check
+          extra-repositories: https://stan-dev.r-universe.dev
 
       - uses: r-lib/actions/check-r-package@v2
         with:
@@ -70,6 +71,7 @@ jobs:
         with:
           extra-packages: any::testthat
           needs: check
+          extra-repositories: https://stan-dev.r-universe.dev
 
       - name: Fix CmdStan toolchain
         run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)

@@ -40,6 +40,7 @@ jobs:
         with:
           extra-packages: any::pkgdown, local::.
           needs: website
+          extra-repositories: https://stan-dev.r-universe.dev
 
       - name: Build site (main branch)
         if: github.event_name != 'pull_request'

@@ -29,6 +29,7 @@ jobs:
         with:
           extra-packages: any::testthat
           needs: check
+          extra-repositories: https://stan-dev.r-universe.dev
 
       - name: Fix CmdStan toolchain
         run: cmdstanr::check_cmdstan_toolchain(fix = TRUE)
