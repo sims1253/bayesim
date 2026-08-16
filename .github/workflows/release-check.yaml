@@ -71,7 +71,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::testthat, stan-dev/cmdstanr
+          # local::. installs the package so mirai daemons can resolve the
+          # bayesim namespace; tests still run against the source tree.
+          extra-packages: any::testthat, stan-dev/cmdstanr, local::.
           needs: check
 
       - name: Fix CmdStan toolchain
