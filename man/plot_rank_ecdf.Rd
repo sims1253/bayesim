@@ -27,6 +27,18 @@ Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
 under correct calibration, the \emph{entire} ECDF stays within it with
 probability alpha; deviations anywhere along the band therefore indicate
 miscalibration at level 1 - alpha.
+
+Ranks are normalized per task: each task's ranks are scaled by that
+task's own support, \code{(rank + 0.5) / n_ranks} with \code{n_ranks} = support +
+1 (kept post-thinning draws + 1). When tasks in a panel have different
+supports (e.g. \code{rank_metric()} with \code{thin = "auto"} under
+autocorrelation), pooling on the panel maximum would squash
+small-support tasks' ranks toward zero and manufacture apparent
+miscalibration; per-task normalization avoids that artifact, and a
+warning notes that the simultaneous band, which assumes iid ranks on a
+common support, is then approximate. Legacy results without a recorded
+\code{n_ranks} fall back per task to \code{n_draws}; with a historical thinning
+stride > 1 the true support is unknown, so that fallback only bounds it.
 }
 \examples{
 \dontrun{

@@ -38,6 +38,41 @@ describe("performance_measures", {
     expect_true(all(pm$truth_mode == "varying"))
   })
 
+  it("bias MCSE uses sd of the estimation errors in both truth modes", {
+    # Varying truth with nonzero, distinct sd(errs) and sd(est): the
+    # mean_error MCSE must follow the errors, not the raw estimates.
+    df <- data.frame(
+      status = rep("success", 4),
+      truth__x = c(0, 10, 20, 30),
+      posterior_summary__mean__x = c(0.5, 12, 18, 36),
+      check.names = FALSE
+    )
+    errs <- df$posterior_summary__mean__x - df$truth__x
+    expect_false(isTRUE(all.equal(
+      stats::sd(errs),
+      stats::sd(df$posterior_summary__mean__x)
+    )))
+    pm <- performance_measures(df, estimand = "x")
+    expect_equal(
+      pm$mcse[pm$measure == "mean_error"],
+      stats::sd(errs) / sqrt(4)
+    )
+
+    # Fixed truth: the bias MCSE is the same error-based formula (sd of the
+    # estimation errors; identical to sd(est) because truth is constant).
+    df2 <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(5, 4),
+      posterior_summary__mean__x = c(0.5, 12, 18, 36),
+      check.names = FALSE
+    )
+    pm2 <- performance_measures(df2, estimand = "x")
+    expect_equal(
+      pm2$mcse[pm2$measure == "bias"],
+      stats::sd(df2$posterior_summary__mean__x - 5) / sqrt(4)
+    )
+  })
+
   it("retains Morris names and formulas when truth is fixed", {
     df <- data.frame(
       status = rep("success", 4),

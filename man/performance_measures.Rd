@@ -51,15 +51,17 @@ uses the interval when available; otherwise it falls back to a
 
 Fixed-truth MCSE formulas follow Morris et al. / rsimsum:
 \itemize{
-\item bias MCSE = sd(point_est) / sqrt(n)
+\item bias MCSE = sd(est - truth) / sqrt(n)
 \item empSE MCSE = sd / sqrt(2(n-1))
 \item MSE MCSE = sqrt(Var((est-truth)^2) / n)
 \item coverage MCSE = sqrt(p(1-p) / n)
 \item modelSE MCSE = sd(posterior_sd) / sqrt(n)
 }
-For varying truth, \code{mean_error} uses \code{sd(est-truth) / sqrt(n)}, \code{error_sd}
-uses \code{error_sd / sqrt(2(n-1))}, and \code{error_mse} uses
-\code{sqrt(Var((est-truth)^2) / n)}.
+The bias MCSE uses the sd of the estimation errors \code{est - truth}, which is
+valid under fixed and varying truth alike (with fixed truth the truth is
+constant, so sd(est - truth) = sd(est)). For varying truth, \code{mean_error}
+uses \code{sd(est-truth) / sqrt(n)}, \code{error_sd} uses \code{error_sd / sqrt(2(n-1))},
+and \code{error_mse} uses \code{sqrt(Var((est-truth)^2) / n)}.
 }
 \examples{
 \dontrun{

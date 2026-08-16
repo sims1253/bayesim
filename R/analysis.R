@@ -4,8 +4,9 @@
 # operate on the `summary` tibble of a `bayesim_simulation_result` (or the
 # `task_results` list) and return tidy tibbles or ggplot objects.
 #
-# MCSE formulas follow rsimsum (Gasparini, 2018): bias MCSE = sd/sqrt(n);
-# coverage MCSE = sqrt(p(1-p)/n); rmse MCSE via the delta method on the
+# MCSE formulas follow rsimsum (Gasparini, 2018): bias MCSE is the sd of the
+# estimation errors (est - truth) over sqrt(n), valid under fixed and varying
+# truth; coverage MCSE = sqrt(p(1-p)/n); rmse MCSE via the delta method on the
 # squared-error mean and variance.
 
 validate_analysis_columns <- function(
@@ -551,6 +552,18 @@ plot_rank_hist <- function(ranks) {
 #'   under correct calibration, the *entire* ECDF stays within it with
 #'   probability alpha; deviations anywhere along the band therefore indicate
 #'   miscalibration at level 1 - alpha.
+#'
+#'   Ranks are normalized per task: each task's ranks are scaled by that
+#'   task's own support, `(rank + 0.5) / n_ranks` with `n_ranks` = support +
+#'   1 (kept post-thinning draws + 1). When tasks in a panel have different
+#'   supports (e.g. `rank_metric()` with `thin = "auto"` under
+#'   autocorrelation), pooling on the panel maximum would squash
+#'   small-support tasks' ranks toward zero and manufacture apparent
+#'   miscalibration; per-task normalization avoids that artifact, and a
+#'   warning notes that the simultaneous band, which assumes iid ranks on a
+#'   common support, is then approximate. Legacy results without a recorded
+#'   `n_ranks` fall back per task to `n_draws`; with a historical thinning
+#'   stride > 1 the true support is unknown, so that fallback only bounds it.
 #' @param ranks A tibble from [sbc_ranks()], or a `bayesim_simulation_result`.
 #' @param alpha Coverage level of the simultaneous confidence band
 #'   (default 0.95).
@@ -599,24 +612,38 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
   group_keys <- group_ids(ranks, facet_cols)
   rank_groups <- split(seq_len(nrow(ranks)), group_keys, drop = TRUE)
 
+  heterogeneous_support <- FALSE
   ecdf_data <- do.call(
     rbind,
     lapply(seq_along(rank_groups), function(group_idx) {
       sub <- ranks[rank_groups[[group_idx]], , drop = FALSE]
       n <- nrow(sub)
-      # Prefer post-thinning n_ranks (F4); fall back to n_draws for old results.
-      S <- NA
-      if ("n_ranks" %in% names(sub) && any(is.finite(sub$n_ranks))) {
-        S <- max(sub$n_ranks - 1L, na.rm = TRUE)
+      # Per-task support S_i (number of possible ranks minus one). Prefer the
+      # post-thinning n_ranks (F4); rows without a usable n_ranks fall back
+      # to their own n_draws (legacy results: with a historical thinning
+      # stride > 1 the true support is unknown and n_draws only bounds it).
+      # The panel max rank is the last resort when even n_draws is missing.
+      support <- rep(NA_real_, n)
+      nr <- if ("n_ranks" %in% names(sub)) as.numeric(sub$n_ranks) else NA_real_
+      has_nr <- is.finite(nr) & nr >= 2
+      support[has_nr] <- nr[has_nr] - 1
+      nd <- if ("n_draws" %in% names(sub)) as.numeric(sub$n_draws) else NA_real_
+      has_nd <- !has_nr & is.finite(nd) & nd >= 1
+      support[has_nd] <- nd[has_nd]
+      if (anyNA(support)) {
+        support[is.na(support)] <- max(sub$rank, na.rm = TRUE)
       }
-      if (!is.finite(S) || S < 1L) {
-        S <- max(sub$n_draws, na.rm = TRUE)
+      if (length(unique(nr[is.finite(nr)])) > 1L) {
+        heterogeneous_support <<- TRUE
       }
-      if (!is.finite(S) || S < 1L) {
-        S <- max(sub$rank, na.rm = TRUE)
-      }
-      # Normalized rank on [0,1]: rank in 0..S, map to (rank+0.5)/(S+1).
-      r <- (sort(sub$rank) + 0.5) / (S + 1)
+      # Normalized rank on (0,1): rank in 0..S_i maps to (rank+0.5)/(S_i+1),
+      # each row by its own support. Sorting the *normalized* values (not the
+      # raw ranks) keeps small-support tasks from being squashed toward 0
+      # when a panel mixes supports (e.g. thin = "auto" under
+      # autocorrelation).
+      r <- sort((sub$rank + 0.5) / (support + 1))
+      # The band assumes one support per panel; use the panel's largest.
+      S <- max(support)
       out <- tibble::tibble(
         .sbc_group = group_idx,
         rank_norm = r,
@@ -627,6 +654,18 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
       cbind(out, sub[rep(1L, n), facet_cols, drop = FALSE])
     })
   )
+  if (heterogeneous_support) {
+    cli::cli_warn(c(
+      paste0(
+        "Some SBC panels mix tasks with different rank supports (n_ranks); ",
+        "ranks were normalized per task."
+      ),
+      "i" = paste0(
+        "With heterogeneous support the simultaneous confidence band is ",
+        "approximate: it assumes iid ranks uniform on a shared support."
+      )
+    ))
+  }
 
   # Simultaneous confidence band (Säilynoja et al. 2022) for the ECDF of a
   # uniform sample of size n, evaluated at K = min(n, S + 1) points.
@@ -1036,15 +1075,17 @@ plot_metric <- function(result, metric, x = NULL, facets = NULL) {
 #'
 #' Fixed-truth MCSE formulas follow Morris et al. / rsimsum:
 #' \itemize{
-#'   \item bias MCSE = sd(point_est) / sqrt(n)
+#'   \item bias MCSE = sd(est - truth) / sqrt(n)
 #'   \item empSE MCSE = sd / sqrt(2(n-1))
 #'   \item MSE MCSE = sqrt(Var((est-truth)^2) / n)
 #'   \item coverage MCSE = sqrt(p(1-p) / n)
 #'   \item modelSE MCSE = sd(posterior_sd) / sqrt(n)
 #' }
-#' For varying truth, `mean_error` uses `sd(est-truth) / sqrt(n)`, `error_sd`
-#' uses `error_sd / sqrt(2(n-1))`, and `error_mse` uses
-#' `sqrt(Var((est-truth)^2) / n)`.
+#' The bias MCSE uses the sd of the estimation errors `est - truth`, which is
+#' valid under fixed and varying truth alike (with fixed truth the truth is
+#' constant, so sd(est - truth) = sd(est)). For varying truth, `mean_error`
+#' uses `sd(est-truth) / sqrt(n)`, `error_sd` uses `error_sd / sqrt(2(n-1))`,
+#' and `error_mse` uses `sqrt(Var((est-truth)^2) / n)`.
 #'
 #' @param result A `bayesim_simulation_result` (uses `$summary`), or a
 #'   data.frame of per-task metrics.
@@ -1197,11 +1238,14 @@ performance_measures <- function(
         rows[[length(rows) + 1L]] <<- row
       }
 
-      # For fixed-truth cells sd(est) and sd(error) coincide. When truth varies
-      # (prior-predictive or otherwise), the replicate-level error is the only
-      # valid reference for bias uncertainty and empirical estimator spread;
-      # using sd(est) would mostly measure variation in the data-generating
-      # truth rather than simulation error.
+      # The bias MCSE uses the sd of the estimation errors in both truth
+      # modes: with fixed truth sd(est - truth) = sd(est), and when truth
+      # varies (prior-predictive or otherwise) the replicate-level error is
+      # the only valid reference for bias uncertainty — using sd(est) would
+      # mostly measure variation in the data-generating truth rather than
+      # simulation error. The empirical-spread measures follow the same
+      # split (emp_se from est under fixed truth, error_sd from errs
+      # otherwise).
       error_sd <- if (n > 1L) stats::sd(errs) else NA_real_
       sq <- errs^2
       if (truth_varies) {
@@ -1224,7 +1268,7 @@ performance_measures <- function(
         add(
           "bias",
           mean(errs),
-          if (n > 1L) stats::sd(est) / sqrt(n) else NA_real_
+          if (n > 1L) stats::sd(errs) / sqrt(n) else NA_real_
         )
         emp_se <- if (n > 1L) stats::sd(est) else NA_real_
         add(

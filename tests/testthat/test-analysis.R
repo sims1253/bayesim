@@ -473,6 +473,108 @@ describe("plot functions", {
   })
 })
 
+describe("plot_rank_ecdf per-task rank normalization", {
+  it("normalizes each task by its own support when supports are mixed", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    set.seed(20260816)
+    n_small <- 50L
+    n_big <- 50L
+    ranks <- tibble::tibble(
+      task_id = sprintf("t%03d", seq_len(n_small + n_big)),
+      param = "x",
+      rank = as.integer(c(
+        sample(0:100, n_small, replace = TRUE),
+        sample(0:200, n_big, replace = TRUE)
+      )),
+      n_draws = 100L,
+      n_ranks = as.integer(c(rep(101L, n_small), rep(201L, n_big)))
+    )
+
+    # Mixed finite n_ranks within a panel -> one warning about per-task
+    # normalization and the approximate band.
+    expect_warning(plot_rank_ecdf(ranks), "normalized per task")
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+
+    d <- p$data
+    # Normalized values live strictly inside (0, 1).
+    expect_true(all(d$rank_norm > 0 & d$rank_norm < 1))
+    # Uniform ranks on each task's own support -> the ECDF at 0.5 stays near
+    # 0.5. Under the old group-max normalization the small-support tasks
+    # squash toward 0 and the ECDF at 0.5 sits near 0.75.
+    expect_lt(abs(mean(d$rank_norm <= 0.5) - 0.5), 0.15)
+    # Exact check: every row was scaled by its own support.
+    expect_equal(d$rank_norm, sort((ranks$rank + 0.5) / ranks$n_ranks))
+    # Small-support tasks reach near 1, far beyond the (S_small + 0.5) /
+    # S_big ceiling that a shared group-max normalization would impose.
+    small_norm <- (ranks$rank[ranks$n_ranks == 101L] + 0.5) / 101
+    expect_gt(max(small_norm), (100 + 0.5) / 200)
+  })
+
+  it("uses exact per-row normalized values in a deterministic mixed case", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- tibble::tibble(
+      task_id = c("a", "b", "c"),
+      param = "x",
+      rank = c(0L, 50L, 199L),
+      n_draws = c(100L, 100L, 200L),
+      n_ranks = c(101L, 101L, 201L)
+    )
+
+    expect_warning(plot_rank_ecdf(ranks), "normalized per task")
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+
+    d <- p$data
+    expect_equal(
+      d$rank_norm,
+      sort(c(0.5 / 101, 50.5 / 101, 199.5 / 201))
+    )
+    expect_equal(d$ecdf, seq_len(3L) / 3L)
+    # The band grid uses the largest support in the panel.
+    expect_equal(d$S, rep(200, 3L))
+  })
+
+  it("matches the golden pooled formula when all tasks share one support", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- tibble::tibble(
+      task_id = sprintf("t%d", 1:6),
+      param = "x",
+      rank = c(3L, 17L, 42L, 8L, 90L, 55L),
+      n_draws = 100L,
+      n_ranks = 101L
+    )
+
+    # Homogeneous support: no warning, byte-identical pooled normalization.
+    p <- expect_silent(plot_rank_ecdf(ranks))
+
+    d <- p$data
+    golden <- sort((c(3, 17, 42, 8, 90, 55) + 0.5) / 101)
+    expect_equal(d$rank_norm, golden)
+    expect_equal(d$ecdf, seq_len(6L) / 6L)
+    expect_equal(d$S, rep(100, 6L))
+  })
+
+  it("falls back per row to n_draws for legacy results without n_ranks", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- tibble::tibble(
+      task_id = c("a", "b", "c"),
+      param = "x",
+      rank = c(10L, 150L, 50L),
+      n_draws = c(100L, 200L, NA_integer_),
+      n_ranks = c(NA_integer_, NA_integer_, NA_integer_)
+    )
+
+    # No finite n_ranks anywhere: no heterogeneity warning; each row uses its
+    # own n_draws (+1), and the row without even n_draws falls back to the
+    # panel max rank.
+    p <- expect_silent(plot_rank_ecdf(ranks))
+
+    expect_equal(
+      p$data$rank_norm,
+      sort(c(10.5 / 101, 150.5 / 201, 50.5 / 151))
+    )
+  })
+})
+
 describe("SBC simultaneous bands", {
   it("rejects non-probabilities and invalid dimensions", {
     expect_error(sbc_band(10, conf_level = 0), class = "bayesim_config_error")
