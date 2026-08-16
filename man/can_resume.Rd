@@ -21,12 +21,10 @@ A run can be resumed if:
 \item The referenced checkpoint can be read and validated
 }
 }
-\examples{
-\dontrun{
-if (can_resume("/path/to/results")) {
-  summary <- get_resume_summary("/path/to/results")
-  cli::cli_alert_info("Found {summary$n_completed} completed tasks")
-}
-}
+\details{
+This is a cheap existence/validity probe: the checkpoint is validated
+(checksums, ledger, shard integrity) with \code{load_outcomes = FALSE}, so the
+full outcome history is never deserialized here. Callers that need the
+outcomes use \code{\link[=load_for_resume]{load_for_resume()}} instead.
 }
 \keyword{internal}

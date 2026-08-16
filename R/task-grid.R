@@ -15,40 +15,44 @@ NULL
 #'   representing the `.Random.seed` state for that task.
 #'
 #' @keywords internal
-#' @export
 #'
-#' @note This function is exported for advanced/internal use.
+#' @details The caller's RNG kind and seed are restored on exit, including when
+#'   `.Random.seed` did not exist before the call.
 create_task_rng_streams <- function(global_seed, n_tasks) {
-  # Store current RNG state to restore later
-  old_kind <- RNGkind()[1]
-  old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
-    get(".Random.seed", envir = .GlobalEnv)
+  old_kind <- base::RNGkind()
+  seed_existed <- exists(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
+  old_seed <- if (seed_existed) {
+    get(".Random.seed", envir = .GlobalEnv, inherits = FALSE)
   } else {
     NULL
   }
-
   on.exit(
     {
-      RNGkind(old_kind)
-      if (!is.null(old_seed)) {
+      do.call(base::RNGkind, as.list(old_kind))
+      if (seed_existed) {
         assign(".Random.seed", old_seed, envir = .GlobalEnv)
+      } else if (
+        exists(
+          ".Random.seed",
+          envir = .GlobalEnv,
+          inherits = FALSE
+        )
+      ) {
+        rm(".Random.seed", envir = .GlobalEnv)
       }
     },
     add = TRUE
   )
 
-  # Set L'Ecuyer-CMRG for parallel-safe reproducibility
-  RNGkind("L'Ecuyer-CMRG")
+  base::RNGkind("L'Ecuyer-CMRG")
   set.seed(global_seed)
 
-  # Precompute streams for all tasks
   streams <- vector("list", n_tasks)
   seed <- .Random.seed
   for (i in seq_len(n_tasks)) {
     streams[[i]] <- seed
     seed <- parallel::nextRNGStream(seed)
   }
-
   streams
 }
 
@@ -68,7 +72,7 @@ task_id_widths <- function(data_idx, fit_idx, rep_idx) {
 #' @param widths Optional list with data, fit, rep widths. Auto-computed if NULL.
 #'
 #' @return Character string task ID.
-#' @export
+#' @keywords internal
 make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
   if (is.null(widths)) {
     widths <- task_id_widths(data_idx, fit_idx, rep_idx)
@@ -92,6 +96,10 @@ make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
 
 canonicalize_task_grid <- function(task_grid, config) {
   grid <- tibble::as_tibble(task_grid)
+
+  if ("task_id" %in% names(grid) && anyDuplicated(grid$task_id)) {
+    cli::cli_abort("task_grid contains duplicate task_id values")
+  }
 
   if (!"rep_idx" %in% names(grid)) {
     grid$rep_idx <- rep.int(1L, nrow(grid))
@@ -147,8 +155,14 @@ canonicalize_task_grid <- function(task_grid, config) {
     grid$rep_idx,
     widths
   )
+  if (anyDuplicated(grid$task_id)) {
+    cli::cli_abort(
+      "task_grid contains duplicate task identities; data_idx, fit_idx, and rep_idx must be unique"
+    )
+  }
   grid$rng_seed <- I(create_task_rng_streams(config@seed, nrow(grid)))
   grid$status <- "pending"
+  grid$stop_reason <- NA_character_
 
   tibble::as_tibble(grid)
 }
@@ -169,7 +183,6 @@ canonicalize_task_grid <- function(task_grid, config) {
 #'   - `status`: Character status, initialized to "pending"
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -228,45 +241,25 @@ create_task_grid <- function(config) {
 
   # Initialize status
   grid$status <- "pending"
+  grid$stop_reason <- NA_character_
 
   tibble::as_tibble(grid)
 }
 
-#' Get Task Specification from Grid
+#' Get a task specification by precomputed row index
 #'
-#' Extracts the complete specification for a single task, including
-#' data_spec, fit_spec, task context, and RNG seed.
+#' The execution loop resolves a whole batch of task IDs once and calls this
+#' helper by index, avoiding repeated full-grid scans for large studies.
 #'
-#' @param task_grid A task grid tibble created by [create_task_grid()].
-#' @param task_id The task ID to look up (format: "dXXX_fXXX_rXXXXX").
-#' @param config The SimulationConfig object used to create the task grid.
-#'
-#' @return A named list with elements:
-#'   - `task_id`: Character task identifier
-#'   - `data_idx`: Integer data grid row index
-#'   - `fit_idx`: Integer fit grid row index
-#'   - `rep_idx`: Integer replicate number
-#'   - `data_spec`: Named list of data specification parameters
-#'   - `fit_spec`: Named list of fit specification parameters
-#'   - `task_ctx`: Named list with task_id, data_idx, fit_idx, rep_idx
-#'   - `rng_seed`: Integer vector RNG state for this task
-#'
+#' @param task_grid A task grid tibble.
+#' @param row_idx Scalar row index.
+#' @param config The SimulationConfig used to create the grid.
+#' @return A named task specification list containing the task and grid
+#'   indices, data and fit specifications, task context, and RNG seed.
 #' @keywords internal
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' task_grid <- create_task_grid(config)
-#' spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-#' spec$data_spec  # Data parameters for this task
-#' spec$fit_spec   # Fit parameters for this task
-#' }
-get_task_spec <- function(task_grid, task_id, config) {
-  row <- task_grid[task_grid$task_id == task_id, ]
-
-  if (nrow(row) == 0) {
-    cli::cli_abort("Task '{task_id}' not found in grid")
-  }
+get_task_spec_at <- function(task_grid, row_idx, config) {
+  row <- task_grid[row_idx, , drop = FALSE]
+  task_id <- row$task_id[[1]]
 
   list(
     task_id = task_id,
@@ -299,12 +292,11 @@ get_task_spec <- function(task_grid, task_id, config) {
 #'
 #' @param task_grid A task grid tibble.
 #' @param status Character vector of statuses to include.
-#'   Valid statuses: "pending", "success", "failed", "skipped".
+#'   Valid statuses: "pending", "success", "failed", or "skipped".
 #'
 #' @return A filtered task grid tibble.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -324,7 +316,6 @@ filter_tasks_by_status <- function(task_grid, status) {
 #' @return A task grid tibble containing only tasks with status "pending".
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -333,75 +324,6 @@ filter_tasks_by_status <- function(task_grid, status) {
 #' }
 get_pending_tasks <- function(task_grid) {
   filter_tasks_by_status(task_grid, "pending")
-}
-
-#' Update Task Status in Grid
-#'
-#' Updates the status of a single task in the task grid.
-#' This function is designed for functional use (returns modified copy).
-#'
-#' @param task_grid A task grid tibble.
-#' @param task_id The task ID to update.
-#' @param status New status value. Valid values: "success", "failed", "skipped".
-#'
-#' @return A modified task grid tibble with the updated status.
-#'
-#' @keywords internal
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' task_grid <- update_task_status(task_grid, "d001_f001_r00001", "success")
-#' }
-update_task_status <- function(task_grid, task_id, status) {
-  task_grid$status[task_grid$task_id == task_id] <- status
-  task_grid
-}
-
-#' Validate Task ID Format
-#'
-#' Checks if a string is a valid task ID in the format "dXXX_fXXX_rXXXXX".
-#'
-#' @param task_id Character string to validate.
-#'
-#' @return TRUE if valid, FALSE otherwise.
-#'
-#' @keywords internal
-validate_task_id <- function(task_id) {
-  grepl("^d[0-9]+_f[0-9]+_r[0-9]+$", task_id)
-}
-
-#' Parse Task ID Components
-#'
-#' Extracts the data_idx, fit_idx, and rep_idx from a task ID string.
-#'
-#' @param task_id Character task ID in format "dXXX_fXXX_rXXXXX".
-#'
-#' @return Named integer vector with elements data_idx, fit_idx, rep_idx,
-#'   or NULL if the task_id format is invalid.
-#'
-#' @keywords internal
-#' @export
-#'
-#' @examples
-#' \dontrun{
-#' components <- parse_task_id("d002_f003_r00042")
-#' # components$data_idx == 2
-#' # components$fit_idx == 3
-#' # components$rep_idx == 42
-#' }
-parse_task_id <- function(task_id) {
-  if (!validate_task_id(task_id)) {
-    return(NULL)
-  }
-
-  parts <- strsplit(task_id, "_")[[1]]
-
-  list(
-    data_idx = as.integer(sub("^d", "", parts[1])),
-    fit_idx = as.integer(sub("^f", "", parts[2])),
-    rep_idx = as.integer(sub("^r", "", parts[3]))
-  )
 }
 
 #' Get Task Count Summary
@@ -413,7 +335,6 @@ parse_task_id <- function(task_id) {
 #' @return Named integer vector with counts for each status.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -422,11 +343,16 @@ parse_task_id <- function(task_id) {
 #' # summary["success"]  # Number of successful tasks
 #' }
 get_task_count_summary <- function(task_grid) {
-  stats::setNames(
-    as.integer(table(task_grid$status)),
-    levels(factor(
-      task_grid$status,
-      levels = c("pending", "success", "failed", "skipped")
-    ))
+  # Preserve the compact historical shape for ordinary ledgers while exposing
+  # explicit lifecycle states whenever they actually occur.
+  statuses <- c("pending", TASK_TERMINAL_STATUSES, "skipped")
+  statuses <- c(
+    statuses,
+    intersect(
+      setdiff(TASK_RESUMABLE_STATUSES, statuses),
+      unique(task_grid$status)
+    )
   )
+  counts <- table(factor(task_grid$status, levels = statuses))
+  stats::setNames(as.integer(counts), statuses)
 }

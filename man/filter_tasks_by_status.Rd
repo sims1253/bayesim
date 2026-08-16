@@ -10,7 +10,7 @@ filter_tasks_by_status(task_grid, status)
 \item{task_grid}{A task grid tibble.}
 
 \item{status}{Character vector of statuses to include.
-Valid statuses: "pending", "success", "failed", "skipped".}
+Valid statuses: "pending", "success", "failed", or "skipped".}
 }
 \value{
 A filtered task grid tibble.

@@ -11,7 +11,7 @@ results to manage memory usage during large-scale simulations.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://sims1253.github.io/bayesim}
+  \item \url{https://sims1253.github.io/bayesim/}
   \item \url{https://github.com/sims1253/bayesim}
   \item Report bugs at \url{https://github.com/sims1253/bayesim/issues}
 }
@@ -22,6 +22,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Maximilian Scholz \email{research.scholz@mailbox.org}
   \item Paul-Christian Bürkner \email{paul.buerkner@gmail.com}
 }
 

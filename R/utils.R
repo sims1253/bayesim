@@ -5,6 +5,24 @@
 #' @keywords internal
 NULL
 
+# Collision-free row grouping --------------------------------------------
+
+# Return stable integer group identifiers for the selected columns.
+group_ids <- function(df, by) {
+  if (length(by) == 0L) {
+    return(rep.int(1L, nrow(df)))
+  }
+
+  encoded <- lapply(df[, by, drop = FALSE], function(x) {
+    x <- as.character(x)
+    missing <- is.na(x)
+    x[missing] <- ""
+    paste0(ifelse(missing, "N", "V"), nchar(x), ":", x)
+  })
+  key <- do.call(paste0, encoded)
+  match(key, unique(key))
+}
+
 # Operators ----------------------------------------------------------------
 
 #' String concatenation operator
@@ -14,7 +32,6 @@ NULL
 #' @return Concatenated string
 #'
 #' @name string-concat
-#' @export
 #' @keywords internal
 `%+%` <- function(x, y) {
   paste0(x, y)
@@ -29,11 +46,7 @@ NULL
 #' @return `x` if not NULL, otherwise `y`
 #'
 #' @name null-coalescing
-#' @export
-#'
-#' @examples
-#' NULL %||% "default"  # returns "default"
-#' "value" %||% "default"  # returns "value"
+#' @keywords internal
 `%||%` <- function(x, y) if (is.null(x)) y else x
 
 # Atomic File Operations --------------------------------------------------
@@ -54,7 +67,6 @@ NULL
 #' `bayesim_checkpoint_error` is thrown.
 #'
 #' @keywords internal
-#' @export
 write_json_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
 
@@ -81,7 +93,6 @@ write_json_atomic <- function(x, path) {
 #' @return Invisible NULL. Called for side effect.
 #'
 #' @keywords internal
-#' @export
 write_rds_atomic <- function(x, path) {
   tmp_path <- paste0(path, ".tmp")
 
@@ -109,7 +120,6 @@ write_rds_atomic <- function(x, path) {
 #' @return Character string containing the hash value.
 #'
 #' @keywords internal
-#' @export
 compute_hash <- function(x) {
   digest::digest(x, algo = "xxhash64")
 }
@@ -125,7 +135,6 @@ compute_hash <- function(x) {
 #' @return Character string containing the MD5 checksum.
 #'
 #' @keywords internal
-#' @export
 compute_file_checksum <- function(path) {
   digest::digest(file = path, algo = "md5")
 }
@@ -141,7 +150,6 @@ compute_file_checksum <- function(path) {
 #' @return Invisible NULL. Called for side effect.
 #'
 #' @keywords internal
-#' @export
 write_checksums <- function(dir_path, files) {
   checksums <- list()
 
@@ -167,7 +175,6 @@ write_checksums <- function(dir_path, files) {
 #' @return Logical. TRUE if all checksums match, FALSE otherwise.
 #'
 #' @keywords internal
-#' @export
 verify_checksums <- function(dir_path) {
   checksums_path <- file.path(dir_path, "checksums.json")
 
@@ -207,14 +214,15 @@ verify_checksums <- function(dir_path) {
 #'     \item `elapsed()` - Get elapsed time in seconds
 #'   }
 #'
-#' @export
 #' @keywords internal
 #' @examples
+#' \dontrun{
 #' timer <- make_timer()
 #' timer$start()
 #' Sys.sleep(0.1)
 #' timer$stop()
 #' timer$elapsed()
+#' }
 make_timer <- function() {
   start_time <- NULL
   stop_time <- NULL
@@ -250,7 +258,8 @@ make_timer <- function() {
 #' Captures detailed information about an error condition, including
 #' class, message, call, and a trimmed traceback.
 #'
-#' @param e A condition object (typically from tryCatch)
+#' @param e A condition object captured by a stack-preserving handler or with an
+#'   attached `rlang` trace.
 #'
 #' @return A named list with elements:
 #'   \itemize{
@@ -261,13 +270,15 @@ make_timer <- function() {
 #'   }
 #'
 #' @keywords internal
-#' @export
 capture_error_info <- function(e) {
-  # Get traceback and trim it
-  tb <- tryCatch(
-    sys.calls(),
-    error = function(cond) NULL
-  )
+  # Prefer a trace already attached to the condition. rlang::try_fetch()
+  # invokes handlers before unwinding, so its current stack still includes the
+  # original error site.
+  tb <- if (inherits(e$trace, "rlang_trace")) {
+    e$trace$call
+  } else {
+    tryCatch(rlang::trace_back()$call, error = function(cond) NULL)
+  }
 
   # Trim traceback to last 20 frames to avoid excessive storage
   if (!is.null(tb) && length(tb) > 20) {
@@ -280,6 +291,11 @@ capture_error_info <- function(e) {
   } else {
     character(0)
   }
+  plumbing <- grepl(
+    "(tryCatch|tryCatchList|tryCatchOne|doTryCatch|withCallingHandlers)",
+    tb_str
+  )
+  tb_str <- tb_str[!plumbing]
 
   # Get call if available
   error_call <- tryCatch(
@@ -295,40 +311,6 @@ capture_error_info <- function(e) {
     error_message = conditionMessage(e),
     call = error_call,
     traceback = tb_str
-  )
-}
-
-# Task ID Formatting ------------------------------------------------------
-
-#' Format task ID from indices (deprecated)
-#'
-#' @description
-#' `r lifecycle::badge("deprecated")`
-#'
-#' Use [make_task_id()] instead, which auto-calculates field widths
-#' from the grid dimensions.
-#'
-#' @param data_idx Integer. Data index (1-999)
-#' @param fit_idx Integer. Fit index (1-999)
-#' @param rep_idx Integer. Replication index (1-99999)
-#'
-#' @return Character string in format "dXXX_fXXX_rXXXXX"
-#'
-#' @export
-#' @examples
-#' format_task_id(1, 2, 100)
-#' # Returns: "d001_f002_r00100"
-format_task_id <- function(data_idx, fit_idx, rep_idx) {
-  lifecycle::deprecate_warn(
-    "1.1",
-    "format_task_id()",
-    "make_task_id()"
-  )
-  make_task_id(
-    data_idx,
-    fit_idx,
-    rep_idx,
-    widths = list(data = 3, fit = 3, rep = 5)
   )
 }
 
@@ -354,12 +336,13 @@ format_task_id <- function(data_idx, fit_idx, rep_idx) {
 #' is used internally by checkpointing code where the metric name already
 #' serves as the outer namespace.
 #'
-#' @export
 #' @keywords internal
 #' @examples
+#' \dontrun{
 #' x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
 #' flatten_with_prefix(x, "param")
 #' # Returns: list(a = 1, param__b__x = 2, param__b__y = 3, c = 4)
+#' }
 flatten_with_prefix <- function(x, prefix) {
   result <- list()
 

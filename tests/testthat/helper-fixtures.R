@@ -34,27 +34,26 @@
 #'     \item{response}{Name of the response variable}
 #'     \item{true_params}{Named vector of true parameter values}
 #'     \item{vars_of_interest}{Names of parameters to estimate}
-#'     \item{references}{Reference values for parameters}
 #'     \item{meta}{List of metadata}
 #'   }
 #'
 #' @examples
-#' mock_data_generator(list(n = 50), seed = 123, list(task_id = "test"))
+#' mock_data_generator(list(n = 50), list(task_id = "test"))
 #'
 #' @keywords internal
-mock_data_generator <- function(data_spec, seed, task_ctx) {
-  set.seed(seed)
+mock_data_generator <- function(data_spec, task_ctx) {
+  # Consume the ambient RNG state (the worker restores the per-task L'Ecuyer
+  # stream before each call); do not re-seed internally.
   n <- data_spec$n %||% 100
   list(
     train = data.frame(
-      y = rnorm(n),
-      x = rnorm(n)
+      y = stats::rnorm(n),
+      x = stats::rnorm(n)
     ),
     test = NULL,
     response = "y",
     true_params = c(beta = 1.0, sigma = 1.0),
     vars_of_interest = c("beta", "sigma"),
-    references = c(beta = 0, sigma = 1),
     meta = list()
   )
 }
@@ -73,7 +72,6 @@ mock_data_generator <- function(data_spec, seed, task_ctx) {
 #'     \item{response}{Name of the response variable ("y")}
 #'     \item{true_params}{Named vector of true parameter values}
 #'     \item{vars_of_interest}{Names of parameters to estimate}
-#'     \item{references}{Reference values for parameters}
 #'     \item{meta}{List of metadata}
 #'   }
 #'
@@ -90,7 +88,6 @@ valid_data_bundle <- function() {
     response = "y",
     true_params = c(beta = 1.0),
     vars_of_interest = "beta",
-    references = c(beta = 0),
     meta = list()
   )
 }
@@ -150,5 +147,15 @@ valid_task_ctx <- function() {
     data_idx = 1,
     fit_idx = 1,
     rep_idx = 1
+  )
+}
+
+# Explicit backend-tier gate. Ordinary package checks exercise all analytic
+# behavior; only tests that require a compiled Stan backend opt into this gate.
+skip_unless_bayesim_backend <- function() {
+  tier <- tolower(Sys.getenv("BAYESIM_TEST_TIER", "core"))
+  testthat::skip_if_not(
+    tier %in% c("backend", "full"),
+    "requires the explicit bayesim backend test tier"
   )
 }

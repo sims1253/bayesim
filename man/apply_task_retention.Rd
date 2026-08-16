@@ -4,7 +4,13 @@
 \alias{apply_task_retention}
 \title{Apply retention policy to task result}
 \usage{
-apply_task_retention(task_result, fit_result, data_bundle, retain)
+apply_task_retention(
+  task_result,
+  fit_result,
+  data_bundle,
+  retain,
+  predictions = NULL
+)
 }
 \arguments{
 \item{task_result}{A bayesim_task_result object to modify}
@@ -14,6 +20,8 @@ apply_task_retention(task_result, fit_result, data_bundle, retain)
 \item{data_bundle}{Data bundle from generator containing train/test data}
 
 \item{retain}{Character vector of retention options specifying what to keep}
+
+\item{predictions}{Prediction context returned by \code{\link[=predict_fit]{predict_fit()}}, or NULL.}
 }
 \value{
 Modified bayesim_task_result object with retained fields added

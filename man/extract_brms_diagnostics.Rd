@@ -10,9 +10,14 @@ extract_brms_diagnostics(fit)
 \item{fit}{brms fit object}
 }
 \value{
-Named list of diagnostics
+Named list of diagnostics with \code{rhat_max}, \code{ess_bulk_min},
+\code{ess_tail_min}, \code{divergent}, \code{max_treedepth}.
 }
 \description{
-Extract brms diagnostics
+Computes rhat/ESS extrema over \strong{all} parameters (fixed, group-level,
+distributional, sigma) via \code{posterior::summarise_draws}, not just the fixed
+effects from \code{summary(fit)} (A3). Divergences and max-treedepth hits come
+from the sampler diagnostics. \code{lp__} is excluded as it is not a parameter of
+interest.
 }
 \keyword{internal}

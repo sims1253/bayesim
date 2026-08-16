@@ -1,0 +1,166 @@
+# E3: performance_measures() — Morris et al. (2019) estimator-performance layer.
+.gen <- function(data_spec, task_ctx) {
+  n <- data_spec$n
+  b <- data_spec$beta
+  x <- stats::rnorm(n)
+  y <- 1 + b * x + stats::rnorm(n)
+  list(
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
+    true_params = c(Intercept = 1, x = b, sigma = 1),
+    vars_of_interest = c("Intercept", "x", "sigma"),
+    meta = list()
+  )
+}
+
+describe("performance_measures", {
+  it("uses explicitly error-based measures when truth varies", {
+    df <- data.frame(
+      data_n = 10L,
+      status = c("success", "success", "success"),
+      truth__x = c(0, 10, 20),
+      posterior_summary__mean__x = c(1, 11, 21),
+      posterior_summary__sd__x = c(1, 1, 1),
+      posterior_summary__q_lower__x = c(-1, 9, 19),
+      posterior_summary__q_upper__x = c(2, 12, 22),
+      check.names = FALSE
+    )
+    pm <- performance_measures(df, estimand = "x", by = "data_n")
+    expect_false(any(c("bias", "emp_se", "mse") %in% pm$measure))
+    mean_error <- pm[pm$measure == "mean_error", , drop = FALSE]
+    error_sd <- pm[pm$measure == "error_sd", , drop = FALSE]
+    error_mse <- pm[pm$measure == "error_mse", , drop = FALSE]
+    expect_equal(mean_error$value, 1)
+    expect_equal(mean_error$mcse, 0)
+    expect_equal(error_sd$value, 0)
+    expect_equal(error_mse$value, 1)
+    expect_true(all(pm$truth_mode == "varying"))
+  })
+
+  it("bias MCSE uses sd of the estimation errors in both truth modes", {
+    # Varying truth with nonzero, distinct sd(errs) and sd(est): the
+    # mean_error MCSE must follow the errors, not the raw estimates.
+    df <- data.frame(
+      status = rep("success", 4),
+      truth__x = c(0, 10, 20, 30),
+      posterior_summary__mean__x = c(0.5, 12, 18, 36),
+      check.names = FALSE
+    )
+    errs <- df$posterior_summary__mean__x - df$truth__x
+    expect_false(isTRUE(all.equal(
+      stats::sd(errs),
+      stats::sd(df$posterior_summary__mean__x)
+    )))
+    pm <- performance_measures(df, estimand = "x")
+    expect_equal(
+      pm$mcse[pm$measure == "mean_error"],
+      stats::sd(errs) / sqrt(4)
+    )
+
+    # Fixed truth: the bias MCSE is the same error-based formula (sd of the
+    # estimation errors; identical to sd(est) because truth is constant).
+    df2 <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(5, 4),
+      posterior_summary__mean__x = c(0.5, 12, 18, 36),
+      check.names = FALSE
+    )
+    pm2 <- performance_measures(df2, estimand = "x")
+    expect_equal(
+      pm2$mcse[pm2$measure == "bias"],
+      stats::sd(df2$posterior_summary__mean__x - 5) / sqrt(4)
+    )
+  })
+
+  it("retains Morris names and formulas when truth is fixed", {
+    df <- data.frame(
+      status = rep("success", 4),
+      truth__x = rep(2, 4),
+      posterior_summary__mean__x = c(1, 2, 3, 4),
+      posterior_summary__sd__x = rep(0.5, 4),
+      check.names = FALSE
+    )
+    pm <- performance_measures(df, estimand = "x")
+    expect_true(all(c("bias", "emp_se", "mse") %in% pm$measure))
+    expect_false(any(c("mean_error", "error_sd", "error_mse") %in% pm$measure))
+    expect_true(all(pm$truth_mode == "fixed"))
+    expect_equal(
+      pm$mcse[pm$measure == "bias"],
+      stats::sd(df$posterior_summary__mean__x) / 2
+    )
+  })
+
+  it("returns a tidy tibble of measures with MCSE per estimand/condition", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 60L, beta = c(0.5, 1.0)),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 300L),
+      metrics = list(posterior_summary_metric(), coverage_metric()),
+      n_replicates = 30L,
+      seed = 7L
+    )
+    res <- run_simulation(config, resume = "never", progress = FALSE)
+    pm <- performance_measures(res)
+
+    expect_s3_class(pm, "data.frame")
+    expect_true(all(
+      c("estimand", "measure", "value", "mcse", "n_sim") %in% names(pm)
+    ))
+    measures <- unique(pm$measure)
+    expect_true("bias" %in% measures)
+    expect_true("emp_se" %in% measures)
+    expect_true("mse" %in% measures)
+    expect_true("coverage" %in% measures)
+    expect_true("model_se" %in% measures)
+    expect_true("n_sim" %in% measures)
+    # All n_sim rows equal the replicate count (30) per condition.
+    nsim <- pm[pm$measure == "n_sim", ]
+    expect_true(all(nsim$n_sim == 30L))
+  })
+
+  it("coverage is near nominal (0.9) for the 'x' coefficient", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 100L, beta = 0.5),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 500L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 100L,
+      seed = 99L
+    )
+    res <- run_simulation(config, resume = "never", progress = FALSE)
+    pm <- performance_measures(res, estimand = "x")
+    cov <- pm$value[pm$measure == "coverage"]
+    # 95% interval; generous band for MC noise (nominal 0.95).
+    expect_true(cov > 0.85 && cov < 1.0)
+  })
+
+  it("supports a single estimand and a custom point estimator", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 60L, beta = 0.5),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 200L),
+      metrics = list(posterior_summary_metric()),
+      n_replicates = 10L,
+      seed = 3L
+    )
+    res <- run_simulation(config, resume = "never", progress = FALSE)
+    pm <- performance_measures(res, estimand = "x", estimator = "median")
+    expect_true(all(pm$estimand == "x"))
+    expect_true("bias" %in% pm$measure)
+  })
+
+  it("errors when no truth/posterior-summary columns are present", {
+    df <- data.frame(
+      task_id = "a",
+      rep_idx = 1L,
+      status = "success",
+      posterior_summary__mean__x = 0.5,
+      fit_model = "m"
+    )
+    expect_error(performance_measures(df), class = "bayesim_config_error")
+  })
+})

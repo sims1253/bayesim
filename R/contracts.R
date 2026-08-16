@@ -31,8 +31,6 @@ NULL
 #'   \item `true_params`: A named numeric vector where names exactly match
 #'     `vars_of_interest`
 #'   \item `vars_of_interest`: A non-empty character vector of unique names
-#'   \item `references`: A named numeric vector where names exactly match
-#'     `vars_of_interest` (optional)
 #'   \item `meta`: Optional named list with scalar values only
 #' }
 #'
@@ -44,7 +42,6 @@ NULL
 #'   \item `true_params` must be a named numeric vector
 #'   \item `vars_of_interest` must be a non-empty unique character vector
 #'   \item `setequal(names(true_params), vars_of_interest)` must be TRUE
-#'   \item If provided, `setequal(names(references), vars_of_interest)` must be TRUE
 #'   \item No duplicate names in any named vector/list
 #'   \item `meta` must be a named list with scalar values only (if present)
 #' }
@@ -62,8 +59,7 @@ NULL
 #'   test = data.frame(x = 11:15, y = rnorm(5)),
 #'   response = "y",
 #'   true_params = c(beta = 1.5, sigma = 0.5),
-#'   vars_of_interest = c("beta", "sigma"),
-#'   references = c(beta = 0, sigma = 1)
+#'   vars_of_interest = c("beta", "sigma")
 #' )
 #' validate_data_bundle(data_bundle)
 validate_data_bundle <- function(data_bundle) {
@@ -100,11 +96,16 @@ validate_data_bundle <- function(data_bundle) {
     }
   }
 
-  # response is optional - only validated when present
-  if (!is.null(data_bundle$response) && !is.character(data_bundle$response)) {
+  # response is required (a data bundle must name the outcome column).
+  if (is.null(data_bundle$response)) {
+    stop(bayesim_data_error(
+      "data_bundle$response is required (the name of the response column)"
+    ))
+  }
+  if (!is.character(data_bundle$response)) {
     stop(
       bayesim_data_error(
-        "data_bundle$response must be NULL or a character vector, got " %+%
+        "data_bundle$response must be a character vector, got " %+%
           typeof(data_bundle$response)
       )
     )
@@ -152,72 +153,74 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  if (is.null(data_bundle$true_params)) {
-    stop(bayesim_data_error(
-      "data_bundle$true_params is required and cannot be NULL"
-    ))
-  }
-  if (!is.numeric(data_bundle$true_params)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$true_params must be a numeric vector, got " %+%
-          typeof(data_bundle$true_params)
+  # E6: true_params and vars_of_interest are OPTIONAL (jointly NULL). Pure
+  # model-comparison / predictive studies on truth-free data have no truths;
+  # truth-dependent metrics already degrade to NA. Keep the integrity checks
+  # when present.
+  if (!is.null(data_bundle$true_params)) {
+    if (!is.numeric(data_bundle$true_params)) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$true_params must be a numeric vector, got " %+%
+            typeof(data_bundle$true_params)
+        )
       )
-    )
-  }
-  if (is.null(names(data_bundle$true_params))) {
-    stop(bayesim_data_error("data_bundle$true_params must have names"))
-  }
-  if (anyDuplicated(names(data_bundle$true_params)) > 0) {
-    dup_names <- names(data_bundle$true_params)[duplicated(names(
-      data_bundle$true_params
-    ))]
-    stop(
-      bayesim_data_error(
-        "data_bundle$true_params has duplicate names: " %+%
-          paste(unique(dup_names), collapse = ", ")
+    }
+    if (is.null(names(data_bundle$true_params))) {
+      stop(bayesim_data_error("data_bundle$true_params must have names"))
+    }
+    if (anyDuplicated(names(data_bundle$true_params)) > 0) {
+      dup_names <- names(data_bundle$true_params)[duplicated(names(
+        data_bundle$true_params
+      ))]
+      stop(
+        bayesim_data_error(
+          "data_bundle$true_params has duplicate names: " %+%
+            paste(unique(dup_names), collapse = ", ")
+        )
       )
-    )
+    }
   }
 
-  if (is.null(data_bundle$vars_of_interest)) {
-    stop(bayesim_data_error(
-      "data_bundle$vars_of_interest is required and cannot be NULL"
-    ))
-  }
-  if (!is.character(data_bundle$vars_of_interest)) {
-    stop(
-      bayesim_data_error(
-        "data_bundle$vars_of_interest must be a character vector, got " %+%
-          typeof(data_bundle$vars_of_interest)
+  if (!is.null(data_bundle$vars_of_interest)) {
+    if (!is.character(data_bundle$vars_of_interest)) {
+      stop(
+        bayesim_data_error(
+          "data_bundle$vars_of_interest must be a character vector, got " %+%
+            typeof(data_bundle$vars_of_interest)
+        )
       )
-    )
-  }
-  if (length(data_bundle$vars_of_interest) < 1) {
-    stop(bayesim_data_error("data_bundle$vars_of_interest must be non-empty"))
-  }
-  if (anyDuplicated(data_bundle$vars_of_interest) > 0) {
-    dup_vars <- data_bundle$vars_of_interest[duplicated(
-      data_bundle$vars_of_interest
-    )]
-    stop(
-      bayesim_data_error(
-        "data_bundle$vars_of_interest has duplicate values: " %+%
-          paste(unique(dup_vars), collapse = ", ")
+    }
+    if (length(data_bundle$vars_of_interest) < 1) {
+      stop(bayesim_data_error("data_bundle$vars_of_interest must be non-empty"))
+    }
+    if (anyDuplicated(data_bundle$vars_of_interest) > 0) {
+      dup_vars <- data_bundle$vars_of_interest[duplicated(
+        data_bundle$vars_of_interest
+      )]
+      stop(
+        bayesim_data_error(
+          "data_bundle$vars_of_interest has duplicate values: " %+%
+            paste(unique(dup_vars), collapse = ", ")
+        )
       )
-    )
+    }
+    if (
+      anyNA(data_bundle$vars_of_interest) ||
+        any(data_bundle$vars_of_interest == "")
+    ) {
+      stop(bayesim_data_error(
+        "data_bundle$vars_of_interest cannot contain NA or empty strings"
+      ))
+    }
   }
+
+  # Validate true_params names match vars_of_interest (only when BOTH present).
   if (
-    anyNA(data_bundle$vars_of_interest) ||
-      any(data_bundle$vars_of_interest == "")
+    !is.null(data_bundle$true_params) &&
+      !is.null(data_bundle$vars_of_interest) &&
+      !setequal(names(data_bundle$true_params), data_bundle$vars_of_interest)
   ) {
-    stop(bayesim_data_error(
-      "data_bundle$vars_of_interest cannot contain NA or empty strings"
-    ))
-  }
-
-  # Validate true_params names match vars_of_interest
-  if (!setequal(names(data_bundle$true_params), data_bundle$vars_of_interest)) {
     in_params_not_vars <- setdiff(
       names(data_bundle$true_params),
       data_bundle$vars_of_interest
@@ -239,59 +242,6 @@ validate_data_bundle <- function(data_bundle) {
         paste(in_vars_not_params, collapse = ", ")
     }
     stop(bayesim_data_error(msg))
-  }
-
-  # Optional: validate references
-  if (!is.null(data_bundle$references)) {
-    if (!is.numeric(data_bundle$references)) {
-      stop(
-        bayesim_data_error(
-          "data_bundle$references must be a numeric vector, got " %+%
-            typeof(data_bundle$references)
-        )
-      )
-    }
-    if (is.null(names(data_bundle$references))) {
-      stop(bayesim_data_error("data_bundle$references must have names"))
-    }
-    if (anyDuplicated(names(data_bundle$references)) > 0) {
-      dup_names <- names(data_bundle$references)[duplicated(names(
-        data_bundle$references
-      ))]
-      stop(
-        bayesim_data_error(
-          "data_bundle$references has duplicate names: " %+%
-            paste(unique(dup_names), collapse = ", ")
-        )
-      )
-    }
-
-    # Validate references names match vars_of_interest if both are present
-    if (
-      !setequal(names(data_bundle$references), data_bundle$vars_of_interest)
-    ) {
-      in_refs_not_vars <- setdiff(
-        names(data_bundle$references),
-        data_bundle$vars_of_interest
-      )
-      in_vars_not_refs <- setdiff(
-        data_bundle$vars_of_interest,
-        names(data_bundle$references)
-      )
-      msg <- "data_bundle: names(references) must exactly match vars_of_interest. "
-      if (length(in_refs_not_vars) > 0) {
-        msg <- msg %+%
-          "In references but not vars_of_interest: " %+%
-          paste(in_refs_not_vars, collapse = ", ") %+%
-          ". "
-      }
-      if (length(in_vars_not_refs) > 0) {
-        msg <- msg %+%
-          "In vars_of_interest but not references: " %+%
-          paste(in_vars_not_refs, collapse = ", ")
-      }
-      stop(bayesim_data_error(msg))
-    }
   }
 
   # Optional: validate meta is a named list of scalars
@@ -369,11 +319,11 @@ validate_data_bundle <- function(data_bundle) {
 #' Throws a `bayesim_contract_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [validate_bayesim_fit_result()], [new_fit_result()]
 #'
 #' @examples
+#' \dontrun{
 #' # Create a valid fit result
 #' draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
 #' colnames(draws) <- c("alpha", "beta")
@@ -384,6 +334,7 @@ validate_data_bundle <- function(data_bundle) {
 #'   timing = list(total = 5.0, warmup = 2.5, sample = 2.5)
 #' )
 #' validate_fit_result_interface(result)
+#' }
 validate_fit_result_interface <- function(fit_result) {
   tryCatch(
     {
@@ -403,91 +354,58 @@ validate_fit_result_interface <- function(fit_result) {
 # =============================================================================
 # Fitter Interface Validation
 # =============================================================================
-
-#' Validate Fitter Class Hierarchy
-#'
-#' Validates that a fitter object is an S7 instance of the Fitter class.
-#' This is a lightweight class-hierarchy check used internally by
-#' [validate_simulation_config()]. For full interface validation including
-#' method existence and optional smoke testing, use [validate_fitter()].
-#'
-#' @param fitter An S7 object to validate as a Fitter.
-#'
-#' @return The input `fitter`, invisibly, if validation passes.
-#'
-#' @details
-#' The fitter must satisfy the following requirements:
-#' \itemize{
-#'   \item Must be an S7 object (checked via S7::S7_inherits())
-#'   \item Must inherit from the "Fitter" class
-#' }
-#'
-#' Method existence is not checked here because S7 methods are dispatched
-#' via generics, not stored as properties. The Fitter base class uses
-#' S7::stop_method_not_implemented() for abstract methods, so subclasses
-#' that don't override will raise errors when methods are called.
-#'
-#' @section Errors:
-#' Throws a `bayesim_contract_error` condition if validation fails.
-#'
-#' @keywords internal
-#' @export
-#'
-#' @seealso [Fitter], [validate_fitter()]
-#'
-#' @examples
-#' # Validate the mock fitter
-#' mock_fitter <- MockFitter()
-#' check_fitter_class(mock_fitter)
-check_fitter_class <- function(fitter) {
-  if (!S7::S7_inherits(fitter)) {
-    stop(
-      bayesim_contract_error(
-        "fitter must be an S7 object, got " %+% class(fitter)[1]
-      )
-    )
-  }
-
-  if (!S7::S7_inherits(fitter, Fitter)) {
-    stop(
-      bayesim_contract_error(
-        "fitter must inherit from Fitter class, got class: " %+%
-          paste(class(fitter), collapse = ", ")
-      )
-    )
-  }
-
-  invisible(fitter)
-}
-
-#' @rdname check_fitter_class
-#' @export
-validate_fitter_interface <- check_fitter_class
+# B3: the duplicate lightweight fitter class check (check_fitter_class /
+# validate_fitter_interface) was merged into the exported validate_fitter()
+# in R/fitter.R, which performs the class hierarchy + method checks. Internal
+# callers use validate_fitter() directly.
 
 # =============================================================================
 # Metric Interface Validation
 # =============================================================================
 
-#' Validate Metric Class and Name Property
+#' @title Validate a Metric Object
 #'
-#' Validates that a metric object is an S7 instance of the Metric class
-#' with a valid `name` property. This is a lightweight check used internally
-#' by [validate_simulation_config()]. Method existence is not checked because
-#' S7 dispatches via generics and the base class raises errors for unimplemented
-#' abstract methods.
+#' @description
+#' Validates that a metric object is an S7 instance of the Metric class with a
+#' valid `name` property. This is the canonical metric validator (B3 merges the
+#' former internal `validate_metric_interface` into this exported name). Method
+#' existence is not checked because S7 dispatches via generics and the base
+#' class raises errors for unimplemented abstract methods.
+#'
+#' When representative values are supplied (`fit_result` plus `data_bundle`),
+#' validation additionally executes `compute_metric()` once and checks that its
+#' output passes the metric output schema and that every field declared in the
+#' metric's `schema` is produced. This catches broken external metrics before a
+#' run starts instead of as thousands of per-task failures.
 #'
 #' @param metric An S7 object to validate as a Metric.
+#' @param fit_result Optional representative `bayesim_fit_result`
+#'   ([new_fit_result()]) driving a conformance execution of
+#'   `compute_metric()`. Must be supplied together with `data_bundle`.
+#' @param data_bundle Optional representative data bundle for the conformance
+#'   execution.
+#' @param context Optional representative context list (e.g. predictions,
+#'   log_lik). Defaults to an empty list; metrics should degrade to `NA` rather
+#'   than erroring when a needed context element is missing.
+#' @param task_ctx Optional representative task context. Defaults to a stable
+#'   placeholder.
 #'
 #' @return The input `metric`, invisibly, if validation passes.
 #'
 #' @section Errors:
-#' Throws a `bayesim_contract_error` condition if validation fails.
+#' Throws a `bayesim_contract_error` condition if validation fails (or its
+#' subclass `bayesim_validation_error` for representative-execution failures).
 #'
-#' @keywords internal
 #' @export
 #'
-#' @seealso [Metric], [validate_metric_output()]
-validate_metric_interface <- function(metric) {
+#' @seealso [Metric], [validate_metric_output()], [validate_fitter()]
+validate_metric <- function(
+  metric,
+  fit_result = NULL,
+  data_bundle = NULL,
+  context = NULL,
+  task_ctx = NULL
+) {
   if (!S7::S7_inherits(metric)) {
     stop(
       bayesim_contract_error(
@@ -534,7 +452,138 @@ validate_metric_interface <- function(metric) {
     )
   }
 
+  name_error <- validate_metric_name(metric_name)
+  if (!is.null(name_error)) {
+    stop(bayesim_contract_error(name_error))
+  }
+
+  summary_type <- tryCatch(metric@summary_type, error = function(e) "mean")
+  summary_error <- validate_metric_summary_type(summary_type)
+  if (!is.null(summary_error)) {
+    stop(bayesim_contract_error(summary_error))
+  }
+
+  schema <- tryCatch(metric@schema, error = function(e) list())
+  schema_error <- validate_metric_schema(schema)
+  if (!is.null(schema_error)) {
+    stop(bayesim_contract_error(schema_error))
+  }
+
+  # Optional representative execution: run compute_metric() once against
+  # caller-supplied fixtures and check output schema + schema/output
+  # consistency. Declaration-only validation (no fixtures) never dispatches,
+  # so metrics whose compute method is registered later still validate.
+  representative_supplied <- !is.null(fit_result) ||
+    !is.null(data_bundle) ||
+    !is.null(context) ||
+    !is.null(task_ctx)
+  if (representative_supplied) {
+    if (is.null(fit_result) || is.null(data_bundle)) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "Representative execution needs both 'fit_result' and ",
+            "'data_bundle'; supply them together or omit both for ",
+            "declaration-only validation"
+          )
+        )
+      )
+    }
+    if (!inherits(fit_result, "bayesim_fit_result")) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "fit_result must be a bayesim_fit_result object ",
+            "(see new_fit_result())"
+          )
+        )
+      )
+    }
+
+    exec_context <- context %||% list()
+    exec_task_ctx <- task_ctx %||%
+      list(
+        task_id = "validate_metric",
+        data_idx = 1L,
+        fit_idx = 1L,
+        rep_idx = 1L,
+        seed = 1L
+      )
+
+    output <- tryCatch(
+      compute_metric(
+        metric,
+        fit_result,
+        data_bundle,
+        exec_context,
+        exec_task_ctx
+      ),
+      error = function(e) {
+        stop(
+          bayesim_validation_error(
+            paste(
+              c(
+                "compute_metric() failed during representative execution:",
+                conditionMessage(e)
+              ),
+              collapse = "\n"
+            )
+          )
+        )
+      }
+    )
+
+    tryCatch(
+      validate_metric_output(output, metric_name),
+      error = function(e) {
+        stop(
+          bayesim_validation_error(
+            paste(
+              c(
+                "compute_metric() output violates the metric output schema:",
+                conditionMessage(e)
+              ),
+              collapse = "\n"
+            )
+          )
+        )
+      }
+    )
+
+    missing_fields <- metric_schema_fields_not_produced(output, schema)
+    if (length(missing_fields) > 0L) {
+      stop(
+        bayesim_validation_error(
+          paste0(
+            "Metric schema declares field(s) that compute_metric() did not ",
+            "produce: ",
+            paste(missing_fields, collapse = ", ")
+          )
+        )
+      )
+    }
+  }
+
   invisible(metric)
+}
+
+# Which declared schema fields did compute_metric() not produce? Schema fields
+# are declared at the bare output-field level (e.g. `value`, `by_param`), so a
+# field is produced when it appears in the output names directly or as a
+# flattened `<field>__<subname>` prefix.
+metric_schema_fields_not_produced <- function(output, schema) {
+  if (length(schema) == 0L) {
+    return(character())
+  }
+  produced <- names(output)
+  not_produced <- vapply(
+    names(schema),
+    function(field) {
+      !(field %in% produced || any(startsWith(produced, paste0(field, "__"))))
+    },
+    logical(1)
+  )
+  names(schema)[not_produced]
 }
 
 # =============================================================================
@@ -555,8 +604,8 @@ validate_metric_interface <- function(metric) {
 #' The configuration is validated for:
 #' \itemize{
 #'   \item Being a valid SimulationConfig S7 object
-#'   \item Having a non-NULL fitter that passes [validate_fitter_interface()]
-#'   \item Having metrics (if present) that pass [validate_metric_interface()]
+#'   \item Having a non-NULL fitter that passes [validate_fitter()]
+#'   \item Having metrics (if present) that pass [validate_metric()]
 #'   \item Having a data_generator function with the correct signature
 #' }
 #'
@@ -564,9 +613,8 @@ validate_metric_interface <- function(metric) {
 #' Throws a `bayesim_config_error` condition if validation fails.
 #'
 #' @keywords internal
-#' @export
 #'
-#' @seealso [simulation_config()], [validate_fitter_interface()], [validate_metric_interface()]
+#' @seealso [simulation_config()], [validate_fitter()], [validate_metric()]
 #'
 #' @examples
 #' \dontrun{
@@ -601,7 +649,7 @@ validate_simulation_config <- function(config) {
 
   tryCatch(
     {
-      validate_fitter_interface(config@fitter)
+      validate_fitter(config@fitter)
     },
     error = function(e) {
       stop(
@@ -618,7 +666,7 @@ validate_simulation_config <- function(config) {
       metric <- config@metrics[[i]]
       tryCatch(
         {
-          validate_metric_interface(metric)
+          validate_metric(metric)
         },
         error = function(e) {
           metric_id <- if (S7::S7_inherits(metric) && !is.null(metric@name)) {
@@ -641,7 +689,11 @@ validate_simulation_config <- function(config) {
     }
   }
 
-  # data_generator must be a function with at least 3 args
+  # data_generator must accept at least 2 arguments: (data_spec, task_ctx).
+  # Note: the model bank additionally calls the generator once with
+  # task_ctx$template = TRUE to obtain structurally representative template
+  # data (task_id = "model_bank_template"); generators may branch on this
+  # flag to skip work, but must not change the structure of what they return.
   if (is.null(config@data_generator)) {
     stop(
       bayesim_config_error(
@@ -659,12 +711,12 @@ validate_simulation_config <- function(config) {
   }
 
   gen_formals <- names(formals(config@data_generator))
-  required_args <- c("data_spec", "seed", "task_ctx")
+  required_args <- c("data_spec", "task_ctx")
 
   if (length(gen_formals) < length(required_args)) {
     stop(
       bayesim_config_error(
-        "data_generator must accept at least 3 arguments: (data_spec, seed, task_ctx). " %+%
+        "data_generator must accept at least 2 arguments: (data_spec, task_ctx). " %+%
           "Got " %+%
           length(gen_formals) %+%
           " arguments: " %+%

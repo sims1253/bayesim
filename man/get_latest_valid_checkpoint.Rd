@@ -4,7 +4,11 @@
 \alias{get_latest_valid_checkpoint}
 \title{Get latest valid checkpoint}
 \usage{
-get_latest_valid_checkpoint(result_path, config_fingerprint = NULL)
+get_latest_valid_checkpoint(
+  result_path,
+  config_fingerprint = NULL,
+  load_outcomes = TRUE
+)
 }
 \arguments{
 \item{result_path}{Character string giving the base path for results.}

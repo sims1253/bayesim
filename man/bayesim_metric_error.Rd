@@ -23,4 +23,3 @@ that allows the simulation to continue with other tasks.
 \seealso{
 \code{\link[=is_recoverable_error]{is_recoverable_error()}}
 }
-\keyword{internal}

@@ -2,12 +2,19 @@
 % Please edit documentation in R/metrics-built-in.R
 \name{RmseMetric}
 \alias{RmseMetric}
-\alias{rmse_metric}
+\alias{pred_rmse_metric}
 \title{RMSE Metric}
 \usage{
-RmseMetric(name = character(0), needs = character(0), required = FALSE)
+RmseMetric(
+  name = "rmse",
+  needs = "predictions",
+  required = FALSE,
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), n_obs
+    = list(role = "count", aggregation = "none", mcse = "none"))
+)
 
-rmse_metric(name = "rmse")
+pred_rmse_metric(name = "rmse")
 }
 \arguments{
 \item{name}{Character string naming the metric. Defaults to "rmse".}
@@ -25,5 +32,6 @@ Root Mean Square Error between predictions and true values.
 Constructor for RmseMetric.
 }
 \examples{
-rmse_metric()
+pred_rmse_metric()
 }
+\keyword{internal}

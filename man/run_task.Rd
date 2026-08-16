@@ -13,7 +13,7 @@ run_task(
 )
 }
 \arguments{
-\item{task}{A task specification list (from get_task_spec) containing:
+\item{task}{A task specification list from the task grid containing:
 \itemize{
 \item \code{task_id}: Unique task identifier string
 \item \code{data_spec}: Data generation specification
@@ -28,8 +28,8 @@ run_task(
 \item Other configuration parameters
 }}
 
-\item{fitter}{S7 Fitter object that implements the fit(), predict_fit(),
-log_lik(), and loo() methods}
+\item{fitter}{S7 Fitter object that implements the fit_model(), predict_fit(),
+log_lik_matrix(), and loo_fit() methods}
 
 \item{metrics}{List of S7 Metric objects to compute}
 

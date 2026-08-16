@@ -29,8 +29,10 @@ is used internally by checkpointing code where the metric name already
 serves as the outer namespace.
 }
 \examples{
+\dontrun{
 x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
 flatten_with_prefix(x, "param")
 # Returns: list(a = 1, param__b__x = 2, param__b__y = 3, c = 4)
+}
 }
 \keyword{internal}

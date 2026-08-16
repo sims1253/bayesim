@@ -4,7 +4,14 @@
 \alias{validate_fitter}
 \title{Validate a Fitter Object}
 \usage{
-validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
+validate_fitter(
+  fitter,
+  smoke_test = FALSE,
+  verbose = FALSE,
+  data_bundle = NULL,
+  fit_spec = NULL,
+  task_ctx = NULL
+)
 }
 \arguments{
 \item{fitter}{An S7 Fitter object to validate}
@@ -13,6 +20,16 @@ validate_fitter(fitter, smoke_test = FALSE, verbose = FALSE)
 verify that methods work correctly end-to-end}
 
 \item{verbose}{Logical, if TRUE print progress messages during validation}
+
+\item{data_bundle}{Optional representative data bundle for the conformance
+run. Supplying this is recommended for custom fitters whose data contract
+is not a \code{y ~ x} regression.}
+
+\item{fit_spec}{Optional representative fit specification passed to
+\code{fit_model()} during conformance testing.}
+
+\item{task_ctx}{Optional task context passed to \code{fit_model()} during
+conformance testing.}
 }
 \value{
 The validated fitter object (invisibly) if valid, otherwise raises an error with details about what failed
@@ -32,42 +49,41 @@ The validation performs the following checks:
 \item \code{supports_predictions} property exists and is logical
 \item \code{supports_log_lik} property exists and is logical
 \item \code{supports_loo} property exists and is logical
+\item \code{supports_epred} property exists and is logical
 }
 
 \strong{Method Checks:}
 \itemize{
-\item \code{fit()} method is implemented
-\item \code{extract_draws()} method is implemented
-\item \code{predict_fit()} method is implemented
-\item \code{log_lik()} method is implemented
-\item \code{loo()} method is implemented
-\item \code{diagnostics()} method is implemented
+\item \code{fit_model()} and \code{extract_draws()} are implemented (the core contract)
+\item optional methods are required only when their \verb{supports_*} capability is
+\code{TRUE}; unsupported methods have safe defaults
+\item \code{fit_diagnostics()} may use the default empty-list implementation
 }
 
 \strong{Smoke Test (when smoke_test = TRUE):}
 \itemize{
 \item Creates simple lm-like test data
-\item Calls \code{fit()} and verifies \code{bayesim_fit_result} structure
+\item Calls \code{fit_model()} and verifies \code{bayesim_fit_result} structure
 \item Calls \code{extract_draws()} and verifies matrix with colnames
 \item If \code{supports_predictions}, calls \code{predict_fit()} and verifies output
-\item If \code{supports_log_lik}, calls \code{log_lik()} and verifies matrix output
-\item Calls \code{diagnostics()} and verifies list output
+\item If \code{supports_log_lik}, calls \code{log_lik_matrix()} and verifies matrix output
+\item If \code{supports_epred}, calls \code{predict_epred()} and verifies matrix output
+\item Calls \code{fit_diagnostics()} and verifies list output
 }
 }
 \examples{
-# Validate the built-in MockFitter (basic check only)
-validate_fitter(MockFitter())
+# Validate a built-in fitter (basic check only)
+validate_fitter(LinearRegressionFitter())
 
-# Full validation with smoke test
-validate_fitter(MockFitter(), smoke_test = TRUE, verbose = TRUE)
+# Full validation with an end-to-end smoke test
+validate_fitter(LinearRegressionFitter(), smoke_test = TRUE)
 
-# Use in your fitter tests
 \dontrun{
+# Use in your own fitter's tests
 my_fitter <- MyCustomFitter()
-validate_fitter(my_fitter, smoke_test = TRUE)
-cat("Fitter is valid!\n")
+validate_fitter(my_fitter, smoke_test = TRUE, verbose = TRUE)
 }
 }
 \seealso{
-\link{Fitter}, \link{MockFitter}
+\link{Fitter}, \link{MockFitter}, \code{\link[=validate_metric]{validate_metric()}}
 }

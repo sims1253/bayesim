@@ -7,7 +7,8 @@
 as_config_spec(config)
 }
 \arguments{
-\item{config}{An S7 SimulationConfig object.}
+\item{config}{An S7 SimulationConfig object or a \code{StudySpec} created by
+\code{\link[=new_study_spec]{new_study_spec()}}.}
 }
 \value{
 A named list containing the configuration specification.
@@ -24,3 +25,4 @@ spec <- as_config_spec(config)
 # spec can now be serialized or hashed
 }
 }
+\keyword{internal}

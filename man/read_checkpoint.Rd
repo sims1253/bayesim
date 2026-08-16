@@ -4,7 +4,7 @@
 \alias{read_checkpoint}
 \title{Read checkpoint}
 \usage{
-read_checkpoint(result_path, checkpoint_id = NULL)
+read_checkpoint(result_path, checkpoint_id = NULL, load_outcomes = TRUE)
 }
 \arguments{
 \item{result_path}{Character string giving the base path for results.
@@ -12,6 +12,10 @@ If NULL, the function returns NULL immediately.}
 
 \item{checkpoint_id}{Integer specifying the checkpoint ID to read.
 If NULL (default), reads the latest checkpoint from latest.json.}
+
+\item{load_outcomes}{Logical; when FALSE, validate shard integrity but omit
+materializing accumulated outcomes. Used by the filesystem RunStore while
+appending the next ledger checkpoint.}
 }
 \value{
 A list with the following elements, or NULL if checkpoint not found

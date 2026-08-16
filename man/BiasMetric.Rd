@@ -2,12 +2,18 @@
 % Please edit documentation in R/metrics-built-in.R
 \name{BiasMetric}
 \alias{BiasMetric}
-\alias{bias_metric}
+\alias{pred_bias_metric}
 \title{Bias Metric}
 \usage{
-BiasMetric(name = character(0), needs = character(0), required = FALSE)
+BiasMetric(
+  name = "bias",
+  needs = "predictions",
+  required = FALSE,
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"))
+)
 
-bias_metric(name = "bias")
+pred_bias_metric(name = "bias")
 }
 \arguments{
 \item{name}{Character string naming the metric. Defaults to "bias".}
@@ -26,3 +32,4 @@ Mean bias of predictions.
 
 Constructor for BiasMetric.
 }
+\keyword{internal}

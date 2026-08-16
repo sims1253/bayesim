@@ -5,6 +5,13 @@ NULL
 
 VALID_CHECKPOINT_FORMATS <- c("rds")
 
+# I8: valid formats for the optional summary sidecar. "rds" is the default and
+# writes nothing extra (the canonical rds checkpoint carries the summary). When
+# set to "parquet", the final summary is ALSO written to
+# `<result_path>/summary.parquet` for downstream (pandas/arrow/polars) use. The
+# rds checkpoint remains the canonical resume artifact either way.
+VALID_SUMMARY_FORMATS <- c("rds", "parquet")
+
 # S7 class definition for SimulationConfig
 SimulationConfig <- S7::new_class(
   name = "SimulationConfig",
@@ -36,10 +43,10 @@ SimulationConfig <- S7::new_class(
     data_generator = S7::new_property(
       class = S7::class_function,
       validator = function(value) {
-        # Check function signature has at least 3 arguments
+        # Check function signature has at least 2 arguments
         args <- names(formals(value))
-        if (length(args) < 3) {
-          "data_generator must accept at least 3 arguments: (data_spec, seed, task_ctx)"
+        if (length(args) < 2) {
+          "data_generator must accept at least 2 arguments: (data_spec, task_ctx)"
         }
       }
     ),
@@ -61,11 +68,9 @@ SimulationConfig <- S7::new_class(
     ),
     n_replicates = S7::new_property(
       class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "n_replicates must be a positive integer"
-        }
-      }
+      validator = validate_positive_integer(
+        message = "n_replicates must be a positive integer"
+      )
     ),
     seed = S7::new_property(
       class = S7::class_integer,
@@ -85,11 +90,9 @@ SimulationConfig <- S7::new_class(
     ),
     checkpoint_every = S7::new_property(
       class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "checkpoint_every must be a positive integer"
-        }
-      }
+      validator = validate_positive_integer(
+        message = "checkpoint_every must be a positive integer"
+      )
     ),
     checkpoint_format = S7::new_property(
       class = S7::class_character,
@@ -105,13 +108,11 @@ SimulationConfig <- S7::new_class(
         }
       }
     ),
-    chunk_size = S7::new_property(
+    keep_checkpoints = S7::new_property(
       class = S7::class_integer,
-      validator = function(value) {
-        if (length(value) != 1 || is.na(value) || value < 1) {
-          "chunk_size must be a positive integer"
-        }
-      }
+      validator = validate_positive_integer(
+        message = "keep_checkpoints must be a positive integer"
+      )
     ),
     retain = S7::new_property(
       class = S7::class_list,
@@ -131,6 +132,35 @@ SimulationConfig <- S7::new_class(
           "max_errors must be Inf or a non-negative number"
         }
       }
+    ),
+    daemon_setup = S7::new_property(
+      class = S7::new_union(S7::class_function, NULL),
+      default = NULL
+    ),
+    # Workstream I3: optional adaptive stopping policy. NULL = run all tasks.
+    # When non-NULL a list with: estimand (character), measure (one of
+    # bias/coverage/emp_se/mse/model_se), target_mcse (numeric > 0),
+    # min_reps (integer, default 50), check_every (integer, default 50).
+    stop_on = S7::new_property(
+      class = S7::new_union(S7::class_any, NULL),
+      default = NULL
+    ),
+    # I8: optional parquet sidecar for the summary. Default "rds" writes nothing
+    # extra. "parquet" additionally writes `<result_path>/summary.parquet` for
+    # downstream consumption. Runtime policy: excluded from the config fingerprint.
+    summary_format = S7::new_property(
+      class = S7::class_character,
+      default = "rds",
+      validator = function(value) {
+        if (length(value) != 1 || is.na(value)) {
+          "summary_format must be a single character string"
+        } else if (!value %in% VALID_SUMMARY_FORMATS) {
+          paste0(
+            "summary_format must be one of: ",
+            paste(VALID_SUMMARY_FORMATS, collapse = ", ")
+          )
+        }
+      }
     )
   )
 )
@@ -148,22 +178,58 @@ SimulationConfig <- S7::new_class(
 #' @param task_grid Optional pre-computed task grid. If provided, overrides
 #'   data_grid and fit_grid. Must contain either data_spec/fit_spec list-columns
 #'   or data_idx/fit_idx index columns.
-#' @param data_generator A function with signature `(data_spec, seed, task_ctx) -> data_bundle`.
+#' @param data_generator A function with signature `(data_spec, task_ctx) -> data_bundle`.
 #'   Generates data for a single replicate given a data specification row.
+#'   `task_ctx$seed` carries the per-task integer seed for backends that need one.
 #' @param fitter An S7 Fitter object that handles model fitting.
 #' @param metrics A list of Metric objects.
 #' @param n_replicates Positive integer. Number of replicates per data/fit combination.
 #' @param seed Integer. Base seed for reproducible random number generation.
 #' @param result_path NULL or character path. If provided, results are saved here.
 #' @param checkpoint_format Character scalar. Checkpoint storage format.
-#'   Currently only `"rds"` is implemented for checkpoint persistence.
-#' @param checkpoint_every Positive integer. Save progress every N tasks.
-#' @param chunk_size Positive integer. Maximum number of task results to keep
-#'   in memory before forcing a checkpoint write. Defaults to `checkpoint_every`.
-#' @param max_in_memory Deprecated alias for `chunk_size`.
+#'   Currently only `"rds"` is implemented for checkpoint persistence. (B4:
+#'   excluded from the config fingerprint — it is runtime policy.)
+#' @param checkpoint_every Positive integer. Save progress every N tasks. This
+#'   single knob also bounds the number of task results held in memory at once
+#'   (B4: the former separate `chunk_size` knob was merged into this).
+#' @param keep_checkpoints Positive integer. Number of checkpoint commit
+#'   directories to retain. Defaults to 2, preserving the newest commit plus
+#'   one older fallback for corruption recovery. Pruning removes old commit
+#'   directories only; the immutable outcome shards and ledger history are
+#'   never pruned, so durable storage grows roughly linearly with completed
+#'   tasks. Runtime policy; excluded from the config fingerprint.
 #' @param retain Character vector. What to retain in results. Must be subset of
 #'   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
-#' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no limit.
+#'   A single profile name is also accepted: `"minimal"` (metrics only),
+#'   `"standard"` (metrics, diagnostics, warnings), or `"debug"` (everything).
+#'   Alternatively, a named list with `success`, `warning`, and `error`
+#'   entries to retain more for tasks that warn or fail. `"metrics"` is always
+#'   retained.
+#'   (B4: excluded from the config fingerprint, but exclusion does not make
+#'   every retention change legal on resume: a compatible resume may narrow
+#'   retention, while widening is rejected once completed outcomes lack the
+#'   requested artifacts — discarded artifacts cannot be recreated.)
+#' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no
+#'   limit. (B4: excluded from the config fingerprint.)
+#' @param daemon_setup Optional function run once per mirai daemon (via
+#'   `mirai::everywhere()`) before tasks start, e.g. to configure cmdstan
+#'   paths or load a model bank. Ignored when no daemons are set. Default NULL.
+#' @param stop_on Optional adaptive stopping policy (experimental). `NULL`
+#'   (default) runs all tasks. Otherwise a list with elements: `estimand`
+#'   (character parameter name), `measure` (one of `"bias"`, `"coverage"`,
+#'   `"emp_se"`, `"mse"`, `"model_se"`), `target_mcse` (numeric > 0),
+#'   `min_reps` (integer, default 50), `check_every` (integer, default 50).
+#'   Once the MCSE of `measure` for `estimand` falls below `target_mcse` AND
+#'   at least `min_reps` replicates have completed, remaining pending tasks
+#'   are marked `"skipped"` and the run stops. (I3: excluded from the config
+#'   fingerprint — it is runtime policy.)
+#' @param summary_format Character scalar. Output format for the final summary.
+#'   `"rds"` (default) writes nothing extra -- the durable run store (outcome
+#'   shards plus ledger) carries the results and remains the resume artifact.
+#'   `"parquet"`
+#'   additionally writes `<result_path>/summary.parquet` using the suggested
+#'   `nanoparquet` package, for downstream consumption (pandas, arrow, polars).
+#'   (I8: excluded from the config fingerprint -- runtime policy.)
 #'
 #' @return An S7 SimulationConfig object.
 #'
@@ -176,7 +242,7 @@ SimulationConfig <- S7::new_class(
 #'   fit_grid = data.frame(model = c("baseline", "full")),
 #'   data_generator = my_data_gen,
 #'   fitter = my_fitter,
-#'   metrics = list(rmse_metric(), bias_metric()),
+#'   metrics = list(pred_rmse_metric(), pred_bias_metric()),
 #'   n_replicates = 100L,
 #'   seed = 42L,
 #'   checkpoint_format = "rds"
@@ -194,10 +260,12 @@ simulation_config <- function(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
-  chunk_size = NULL,
-  max_in_memory = lifecycle::deprecated(),
+  keep_checkpoints = 2L,
   retain = c("metrics", "diagnostics"),
-  max_errors = Inf
+  max_errors = Inf,
+  daemon_setup = NULL,
+  stop_on = NULL,
+  summary_format = c("rds", "parquet")
 ) {
   if (!is.null(task_grid)) {
     if (!is.data.frame(task_grid)) {
@@ -236,8 +304,8 @@ simulation_config <- function(
       cli::cli_abort("fit_grid must have at least 1 row")
     }
   } else {
-    data_grid <- if (is.null(data_grid)) NULL else data_grid
-    fit_grid <- if (is.null(fit_grid)) NULL else fit_grid
+    # task_grid carries explicit data_spec/fit_spec list-columns; the optional
+    # data_grid/fit_grid are kept as-is (used for summary enrichment only).
   }
 
   # Validate data_generator
@@ -245,11 +313,11 @@ simulation_config <- function(
     cli::cli_abort("data_generator must be a function")
   }
   gen_formals <- names(formals(data_generator))
-  required_args <- c("data_spec", "seed", "task_ctx")
-  if (length(gen_formals) < 3) {
+  required_args <- c("data_spec", "task_ctx")
+  if (length(gen_formals) < 2) {
     cli::cli_abort(c(
-      "data_generator must accept at least 3 arguments",
-      "Required signature: (data_spec, seed, task_ctx)"
+      "data_generator must accept at least 2 arguments",
+      "Required signature: (data_spec, task_ctx)"
     ))
   }
 
@@ -271,9 +339,18 @@ simulation_config <- function(
   }
 
   # Validate seed
+  if (missing(seed)) {
+    cli::cli_abort(c(
+      "{.arg seed} is required.",
+      i = "bayesim derives every task's RNG stream from this one seed, so an explicit value is required for reproducibility."
+    ))
+  }
   seed <- as.integer(seed)
   if (length(seed) != 1 || is.na(seed)) {
-    cli::cli_abort("seed must be a single integer")
+    cli::cli_abort(c(
+      "seed must be a single integer.",
+      i = "bayesim derives every task's RNG stream from this one seed."
+    ))
   }
 
   # Validate result_path
@@ -299,29 +376,13 @@ simulation_config <- function(
     cli::cli_abort("checkpoint_every must be a positive integer >= 1")
   }
 
-  if (!is.null(chunk_size) && lifecycle::is_present(max_in_memory)) {
-    cli::cli_abort("Use either chunk_size or max_in_memory, not both")
-  }
-
-  if (is.null(chunk_size)) {
-    chunk_size <- checkpoint_every
-  }
-  if (lifecycle::is_present(max_in_memory)) {
-    lifecycle::deprecate_warn(
-      "1.1",
-      "simulation_config(max_in_memory)",
-      "simulation_config(chunk_size)"
-    )
-    chunk_size <- max_in_memory
-  }
-
-  chunk_size <- as.integer(chunk_size)
+  keep_checkpoints <- as.integer(keep_checkpoints)
   if (
-    length(chunk_size) != 1 ||
-      is.na(chunk_size) ||
-      chunk_size < 1
+    length(keep_checkpoints) != 1L ||
+      is.na(keep_checkpoints) ||
+      keep_checkpoints < 1L
   ) {
-    cli::cli_abort("chunk_size must be a positive integer >= 1")
+    cli::cli_abort("keep_checkpoints must be a positive integer >= 1")
   }
 
   retain <- resolve_retention_spec(retain)
@@ -333,6 +394,12 @@ simulation_config <- function(
   if (!is.infinite(max_errors) && max_errors < 0) {
     cli::cli_abort("max_errors must be Inf or a non-negative number")
   }
+
+  # I3: validate optional adaptive-stopping policy.
+  stop_on <- validate_stop_on(stop_on)
+
+  # I8: resolve summary_format.
+  summary_format <- match.arg(summary_format, VALID_SUMMARY_FORMATS)
 
   # Create and return S7 object
   SimulationConfig(
@@ -347,9 +414,12 @@ simulation_config <- function(
     result_path = result_path,
     checkpoint_every = checkpoint_every,
     checkpoint_format = checkpoint_format,
-    chunk_size = chunk_size,
+    keep_checkpoints = keep_checkpoints,
     retain = retain,
-    max_errors = max_errors
+    max_errors = max_errors,
+    daemon_setup = daemon_setup,
+    stop_on = stop_on,
+    summary_format = summary_format
   )
 }
 
@@ -364,7 +434,6 @@ simulation_config <- function(
 #' @return A list of Metric objects, or NULL if input was NULL.
 #'
 #' @keywords internal
-#' @export
 resolve_metrics <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -378,7 +447,7 @@ resolve_metrics <- function(metrics) {
     cli::cli_abort(
       paste(
         "metrics must be Metric objects, not character names.",
-        "Use metric constructors such as list(rmse_metric(), bias_metric())."
+        "Use metric constructors such as list(pred_rmse_metric(), pred_bias_metric())."
       )
     )
   }
@@ -399,17 +468,103 @@ resolve_metrics <- function(metrics) {
   metrics
 }
 
+# I3: validate the optional adaptive-stopping policy ----------------------
+
+# Valid performance measures (must match those produced by performance_measures).
+VALID_STOP_MEASURES <- c("bias", "coverage", "emp_se", "mse", "model_se")
+
+#' Validate the optional adaptive-stopping policy (I3)
+#'
+#' `NULL` is valid (no adaptive stopping). Otherwise the input must be a list
+#' with: `estimand` (character), `measure` (one of `VALID_STOP_MEASURES`),
+#' `target_mcse` (numeric > 0), and optional `min_reps` (integer, default 50)
+#' and `check_every` (integer, default 50). Returns a normalized list.
+#'
+#' @param stop_on NULL or a list.
+#' @return NULL or a normalized list.
+#' @keywords internal
+validate_stop_on <- function(stop_on) {
+  if (is.null(stop_on)) {
+    return(NULL)
+  }
+  if (!is.list(stop_on)) {
+    stop(bayesim_config_error("stop_on must be NULL or a list"))
+  }
+  need <- c("estimand", "measure", "target_mcse")
+  missing <- setdiff(need, names(stop_on))
+  if (length(missing) > 0L) {
+    stop(bayesim_config_error(paste(
+      "stop_on is missing required element(s):",
+      paste(missing, collapse = ", ")
+    )))
+  }
+  estimand <- stop_on$estimand
+  if (
+    !is.character(estimand) ||
+      length(estimand) != 1L ||
+      is.na(estimand) ||
+      !nzchar(estimand)
+  ) {
+    stop(bayesim_config_error(
+      "stop_on$estimand must be a single non-empty character string"
+    ))
+  }
+  measure <- stop_on$measure
+  if (
+    !is.character(measure) ||
+      length(measure) != 1L ||
+      is.na(measure) ||
+      !measure %in% VALID_STOP_MEASURES
+  ) {
+    stop(bayesim_config_error(paste(
+      "stop_on$measure must be one of:",
+      paste(VALID_STOP_MEASURES, collapse = ", ")
+    )))
+  }
+  target_mcse <- stop_on$target_mcse
+  if (
+    !is.numeric(target_mcse) ||
+      length(target_mcse) != 1L ||
+      is.na(target_mcse) ||
+      target_mcse <= 0
+  ) {
+    stop(bayesim_config_error(
+      "stop_on$target_mcse must be a single positive numeric value"
+    ))
+  }
+  min_reps <- as.integer(stop_on$min_reps %||% 50L)
+  if (length(min_reps) != 1L || is.na(min_reps) || min_reps < 1L) {
+    stop(bayesim_config_error(
+      "stop_on$min_reps must be a single positive integer"
+    ))
+  }
+  check_every <- as.integer(stop_on$check_every %||% 50L)
+  if (length(check_every) != 1L || is.na(check_every) || check_every < 1L) {
+    stop(bayesim_config_error(
+      "stop_on$check_every must be a single positive integer"
+    ))
+  }
+  list(
+    estimand = estimand,
+    measure = measure,
+    target_mcse = target_mcse,
+    min_reps = min_reps,
+    check_every = check_every
+  )
+}
+
 #' Convert SimulationConfig to Plain List for Hashing
 #'
 #' Converts an S7 SimulationConfig object to a plain list suitable for
 #' hashing or serialization. Excludes runtime-specific fields like
 #' result_path and checkpoint_every.
 #'
-#' @param config An S7 SimulationConfig object.
+#' @param config An S7 SimulationConfig object or a `StudySpec` created by
+#'   [new_study_spec()].
 #'
 #' @return A named list containing the configuration specification.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -418,26 +573,33 @@ resolve_metrics <- function(metrics) {
 #' # spec can now be serialized or hashed
 #' }
 as_config_spec <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+  if (is_study_spec(config)) {
+    study <- config
+  } else {
+    if (!S7::S7_inherits(config, SimulationConfig)) {
+      cli::cli_abort(
+        "config must be a SimulationConfig object"
+      )
+    }
+    # Extract properties that define the simulation identity. B4: exclude
+    # runtime policy (result_path, checkpoint_every, checkpoint_format, retain,
+    # max_errors) — changing retention or error tolerance must not invalidate
+    # resume. I3: stop_on (adaptive stopping) is also runtime policy and
+    # excluded here.
+    study <- new_study_spec(config)
   }
 
-  # Extract properties that define the simulation identity
-  # Exclude: result_path, checkpoint_every (runtime settings)
   spec <- list(
-    data_grid = config@data_grid,
-    fit_grid = config@fit_grid,
-    task_grid = config@task_grid,
+    data_grid = study$data_grid,
+    fit_grid = study$fit_grid,
+    task_grid = study$task_grid,
     data_generator_spec = capture_function_signature(
-      config@data_generator
+      study$data_generator
     ),
-    fitter_spec = capture_fitter_spec(config@fitter),
-    metrics_spec = capture_metrics_spec(config@metrics),
-    n_replicates = config@n_replicates,
-    seed = config@seed,
-    checkpoint_format = config@checkpoint_format,
-    retain = config@retain,
-    max_errors = config@max_errors
+    fitter_spec = capture_fitter_spec(study$fitter),
+    metrics_spec = capture_metrics_spec(study$metrics),
+    n_replicates = study$n_replicates,
+    seed = study$seed
   )
 
   spec
@@ -452,7 +614,6 @@ as_config_spec <- function(config) {
 #' @return A character string representing the function signature.
 #'
 #' @keywords internal
-#' @export
 capture_function_signature <- function(fn) {
   if (!is.function(fn)) {
     return(NA_character_)
@@ -495,12 +656,60 @@ capture_function_signature <- function(fn) {
       args <- formals(fn)
       body_hash <- digest::digest(capture.output(print(body(fn))))
 
+      # Hash the values of closure-captured free variables. The body hash
+      # alone is identical for two functions whose bodies match but whose
+      # captured environments bind different values (e.g. `f <- local({
+      # n <- 50; function(ds, ctx) rnorm(n, sd = n) })` with different `n`),
+      # which would silently equate genuinely different generators at resume
+      # time. Only user-defined closure environments are hashed: namespaced
+      # functions are pinned by `reference` (package/name/version), and
+      # base/global environments cannot be fingerprinted meaningfully.
+      closure_hash <- NA_character_
+      if (
+        !is.null(env) &&
+          !isNamespace(env) &&
+          !identical(env, globalenv()) &&
+          !identical(env, baseenv()) &&
+          !identical(env, emptyenv())
+      ) {
+        free_vars <- setdiff(all.vars(body(fn)), names(formals(fn)))
+        captured <- free_vars[vapply(
+          free_vars,
+          exists,
+          logical(1),
+          envir = env,
+          inherits = FALSE
+        )]
+        if (length(captured) > 0) {
+          hashes <- vapply(
+            captured,
+            function(name) {
+              tryCatch(
+                digest::digest(get(name, envir = env), algo = "xxhash64"),
+                error = function(e) NA_character_
+              )
+            },
+            character(1)
+          )
+          # Unhashable bindings (environments, external pointers) are
+          # omitted rather than poisoning the fingerprint.
+          hashes <- hashes[!is.na(hashes)]
+          if (length(hashes) > 0) {
+            closure_hash <- digest::digest(
+              sort(paste(names(hashes), hashes, sep = "=")),
+              algo = "xxhash64"
+            )
+          }
+        }
+      }
+
       list(
         rehydratable = !is.null(reference),
         reference = reference,
         environment = env_name,
         args = names(args),
-        body_hash = body_hash
+        body_hash = body_hash,
+        closure_hash = closure_hash
       )
     },
     error = function(e) {
@@ -518,7 +727,6 @@ capture_function_signature <- function(fn) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
-#' @export
 capture_fitter_spec <- function(fitter) {
   if (is.null(fitter)) {
     return(NA)
@@ -548,7 +756,6 @@ capture_fitter_spec <- function(fitter) {
 #' @return A list or NA if NULL.
 #'
 #' @keywords internal
-#' @export
 capture_metrics_spec <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -579,15 +786,21 @@ capture_metrics_spec <- function(metrics) {
 #' The fingerprint uniquely identifies a simulation configuration
 #' for caching and deduplication purposes.
 #'
-#' The fingerprint excludes runtime-specific settings:
+#' The fingerprint excludes runtime policy settings (B4):
 #' - `result_path`: Output location doesn't affect simulation identity
-#' - `checkpoint_every`: Checkpoint frequency is runtime optimization
+#' - `checkpoint_every` / `checkpoint_format`: checkpoint cadence/format is runtime optimization
+#' - `retain`: retention is runtime policy; fingerprint exclusion does not
+#'   make every retention change legal on resume (a compatible resume may
+#'   narrow retention; widening is rejected once completed outcomes lack the
+#'   requested artifacts)
+#' - `max_errors`: error tolerance is runtime policy
 #'
-#' @param config An S7 SimulationConfig object.
+#' @param config An S7 SimulationConfig object or a `StudySpec` created by
+#'   [new_study_spec()].
 #'
-#' @return A character string containing the SHA256 hash of the configuration.
+#' @return A character string containing the SHA256 hash of the study design.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{
@@ -603,21 +816,52 @@ capture_metrics_spec <- function(metrics) {
 #' # Use fingerprint for caching or deduplication
 #' }
 compute_config_fingerprint <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
+  if (!S7::S7_inherits(config, SimulationConfig) && !is_study_spec(config)) {
+    cli::cli_abort(
+      "config must be a SimulationConfig object"
+    )
   }
 
   spec <- as_config_spec(config)
 
-  # Convert to JSON for stable serialization, then hash
-  json_str <- jsonlite::toJSON(
-    spec,
-    auto_unbox = TRUE,
-    digits = NA,
-    null = "null"
+  # Convert to JSON for stable serialization, then hash. JSON cannot encode
+  # arbitrary R objects (e.g. brms formula/family objects in fit_grid), so fall
+  # back to a serialized digest when toJSON fails. The serialized digest is
+  # still stable across sessions for the same object structure.
+  json_str <- tryCatch(
+    jsonlite::toJSON(
+      spec,
+      auto_unbox = TRUE,
+      digits = NA,
+      null = "null"
+    ),
+    error = function(e) NULL
   )
 
+  if (is.null(json_str)) {
+    return(digest::digest(spec, algo = "sha256"))
+  }
+
   digest::digest(json_str, algo = "sha256", serialize = FALSE)
+}
+
+#' Stable simulation-design fingerprint
+#'
+#' Returns the stable hash bayesim uses to validate checkpoint compatibility.
+#' The fingerprint covers the study design (grids, generator, fitter, metrics,
+#' replicate count, and seed) and intentionally excludes runtime policy such as
+#' output paths, retention, checkpoint cadence, and adaptive stopping.
+#'
+#' @param config A simulation configuration created by [simulation_config()].
+#' @return A scalar SHA-256 character string.
+#' @export
+#' @seealso [simulation_config()], [run_simulation()]
+#' @examples
+#' \dontrun{
+#' config_fingerprint(config)
+#' }
+config_fingerprint <- function(config) {
+  compute_config_fingerprint(config)
 }
 
 #' Check if Object is a SimulationConfig
@@ -626,40 +870,11 @@ compute_config_fingerprint <- function(config) {
 #'
 #' @return TRUE if x is a SimulationConfig, FALSE otherwise.
 #'
-#' @export
+#' @keywords internal
 is_simulation_config <- function(x) {
   S7::S7_inherits(x, SimulationConfig)
 }
 
-#' Validate SimulationConfig Completeness
-#'
-#' Checks that a SimulationConfig has all required components for running.
-#'
-#' @param config An S7 SimulationConfig object.
-#'
-#' @return TRUE if valid, otherwise raises an error.
-#'
-#' @keywords internal
-validate_config_completeness <- function(config) {
-  if (!S7::S7_inherits(config, SimulationConfig)) {
-    cli::cli_abort("config must be a SimulationConfig object")
-  }
-
-  # Check for required components
-  if (is.null(config@fitter)) {
-    cli::cli_warn("fitter is NULL - simulation may fail during model fitting")
-  }
-
-  if (is.null(config@metrics) || length(config@metrics) == 0) {
-    cli::cli_warn("No metrics specified - results will be empty")
-  }
-
-  if (is.null(config@data_generator)) {
-    cli::cli_abort("data_generator cannot be NULL")
-  }
-
-  TRUE
-}
 
 #' Get Total Number of Tasks in Configuration
 #'
@@ -670,7 +885,7 @@ validate_config_completeness <- function(config) {
 #'
 #' @return Integer. Total number of tasks.
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' \dontrun{

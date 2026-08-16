@@ -6,9 +6,12 @@
 \title{Coverage Metric}
 \usage{
 CoverageMetric(
-  name = character(0),
+  name = "coverage",
   needs = character(0),
   required = FALSE,
+  summary_type = "proportion",
+  schema = list(mean = list(role = "estimate", aggregation = "mean", mcse = "sd"),
+    by_param = list(role = "binary", aggregation = "proportion", mcse = "binomial")),
   prob = 0.95
 )
 
@@ -31,3 +34,4 @@ Coverage of true parameter values within credible intervals.
 
 Constructor for CoverageMetric.
 }
+\keyword{internal}

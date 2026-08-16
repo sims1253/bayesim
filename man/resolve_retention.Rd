@@ -19,7 +19,9 @@ If a profile name is provided, returns the corresponding options.
 If explicit options are provided, validates them and returns only valid ones.
 }
 \examples{
+\dontrun{
 resolve_retention("minimal")
 resolve_retention(c("metrics", "draws"))
+}
 }
 \keyword{internal}

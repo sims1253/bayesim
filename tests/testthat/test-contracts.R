@@ -1,6 +1,15 @@
 # test-contracts.R
-# Comprehensive tests for Phase 1 contracts and core infrastructure
-# testthat 3e style with describe/it blocks
+# Contract tests for the core infrastructure: error classes, result
+# constructors, the fitter/metric seams, config canonicalization, and schema
+# validation.
+#
+# Per the testing strategy in IMPROVEMENT_PLAN.md this file intentionally does
+# NOT re-assert S7 class hierarchies, constructor defaults, or every
+# single-argument invalid permutation already covered by property validators.
+# It keeps the contracts that behavior elsewhere depends on: error
+# classification (fatal vs recoverable), task-result invariants, metric
+# output schema validation, fingerprint canonicalization, and data-bundle
+# schema validation.
 
 # Load the package
 library(bayesim)
@@ -10,181 +19,68 @@ library(bayesim)
 # =============================================================================
 
 describe("Error Classes", {
-  describe("bayesim_error()", {
-    it("creates correct class hierarchy", {
-      err <- bayesim_error("Test error message")
+  it("constructs every error type with its class, message, and base classes", {
+    errors <- list(
+      bayesim_error = bayesim_error,
+      bayesim_config_error = bayesim_config_error,
+      bayesim_contract_error = bayesim_contract_error,
+      bayesim_checkpoint_error = bayesim_checkpoint_error,
+      bayesim_internal_error = bayesim_internal_error,
+      bayesim_data_error = bayesim_data_error,
+      bayesim_fit_error = bayesim_fit_error,
+      bayesim_metric_error = bayesim_metric_error
+    )
+    for (error_name in names(errors)) {
+      err <- errors[[error_name]]("Test error message")
+      expect_s3_class(err, error_name)
       expect_s3_class(err, "bayesim_error")
       expect_s3_class(err, "error")
-      expect_s3_class(err, "condition")
-    })
-
-    it("stores message correctly", {
-      err <- bayesim_error("Test error message")
       expect_equal(err$message, "Test error message")
-    })
-
-    it("accepts optional call parameter", {
-      call <- quote(my_function())
-      err <- bayesim_error("Test error", call = call)
-      expect_equal(err$call, call)
-    })
-
-    it("can be raised with stop()", {
-      expect_error(
-        stop(bayesim_error("Test error")),
-        "Test error"
-      )
-    })
-  })
-
-  describe("is_bayesim_error()", {
-    it("returns TRUE for bayesim_error objects", {
-      err <- bayesim_error("Test")
       expect_true(is_bayesim_error(err))
-    })
-
-    it("returns TRUE for all derived error types", {
-      expect_true(is_bayesim_error(bayesim_config_error("Test")))
-      expect_true(is_bayesim_error(bayesim_contract_error("Test")))
-      expect_true(is_bayesim_error(bayesim_checkpoint_error("Test")))
-      expect_true(is_bayesim_error(bayesim_internal_error("Test")))
-      expect_true(is_bayesim_error(bayesim_data_error("Test")))
-      expect_true(is_bayesim_error(bayesim_fit_error("Test")))
-      expect_true(is_bayesim_error(bayesim_metric_error("Test")))
-    })
-
-    it("returns FALSE for non-bayesim errors", {
-      expect_false(is_bayesim_error(simpleError("Test")))
-      expect_false(is_bayesim_error("Test"))
-      expect_false(is_bayesim_error(NULL))
-      expect_false(is_bayesim_error(list()))
-    })
+    }
+    expect_false(is_bayesim_error(simpleError("Test")))
+    expect_false(is_bayesim_error(list()))
   })
 
-  describe("Fatal errors", {
-    it("bayesim_config_error() has correct class hierarchy", {
-      err <- bayesim_config_error("Invalid config")
-      expect_s3_class(err, "bayesim_config_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-
-    it("bayesim_contract_error() has correct class hierarchy", {
-      err <- bayesim_contract_error("Contract violation")
-      expect_s3_class(err, "bayesim_contract_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-
-    it("bayesim_checkpoint_error() has correct class hierarchy", {
-      err <- bayesim_checkpoint_error("Checkpoint failed")
-      expect_s3_class(err, "bayesim_checkpoint_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-
-    it("bayesim_internal_error() has correct class hierarchy", {
-      err <- bayesim_internal_error("Internal error")
-      expect_s3_class(err, "bayesim_internal_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
+  it("partitions fatal vs recoverable errors", {
+    # The engine's error handling depends on this exact partition: fatal
+    # conditions stop the run, recoverable ones become failed task results.
+    fatal <- list(
+      bayesim_config_error,
+      bayesim_contract_error,
+      bayesim_checkpoint_error,
+      bayesim_internal_error
+    )
+    recoverable <- list(
+      bayesim_data_error,
+      bayesim_fit_error,
+      bayesim_metric_error
+    )
+    for (ctor in fatal) {
+      expect_true(is_fatal_error(ctor("Test")), info = class(ctor)[1])
+      expect_false(is_recoverable_error(ctor("Test")), info = class(ctor)[1])
+    }
+    for (ctor in recoverable) {
+      expect_false(is_fatal_error(ctor("Test")), info = class(ctor)[1])
+      expect_true(is_recoverable_error(ctor("Test")), info = class(ctor)[1])
+    }
+    # The base class and foreign errors are neither.
+    expect_false(is_fatal_error(bayesim_error("Test")))
+    expect_false(is_recoverable_error(bayesim_error("Test")))
+    expect_false(is_fatal_error(simpleError("Test")))
+    expect_false(is_recoverable_error(simpleError("Test")))
   })
 
-  describe("Recoverable errors", {
-    it("bayesim_data_error() has correct class hierarchy", {
-      err <- bayesim_data_error("Data generation failed")
-      expect_s3_class(err, "bayesim_data_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-
-    it("bayesim_fit_error() has correct class hierarchy", {
-      err <- bayesim_fit_error("Model fitting failed")
-      expect_s3_class(err, "bayesim_fit_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-
-    it("bayesim_metric_error() has correct class hierarchy", {
-      err <- bayesim_metric_error("Metric computation failed")
-      expect_s3_class(err, "bayesim_metric_error")
-      expect_s3_class(err, "bayesim_error")
-      expect_s3_class(err, "error")
-    })
-  })
-
-  describe("is_fatal_error()", {
-    it("returns TRUE for fatal error types", {
-      expect_true(is_fatal_error(bayesim_config_error("Test")))
-      expect_true(is_fatal_error(bayesim_contract_error("Test")))
-      expect_true(is_fatal_error(bayesim_checkpoint_error("Test")))
-      expect_true(is_fatal_error(bayesim_internal_error("Test")))
-    })
-
-    it("returns FALSE for recoverable error types", {
-      expect_false(is_fatal_error(bayesim_data_error("Test")))
-      expect_false(is_fatal_error(bayesim_fit_error("Test")))
-      expect_false(is_fatal_error(bayesim_metric_error("Test")))
-    })
-
-    it("returns FALSE for base bayesim_error", {
-      expect_false(is_fatal_error(bayesim_error("Test")))
-    })
-
-    it("returns FALSE for non-bayesim errors", {
-      expect_false(is_fatal_error(simpleError("Test")))
-      expect_false(is_fatal_error(NULL))
-    })
-  })
-
-  describe("is_recoverable_error()", {
-    it("returns TRUE for recoverable error types", {
-      expect_true(is_recoverable_error(bayesim_data_error("Test")))
-      expect_true(is_recoverable_error(bayesim_fit_error("Test")))
-      expect_true(is_recoverable_error(bayesim_metric_error("Test")))
-    })
-
-    it("returns FALSE for fatal error types", {
-      expect_false(is_recoverable_error(bayesim_config_error("Test")))
-      expect_false(is_recoverable_error(bayesim_contract_error("Test")))
-      expect_false(is_recoverable_error(bayesim_checkpoint_error("Test")))
-      expect_false(is_recoverable_error(bayesim_internal_error("Test")))
-    })
-
-    it("returns FALSE for base bayesim_error", {
-      expect_false(is_recoverable_error(bayesim_error("Test")))
-    })
-
-    it("returns FALSE for non-bayesim errors", {
-      expect_false(is_recoverable_error(simpleError("Test")))
-      expect_false(is_recoverable_error(NULL))
-    })
-  })
-
-  describe("Error handling with tryCatch", {
-    it("can catch bayesim_error specifically", {
-      result <- tryCatch(
-        stop(bayesim_config_error("Config error")),
-        bayesim_error = function(e) e$message
-      )
-      expect_equal(result, "Config error")
-    })
-
-    it("can distinguish fatal vs recoverable in handler", {
-      result <- tryCatch(
-        {
-          stop(bayesim_fit_error("Fit failed"))
-        },
-        bayesim_error = function(e) {
-          if (is_fatal_error(e)) "fatal" else "recoverable"
-        }
-      )
-      expect_equal(result, "recoverable")
-    })
+  it("dispatches through the bayesim_error class in tryCatch handlers", {
+    result <- tryCatch(
+      stop(bayesim_config_error("Config error")),
+      bayesim_error = function(e) {
+        if (is_fatal_error(e)) "fatal" else "recoverable"
+      }
+    )
+    expect_equal(result, "fatal")
   })
 })
-
 
 # =============================================================================
 # 2. Result Constructors (from results.R)
@@ -192,17 +88,7 @@ describe("Error Classes", {
 
 describe("Result Constructors", {
   describe("new_fit_result()", {
-    it("creates valid objects with default parameters", {
-      result <- new_fit_result(
-        success = TRUE,
-        diagnostics = list(),
-        timing = list(total = 1.0)
-      )
-      expect_s3_class(result, "bayesim_fit_result")
-      expect_true(is_bayesim_fit_result(result))
-    })
-
-    it("creates successful fit result with all fields", {
+    it("round-trips a successful fit with all fields", {
       draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
       colnames(draws) <- c("alpha", "beta")
 
@@ -215,173 +101,79 @@ describe("Result Constructors", {
         warnings = c("Warning 1", "Warning 2")
       )
 
+      expect_s3_class(result, "bayesim_fit_result")
       expect_true(result$success)
-      expect_equal(nrow(result$draws), 50)
-      expect_equal(ncol(result$draws), 2)
+      expect_equal(dim(result$draws), c(50, 2))
       expect_equal(colnames(result$draws), c("alpha", "beta"))
       expect_equal(length(result$warnings), 2)
       expect_equal(result$timing$total, 10.5)
     })
 
-    it("creates failed fit result with error", {
+    it("round-trips a failed fit with its error condition", {
       err <- bayesim_fit_error("Convergence failed")
       result <- new_fit_result(
         success = FALSE,
         error = err,
-        diagnostics = list(),
         timing = list(total = 2.0)
       )
 
       expect_false(result$success)
-      expect_equal(result$error, err)
+      expect_identical(result$error, err)
     })
 
-    it("validates success/error consistency - error with success=TRUE fails", {
+    it("enforces the success/error consistency invariants", {
       expect_error(
         new_fit_result(
           success = TRUE,
           error = simpleError("Error"),
-          diagnostics = list(),
           timing = list(total = 1.0)
         ),
         "When success is TRUE, error must be NULL"
       )
-    })
-
-    it("validates success/error consistency - no error with success=FALSE fails", {
       expect_error(
         new_fit_result(
           success = FALSE,
           error = NULL,
-          diagnostics = list(),
           timing = list(total = 1.0)
         ),
         "When success is FALSE, error must be non-NULL"
       )
     })
 
-    it("validates timing is a list", {
-      # Note: new_fit_result tries to access timing$total before validation,
-      # so we get "$ operator is invalid for atomic vectors" error
+    it("requires draws to be a named matrix (the metric-pipeline contract)", {
       expect_error(
         new_fit_result(
           success = TRUE,
-          diagnostics = list(),
-          timing = "not a list"
-        ),
-        "\\$ operator is invalid"
-      )
-    })
-
-    it("validates timing$total is scalar numeric", {
-      expect_error(
-        new_fit_result(
-          success = TRUE,
-          diagnostics = list(),
-          timing = list(total = c(1, 2))
-        ),
-        "timing\\$total must be a scalar numeric"
-      )
-    })
-
-    it("validates timing$total is non-negative", {
-      expect_error(
-        new_fit_result(
-          success = TRUE,
-          diagnostics = list(),
-          timing = list(total = -1.0)
-        ),
-        "timing\\$total must be >= 0"
-      )
-    })
-
-    it("validates draws is a matrix with colnames", {
-      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
-      # No colnames - should fail
-      expect_error(
-        new_fit_result(
-          success = TRUE,
-          draws = draws,
-          diagnostics = list(),
+          draws = matrix(rnorm(100), ncol = 2),
           timing = list(total = 1.0)
         ),
         "draws matrix must have colnames"
       )
-    })
-
-    it("validates draws must be a matrix", {
       expect_error(
         new_fit_result(
           success = TRUE,
           draws = data.frame(a = 1:10),
-          diagnostics = list(),
           timing = list(total = 1.0)
         ),
         "draws must be a matrix when not NULL"
       )
     })
-
-    it("validates warnings is character vector", {
-      expect_error(
-        new_fit_result(
-          success = TRUE,
-          diagnostics = list(),
-          timing = list(total = 1.0),
-          warnings = list("not", "character")
-        ),
-        "warnings must be a character vector"
-      )
-    })
-
-    it("validates diagnostics is a list", {
-      expect_error(
-        new_fit_result(
-          success = TRUE,
-          diagnostics = "not a list",
-          timing = list(total = 1.0)
-        ),
-        "diagnostics must be a list"
-      )
-    })
-
-    it("handles NULL warnings by converting to character()", {
-      result <- new_fit_result(
-        success = TRUE,
-        diagnostics = list(),
-        timing = list(total = 1.0),
-        warnings = NULL
-      )
-      expect_equal(result$warnings, character())
-    })
-
-    it("handles NULL timing by creating default", {
-      result <- new_fit_result(
-        success = TRUE,
-        diagnostics = list(),
-        timing = NULL
-      )
-      expect_equal(result$timing$total, 0)
-    })
   })
 
   describe("new_task_result()", {
-    it("creates valid success task result", {
-      result <- new_task_result(
+    it("creates valid success, failed, and skipped task results", {
+      success <- new_task_result(
         task_id = "d001_f001_r00001",
         status = "success",
-        metrics = list(rmse = 0.05, bias = 0.01),
+        metrics = list(rmse = 0.05),
         diagnostics = list(n_eff = 500),
         timing = list(total = 5.2)
       )
+      expect_s3_class(success, "bayesim_task_result")
+      expect_equal(success$task_id, "d001_f001_r00001")
+      expect_equal(success$status, "success")
 
-      expect_s3_class(result, "bayesim_task_result")
-      expect_true(is_bayesim_task_result(result))
-      expect_equal(result$task_id, "d001_f001_r00001")
-      expect_equal(result$status, "success")
-    })
-
-    it("creates valid failed task result", {
-      result <- new_task_result(
+      failed <- new_task_result(
         task_id = "d001_f001_r00002",
         status = "failed",
         error = list(
@@ -390,45 +182,18 @@ describe("Result Constructors", {
         ),
         timing = list(total = 2.0)
       )
+      expect_equal(failed$status, "failed")
+      expect_equal(failed$error$error_class, "convergence_error")
 
-      expect_equal(result$status, "failed")
-      expect_equal(result$error$error_class, "convergence_error")
-    })
-
-    it("creates valid skipped task result", {
-      result <- new_task_result(
+      skipped <- new_task_result(
         task_id = "d001_f001_r00003",
         status = "skipped",
         timing = list(total = 0.0)
       )
-
-      expect_equal(result$status, "skipped")
+      expect_equal(skipped$status, "skipped")
     })
 
-    it("validates task_id is scalar character", {
-      expect_error(
-        new_task_result(
-          task_id = 123,
-          status = "success",
-          metrics = list(a = 1),
-          timing = list(total = 1.0)
-        ),
-        "task_id must be a scalar character"
-      )
-    })
-
-    it("validates status is valid value", {
-      expect_error(
-        new_task_result(
-          task_id = "test",
-          status = "invalid",
-          timing = list(total = 1.0)
-        ),
-        "status must be one of"
-      )
-    })
-
-    it("validates success requires non-NULL metrics", {
+    it("enforces the status/payload invariants", {
       expect_error(
         new_task_result(
           task_id = "test",
@@ -438,9 +203,6 @@ describe("Result Constructors", {
         ),
         "When status is 'success', metrics must not be NULL"
       )
-    })
-
-    it("validates failed requires non-NULL error", {
       expect_error(
         new_task_result(
           task_id = "test",
@@ -451,33 +213,10 @@ describe("Result Constructors", {
         "When status is 'failed', error must not be NULL"
       )
     })
-
-    it("validates timing$total is non-negative", {
-      expect_error(
-        new_task_result(
-          task_id = "test",
-          status = "skipped",
-          timing = list(total = -1.0)
-        ),
-        "timing\\$total must be >= 0"
-      )
-    })
-
-    it("validates warnings is character vector", {
-      expect_error(
-        new_task_result(
-          task_id = "test",
-          status = "skipped",
-          timing = list(total = 1.0),
-          warnings = list(a = 1)
-        ),
-        "warnings must be a character vector"
-      )
-    })
   })
 
   describe("new_simulation_result()", {
-    it("creates valid simulation result", {
+    it("creates a valid simulation result from task results", {
       task1 <- new_task_result(
         task_id = "d001_f001_r00001",
         status = "success",
@@ -494,32 +233,11 @@ describe("Result Constructors", {
       )
 
       expect_s3_class(result, "bayesim_simulation_result")
-      expect_true(is_bayesim_simulation_result(result))
       expect_equal(result$config_fingerprint, "abc123")
-      expect_equal(length(result$task_results), 1)
+      expect_equal(length(result$task_results), 1L)
     })
 
-    it("validates config_fingerprint is scalar character", {
-      expect_error(
-        new_simulation_result(
-          config_fingerprint = c("a", "b"),
-          task_results = list()
-        ),
-        "config_fingerprint must be a scalar character"
-      )
-    })
-
-    it("validates task_results is a list", {
-      expect_error(
-        new_simulation_result(
-          config_fingerprint = "test",
-          task_results = "not a list"
-        ),
-        "task_results must be a list"
-      )
-    })
-
-    it("validates all task_results elements are bayesim_task_result", {
+    it("requires every element of task_results to be a task result", {
       expect_error(
         new_simulation_result(
           config_fingerprint = "test",
@@ -529,70 +247,7 @@ describe("Result Constructors", {
       )
     })
 
-    it("validates summary is a data.frame", {
-      task <- new_task_result(
-        task_id = "test",
-        status = "skipped",
-        timing = list(total = 0)
-      )
-      expect_error(
-        new_simulation_result(
-          config_fingerprint = "test",
-          task_results = list(task),
-          summary = "not a data.frame"
-        ),
-        "summary must be a data.frame or tibble"
-      )
-    })
-
-    it("validates errors is a data.frame", {
-      task <- new_task_result(
-        task_id = "test",
-        status = "skipped",
-        timing = list(total = 0)
-      )
-      expect_error(
-        new_simulation_result(
-          config_fingerprint = "test",
-          task_results = list(task),
-          summary = data.frame(),
-          errors = "not a data.frame"
-        ),
-        "errors must be a data.frame or tibble"
-      )
-    })
-
-    it("validates checkpoint_path is NULL or scalar character", {
-      task <- new_task_result(
-        task_id = "test",
-        status = "skipped",
-        timing = list(total = 0)
-      )
-      expect_error(
-        new_simulation_result(
-          config_fingerprint = "test",
-          task_results = list(task),
-          checkpoint_path = c("a", "b")
-        ),
-        "checkpoint_path must be NULL or a scalar character"
-      )
-    })
-
-    it("accepts NULL checkpoint_path", {
-      task <- new_task_result(
-        task_id = "test",
-        status = "skipped",
-        timing = list(total = 0)
-      )
-      result <- new_simulation_result(
-        config_fingerprint = "test",
-        task_results = list(task),
-        checkpoint_path = NULL
-      )
-      expect_null(result$checkpoint_path)
-    })
-
-    it("handles NULL inputs with defaults", {
+    it("materializes NULL inputs into usable empty defaults", {
       result <- new_simulation_result(
         config_fingerprint = "test",
         task_results = NULL,
@@ -606,467 +261,205 @@ describe("Result Constructors", {
       expect_true(is.data.frame(result$errors))
     })
   })
-
-  describe("Print methods", {
-    it("print.bayesim_fit_result() works without error", {
-      result <- new_fit_result(
-        success = TRUE,
-        diagnostics = list(rhat = 1.01),
-        timing = list(total = 5.5)
-      )
-      expect_output(print(result), "<bayesim_fit_result>")
-    })
-
-    it("print.bayesim_task_result() works without error", {
-      result <- new_task_result(
-        task_id = "test",
-        status = "success",
-        metrics = list(rmse = 0.05),
-        timing = list(total = 5.0)
-      )
-      expect_output(print(result), "<bayesim_task_result>")
-    })
-
-    it("print.bayesim_simulation_result() works without error", {
-      task <- new_task_result(
-        task_id = "test",
-        status = "success",
-        metrics = list(rmse = 0.05),
-        timing = list(total = 5.0)
-      )
-      result <- new_simulation_result(
-        config_fingerprint = "test",
-        task_results = list(task)
-      )
-      expect_output(print(result), "<bayesim_simulation_result>")
-    })
-  })
 })
-
 
 # =============================================================================
 # 3. Fitter Class (from fitter.R)
 # =============================================================================
 
 describe("Fitter Class", {
-  describe("Fitter abstract class", {
-    it("is abstract", {
-      expect_true(Fitter@abstract)
-    })
-
-    it("has expected properties", {
-      expect_true("name" %in% names(Fitter@properties))
-      expect_true("supports_predictions" %in% names(Fitter@properties))
-      expect_true("supports_log_lik" %in% names(Fitter@properties))
-      expect_true("supports_loo" %in% names(Fitter@properties))
-    })
-
-    it("cannot be instantiated directly", {
-      expect_error(
-        Fitter(name = "test"),
-        "abstract"
-      )
-    })
-  })
-
-  describe("MockFitter", {
-    # Create fitter in each test instead of using before_each
-    it("inherits from Fitter", {
-      fitter <- MockFitter()
-      expect_true(S7::S7_inherits(fitter))
-      expect_true(S7::S7_inherits(fitter, Fitter))
-    })
-
-    it("has default name 'mock'", {
-      fitter <- MockFitter()
-      expect_equal(fitter@name, "mock")
-    })
-
-    it("fit() returns bayesim_fit_result", {
-      fitter <- MockFitter()
+  # MockFitter is the reference implementation of the fitter seam; these
+  # checks define the shapes every fitter must produce.
+  describe("MockFitter seam contracts", {
+    .fit_once <- function(fitter = MockFitter()) {
       data_bundle <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = NULL,
         response = "y"
       )
-      fit_spec <- data.frame(model = "test")
-      task_ctx <- list(task_id = "test_task")
-
-      result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec,
-        seed = 123L,
-        task_ctx = task_ctx
+      list(
+        bundle = data_bundle,
+        fit = fit_model(
+          fitter,
+          data_bundle,
+          fit_spec = data.frame(model = "test"),
+          seed = 42L,
+          task_ctx = list(task_id = "test")
+        )
       )
+    }
 
-      expect_s3_class(result, "bayesim_fit_result")
-      expect_equal(result$fit$fitter, "mock")
+    it("fit_model() returns a bayesim_fit_result", {
+      fitter <- MockFitter()
+      out <- .fit_once(fitter)
+      expect_s3_class(out$fit, "bayesim_fit_result")
+      expect_equal(out$fit$fit$fitter, "mock")
     })
 
-    it("extract_draws() returns matrix with colnames", {
+    it("extract_draws() returns a named matrix, respecting variables", {
       fitter <- MockFitter()
-      # First create a fit result
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
-      )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
-      )
+      out <- .fit_once(fitter)
 
-      draws <- extract_draws(fitter, fit_result)
-
+      draws <- extract_draws(fitter, out$fit)
       expect_true(is.matrix(draws))
-      expect_false(is.null(colnames(draws)))
       expect_true(all(c("intercept", "beta", "sigma") %in% colnames(draws)))
+
+      sel <- extract_draws(fitter, out$fit, variables = c("beta", "sigma"))
+      expect_equal(colnames(sel), c("beta", "sigma"))
     })
 
-    it("extract_draws() respects variables argument", {
+    it("predict_fit() returns mean/sd/samples in S x N orientation", {
       fitter <- MockFitter()
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
+      out <- .fit_once(fitter)
+
+      preds <- predict_fit(fitter, out$fit)
+      expect_setequal(
+        names(preds),
+        c("predicted_mean", "predicted_samples", "predicted_sd")
       )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
-      )
-
-      draws <- extract_draws(fitter, fit_result, variables = c("beta", "sigma"))
-
-      expect_equal(colnames(draws), c("beta", "sigma"))
-    })
-
-    it("predict_fit() returns proper structure", {
-      fitter <- MockFitter()
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
-      )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
-      )
-
-      preds <- predict_fit(fitter, fit_result)
-
-      expect_true(is.list(preds))
-      expect_true("predicted_mean" %in% names(preds))
-      expect_true("predicted_samples" %in% names(preds))
-      expect_true("predicted_sd" %in% names(preds))
       expect_equal(length(preds$predicted_mean), 10)
+      expect_equal(ncol(preds$predicted_samples), 10)
     })
 
-    it("log_lik() returns matrix", {
+    it("log_lik_matrix() returns an S x N matrix", {
       fitter <- MockFitter()
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
-      )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
-      )
+      out <- .fit_once(fitter)
 
-      ll <- log_lik(fitter, fit_result)
-
+      ll <- log_lik_matrix(fitter, out$fit)
       expect_true(is.matrix(ll))
-      expect_equal(nrow(ll), 10) # 10 observations
+      expect_equal(ncol(ll), 10)
+      expect_equal(
+        nrow(ll),
+        as.integer(fitter@n_draws) * as.integer(fitter@n_chains)
+      )
     })
 
-    it("loo() returns proper structure", {
+    it("loo_fit() and fit_diagnostics() return documented structures", {
       fitter <- MockFitter()
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
-      )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
+      out <- .fit_once(fitter)
+
+      loo_result <- loo_fit(fitter, out$fit)
+      expect_setequal(
+        names(loo_result),
+        c("elpd", "p_loo", "elpd_se", "pareto_k")
       )
 
-      loo_result <- loo(fitter, fit_result)
-
-      expect_true(is.list(loo_result))
-      expect_true("elpd" %in% names(loo_result))
-      expect_true("p_loo" %in% names(loo_result))
-      expect_true("elpd_se" %in% names(loo_result))
-      expect_true("pareto_k" %in% names(loo_result))
-    })
-
-    it("diagnostics() returns named list", {
-      fitter <- MockFitter()
-      data_bundle <- list(
-        train = data.frame(x = 1:10, y = rnorm(10)),
-        test = NULL,
-        response = "y"
-      )
-      fit_result <- fit(
-        fitter,
-        data_bundle,
-        fit_spec = data.frame(model = "test"),
-        seed = 42L,
-        task_ctx = list(task_id = "test")
-      )
-
-      diag <- diagnostics(fitter, fit_result)
-
-      expect_true(is.list(diag))
-      expect_true("rhat_max" %in% names(diag))
-      expect_true("ess_bulk" %in% names(diag))
-      expect_true("divergent" %in% names(diag))
+      diag <- fit_diagnostics(fitter, out$fit)
+      expect_true(all(c("rhat_max", "ess_bulk", "divergent") %in% names(diag)))
     })
   })
 
-  describe("Custom Fitter implementation", {
-    # Define TestFitter inline for each test
-    it("can extend Fitter with custom implementation", {
-      TestFitter <- S7::new_class(
-        "TestFitter",
-        parent = Fitter,
-        properties = list(
-          name = S7::new_property(S7::class_character, default = "test")
-        )
+  it("supports custom Fitter subclasses via S7 method registration", {
+    TestFitter <- S7::new_class(
+      "TestFitter",
+      parent = Fitter,
+      properties = list(
+        name = S7::new_property(S7::class_character, default = "test")
       )
-      # Register method separately using S7 generics-based system
-      S7::method(fit, TestFitter) <- function(
-        fitter,
-        data_bundle,
-        fit_spec,
-        seed,
-        task_ctx
-      ) {
-        draws <- matrix(rnorm(40), ncol = 2)
-        colnames(draws) <- c("a", "b")
-        new_fit_result(
-          success = TRUE,
-          draws = draws,
-          diagnostics = list(),
-          timing = list(total = 1.0)
-        )
-      }
-
-      fitter <- TestFitter()
-      expect_true(S7::S7_inherits(fitter))
-      expect_equal(fitter@name, "test")
-    })
-
-    it("unimplemented methods throw S7 method not found error", {
-      TestFitter <- S7::new_class(
-        "TestFitter",
-        parent = Fitter,
-        properties = list(
-          name = S7::new_property(S7::class_character, default = "test")
-        )
+    )
+    S7::method(fit_model, TestFitter) <- function(
+      fitter,
+      data_bundle,
+      fit_spec,
+      seed,
+      task_ctx
+    ) {
+      draws <- matrix(rnorm(40), ncol = 2)
+      colnames(draws) <- c("a", "b")
+      new_fit_result(
+        success = TRUE,
+        draws = draws,
+        timing = list(total = 1.0)
       )
-      S7::method(fit, TestFitter) <- function(
-        fitter,
-        data_bundle,
-        fit_spec,
-        seed,
-        task_ctx
-      ) {
-        draws <- matrix(rnorm(40), ncol = 2)
-        colnames(draws) <- c("a", "b")
-        new_fit_result(
-          success = TRUE,
-          draws = draws,
-          diagnostics = list(),
-          timing = list(total = 1.0)
-        )
-      }
+    }
 
-      fitter <- TestFitter()
-      fit_result <- fit(
-        fitter,
-        data.frame(x = 1),
-        data.frame(),
-        1L,
-        list(task_id = "test")
-      )
+    fitter <- TestFitter()
+    expect_equal(fitter@name, "test")
 
-      # S7 throws "Can't find method for" error when method is not implemented
-      expect_error(
-        extract_draws(fitter, fit_result),
-        "Can't find method"
-      )
-    })
+    fit_result <- fit_model(
+      fitter,
+      data.frame(x = 1),
+      data.frame(),
+      1L,
+      list(task_id = "test")
+    )
+    expect_s3_class(fit_result, "bayesim_fit_result")
+
+    # Unimplemented seam methods fail loudly rather than silently degrading.
+    expect_error(
+      extract_draws(fitter, fit_result),
+      "Can't find method"
+    )
   })
 })
-
 
 # =============================================================================
 # 4. Metric Class (from metric.R)
 # =============================================================================
 
 describe("Metric Class", {
-  describe("Metric abstract class", {
-    it("has expected properties", {
-      expect_true("name" %in% names(Metric@properties))
-      expect_true("needs" %in% names(Metric@properties))
-      expect_true("required" %in% names(Metric@properties))
-    })
-
-    it("compute() throws S7 method not found error for unimplemented methods", {
-      TestMetric <- S7::new_class(
-        "TestMetric",
-        parent = Metric,
-        properties = list(
-          name = S7::new_property(S7::class_character, default = "test")
-        )
-      )
-      metric <- TestMetric()
-
-      # S7 throws "Can't find method for" error when method is not implemented
-      expect_error(
-        compute(metric, NULL, NULL, NULL, NULL),
-        "Can't find method"
-      )
-    })
-  })
-
   describe("validate_metric_output()", {
-    it("accepts valid scalar outputs", {
-      output <- list(rmse = 0.5, n_obs = 100L, success = TRUE)
-      expect_silent(validate_metric_output(output, "test_metric"))
+    it("accepts valid scalar, vector, and mixed outputs", {
+      expect_silent(validate_metric_output(
+        list(rmse = 0.5, n_obs = 100L),
+        "test_metric"
+      ))
+      expect_silent(validate_metric_output(
+        list(params = c(alpha = 0.1, beta = 0.2, gamma = 0.3)),
+        "test_metric"
+      ))
+      expect_silent(validate_metric_output(
+        list(rmse = 0.5, params = c(alpha = 0.1, beta = 0.2)),
+        "test_metric"
+      ))
     })
 
-    it("accepts named numeric vectors", {
-      output <- list(params = c(alpha = 0.1, beta = 0.2, gamma = 0.3))
-      expect_silent(validate_metric_output(output, "test_metric"))
-    })
-
-    it("accepts mixed scalar and named vector outputs", {
-      output <- list(
-        rmse = 0.5,
-        params = c(alpha = 0.1, beta = 0.2)
-      )
-      expect_silent(validate_metric_output(output, "test_metric"))
-    })
-
-    it("rejects non-list output", {
+    it("rejects structurally invalid outputs", {
       expect_error(
         validate_metric_output(c(a = 1, b = 2), "test_metric"),
         "must be a list"
       )
-    })
-
-    it("rejects empty list", {
       expect_error(
         validate_metric_output(list(), "test_metric"),
         "cannot be empty"
       )
-    })
-
-    it("rejects unnamed elements", {
       expect_error(
         validate_metric_output(list(0.5, 1.0), "test_metric"),
         "unnamed or empty-named"
       )
-    })
-
-    it("rejects elements with empty names", {
-      output <- list(rmse = 0.5)
-      names(output) <- ""
-      expect_error(
-        validate_metric_output(output, "test_metric"),
-        "unnamed or empty-named"
-      )
-    })
-
-    it("rejects NULL values", {
       expect_error(
         validate_metric_output(list(rmse = NULL), "test_metric"),
         "is NULL \\(not allowed\\)"
       )
-    })
-
-    it("rejects nested lists", {
       expect_error(
         validate_metric_output(list(nested = list(a = 1)), "test_metric"),
         "must be either"
       )
-    })
-
-    it("rejects data frames", {
       expect_error(
         validate_metric_output(list(df = data.frame(a = 1:3)), "test_metric"),
         "must be either"
       )
-    })
-
-    it("rejects matrices", {
       expect_error(
         validate_metric_output(list(mat = matrix(1:4, 2, 2)), "test_metric"),
         "must be either"
       )
-    })
-
-    it("rejects unnamed numeric vectors", {
       expect_error(
         validate_metric_output(list(params = c(1, 2, 3)), "test_metric"),
         "unnamed numeric vector"
       )
     })
-
-    it("rejects vectors of other types", {
-      expect_error(
-        validate_metric_output(c(TRUE, FALSE, TRUE), "test_metric"),
-        "must be a list"
-      )
-    })
   })
 
   describe("flatten_metric_output()", {
-    it("produces correct names for scalar values", {
-      output <- list(rmse = 0.5, n_obs = 100L)
-      flat <- flatten_metric_output(output, "my_metric")
+    it("prefixes scalars and named vectors with the metric name", {
+      flat <- flatten_metric_output(
+        list(rmse = 0.5, params = c(alpha = 0.1, beta = 0.2)),
+        "my_metric"
+      )
 
       expect_equal(flat$my_metric__rmse, 0.5)
-      expect_equal(flat$my_metric__n_obs, 100L)
-    })
-
-    it("handles named vectors correctly", {
-      output <- list(params = c(alpha = 0.1, beta = 0.2, gamma = 0.3))
-      flat <- flatten_metric_output(output, "estimates")
-
-      expect_equal(flat$estimates__params__alpha, 0.1)
-      expect_equal(flat$estimates__params__beta, 0.2)
-      expect_equal(flat$estimates__params__gamma, 0.3)
-    })
-
-    it("handles mixed scalar and named vectors", {
-      output <- list(
-        rmse = 0.5,
-        params = c(alpha = 0.1, beta = 0.2)
-      )
-      flat <- flatten_metric_output(output, "test")
-
-      expect_equal(flat$test__rmse, 0.5)
-      expect_equal(flat$test__params__alpha, 0.1)
-      expect_equal(flat$test__params__beta, 0.2)
+      expect_equal(flat$my_metric__params__alpha, 0.1)
+      expect_equal(flat$my_metric__params__beta, 0.2)
     })
 
     it("validates input before flattening", {
@@ -1077,96 +470,67 @@ describe("Metric Class", {
     })
   })
 
-  describe("Custom Metric implementation", {
-    # Define RMSEMetric inline for each test
-    it("can extend Metric with custom implementation", {
-      RMSEMetric <- S7::new_class(
-        "RMSEMetric",
-        parent = Metric,
-        properties = list(
-          name = S7::new_property(S7::class_character, default = "rmse"),
-          needs = S7::new_property(
-            S7::class_character,
-            default = "predictions"
-          ),
-          required = S7::new_property(S7::class_logical, default = FALSE)
-        )
+  it("supports custom Metric subclasses via S7 method registration", {
+    RMSEMetric <- S7::new_class(
+      "RMSEMetric",
+      parent = Metric,
+      properties = list(
+        name = S7::new_property(S7::class_character, default = "rmse"),
+        needs = S7::new_property(
+          S7::class_character,
+          default = "predictions"
+        ),
+        required = S7::new_property(S7::class_logical, default = FALSE)
       )
-      # Register method separately using S7 generics-based system
-      S7::method(compute, RMSEMetric) <- function(
-        metric,
-        fit_result,
-        data_bundle,
-        context,
-        task_ctx
-      ) {
-        preds <- context$predictions$predicted_mean
-        actual <- data_bundle$test[[data_bundle$response]]
-        list(
-          value = sqrt(mean((preds - actual)^2)),
-          n_obs = length(actual)
-        )
-      }
-
-      metric <- RMSEMetric()
-      expect_true(S7::S7_inherits(metric))
-      # S7 default values for class_character with default = "string" work correctly
-      expect_true(is.character(metric@name))
-    })
-
-    it("compute() returns valid output", {
-      RMSEMetric <- S7::new_class(
-        "RMSEMetric",
-        parent = Metric,
-        properties = list(
-          name = S7::new_property(S7::class_character, default = "rmse"),
-          needs = S7::new_property(
-            S7::class_character,
-            default = "predictions"
-          ),
-          required = S7::new_property(S7::class_logical, default = FALSE)
-        )
+    )
+    S7::method(compute_metric, RMSEMetric) <- function(
+      metric,
+      fit_result,
+      data_bundle,
+      context,
+      task_ctx
+    ) {
+      preds <- context$predictions$predicted_mean
+      actual <- data_bundle$test[[data_bundle$response]]
+      list(
+        value = sqrt(mean((preds - actual)^2)),
+        n_obs = length(actual)
       )
-      S7::method(compute, RMSEMetric) <- function(
-        metric,
-        fit_result,
-        data_bundle,
-        context,
-        task_ctx
-      ) {
-        preds <- context$predictions$predicted_mean
-        actual <- data_bundle$test[[data_bundle$response]]
-        list(
-          value = sqrt(mean((preds - actual)^2)),
-          n_obs = length(actual)
-        )
-      }
+    }
 
-      metric <- RMSEMetric()
-      fit_result <- list()
-      data_bundle <- list(
-        test = data.frame(y = c(1, 2, 3)),
-        response = "y"
+    metric <- RMSEMetric()
+    output <- compute_metric(
+      metric,
+      list(),
+      list(test = data.frame(y = c(1, 2, 3)), response = "y"),
+      list(predictions = list(predicted_mean = c(1.1, 1.9, 3.2))),
+      list(task_id = "test")
+    )
+
+    expect_silent(validate_metric_output(output, "rmse"))
+    expect_setequal(names(output), c("value", "n_obs"))
+
+    # Unimplemented methods fail loudly.
+    BareMetric <- S7::new_class(
+      "BareMetric",
+      parent = Metric,
+      properties = list(
+        name = S7::new_property(S7::class_character, default = "bare")
       )
-      context <- list(predictions = list(predicted_mean = c(1.1, 1.9, 3.2)))
-      task_ctx <- list(task_id = "test")
-
-      output <- compute(metric, fit_result, data_bundle, context, task_ctx)
-
-      expect_silent(validate_metric_output(output, "rmse"))
-      expect_true("value" %in% names(output))
-      expect_true("n_obs" %in% names(output))
-    })
+    )
+    expect_error(
+      compute_metric(BareMetric(), NULL, NULL, NULL, NULL),
+      "Can't find method"
+    )
   })
 })
-
 
 # =============================================================================
 # 5. SimulationConfig (from simulation-config.R)
 # =============================================================================
 
 describe("SimulationConfig", {
-  test_data_gen <- function(data_spec, seed, task_ctx) {
+  test_data_gen <- function(data_spec, task_ctx) {
     list(
       train = data.frame(x = 1:10, y = rnorm(10)),
       test = NULL,
@@ -1175,19 +539,7 @@ describe("SimulationConfig", {
   }
 
   describe("simulation_config()", {
-    it("creates valid objects with required parameters", {
-      config <- simulation_config(
-        data_grid = data.frame(n = 100),
-        fit_grid = data.frame(model = "baseline"),
-        data_generator = test_data_gen,
-        seed = 42L
-      )
-
-      expect_true(S7::S7_inherits(config))
-      expect_true(is_simulation_config(config))
-    })
-
-    it("creates valid objects with all parameters", {
+    it("creates valid objects with the full parameter surface", {
       config <- simulation_config(
         data_grid = data.frame(n = c(100, 500)),
         fit_grid = data.frame(model = c("A", "B")),
@@ -1199,18 +551,15 @@ describe("SimulationConfig", {
         result_path = "/tmp/results",
         checkpoint_format = "rds",
         checkpoint_every = 25L,
-        chunk_size = 10L,
         retain = list(success = c("metrics", "diagnostics"), error = "debug"),
         max_errors = 10
       )
 
-      expect_true(S7::S7_inherits(config))
+      expect_true(is_simulation_config(config))
       expect_equal(config@n_replicates, 100L)
       expect_equal(config@seed, 42L)
       expect_equal(config@result_path, "/tmp/results")
       expect_equal(config@checkpoint_every, 25L)
-      expect_equal(config@checkpoint_format, "rds")
-      expect_equal(config@chunk_size, 10L)
       expect_equal(config@retain$success, c("metrics", "diagnostics"))
       expect_true(all(c("metrics", "draws", "fit") %in% config@retain$error))
     })
@@ -1232,181 +581,7 @@ describe("SimulationConfig", {
       expect_null(config@fit_grid)
     })
 
-    it("validates data_grid is a data.frame", {
-      expect_error(
-        simulation_config(
-          data_grid = "not a data.frame",
-          fit_grid = data.frame(),
-          data_generator = test_data_gen,
-          seed = 42L
-        ),
-        "data_grid must be a data.frame"
-      )
-    })
-
-    it("validates data_grid has at least 1 row", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          seed = 42L
-        ),
-        "data_grid must have at least 1 row"
-      )
-    })
-
-    it("validates fit_grid is a data.frame", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = "not a data.frame",
-          data_generator = test_data_gen,
-          seed = 42L
-        ),
-        "fit_grid must be a data.frame"
-      )
-    })
-
-    it("validates task_grid structure when provided", {
-      expect_error(
-        simulation_config(
-          task_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          seed = 42L
-        ),
-        "task_grid must contain either list-columns data_spec/fit_spec or index columns data_idx/fit_idx"
-      )
-    })
-
-    it("validates fit_grid has at least 1 row", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(),
-          data_generator = test_data_gen,
-          seed = 42L
-        ),
-        "fit_grid must have at least 1 row"
-      )
-    })
-
-    it("validates data_generator is a function", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = "not a function",
-          seed = 42L
-        ),
-        "data_generator must be a function"
-      )
-    })
-
-    it("validates data_generator has at least 3 arguments", {
-      bad_gen <- function(a, b) list()
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = bad_gen,
-          seed = 42L
-        ),
-        "data_generator must accept at least 3 arguments"
-      )
-    })
-
-    it("validates fitter is S7 object", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          fitter = "not a fitter",
-          seed = 42L
-        ),
-        "fitter must be an S7 Fitter object"
-      )
-    })
-
-    it("validates n_replicates is positive integer", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          n_replicates = 0L,
-          seed = 42L
-        ),
-        "n_replicates must be a positive integer"
-      )
-    })
-
-    it("validates seed is single integer", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          seed = c(1, 2)
-        ),
-        "seed must be a single integer"
-      )
-    })
-
-    it("validates result_path is NULL or single character", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          result_path = c("a", "b"),
-          seed = 42L
-        ),
-        "result_path must be NULL or a single character string"
-      )
-    })
-
-    it("validates checkpoint_every is positive integer", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          checkpoint_every = 0L,
-          seed = 42L
-        ),
-        "checkpoint_every must be a positive integer"
-      )
-    })
-
-    it("validates checkpoint_format choices", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          checkpoint_format = "csv",
-          seed = 42L
-        ),
-        "'arg' should be \"rds\""
-      )
-    })
-
-    it("validates chunk_size is positive integer", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          chunk_size = 0L,
-          seed = 42L
-        ),
-        "chunk_size must be a positive integer"
-      )
-    })
-
-    it("validates retain contains valid options", {
+    it("validates the retain option set and metric object types", {
       expect_error(
         simulation_config(
           data_grid = data.frame(a = 1),
@@ -1417,9 +592,6 @@ describe("SimulationConfig", {
         ),
         "retain contains invalid options"
       )
-    })
-
-    it("rejects character metric names", {
       expect_error(
         simulation_config(
           data_grid = data.frame(a = 1),
@@ -1431,87 +603,13 @@ describe("SimulationConfig", {
         "metrics must be Metric objects"
       )
     })
-
-    it("validates max_errors is single numeric", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          max_errors = c(1, 2),
-          seed = 42L
-        ),
-        "max_errors must be a single numeric value"
-      )
-    })
-
-    it("validates max_errors is non-negative or Inf", {
-      expect_error(
-        simulation_config(
-          data_grid = data.frame(a = 1),
-          fit_grid = data.frame(a = 1),
-          data_generator = test_data_gen,
-          max_errors = -5,
-          seed = 42L
-        ),
-        "max_errors must be Inf or a non-negative number"
-      )
-    })
-
-    it("accepts Inf for max_errors", {
-      config <- simulation_config(
-        data_grid = data.frame(a = 1),
-        fit_grid = data.frame(a = 1),
-        data_generator = test_data_gen,
-        max_errors = Inf,
-        seed = 42L
-      )
-      expect_equal(config@max_errors, Inf)
-    })
-  })
-
-  describe("is_simulation_config()", {
-    it("returns TRUE for SimulationConfig objects", {
-      config <- simulation_config(
-        data_grid = data.frame(a = 1),
-        fit_grid = data.frame(b = 1),
-        data_generator = test_data_gen,
-        seed = 42L
-      )
-      expect_true(is_simulation_config(config))
-    })
-
-    it("returns FALSE for non-SimulationConfig objects", {
-      expect_false(is_simulation_config(list()))
-      expect_false(is_simulation_config(NULL))
-      expect_false(is_simulation_config("string"))
-    })
   })
 
   describe("as_config_spec()", {
-    it("produces correct structure", {
+    it("produces the design spec and excludes runtime policy", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "baseline"),
-        data_generator = test_data_gen,
-        n_replicates = 10L,
-        seed = 42L
-      )
-
-      spec <- as_config_spec(config)
-
-      expect_true(is.list(spec))
-      expect_true("data_grid" %in% names(spec))
-      expect_true("fit_grid" %in% names(spec))
-      expect_true("data_generator_spec" %in% names(spec))
-      expect_true("n_replicates" %in% names(spec))
-      expect_true("seed" %in% names(spec))
-    })
-
-    it("excludes runtime-specific fields", {
-      config <- simulation_config(
-        data_grid = data.frame(a = 1),
-        fit_grid = data.frame(b = 1),
         data_generator = test_data_gen,
         result_path = "/tmp/test",
         checkpoint_every = 100L,
@@ -1520,90 +618,97 @@ describe("SimulationConfig", {
 
       spec <- as_config_spec(config)
 
+      # Design fields enter the canonical spec...
+      expect_true(all(
+        c(
+          "data_grid",
+          "fit_grid",
+          "data_generator_spec",
+          "seed"
+        ) %in%
+          names(spec)
+      ))
+      # ...runtime-specific fields are excluded (fingerprint canonicalization).
       expect_false("result_path" %in% names(spec))
       expect_false("checkpoint_every" %in% names(spec))
-    })
+      expect_false("keep_checkpoints" %in% names(spec))
 
-    it("errors on non-SimulationConfig input", {
-      expect_error(
-        as_config_spec(list()),
-        "config must be a SimulationConfig object"
-      )
+      expect_error(as_config_spec(list()), "config must be a SimulationConfig")
     })
   })
 
   describe("compute_config_fingerprint()", {
-    it("produces consistent hashes for same config", {
+    it("is stable, discriminating, and SHA-256 shaped", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "baseline"),
         data_generator = test_data_gen,
-        n_replicates = 10L,
         seed = 42L
       )
-
-      fp1 <- compute_config_fingerprint(config)
-      fp2 <- compute_config_fingerprint(config)
-
-      expect_equal(fp1, fp2)
-      expect_true(is.character(fp1))
-      expect_equal(nchar(fp1), 64) # SHA256 produces 64 hex characters
-    })
-
-    it("produces different hashes for different configs", {
-      config1 <- simulation_config(
-        data_grid = data.frame(n = 100),
-        fit_grid = data.frame(model = "A"),
-        data_generator = test_data_gen,
-        seed = 42L
-      )
-      config2 <- simulation_config(
+      variant <- simulation_config(
         data_grid = data.frame(n = 200),
-        fit_grid = data.frame(model = "A"),
+        fit_grid = data.frame(model = "baseline"),
         data_generator = test_data_gen,
         seed = 42L
       )
 
-      fp1 <- compute_config_fingerprint(config1)
-      fp2 <- compute_config_fingerprint(config2)
+      fp <- compute_config_fingerprint(config)
+      expect_equal(fp, compute_config_fingerprint(config))
+      expect_equal(nchar(fp), 64L)
+      expect_false(isTRUE(all.equal(fp, compute_config_fingerprint(variant))))
 
-      expect_true(!identical(fp1, fp2) && !isTRUE(all.equal(fp1, fp2)))
-    })
-
-    it("errors on non-SimulationConfig input", {
       expect_error(
         compute_config_fingerprint(list()),
         "config must be a SimulationConfig object"
       )
     })
+
+    it("B4: excludes runtime-only fields from study identity", {
+      base <- list(
+        data_grid = data.frame(a = 1),
+        fit_grid = data.frame(a = 1),
+        data_generator = test_data_gen,
+        seed = 42L,
+        n_replicates = 5L
+      )
+      cfg1 <- do.call(simulation_config, c(base, list(retain = c("metrics"))))
+      cfg2 <- do.call(
+        simulation_config,
+        c(base, list(retain = c("metrics", "diagnostics")))
+      )
+      expect_equal(
+        compute_config_fingerprint(cfg1),
+        compute_config_fingerprint(cfg2)
+      )
+      expect_identical(
+        config_fingerprint(cfg1),
+        compute_config_fingerprint(cfg1)
+      )
+    })
   })
 
   describe("get_total_tasks()", {
-    it("calculates correctly for simple config", {
+    it("multiplies grid sizes by replicates", {
       config <- simulation_config(
-        data_grid = data.frame(n = c(100, 500)), # 2 rows
-        fit_grid = data.frame(model = c("A", "B")), # 2 rows
+        data_grid = data.frame(n = c(100, 500)),
+        fit_grid = data.frame(model = c("A", "B")),
         data_generator = test_data_gen,
         n_replicates = 100L,
         seed = 42L
       )
+      expect_equal(get_total_tasks(config), 2 * 2 * 100)
 
-      expect_equal(get_total_tasks(config), 2 * 2 * 100) # 400
-    })
-
-    it("calculates correctly for single row grids", {
-      config <- simulation_config(
-        data_grid = data.frame(n = 100), # 1 row
-        fit_grid = data.frame(model = "A"), # 1 row
+      single <- simulation_config(
+        data_grid = data.frame(n = 100),
+        fit_grid = data.frame(model = "A"),
         data_generator = test_data_gen,
         n_replicates = 50L,
         seed = 42L
       )
-
-      expect_equal(get_total_tasks(config), 1 * 1 * 50) # 50
+      expect_equal(get_total_tasks(single), 50)
     })
 
-    it("calculates correctly for explicit task_grid", {
+    it("counts explicit task_grid rows directly", {
       config <- simulation_config(
         task_grid = tibble::tibble(
           data_spec = list(list(n = 10), list(n = 20), list(n = 30)),
@@ -1616,221 +721,98 @@ describe("SimulationConfig", {
         data_generator = test_data_gen,
         seed = 42L
       )
-
       expect_equal(get_total_tasks(config), 3)
-    })
-
-    it("errors on non-SimulationConfig input", {
-      expect_error(
-        get_total_tasks(list()),
-        "config must be a SimulationConfig object"
-      )
+      expect_error(get_total_tasks(list()), "config must be a SimulationConfig")
     })
   })
 })
-
 
 # =============================================================================
 # 6. Utility Functions (from utils.R)
 # =============================================================================
 
 describe("Utility Functions", {
-  describe("format_task_id() and parse_task_id()", {
-    it("format_task_id() creates correct format", {
-      expect_equal(format_task_id(1, 2, 100), "d001_f002_r00100")
-      expect_equal(format_task_id(999, 999, 99999), "d999_f999_r99999")
-    })
-
-    it("parse_task_id() extracts indices correctly", {
-      result <- parse_task_id("d001_f002_r00100")
-      expect_equal(result$data_idx, 1L)
-      expect_equal(result$fit_idx, 2L)
-      expect_equal(result$rep_idx, 100L)
-    })
-
-    it("format_task_id() and parse_task_id() are inverses", {
-      test_cases <- list(
-        c(1, 1, 1),
-        c(5, 10, 100),
-        c(123, 456, 7890),
-        c(999, 999, 99999)
-      )
-
-      for (case in test_cases) {
-        task_id <- format_task_id(case[1], case[2], case[3])
-        parsed <- parse_task_id(task_id)
-
-        expect_equal(parsed$data_idx, as.integer(case[1]))
-        expect_equal(parsed$fit_idx, as.integer(case[2]))
-        expect_equal(parsed$rep_idx, as.integer(case[3]))
-      }
-    })
-  })
-
-  describe("make_timer()", {
-    it("tracks time correctly", {
-      timer <- make_timer()
-
-      # Before starting
-      expect_equal(timer$elapsed(), 0)
-
-      timer$start()
-      Sys.sleep(0.1)
-      timer$stop()
-
-      elapsed <- timer$elapsed()
-      expect_gte(elapsed, 0.1)
-      expect_lt(elapsed, 0.5) # Should not take too long
-    })
-
-    it("returns 0 when not started", {
-      timer <- make_timer()
-      expect_equal(timer$elapsed(), 0)
-    })
-
-    it("returns current time when not stopped", {
-      timer <- make_timer()
-      timer$start()
-      Sys.sleep(0.05)
-
-      elapsed <- timer$elapsed()
-      expect_gte(elapsed, 0.05)
-    })
-
-    it("can be restarted", {
-      timer <- make_timer()
-      timer$start()
-      Sys.sleep(0.05)
-      timer$stop()
-
-      first_elapsed <- timer$elapsed()
-
-      timer$start()
-      Sys.sleep(0.05)
-      timer$stop()
-
-      second_elapsed <- timer$elapsed()
-      expect_lt(second_elapsed, first_elapsed + 0.1)
-    })
-  })
-
   describe("capture_error_info()", {
-    it("captures error details", {
-      err <- tryCatch(
-        stop("Test error message"),
-        error = function(e) e
-      )
-
+    it("captures class, message, call, and traceback from conditions", {
+      err <- tryCatch(stop("Test error message"), error = function(e) e)
       info <- capture_error_info(err)
 
-      expect_true(is.list(info))
-      expect_true("error_class" %in% names(info))
-      expect_true("error_message" %in% names(info))
-      expect_true("call" %in% names(info))
-      expect_true("traceback" %in% names(info))
+      expect_true(all(
+        c(
+          "error_class",
+          "error_message",
+          "call",
+          "traceback"
+        ) %in%
+          names(info)
+      ))
       expect_equal(info$error_message, "Test error message")
-    })
-
-    it("captures error class", {
-      err <- tryCatch(
-        stop(bayesim_config_error("Config error")),
-        error = function(e) e
-      )
-
-      info <- capture_error_info(err)
-      expect_true(grepl("bayesim_config_error", info$error_class, fixed = TRUE))
-    })
-
-    it("handles errors without call", {
-      err <- simpleError("Error without call")
-      info <- capture_error_info(err)
-
-      expect_equal(info$error_message, "Error without call")
-      expect_null(info$call)
-    })
-
-    it("limits traceback length", {
-      # Create a deeply nested call to generate long traceback
-      err <- tryCatch(
-        {
-          f1 <- function() f2()
-          f2 <- function() f3()
-          f3 <- function() stop("Nested error")
-          f1()
-        },
-        error = function(e) e
-      )
-
-      info <- capture_error_info(err)
-      # traceback should be limited
       expect_lte(length(info$traceback), 20)
+    })
+
+    it("preserves calls from the original error site", {
+      inner_failure <- function() stop("nested error")
+      outer_failure <- function() inner_failure()
+      info <- rlang::try_fetch(
+        outer_failure(),
+        error = capture_error_info
+      )
+
+      expect_true(any(grepl("inner_failure", info$traceback, fixed = TRUE)))
+      expect_false(any(grepl("tryCatchOne", info$traceback, fixed = TRUE)))
+    })
+
+    it("preserves attached traces after the handler unwinds", {
+      inner_failure <- function() stop("nested error")
+      err <- rlang::try_fetch(
+        inner_failure(),
+        error = function(e) {
+          normalized <- bayesim_fit_error(conditionMessage(e))
+          normalized$trace <- rlang::trace_back()
+          normalized
+        }
+      )
+
+      info <- capture_error_info(err)
+      expect_true(any(grepl("inner_failure", info$traceback, fixed = TRUE)))
     })
   })
 
   describe("flatten_with_prefix()", {
-    it("flattens simple list without nested vectors", {
-      x <- list(a = 1, b = 2, c = 3)
-      result <- flatten_with_prefix(x, "test")
+    it("flattens scalars and named vectors with a shared prefix", {
+      result <- flatten_with_prefix(
+        list(a = 1, b = c(x = 2, y = 3), c = 4),
+        "param"
+      )
 
       expect_equal(result$a, 1)
-      expect_equal(result$b, 2)
-      expect_equal(result$c, 3)
-    })
-
-    it("flattens named numeric vectors with prefix", {
-      x <- list(b = c(x = 2, y = 3))
-      result <- flatten_with_prefix(x, "param")
-
-      # flatten_with_prefix uses "__" separator for all parts
-      expect_equal(result$param__b__x, 2)
-      expect_equal(result$param__b__y, 3)
-    })
-
-    it("handles mixed list correctly", {
-      x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
-      result <- flatten_with_prefix(x, "param")
-
-      expect_equal(result$a, 1)
-      # flatten_with_prefix uses "__" separator for all parts
       expect_equal(result$param__b__x, 2)
       expect_equal(result$param__b__y, 3)
       expect_equal(result$c, 4)
     })
 
-    it("does not flatten unnamed vectors", {
-      x <- list(a = c(1, 2, 3)) # unnamed vector
-      result <- flatten_with_prefix(x, "test")
-
-      expect_equal(result$a, c(1, 2, 3))
-    })
-
-    it("does not flatten single-element vectors", {
-      x <- list(a = c(value = 1))
-      result <- flatten_with_prefix(x, "test")
-
-      expect_equal(result$a, c(value = 1))
+    it("does not flatten unnamed or single-element vectors", {
+      expect_equal(
+        flatten_with_prefix(list(a = c(1, 2, 3)), "test")$a,
+        c(1, 2, 3)
+      )
+      expect_equal(
+        flatten_with_prefix(list(a = c(value = 1)), "test")$a,
+        c(value = 1)
+      )
     })
   })
 
   describe("Hashing utilities", {
-    it("compute_hash() produces consistent hashes", {
-      obj <- list(a = 1, b = "test")
-      h1 <- compute_hash(obj)
-      h2 <- compute_hash(obj)
-
-      expect_equal(h1, h2)
-      expect_true(is.character(h1))
-    })
-
-    it("compute_hash() produces different hashes for different objects", {
-      h1 <- compute_hash(list(a = 1))
-      h2 <- compute_hash(list(a = 2))
-
-      expect_true(!identical(h1, h2) && !isTRUE(all.equal(h1, h2)))
+    it("compute_hash() is stable and discriminating", {
+      expect_equal(compute_hash(list(a = 1)), compute_hash(list(a = 1)))
+      expect_false(isTRUE(all.equal(
+        compute_hash(list(a = 1)),
+        compute_hash(list(a = 2))
+      )))
     })
   })
 })
-
 
 # =============================================================================
 # 7. Validators (from contracts.R)
@@ -1838,92 +820,44 @@ describe("Utility Functions", {
 
 describe("Validators", {
   describe("validate_data_bundle()", {
-    # Check if function exists
-    validator_exists <- exists("validate_data_bundle", mode = "function")
-
-    it("accepts valid bundles", {
-      skip_if_not(validator_exists, "validate_data_bundle not implemented")
-
-      bundle <- list(
+    it("accepts bundles with and without a held-out test set", {
+      with_test <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = data.frame(x = 1:5, y = rnorm(5)),
         response = "y",
         true_params = c(beta = 1.0, sigma = 0.5),
-        vars_of_interest = c("beta", "sigma"),
-        references = c(beta = 0, sigma = 1)
+        vars_of_interest = c("beta", "sigma")
       )
-      expect_silent(validate_data_bundle(bundle))
-    })
-
-    it("accepts bundles without test data", {
-      skip_if_not(validator_exists, "validate_data_bundle not implemented")
-
-      bundle <- list(
+      without_test <- list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = NULL,
         response = "y",
         true_params = c(param1 = 1.0, param2 = 2.0),
-        vars_of_interest = c("param1", "param2"),
-        references = c(param1 = 0.0, param2 = 0.0)
+        vars_of_interest = c("param1", "param2")
       )
-      expect_silent(validate_data_bundle(bundle))
+      expect_silent(validate_data_bundle(with_test))
+      expect_silent(validate_data_bundle(without_test))
     })
 
-    it("rejects bundles without train data", {
-      skip_if_not(validator_exists, "validate_data_bundle not implemented")
-
-      bundle <- list(
+    it("rejects bundles missing train data or the response variable", {
+      expect_error(validate_data_bundle(list(
         train = NULL,
         test = NULL,
         response = "y"
-      )
-      expect_error(validate_data_bundle(bundle))
-    })
-
-    it("rejects bundles without response", {
-      skip_if_not(validator_exists, "validate_data_bundle not implemented")
-
-      bundle <- list(
+      )))
+      expect_error(validate_data_bundle(list(
         train = data.frame(x = 1:10, y = rnorm(10)),
         test = NULL
-      )
-      expect_error(validate_data_bundle(bundle))
-    })
-
-    it("rejects non-list input", {
-      skip_if_not(validator_exists, "validate_data_bundle not implemented")
+      )))
       expect_error(validate_data_bundle("not a list"))
     })
   })
 
-  describe("validate_fitter_interface()", {
-    validator_exists <- exists("validate_fitter_interface", mode = "function")
+  describe("validate_fitter() / validate_metric()", {
+    it("accept typed objects and reject untyped input", {
+      expect_silent(validate_fitter(MockFitter()))
+      expect_error(validate_fitter("not a fitter"))
 
-    it("accepts valid Fitter objects", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-
-      fitter <- MockFitter()
-      expect_silent(validate_fitter_interface(fitter))
-    })
-
-    it("rejects non-Fitter objects", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-      expect_error(validate_fitter_interface("not a fitter"))
-    })
-
-    it("rejects NULL", {
-      skip_if_not(validator_exists, "validate_fitter_interface not implemented")
-      expect_error(validate_fitter_interface(NULL))
-    })
-  })
-
-  describe("validate_metric_interface()", {
-    validator_exists <- exists("validate_metric_interface", mode = "function")
-
-    it("accepts valid Metric objects", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-
-      # Define a test metric inline with name property set
       TestMetricForValidation <- S7::new_class(
         "TestMetricForValidation",
         parent = Metric,
@@ -1931,18 +865,9 @@ describe("Validators", {
           name = S7::new_property(S7::class_character, default = "test_metric")
         )
       )
-      metric <- TestMetricForValidation(name = "test_metric")
-      expect_silent(validate_metric_interface(metric))
-    })
-
-    it("rejects non-Metric objects", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-      expect_error(validate_metric_interface("not a metric"))
-    })
-
-    it("rejects NULL", {
-      skip_if_not(validator_exists, "validate_metric_interface not implemented")
-      expect_error(validate_metric_interface(NULL))
+      expect_silent(validate_metric(TestMetricForValidation(name = "tm")))
+      expect_error(validate_metric("not a metric"))
+      expect_error(validate_metric(NULL))
     })
   })
 })

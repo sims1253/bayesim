@@ -1,10 +1,9 @@
 # Package metadata
-url: https://sims1253.github.io/bayesim
+url: https://sims1253.github.io/bayesim/
 
 template:
   bootstrap: 5
 
-# Development mode - release version 1.0.1 is on CRAN
 development:
   mode: auto
 
@@ -29,22 +28,30 @@ navbar:
     articles:
       text: Articles
       menu:
-        - text: Getting Started
+        - text: Get started
           href: articles/getting-started.html
         - text: -------
-        - text: Simulation Studies
-          href: articles/simulation-study.html
+        - text: Learn
+        - text: Design of simulation studies
+          href: articles/design-of-simulation-studies.html
+        - text: SBC and calibration
+          href: articles/sbc-and-calibration.html
         - text: -------
-        - text: Custom Fitters
+        - text: Backends
+        - text: brms studies
+          href: articles/brms-studies.html
+        - text: Custom fitters
           href: articles/custom-fitters.html
+        - text: Custom metrics
+          href: articles/custom-metrics.html
         - text: -------
+        - text: Operations
+        - text: Parallel execution, HPC, and memory
+          href: articles/parallel-and-hpc.html
         - text: Reproducibility
           href: articles/reproducibility.html
-        - text: Memory Management
-          href: articles/memory-management.html
-        - text: -------
-        - text: Case Studies
-          href: articles/case-studies.html
+        - text: Running bayesim with targets
+          href: articles/targets.html
     news:
       text: News
       href: news/index.html
@@ -54,118 +61,126 @@ navbar:
 
 # Reference organization by function purpose
 reference:
-  - title: Configuration
+  - title: Design and run studies
     desc: >
-      Functions for configuring simulation studies
+      Configure and execute simulation studies
     contents:
       - simulation_config
-      - is_simulation_config
-      - validate_config_completeness
-      - get_total_tasks
-      - compute_config_fingerprint
-      - as_config_spec
-
-  - title: Running Simulations
-    desc: >
-      Functions for executing simulation studies
-    contents:
       - run_simulation
       - resume_simulation
-      - can_resume
+      - preflight
+      - n_replicates_for_target
+      - config_fingerprint
 
   - title: Fitters
     desc: >
-      Classes for fitting Bayesian models
+      Classes and generics for fitting Bayesian models
     contents:
       - Fitter
+      - LinearRegressionFitter
       - BrmsFitter
-      - MockFitter
-      - fit
+      - CmdStanFitter
+      - brms_model
+      - model_grid
+      - fit_model
       - extract_draws
       - predict_fit
-      - log_lik
-      - loo
-      - diagnostics
-      - validate_fitter
+      - predict_epred
+      - log_lik_matrix
+      - loo_fit
+      - fit_diagnostics
+      - new_fit_result
+
+  - title: Generators
+    desc: >
+      Factory constructors for simulation data generators
+    contents:
+      - fixed_truth_generator
+      - prior_predictive_generator
+      - ifs_generator
+      - prior_draws_generator
+      - forward_sim_generator
 
   - title: Metrics
     desc: >
       Classes and built-in metrics for computing simulation results
     contents:
       - Metric
-      - compute
-      - rmse_metric
-      - bias_metric
+      - compute_metric
+      - posterior_summary_metric
       - coverage_metric
-      - posterior_mean_metric
-      - validate_metric_output
-      - flatten_metric_output
+      - rank_metric
+      - pos_prob_metric
+      - sampler_diagnostics_metric
+      - pred_rmse_metric
+      - pred_bias_metric
+      - pred_mae_metric
+      - pred_mse_metric
+      - elpd_loo_metric
+      - rmse_loo_metric
+      - r2_loo_metric
+      - elpd_test_metric
+      - r2_test_metric
 
-  - title: Results
+  - title: Analysis and reporting
     desc: >
-      Functions for working with simulation results
+      Summaries, SBC diagnostics, and plotting functions for simulation results
     contents:
-      - is_bayesim_fit_result
-      - validate_bayesim_fit_result
-      - new_fit_result
-      - new_task_result
-      - new_simulation_result
+      - summarize_simulation
+      - metric_cols
+      - performance_measures
+      - failed_tasks
+      - sbc_ranks
+      - plot_rank_hist
+      - plot_rank_ecdf
+      - plot_recovery
+      - plot_coverage
+      - plot_metric
+      - render_report
+      - read_summary
 
-  - title: Checkpointing
+  - title: Extension support
     desc: >
-      Functions for checkpoint and resume functionality
+      Validators, error constructors, and classifiers for extending bayesim
     contents:
-      - init_checkpoint_dir
-      - write_checkpoint
-      - read_checkpoint
-      - get_resume_summary
-      - load_for_resume
-
-  - title: Retention
-    desc: >
-      Control what artifacts are retained in results
-    contents:
-      - resolve_retention
-      - RETENTION_PROFILES
-
-  - title: Utilities
-    desc: >
-      Helper functions and utilities
-    contents:
-      - "%||%"
-      - format_task_id
-      - make_task_id
-      - resolve_retention
+      - validate_data_bundle
+      - validate_fitter
+      - validate_metric
+      - bayesim_config_error
+      - bayesim_contract_error
+      - bayesim_data_error
+      - bayesim_fit_error
+      - bayesim_metric_error
+      - is_bayesim_error
+      - is_fatal_error
+      - is_recoverable_error
 
 # Articles organization
 articles:
-  - title: Getting Started
+  - title: Get started
     contents:
       - getting-started
 
-  - title: Simulation Studies
+  - title: Learn
     contents:
-      - simulation-study
+      - design-of-simulation-studies
+      - sbc-and-calibration
 
-  - title: Extending bayesim
+  - title: Backends and extension
     contents:
+      - brms-studies
       - custom-fitters
+      - custom-metrics
 
-  - title: Advanced Topics
+  - title: Operations
     contents:
+      - parallel-and-hpc
       - reproducibility
-      - memory-management
-
-  - title: Case Studies
-    contents:
-      - case-studies
+      - targets
 
 # News configuration
 news:
-  cran_dates: true
-  releases:
-    - text: "Version 1.0.1"
-      href: https://cran.r-project.org/package=bayesim
+  cran_dates: false
 
 # Footer configuration
 footer:

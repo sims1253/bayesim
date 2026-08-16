@@ -4,7 +4,14 @@
 \alias{build_metric_context}
 \title{Build context for metrics computation}
 \usage{
-build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
+build_metric_context(
+  fit_result,
+  fitter,
+  data_bundle,
+  metrics,
+  seed = NULL,
+  retain = character()
+)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object from a successful fit}
@@ -14,24 +21,32 @@ build_metric_context(fit_result, fitter, data_bundle, metrics, seed = NULL)
 \item{data_bundle}{A validated data bundle list}
 
 \item{metrics}{List of S7 Metric objects}
+
+\item{retain}{Retention specification. Requesting \code{"predictions"} computes
+predictions even when no metric needs them.}
 }
 \value{
 A named list containing any of:
 \itemize{
 \item \code{predictions}: Prediction results from the fitter
-\item \code{log_lik}: Pointwise log-likelihood matrix
+\item \code{log_lik}: Pointwise log-likelihood matrix (S x N)
 \item \code{loo}: LOO-CV results
 }
 }
 \description{
-Precomputes predictions, log_lik, loo based on metric needs.
-Only computes what is needed by the metrics, and only if the fitter
-supports it.
+Precomputes predictions, log_lik, and loo based on metric needs and retained
+predictions. Only computes requested context that the fitter supports.
 }
 \details{
 The function inspects the \code{needs} property of each metric to determine
 what context elements are required. It then checks if the fitter supports
 each capability and computes them. Any errors during computation result
 in NULL values for that context element.
+
+Evaluation data: \code{predictions} and \code{log_lik} are computed on the TEST set
+when \code{data_bundle$test} is present, otherwise on the training set. Every
+built-in metric that consumes them (\verb{pred_*}, \code{elpd_test}, \code{r2_test}) compares against the test response, so the predictions must be
+for the test rows. The LOO context is always built on the training set —
+leave-one-out is in-sample by construction.
 }
 \keyword{internal}

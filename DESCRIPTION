@@ -1,7 +1,7 @@
 Package: bayesim
 Title: Simulation Framework for Bayesian Modeling
-Version: 1.0.1
-URL: https://sims1253.github.io/bayesim, https://github.com/sims1253/bayesim
+Version: 2.0.0
+URL: https://sims1253.github.io/bayesim/, https://github.com/sims1253/bayesim
 BugReports: https://github.com/sims1253/bayesim/issues
 Authors@R: c(
     person("Maximilian", "Scholz", , "research.scholz@mailbox.org", 
@@ -9,71 +9,84 @@ Authors@R: c(
     person("Paul-Christian", "Bürkner", , "paul.buerkner@gmail.com", 
            role = "aut")
   )
-Description: A modern simulation framework for Bayesian modeling studies.
-    Provides extensible tools for running complex simulation studies with
-    deterministic reproducibility, checkpoint/resume capabilities, and 
-    memory-bounded execution. Users can extend with custom fitters, metrics,
-    and data generators.
+Author: Maximilian Scholz [aut, cre], Paul-Christian Bürkner [aut]
+Maintainer: Maximilian Scholz <research.scholz@mailbox.org>
+Description: A framework for designing and running simulation studies of
+    Bayesian models: parameter recovery, calibration checking via
+    simulation-based calibration, model comparison, and method evaluation.
+    Studies are declared as grids of data-generating conditions, models, and
+    replicates, and executed with deterministic reproducibility,
+    checkpoint/resume support, and bounded memory use. Extensible with
+    custom fitters, metrics, and data generators.
 License: GPL (>= 3)
 Config/testthat/edition: 3
 Encoding: UTF-8
 Depends: 
     R (>= 4.1.0)
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 Collate: 
     'bayesim-package.R'
     'zzz.R'
     'errors.R'
     'utils.R'
+    's7-validators.R'
     'results.R'
     'fitter.R'
     'metric.R'
+    'lifecycle.R'
     'simulation-config.R'
     'example-data-generator.R'
+    'generators.R'
     'contracts.R'
     'rng.R'
     'task-grid.R'
     'worker.R'
-    'metric-registry.R'
     'simulate.R'
     'checkpoint.R'
+    'run-store.R'
+    'io-parquet.R'
     'resume.R'
     'retention.R'
+    'model-bank.R'
     'brms-fitter.R'
+    'linear-regression-fitter.R'
+    'cmdstan-fitter.R'
+    'model-grid.R'
+    'runtime-ux.R'
     'metrics-built-in.R'
+    'metrics-extended.R'
+    'sbc-bands.R'
+    'analysis.R'
     'global_imports.R'
 Imports:
     S7,
+    carrier,
     cli (>= 3.6.0),
     digest (>= 0.6.30),
-    dplyr (>= 1.1.0),
-    future.apply (>= 1.11.0),
     jsonlite (>= 1.8.0),
-    lifecycle (>= 1.0.3),
+    loo,
+    mirai,
     parallel,
+    posterior,
+    purrr (>= 1.1.0),
     rlang (>= 1.1.0),
     stats,
     tibble (>= 3.2.0),
     utils,
     withr (>= 2.5.0)
 Suggests:
-    arrow (>= 14.0.0),
-    bayesfam,
-    bayeshear,
     brms (>= 2.22.0),
     cmdstanr (>= 0.7.0),
-    future (>= 1.33.0),
     ggplot2,
-    MASS,
-    rstan (>= 2.32.0),
-    SBC,
-    testthat (>= 3.1.0),
     knitr,
-    rmarkdown
-Remotes:
-    stan-dev/cmdstanr,
-    sims1253/bayesfam,
-    sims1253/bayeshear,
-    hyunjimoon/SBC
+    MASS,
+    nanoparquet,
+    quarto,
+    ranger,
+    rmarkdown,
+    rstan (>= 2.32.0),
+    testthat (>= 3.1.0)
+Additional_repositories:
+    https://stan-dev.r-universe.dev
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

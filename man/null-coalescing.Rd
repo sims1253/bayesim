@@ -18,7 +18,4 @@ x \%||\% y
 \description{
 Returns \code{x} if not NULL, otherwise \code{y}.
 }
-\examples{
-NULL \%||\% "default"  # returns "default"
-"value" \%||\% "default"  # returns "value"
-}
+\keyword{internal}

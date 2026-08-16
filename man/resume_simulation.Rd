@@ -4,18 +4,28 @@
 \alias{resume_simulation}
 \title{Resume a simulation from an existing result directory}
 \usage{
-resume_simulation(result_path, config = NULL, progress = TRUE)
+resume_simulation(result_path, config = NULL, progress = TRUE, verbose = TRUE)
 }
 \arguments{
 \item{result_path}{Character path to an existing result directory}
 
-\item{config}{Optional SimulationConfig object}
+\item{config}{Optional SimulationConfig object. When omitted, bayesim
+rebuilds the config from the run manifest. That works only when every
+executable component (data generator, fitter, metrics) is a namespaced
+package function or class. The run manifest cannot rehydrate
+script-defined closures, such as the return value of
+\code{\link[=fixed_truth_generator]{fixed_truth_generator()}} or any generator defined in your script: R can
+serialize closures, but configless resume intentionally does not restore
+arbitrary executable closures. Those runs require the original \code{config}.}
 
 \item{progress}{Logical; if TRUE, show progress bar}
+
+\item{verbose}{Logical; if TRUE, print lifecycle messages independently of
+the progress bar.}
 }
 \value{
 A bayesim_simulation_result S3 object
 }
 \description{
-Resume a simulation from an existing result directory
+Calls \code{\link[=run_simulation]{run_simulation()}} with \code{resume = "must"}.
 }

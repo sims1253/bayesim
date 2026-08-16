@@ -9,7 +9,16 @@ write_checkpoint(
   task_grid,
   task_results,
   config_fingerprint,
-  checkpoint_format = "rds"
+  checkpoint_format = "rds",
+  keep_checkpoints = Inf,
+  prior_results_df = NULL,
+  prior_task_results = NULL,
+  adaptive_next_check = NULL,
+  adaptive_state = NULL,
+  run_policy_spec = NULL,
+  prior_checkpoint = NULL,
+  return_state = FALSE,
+  delta_store = FALSE
 )
 }
 \arguments{
@@ -27,6 +36,36 @@ results from completed tasks.}
 configuration for validation purposes.}
 
 \item{checkpoint_format}{Character scalar naming the checkpoint storage format.}
+
+\item{keep_checkpoints}{Positive integer; number of checkpoint commit
+directories to retain. Older commit directories are pruned only after the
+new checkpoint commit and \code{latest.json} have been written successfully.
+Pruning never removes immutable outcome shards or ledger history, so
+durable storage grows roughly linearly with completed tasks. \code{Inf}
+disables pruning for direct/internal callers.}
+
+\item{prior_results_df}{Optional cached data frame of results from before the
+current execution. When supplied, it replaces the legacy read of the
+previous checkpoint.}
+
+\item{prior_task_results}{Optional canonical task outcomes from before the
+current execution, used when migrating legacy checkpoints.}
+
+\item{adaptive_next_check}{Optional persisted adaptive-check threshold.}
+
+\item{adaptive_state}{Optional persistable adaptive precision snapshot.}
+
+\item{run_policy_spec}{Optional serialized effective run policy.}
+
+\item{prior_checkpoint}{Optional validated in-memory checkpoint state. The
+filesystem store supplies this to keep live append work proportional to
+newly completed tasks.}
+
+\item{return_state}{Logical; return the validated checkpoint state instead
+of only its numeric ID.}
+
+\item{delta_store}{Logical; write immutable outcome and ledger deltas instead
+of legacy full snapshots.}
 }
 \value{
 Invisible checkpoint ID (integer), or NULL if result_path is NULL.
@@ -41,10 +80,19 @@ The checkpoint directory structure is:
 checkpoints/
 +-- cp_000001/
     +-- meta.json         # checkpoint metadata
-    +-- ledger.rds        # task grid with status
-    +-- results.rds       # metrics + diagnostics per task
+    +-- ledger.rds        # ledger view (delta in delta-store mode)
+    +-- results.rds       # results view (delta in delta-store mode)
     +-- checksums.json    # file integrity checksums
 }
+
+With \code{delta_store = TRUE}, each checkpoint commit directory is an atomic
+commit record: its \code{meta.json} plus the delta views above. Newly completed
+outcomes are appended once as immutable, redundantly mirrored shards under
+\verb{outcomes/}, and task statuses under \verb{ledger/} are a base ledger plus
+status deltas. Readers reconstruct the accumulated run state from the
+shards a commit references; they never rewrite history. With
+\code{delta_store = FALSE} (legacy snapshot mode for direct/internal callers),
+the checkpoint directory itself carries the snapshot views.
 
 Atomic write protocol:
 \enumerate{

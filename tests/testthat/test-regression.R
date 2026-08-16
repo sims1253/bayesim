@@ -309,7 +309,6 @@ describe("MockFitter Contract Compliance", {
     response = "y",
     true_params = c(beta = 1.0),
     vars_of_interest = "beta",
-    references = c(beta = 0),
     meta = list()
   )
   fit_spec <- list(model = "baseline")
@@ -320,9 +319,9 @@ describe("MockFitter Contract Compliance", {
     rep_idx = 1
   )
 
-  describe("fit() return value", {
+  describe("fit_model() return value", {
     it("returns bayesim_fit_result (not just classed list)", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -334,7 +333,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns result with all required fields", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -353,7 +352,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns success=TRUE for valid input", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -364,7 +363,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns draws matrix with colnames", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -378,7 +377,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns timing with total, warmup, sample components", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -397,7 +396,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns diagnostics as named list", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -411,7 +410,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns warnings as character vector", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -423,7 +422,7 @@ describe("MockFitter Contract Compliance", {
     })
 
     it("returns NULL error when successful", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -436,7 +435,7 @@ describe("MockFitter Contract Compliance", {
 
   describe("draws matrix structure", {
     it("has colnames for all parameters", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -453,7 +452,7 @@ describe("MockFitter Contract Compliance", {
 
   describe("validation", {
     it("passes validate_bayesim_fit_result", {
-      result <- fit(
+      result <- fit_model(
         fitter,
         data_bundle,
         fit_spec,
@@ -517,7 +516,7 @@ describe("Serialization Safety", {
     })
 
     it("never digests S7 objects - returns list of plain lists", {
-      metrics <- list(rmse_metric())
+      metrics <- list(pred_rmse_metric())
       result <- capture_metrics_spec(metrics)
 
       # Result should be a list of lists
@@ -532,7 +531,7 @@ describe("Serialization Safety", {
     })
 
     it("captures S7 metric specs as plain metadata", {
-      metrics <- list(rmse_metric(), bias_metric())
+      metrics <- list(pred_rmse_metric(), pred_bias_metric())
       result <- capture_metrics_spec(metrics)
 
       expect_type(result, "list")
@@ -625,10 +624,16 @@ describe("flatten_with_prefix()", {
 describe("NULL Safety in MockFitter", {
   fitter <- MockFitter()
 
-  describe("fit() with NULL data_bundle", {
+  describe("fit_model() with NULL data_bundle", {
     it("throws error for NULL data_bundle$train", {
       expect_error(
-        fit(fitter, list(train = NULL), list(), seed = 123L, task_ctx = list()),
+        fit_model(
+          fitter,
+          list(train = NULL),
+          list(),
+          seed = 123L,
+          task_ctx = list()
+        ),
         class = "bayesim_contract_error"
       )
     })
@@ -651,7 +656,7 @@ describe("NULL Safety in MockFitter", {
     })
 
     it("handles NULL fit_result by extracting from list structure", {
-      # When called internally from fit(), it passes a list not a bayesim_fit_result
+      # When called internally from fit_model(), it passes a list not a bayesim_fit_result
       fit_obj <- list(
         seed = 42L,
         data_bundle = list(train = data.frame(y = 1:5)),
@@ -672,7 +677,7 @@ describe("NULL Safety in MockFitter", {
         response = "y"
       )
 
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         list(model = "baseline"),
@@ -687,7 +692,7 @@ describe("NULL Safety in MockFitter", {
     })
   })
 
-  describe("log_lik() with NULL newdata", {
+  describe("log_lik_matrix() with NULL newdata", {
     it("handles NULL newdata by using training data", {
       data_bundle <- list(
         train = data.frame(y = 1:10, x = 1:10),
@@ -695,7 +700,7 @@ describe("NULL Safety in MockFitter", {
         response = "y"
       )
 
-      fit_result <- fit(
+      fit_result <- fit_model(
         fitter,
         data_bundle,
         list(model = "baseline"),
@@ -703,14 +708,16 @@ describe("NULL Safety in MockFitter", {
         task_ctx = list(task_id = "test")
       )
 
-      # Should not error when newdata is NULL
-      ll <- log_lik(fitter, fit_result, newdata = NULL)
+      # Should not error when newdata is NULL.
+      # Convention: log_lik is S x N (draws x observations), so the number of
+      # columns equals the number of observations in the training data.
+      ll <- log_lik_matrix(fitter, fit_result, newdata = NULL)
       expect_true(is.matrix(ll))
-      expect_equal(nrow(ll), 10) # n_obs from training data
+      expect_equal(ncol(ll), 10) # n_obs from training data
     })
   })
 
-  describe("diagnostics() with NULL/empty diagnostics", {
+  describe("fit_diagnostics() with NULL/empty diagnostics", {
     it("returns default diagnostics for fit_result with empty diagnostics", {
       data_bundle <- list(
         train = data.frame(y = 1:10, x = 1:10)
@@ -723,7 +730,7 @@ describe("NULL Safety in MockFitter", {
       )
       class(fit_result) <- "bayesim_fit_result"
 
-      result <- diagnostics(fitter, fit_result)
+      result <- fit_diagnostics(fitter, fit_result)
       expect_type(result, "list")
       expect_true("rhat_max" %in% names(result))
     })

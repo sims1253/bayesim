@@ -9,7 +9,7 @@ predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)
 \arguments{
 \item{fitter}{An S7 Fitter object}
 
-\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit]{fit()}}}
+\item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit_model]{fit_model()}}}
 
 \item{newdata}{Data frame with new observations for prediction.
 If NULL, predictions are generated for the original training data.}
@@ -19,11 +19,16 @@ If NULL, predictions are generated for the original training data.}
 \value{
 A list containing:
 \itemize{
-\item \code{predicted_mean}: Vector of mean predictions (N)
-\item \code{predicted_samples}: Matrix of posterior predictive samples (N x S)
-\item \code{predicted_sd}: Vector of prediction standard deviations (N)
+\item \code{predicted_mean}: Vector of mean predictions (length N)
+\item \code{predicted_samples}: Matrix of posterior predictive samples
+(S x N; draws as rows, observations as columns)
+\item \code{predicted_sd}: Vector of prediction standard deviations (length N)
 \item Additional fitter-specific outputs
 }
+
+\code{predicted_samples} follows the same orientation convention as
+\code{\link[=log_lik_matrix]{log_lik_matrix()}} and \code{\link[=predict_epred]{predict_epred()}}: all matrices are draws x observations
+(S rows, N columns).
 }
 \description{
 Generate predictions from a fitted model.

@@ -13,7 +13,7 @@ run_task_safe(
 )
 }
 \arguments{
-\item{task}{A task specification list (from get_task_spec)}
+\item{task}{A task specification list from the task grid.}
 
 \item{config_spec}{Plain list config spec (for worker transport)}
 

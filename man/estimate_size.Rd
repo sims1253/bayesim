@@ -16,7 +16,9 @@ Size in bytes as numeric
 Estimates the memory size of an R object in bytes.
 }
 \examples{
+\dontrun{
 estimate_size(1:1000)
 estimate_size(iris)
+}
 }
 \keyword{internal}

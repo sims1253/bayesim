@@ -1,0 +1,6 @@
+[lint]
+# Keep jarl's default rule set and its default exclusions for generated files.
+default-exclude = true
+# The package's own tests and vignettes access bayesim internals via `:::`,
+# which is standard practice for a package's own test suite.
+ignore = ["internal_function"]

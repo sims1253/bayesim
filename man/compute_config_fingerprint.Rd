@@ -7,10 +7,11 @@
 compute_config_fingerprint(config)
 }
 \arguments{
-\item{config}{An S7 SimulationConfig object.}
+\item{config}{An S7 SimulationConfig object or a \code{StudySpec} created by
+\code{\link[=new_study_spec]{new_study_spec()}}.}
 }
 \value{
-A character string containing the SHA256 hash of the configuration.
+A character string containing the SHA256 hash of the study design.
 }
 \description{
 Computes a cryptographic hash of the simulation configuration.
@@ -18,10 +19,15 @@ The fingerprint uniquely identifies a simulation configuration
 for caching and deduplication purposes.
 }
 \details{
-The fingerprint excludes runtime-specific settings:
+The fingerprint excludes runtime policy settings (B4):
 \itemize{
 \item \code{result_path}: Output location doesn't affect simulation identity
-\item \code{checkpoint_every}: Checkpoint frequency is runtime optimization
+\item \code{checkpoint_every} / \code{checkpoint_format}: checkpoint cadence/format is runtime optimization
+\item \code{retain}: retention is runtime policy; fingerprint exclusion does not
+make every retention change legal on resume (a compatible resume may
+narrow retention; widening is rejected once completed outcomes lack the
+requested artifacts)
+\item \code{max_errors}: error tolerance is runtime policy
 }
 }
 \examples{
@@ -38,3 +44,4 @@ fingerprint <- compute_config_fingerprint(config)
 # Use fingerprint for caching or deduplication
 }
 }
+\keyword{internal}

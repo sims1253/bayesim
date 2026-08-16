@@ -4,12 +4,15 @@
 \alias{load_for_resume}
 \title{Load Run for Resume}
 \usage{
-load_for_resume(result_path, config)
+load_for_resume(result_path, config, run_store = NULL)
 }
 \arguments{
 \item{result_path}{Character; path to results directory containing checkpoints.}
 
 \item{config}{SimulationConfig; current configuration object.}
+
+\item{run_store}{Optional internal \code{\link[=new_run_store]{new_run_store()}} adapter. When supplied,
+it owns checkpoint reads and corruption fallback.}
 }
 \value{
 A list with elements:

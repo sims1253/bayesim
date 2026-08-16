@@ -52,6 +52,7 @@ Validation rules:
 }
 }
 \examples{
+\dontrun{
 # Successful fit
 draws <- matrix(rnorm(1000), ncol = 2, nrow = 500)
 colnames(draws) <- c("alpha", "beta")
@@ -70,4 +71,7 @@ result <- new_fit_result(
   timing = list(total = 2.0, warmup = 2.0, sample = 0)
 )
 }
-\keyword{internal}
+}
+\seealso{
+\link{Fitter}, \code{\link[=fit_model]{fit_model()}}
+}

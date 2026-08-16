@@ -4,7 +4,13 @@
 \alias{Metric}
 \title{Metric Abstract Class}
 \usage{
-Metric(name = character(0), needs = character(0), required = FALSE)
+Metric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean",
+  schema = list()
+)
 }
 \arguments{
 \item{name}{Character identifier for the metric. Used as a prefix when
@@ -19,20 +25,37 @@ them.}
 failure. If TRUE, an error in computing this metric will propagate and
 fail the entire task. If FALSE (default), metric failure results in
 NA values being recorded.}
+
+\item{summary_type}{Character; how \code{\link[=summarize_simulation]{summarize_simulation()}} aggregates this
+metric's flattened columns: \code{"mean"} (default, sd/sqrt(n) MCSE),
+\code{"proportion"} (coverage-style sqrt(p(1-p)/n) MCSE), or \code{"none"}.}
+
+\item{schema}{Named list of field-level metadata. Each emitted field can
+declare a \code{role} (\code{estimate}, \code{binary}, \code{count}, \code{diagnostic}, \code{rank}, or
+\code{artifact}), an \code{aggregation} (\code{mean}, \code{proportion}, or \code{none}), an MCSE
+method (\code{sd}, \code{binomial}, or \code{none}), and optional \code{nominal}, \code{units}, or
+\code{dimension} metadata. \code{summary_type} remains supported as a compatibility
+default for metrics that do not declare a schema.}
 }
 \value{
-An S7 class object representing a Metric.
+An S7 class object representing the abstract Metric base class.
+Construct subclasses directly (e.g. \code{MyMetric()}); do not call \code{Metric()}.
 }
 \description{
 Abstract base class for defining simulation metrics in bayesim.
 Metrics compute summary statistics or diagnostic values from fitted model
-results and data bundles.
+results and data bundles. \code{Metric} is abstract: it has no direct
+instances, so calling \code{Metric()} errors. Subclasses are created with
+\code{S7::new_class(..., parent = Metric)} and instantiated directly. Because
+the parent is abstract, S7 honors the defaults a subclass declares for
+the inherited \code{name}/\code{needs}/\code{required}/\code{summary_type}/\code{schema}
+properties when the subclass constructor is called.
 }
 \section{Methods}{
 
-The \code{compute()} S7 generic must be implemented by subclasses.
+The \code{compute_metric()} S7 generic must be implemented by subclasses.
 \describe{
-\item{compute(metric, fit_result, data_bundle, context, task_ctx)}{
+\item{compute_metric(metric, fit_result, data_bundle, context, task_ctx)}{
 Compute metric values from a fitted model result. This method must be
 implemented by subclasses.
 
@@ -42,8 +65,7 @@ implemented by subclasses.
     model output (draws, diagnostics, etc.)
   \\item data_bundle: A list containing data-related objects including
     train (training data), test (test data if applicable), response
-    (response variable), true_params (true parameter values if known),
-    references (reference values), etc.
+    (response variable), true_params (true parameter values if known)
   \\item context: A list with precomputed values based on the metric's
     `needs` property. May include predictions, log_lik (log-likelihood
     values), loo (leave-one-out cross-validation results), etc.
@@ -89,13 +111,20 @@ RMSEMetric <- S7::new_class(
   )
 )
 
-S7::method(compute, RMSEMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  preds <- context$predictions
+S7::method(compute_metric, RMSEMetric) <- function(
+  metric, fit_result, data_bundle, context, task_ctx
+) {
+  preds <- context$predictions$predicted_mean
   actual <- data_bundle$test[[data_bundle$response]]
   list(
     value = sqrt(mean((preds - actual)^2)),
     n_obs = length(actual)
   )
 }
+
+# Construct the subclass directly; the declared defaults are honored.
+RMSEMetric()@name     # "rmse"
+RMSEMetric()@needs    # "predictions"
+RMSEMetric()@required # FALSE
 
 }

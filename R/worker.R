@@ -18,18 +18,16 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #' to task results. Fatal errors (bayesim_config_error, bayesim_contract_error,
 #' etc.) are re-thrown to stop the simulation run.
 #'
-#' @param task A task specification list (from get_task_spec)
+#' @param task A task specification list from the task grid.
 #' @param config_spec Plain list config spec (for worker transport)
 #' @param fitter S7 Fitter object
 #' @param metrics List of Metric objects
 #' @param retain Character vector of what to retain
-#'
 #' @return A bayesim_task_result S3 object. If a recoverable error occurs,
 #'   returns a failed task result with error information. Fatal errors are
 #'   re-thrown and will stop the simulation.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -49,19 +47,84 @@ run_task_safe <- function(
   metrics,
   retain = c("metrics", "diagnostics")
 ) {
-  tryCatch(
+  # C1: run_task_safe is TOTAL — it never throws. Fatal errors are captured
+  # into a failed task result carrying `error$fatal = TRUE` and the full
+  # condition class chain; the controller (execute_tasks) re-raises a
+  # reconstructed condition after collecting the batch. This removes the
+  # entire cross-boundary mirai condition-restoration machinery.
+  rlang::try_fetch(
     run_task(task, config_spec, fitter, metrics, retain),
     error = function(e) {
-      # Check if this is a fatal error that should stop the run
-      if (is_fatal_error(e)) {
-        stop(e) # Re-throw fatal errors
-      }
-      # Convert recoverable errors to failed task results
-      new_task_result(
-        task_id = task$task_id,
-        status = "failed",
-        timing = list(total = 0),
-        error = capture_error_info(e)
+      # C1: the handler itself must stay total. On mirai daemons without an
+      # installed bayesim (source-loaded controller), namespace resolution of
+      # package helpers can fail inside this handler, turning a recoverable
+      # task error into a fatal transport error. Fall back to a base-R-only
+      # capture that preserves every field the controller consumes.
+      tryCatch(
+        {
+          err_info <- capture_error_info(e)
+          # Mark fatal conditions so the controller re-raises them after the
+          # batch.
+          err_info$fatal <- is_fatal_error(e)
+          # Preserve the full condition class chain for reconstruction.
+          err_info$condition_class <- class(e)
+          new_task_result(
+            task_id = task$task_id,
+            status = "failed",
+            timing = list(total = 0),
+            error = err_info
+          )
+        },
+        error = function(handler_error) {
+          structure(
+            list(
+              task_id = task$task_id,
+              status = "failed",
+              metrics = NULL,
+              diagnostics = NULL,
+              timing = list(total = 0),
+              error = list(
+                error_class = paste(class(e), collapse = ", "),
+                error_message = tryCatch(
+                  paste(conditionMessage(e)),
+                  error = function(cond) "unknown error"
+                ),
+                call = tryCatch(
+                  {
+                    cl <- conditionCall(e)
+                    if (is.null(cl)) NULL else deparse(cl)[1]
+                  },
+                  error = function(cond) NULL
+                ),
+                traceback = character(0),
+                fatal = length(intersect(
+                  class(e),
+                  c(
+                    "bayesim_config_error",
+                    "bayesim_contract_error",
+                    "bayesim_checkpoint_error",
+                    "bayesim_internal_error"
+                  )
+                )) >
+                  0L,
+                condition_class = class(e),
+                handler_error = tryCatch(
+                  paste(
+                    "error handler fell back to base capture:",
+                    conditionMessage(handler_error)
+                  ),
+                  error = function(cond) {
+                    "error handler fell back to base capture"
+                  }
+                )
+              ),
+              warnings = character(0),
+              truth = NULL,
+              stop_reason = NULL
+            ),
+            class = "bayesim_task_result"
+          )
+        }
       )
     }
   )
@@ -76,7 +139,7 @@ run_task_safe <- function(
 #' Runs one task: generate data, fit model, compute metrics.
 #' All errors are captured and converted to task results.
 #'
-#' @param task A task specification list (from get_task_spec) containing:
+#' @param task A task specification list from the task grid containing:
 #'   \itemize{
 #'     \item `task_id`: Unique task identifier string
 #'     \item `data_spec`: Data generation specification
@@ -89,8 +152,8 @@ run_task_safe <- function(
 #'     \item `data_generator`: Function to generate data
 #'     \item Other configuration parameters
 #'   }
-#' @param fitter S7 Fitter object that implements the fit(), predict_fit(),
-#'   log_lik(), and loo() methods
+#' @param fitter S7 Fitter object that implements the fit_model(), predict_fit(),
+#'   log_lik_matrix(), and loo_fit() methods
 #' @param metrics List of S7 Metric objects to compute
 #' @param retain Character vector of what to retain in results. Options:
 #'   \itemize{
@@ -99,7 +162,6 @@ run_task_safe <- function(
 #'     \item "fit": The raw fit object
 #'     \item "draws": Posterior draws matrix
 #'   }
-#'
 #' @return A bayesim_task_result S3 object containing:
 #'   \itemize{
 #'     \item `task_id`: Task identifier
@@ -132,7 +194,6 @@ run_task_safe <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
 #' \dontrun{
@@ -177,17 +238,22 @@ run_task <- function(
   task_ctx <- c(task$task_ctx, list(seed = task_seed))
 
   # Step 1: Generate data
-  data_result <- tryCatch(
+  data_result <- rlang::try_fetch(
     {
+      # B4: generator signature is (data_spec, task_ctx); task_ctx$seed carries
+      # the integer seed for backends that need one.
       data_bundle <- config_spec$data_generator(
         task$data_spec,
-        task_seed,
         task_ctx
       )
       validate_data_bundle(data_bundle)
       list(success = TRUE, data_bundle = data_bundle)
     },
     error = function(e) {
+      # C1: fatal errors propagate so the controller can stop the run.
+      if (is_fatal_error(e)) {
+        stop(rlang::cnd_entrace(e))
+      }
       # Normalize to bayesim_data_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
         e <- bayesim_data_error(
@@ -212,11 +278,50 @@ run_task <- function(
   data_bundle <- data_result$data_bundle
 
   # Step 2: Fit model
-  fit_result <- tryCatch(
+  fit_result <- rlang::try_fetch(
     {
-      fit(fitter, data_bundle, task$fit_spec, task_seed, task_ctx)
+      fit_result <- fit_model(
+        fitter,
+        data_bundle,
+        task$fit_spec,
+        task_seed,
+        task_ctx
+      )
+      validate_fit_result_interface(fit_result)
+      # The public fitter seam is fit_model() + extract_draws(). A backend may
+      # return draws eagerly, but when it returns only its native fit object we
+      # obtain the canonical draws here so downstream metrics and retention
+      # never need backend-specific knowledge.
+      if (
+        isTRUE(fit_result$success) &&
+          is.null(fit_result$draws) &&
+          !is.null(fit_result$fit)
+      ) {
+        fit_result$draws <- tryCatch(
+          extract_draws(fitter, fit_result),
+          error = function(e) {
+            if (is_fatal_error(e)) {
+              stop(e)
+            }
+            stop(bayesim_contract_error(
+              "extract_draws() failed after fit_model(): ",
+              conditionMessage(e)
+            ))
+          }
+        )
+      }
+      if (isTRUE(fit_result$success) && !is.null(fit_result$draws)) {
+        validate_fitter_draws(fit_result$draws)
+      }
+      fit_result
     },
     error = function(e) {
+      # C1: fatal errors (config/contract/checkpoint/internal) propagate so the
+      # controller can stop the run. Only recoverable fit errors are wrapped.
+      if (is_fatal_error(e)) {
+        stop(rlang::cnd_entrace(e))
+      }
+      error_trace <- rlang::trace_back()
       # Normalize to bayesim_fit_error if not already a bayesim error
       if (!is_bayesim_error(e)) {
         e <- bayesim_fit_error(
@@ -224,6 +329,7 @@ run_task <- function(
           call = conditionCall(e)
         )
       }
+      e$trace <- error_trace
       new_fit_result(
         success = FALSE,
         error = e,
@@ -248,7 +354,8 @@ run_task <- function(
     fitter,
     data_bundle,
     metrics,
-    task_seed
+    task_seed,
+    retain = retain
   )
 
   # Step 4: Compute metrics
@@ -282,10 +389,17 @@ run_task <- function(
     diagnostics = fit_result$diagnostics,
     timing = list(total = timer$elapsed()),
     warnings = c(fit_result$warnings, metrics_result$warnings),
-    error = NULL
+    error = NULL,
+    truth = data_bundle$true_params
   )
 
-  apply_task_retention(task_result, fit_result, data_bundle, task_retain)
+  apply_task_retention(
+    task_result,
+    fit_result,
+    data_bundle,
+    task_retain,
+    predictions = context$predictions
+  )
 }
 
 # =============================================================================
@@ -294,19 +408,20 @@ run_task <- function(
 
 #' Build context for metrics computation
 #'
-#' Precomputes predictions, log_lik, loo based on metric needs.
-#' Only computes what is needed by the metrics, and only if the fitter
-#' supports it.
+#' Precomputes predictions, log_lik, and loo based on metric needs and retained
+#' predictions. Only computes requested context that the fitter supports.
 #'
 #' @param fit_result A bayesim_fit_result object from a successful fit
 #' @param fitter S7 Fitter object
 #' @param data_bundle A validated data bundle list
 #' @param metrics List of S7 Metric objects
+#' @param retain Retention specification. Requesting `"predictions"` computes
+#'   predictions even when no metric needs them.
 #'
 #' @return A named list containing any of:
 #'   \itemize{
 #'     \item `predictions`: Prediction results from the fitter
-#'     \item `log_lik`: Pointwise log-likelihood matrix
+#'     \item `log_lik`: Pointwise log-likelihood matrix (S x N)
 #'     \item `loo`: LOO-CV results
 #'   }
 #'
@@ -316,14 +431,20 @@ run_task <- function(
 #' each capability and computes them. Any errors during computation result
 #' in NULL values for that context element.
 #'
+#' Evaluation data: `predictions` and `log_lik` are computed on the TEST set
+#' when `data_bundle$test` is present, otherwise on the training set. Every
+#' built-in metric that consumes them (`pred_*`, `elpd_test`, `r2_test`) compares against the test response, so the predictions must be
+#' for the test rows. The LOO context is always built on the training set —
+#' leave-one-out is in-sample by construction.
+#'
 #' @keywords internal
-#' @export
 build_metric_context <- function(
   fit_result,
   fitter,
   data_bundle,
   metrics,
-  seed = NULL
+  seed = NULL,
+  retain = character()
 ) {
   context <- list()
 
@@ -331,42 +452,225 @@ build_metric_context <- function(
   all_needs <- unique(unlist(lapply(metrics, function(m) {
     if (S7::S7_inherits(m)) m@needs else character()
   })))
+  retained_options <- if (is.list(retain)) {
+    unique(unlist(retain, use.names = FALSE))
+  } else {
+    retain
+  }
+  if ("predictions" %in% retained_options) {
+    all_needs <- unique(c(all_needs, "predictions"))
+  }
 
-  # Warn if metrics need features the fitter doesn't support
+  # Warn if metrics need features the fitter doesn't support. Per-task runs
+  # would otherwise re-warn thousands of times; .warn_once keeps it to one per
+  # run (R1b). The same mismatch is also surfaced once by preflight() before the
+  # run, so sequential users see it before any task executes.
   if ("predictions" %in% all_needs && !fitter@supports_predictions) {
-    cli::cli_warn(
+    .warn_once(
+      "unsupported_capability.predictions",
       "Metric requires predictions but fitter does not support them"
     )
   }
   if ("log_lik" %in% all_needs && !fitter@supports_log_lik) {
-    cli::cli_warn("Metric requires log_lik but fitter does not support it")
+    .warn_once(
+      "unsupported_capability.log_lik",
+      "Metric requires log_lik but fitter does not support it"
+    )
   }
   if ("loo" %in% all_needs && !fitter@supports_loo) {
-    cli::cli_warn("Metric requires loo but fitter does not support it")
+    .warn_once(
+      "unsupported_capability.loo",
+      "Metric requires loo but fitter does not support it"
+    )
   }
+
+  # Predictions and pointwise log-lik are evaluated on the test set when one
+  # exists (all consuming metrics compare against the test response); NULL
+  # newdata means the fitter's training data.
+  eval_data <- data_bundle$test
 
   if ("predictions" %in% all_needs && fitter@supports_predictions) {
     context$predictions <- tryCatch(
-      predict_fit(fitter, fit_result, seed = seed),
-      error = function(e) NULL
+      {
+        predictions <- predict_fit(
+          fitter,
+          fit_result,
+          newdata = eval_data,
+          seed = seed
+        )
+        validate_fitter_predictions(
+          predictions,
+          n_obs = if (is.null(eval_data)) {
+            nrow(data_bundle$train)
+          } else {
+            nrow(eval_data)
+          }
+        )
+        predictions
+      },
+      # R1c: a fitter that advertises prediction support but fails to predict is
+      # a real anomaly. Surface it once instead of silently degrading every
+      # prediction metric to NA with no explanation.
+      error = function(e) {
+        if (is_fatal_error(e)) {
+          stop(e)
+        }
+        .warn_once(
+          "predict_fit_failed",
+          "predict_fit() failed; prediction metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
     )
   }
 
   if ("log_lik" %in% all_needs && fitter@supports_log_lik) {
     context$log_lik <- tryCatch(
-      log_lik(fitter, fit_result),
-      error = function(e) NULL
+      {
+        log_lik <- log_lik_matrix(fitter, fit_result, newdata = eval_data)
+        validate_fitter_log_lik(
+          log_lik,
+          n_obs = if (is.null(eval_data)) {
+            nrow(data_bundle$train)
+          } else {
+            nrow(eval_data)
+          }
+        )
+        log_lik
+      },
+      error = function(e) {
+        if (is_fatal_error(e)) {
+          stop(e)
+        }
+        .warn_once(
+          "log_lik_failed",
+          "log_lik_matrix() failed; log-likelihood metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
     )
   }
 
   if ("loo" %in% all_needs && fitter@supports_loo) {
-    context$loo <- tryCatch(
-      loo(fitter, fit_result),
+    loo_ctx <- tryCatch(
+      build_loo_context(fitter, fit_result),
+      error = function(e) {
+        .warn_once(
+          "loo_build_failed",
+          "LOO context could not be built; LOO-based metrics will be NA.",
+          i = conditionMessage(e)
+        )
+        NULL
+      }
+    )
+    if (!is.null(loo_ctx)) {
+      context$loo <- loo_ctx$loo
+      # F3: PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
+      # here so both metrics share it. May be absent (NULL) if the fitter does
+      # not provide epred/log_lik or the build failed.
+      context$loo_psis <- loo_ctx$psis
+      context$loo_psis_ll <- loo_ctx$log_lik
+      context$loo_epred <- loo_ctx$epred
+    }
+  }
+
+  context
+}
+
+#' Build the LOO context (elpd summary + PSIS object + epred)
+#'
+#' Constructs the full LOO context for F3's rmse_loo / r2_loo metrics. Computes
+#' the elpd/p_loo/pareto_k summary (as the legacy `loo_fit()` did), the PSIS
+#' object (for `loo::E_loo()` weighted predictions), the pointwise log-likelihood
+#' matrix, and the posterior expectation predictions (epred) — all once, shared
+#' across metrics.
+#'
+#' The PSIS object uses `loo::psis(-ll, r_eff)` with per-observation
+#' relative-efficiency factors derived from the fit's chain structure via
+#' `posterior::as_draws_df(fit)$.chain` (matches brms' internal `r_eff_log_lik`
+#' exactly). Falls back to `r_eff = NULL` (with a captured warning) when chain
+#' structure is unavailable, which is mathematically valid but slightly less
+#' accurate.
+#'
+#' epred must be the posterior expectation (mu, no observation noise); for brms
+#' this is `brms::posterior_epred`. The Fitter must expose this via
+#' `predict_epred()`; fitters that cannot return NULL (the metrics then NA).
+#'
+#' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, or NULL on
+#'   failure. `psis`/`log_lik`/`epred` may be individually NULL if unavailable.
+#' @keywords internal
+build_loo_context <- function(fitter, fit_result) {
+  loo_result <- loo_fit(fitter, fit_result)
+  if (is.null(loo_result)) {
+    return(NULL)
+  }
+
+  # Pointwise log-likelihood matrix (S x N, draws x observations).
+  ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
+  if (!is.matrix(ll)) {
+    return(list(loo = loo_result, psis = NULL, log_lik = NULL, epred = NULL))
+  }
+
+  # Per-observation relative-efficiency via chain structure.
+  r_eff <- tryCatch(
+    relative_eff_from_chains(fitter, fit_result, ll),
+    error = function(e) NULL
+  )
+
+  # PSIS object. If r_eff is NULL (no chain info) loo::psis warns and proceeds
+  # without the efficiency correction — mathematically valid, slightly less
+  # accurate. Capture the warning so it doesn't surface per-task.
+  psis_obj <- if (!is.null(r_eff)) {
+    tryCatch(loo::psis(-ll, r_eff = r_eff), error = function(e) NULL)
+  } else {
+    tryCatch(
+      suppressWarnings(loo::psis(-ll)),
       error = function(e) NULL
     )
   }
 
-  context
+  # Posterior expectation predictions (mu, no noise). Required for r2_loo;
+  # rmse_loo also degrades to NA when epred is absent.
+  epred <- tryCatch(
+    predict_epred(fitter, fit_result),
+    error = function(e) NULL
+  )
+
+  list(
+    loo = loo_result,
+    psis = psis_obj,
+    log_lik = ll,
+    epred = epred
+  )
+}
+
+#' Per-observation relative efficiency from the fit's chain structure
+#'
+#' Mirrors brms' internal `r_eff_log_lik()` by deriving the chain id per draw
+#' from `posterior::as_draws_df(fit)$.chain` and passing it to
+#' `loo::relative_eff(exp(ll), chain_id = ...)`. `ll` here is S x N (draws x
+#' observations, matching brms' log_lik orientation): `relative_eff` wants the
+#' draws dimension as rows so chain_id (length S) matches `nrow(ll)`. Returns
+#' one r_eff per observation (length N). Returns NULL when chain information is
+#' unavailable (e.g. MockFitter or a fitter whose fit lacks a `.chain`
+#' variable), in which case the caller falls back to `r_eff = NULL`.
+#' @keywords internal
+relative_eff_from_chains <- function(fitter, fit_result, ll) {
+  fit <- fit_result$fit
+  if (is.null(fit)) {
+    return(NULL)
+  }
+  chain_id <- tryCatch(
+    posterior::as_draws_df(fit)$.chain,
+    error = function(e) NULL
+  )
+  # ll is S x N (draws x observations); chain_id has length S (one per draw).
+  if (is.null(chain_id) || length(chain_id) != nrow(ll)) {
+    return(NULL)
+  }
+  loo::relative_eff(exp(ll), chain_id = chain_id)
 }
 
 #' Compute all metrics for a task
@@ -397,7 +701,6 @@ build_metric_context <- function(
 #' }
 #'
 #' @keywords internal
-#' @export
 compute_all_metrics <- function(
   fit_result,
   data_bundle,
@@ -424,9 +727,10 @@ compute_all_metrics <- function(
     }
 
     metric_result <- tryCatch(
-      {
-        compute(metric, fit_result, data_bundle, context, task_ctx)
-      },
+      withr::with_seed(
+        derive_metric_seed(task_ctx$seed, metric_name),
+        compute_metric(metric, fit_result, data_bundle, context, task_ctx)
+      ),
       error = function(e) {
         if (is_required) {
           stop(e)
@@ -455,6 +759,20 @@ compute_all_metrics <- function(
     metrics = unlist(metric_results, recursive = FALSE),
     warnings = unique(warning_acc)
   )
+}
+
+#' Derive a stable, metric-specific RNG seed
+#'
+#' Isolates stochastic metrics from one another: adding or reordering a metric
+#' cannot change another metric's random draws within the same task.
+#'
+#' @param task_seed Scalar task seed.
+#' @param metric_name Character metric name.
+#' @return A positive scalar integer seed.
+#' @keywords internal
+derive_metric_seed <- function(task_seed, metric_name) {
+  hash <- digest::digest2int(paste(task_seed, metric_name, sep = ":"))
+  as.integer((abs(as.double(hash)) %% (.Machine$integer.max - 1)) + 1)
 }
 
 #' Derive a scalar seed from an RNG state vector.

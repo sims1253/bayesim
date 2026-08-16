@@ -42,18 +42,9 @@ create_test_metric <- function(
     }
   }
 
-  S7::method(compute, TestMetric) <- compute_fn
+  S7::method(compute_metric, TestMetric) <- compute_fn
   # Pass properties explicitly when creating the instance
   TestMetric(name = name, needs = needs, required = required)
-}
-
-# =============================================================================
-# Helper: Check if run_simulation exists and is functional
-# =============================================================================
-
-run_sim_available <- function() {
-  exists("run_simulation", mode = "function") &&
-    exists("is_simulation_config", mode = "function")
 }
 
 # =============================================================================
@@ -61,55 +52,6 @@ run_sim_available <- function() {
 # =============================================================================
 
 describe("RNG Management", {
-  describe("setup_global_rng()", {
-    it("sets correct RNG kind to L'Ecuyer-CMRG", {
-      old_kind <- RNGkind()[1]
-      on.exit(RNGkind(old_kind), add = TRUE)
-
-      setup_global_rng(42)
-
-      expect_equal(RNGkind()[1], "L'Ecuyer-CMRG")
-    })
-
-    it("sets the seed correctly", {
-      old_kind <- RNGkind()[1]
-      old_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
-        get(".Random.seed", envir = .GlobalEnv)
-      } else {
-        NULL
-      }
-      on.exit(
-        {
-          RNGkind(old_kind)
-          if (!is.null(old_seed)) {
-            assign(".Random.seed", old_seed, envir = .GlobalEnv)
-          }
-        },
-        add = TRUE
-      )
-
-      setup_global_rng(123)
-
-      # Generate a value and check reproducibility
-      val1 <- runif(1)
-
-      # Reset with same seed
-      setup_global_rng(123)
-      val2 <- runif(1)
-
-      expect_equal(val1, val2)
-    })
-
-    it("returns the initial .Random.seed state invisibly", {
-      old_kind <- RNGkind()[1]
-      on.exit(RNGkind(old_kind), add = TRUE)
-
-      result <- setup_global_rng(42)
-      expect_true(is.integer(result))
-      expect_true(length(result) > 0)
-    })
-  })
-
   describe("create_task_rng_streams()", {
     it("creates correct number of streams", {
       streams <- create_task_rng_streams(42, 5)
@@ -147,6 +89,39 @@ describe("RNG Management", {
       streams2 <- create_task_rng_streams(42, 3)
 
       expect_identical(streams1, streams2)
+    })
+
+    it("restores every RNG kind component and an absent seed", {
+      original_kind <- RNGkind()
+      original_seed <- if (exists(".Random.seed", envir = .GlobalEnv)) {
+        get(".Random.seed", envir = .GlobalEnv)
+      } else {
+        NULL
+      }
+      on.exit(
+        {
+          do.call(base::RNGkind, as.list(original_kind))
+          if (is.null(original_seed)) {
+            if (exists(".Random.seed", envir = .GlobalEnv)) {
+              rm(".Random.seed", envir = .GlobalEnv)
+            }
+          } else {
+            assign(".Random.seed", original_seed, envir = .GlobalEnv)
+          }
+        },
+        add = TRUE
+      )
+
+      RNGkind("Mersenne-Twister", "Inversion", "Rejection")
+      if (exists(".Random.seed", envir = .GlobalEnv)) {
+        rm(".Random.seed", envir = .GlobalEnv)
+      }
+      before_kind <- RNGkind()
+
+      create_task_rng_streams(42, 3)
+
+      expect_identical(RNGkind(), before_kind)
+      expect_false(exists(".Random.seed", envir = .GlobalEnv))
     })
 
     it("advances using independent L'Ecuyer streams", {
@@ -192,45 +167,6 @@ describe("RNG Management", {
       expect_identical(get(".Random.seed", envir = .GlobalEnv), stream)
     })
   })
-
-  describe("advance_rng_stream()", {
-    it("advances RNG state and returns new state", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced <- advance_rng_stream(stream)
-
-      # Advanced should be an integer vector
-      expect_true(is.integer(advanced))
-      expect_true(length(advanced) == length(stream))
-    })
-
-    it("advances RNG state by n steps", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced_1 <- advance_rng_stream(stream, n = 1)
-      advanced_5 <- advance_rng_stream(stream, n = 5)
-
-      # Both should be integer vectors
-      expect_true(is.integer(advanced_1))
-      expect_true(is.integer(advanced_5))
-    })
-
-    it("returns a valid RNG state that can be set", {
-      streams <- create_task_rng_streams(42, 1)
-      stream <- streams[[1]]
-
-      advanced <- advance_rng_stream(stream, n = 5)
-
-      # Should be able to set this state
-      set_task_rng(advanced)
-
-      # Generate a value to verify RNG works
-      val <- runif(1)
-      expect_true(is.numeric(val))
-    })
-  })
 })
 
 
@@ -249,14 +185,13 @@ describe("Task Grid", {
     simulation_config(
       data_grid = data.frame(n = seq_len(n_data) * 100),
       fit_grid = data.frame(model = paste0("model_", seq_len(n_fit))),
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(data_spec$n), x = rnorm(data_spec$n)),
           test = NULL,
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
-          vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
+          vars_of_interest = c("beta", "sigma")
         )
       },
       n_replicates = n_replicates,
@@ -406,145 +341,16 @@ describe("Task Grid", {
     })
   })
 
-  describe("get_task_spec()", {
-    it("extracts correct specs for a task", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
+  describe("get_task_count_summary()", {
+    it("returns aligned zero-filled counts for every status", {
+      grid <- data.frame(status = c("success", "success", "failed"))
+
+      counts <- get_task_count_summary(grid)
+
+      expect_equal(
+        counts,
+        c(pending = 0L, success = 2L, failed = 1L, skipped = 0L)
       )
-
-      config <- create_test_config(n_data = 2, n_fit = 2, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d002_f001_r00001", config)
-
-      expect_equal(spec$task_id, "d002_f001_r00001")
-      expect_equal(spec$data_idx, 2)
-      expect_equal(spec$fit_idx, 1)
-      expect_equal(spec$rep_idx, 1)
-    })
-
-    it("extracts correct data_spec", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 2, n_fit = 1, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-      expect_equal(spec$data_spec$n, 100)
-
-      spec2 <- get_task_spec(task_grid, "d002_f001_r00001", config)
-      expect_equal(spec2$data_spec$n, 200)
-    })
-
-    it("extracts correct fit_spec", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 2, n_replicates = 1L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d001_f001_r00001", config)
-      expect_equal(spec$fit_spec$model, "model_1")
-
-      spec2 <- get_task_spec(task_grid, "d001_f002_r00001", config)
-      expect_equal(spec2$fit_spec$model, "model_2")
-    })
-
-    it("extracts correct task_ctx", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 2, n_fit = 2, n_replicates = 3L)
-      task_grid <- create_task_grid(config)
-
-      spec <- get_task_spec(task_grid, "d002_f001_r00002", config)
-
-      expect_equal(spec$task_ctx$task_id, "d002_f001_r00002")
-      expect_equal(spec$task_ctx$data_idx, 2)
-      expect_equal(spec$task_ctx$fit_idx, 1)
-      expect_equal(spec$task_ctx$rep_idx, 2)
-    })
-
-    it("errors for non-existent task_id", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config()
-      task_grid <- create_task_grid(config)
-
-      expect_error(
-        get_task_spec(task_grid, "d999_f999_r99999", config),
-        "not found in grid"
-      )
-    })
-  })
-
-  describe("update_task_status()", {
-    it("updates status correctly", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 2L)
-      task_grid <- create_task_grid(config)
-
-      updated <- update_task_status(task_grid, "d001_f001_r00001", "success")
-
-      expect_equal(updated$status[1], "success")
-      expect_equal(updated$status[2], "pending") # Other unchanged
-    })
-
-    it("returns a modified copy without changing original", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config()
-      task_grid <- create_task_grid(config)
-      original_status <- task_grid$status[1]
-
-      updated <- update_task_status(task_grid, task_grid$task_id[1], "failed")
-
-      expect_equal(task_grid$status[1], original_status)
-      expect_equal(updated$status[1], "failed")
-    })
-
-    it("can update to different status values", {
-      skip_if_not(
-        config_check_works(),
-        "is_simulation_config not working correctly"
-      )
-
-      config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 3L)
-      task_grid <- create_task_grid(config)
-
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "skipped"
-      )
-
-      expect_equal(task_grid$status[1], "success")
-      expect_equal(task_grid$status[2], "failed")
-      expect_equal(task_grid$status[3], "skipped")
     })
   })
 
@@ -558,17 +364,7 @@ describe("Task Grid", {
       config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 4L)
       task_grid <- create_task_grid(config)
 
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "success"
-      )
+      task_grid$status[1:3] <- c("success", "failed", "success")
       # task 4 remains pending
 
       success_only <- filter_tasks_by_status(task_grid, "success")
@@ -591,17 +387,7 @@ describe("Task Grid", {
       config <- create_test_config(n_data = 1, n_fit = 1, n_replicates = 4L)
       task_grid <- create_task_grid(config)
 
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[1],
-        "success"
-      )
-      task_grid <- update_task_status(task_grid, task_grid$task_id[2], "failed")
-      task_grid <- update_task_status(
-        task_grid,
-        task_grid$task_id[3],
-        "success"
-      )
+      task_grid$status[1:3] <- c("success", "failed", "success")
       # task 4 remains pending
 
       completed <- filter_tasks_by_status(task_grid, c("success", "failed"))
@@ -631,10 +417,10 @@ describe("Task Grid", {
 describe("Metric Resolution", {
   describe("built-in metric constructors", {
     it("return S7 Metric objects", {
-      expect_s7_object(rmse_metric())
-      expect_s7_object(bias_metric())
+      expect_s7_object(pred_rmse_metric())
+      expect_s7_object(pred_bias_metric())
       expect_s7_object(coverage_metric())
-      expect_s7_object(posterior_mean_metric())
+      expect_s7_object(posterior_summary_metric())
     })
   })
 
@@ -688,14 +474,13 @@ describe("Worker", {
   # Create a simple test configuration
   create_worker_test_config <- function() {
     list(
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(10), x = rnorm(10)),
           test = NULL,
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
-          vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
+          vars_of_interest = c("beta", "sigma")
         )
       }
     )
@@ -720,7 +505,7 @@ describe("Worker", {
     it("catches errors and returns task_result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Data generation error")
         }
       )
@@ -737,7 +522,7 @@ describe("Worker", {
     it("returns task_id in error result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Error")
         }
       )
@@ -750,7 +535,7 @@ describe("Worker", {
     it("includes timing in error result", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Error")
         }
       )
@@ -759,6 +544,37 @@ describe("Worker", {
 
       expect_true(is.list(result$timing))
       expect_true("total" %in% names(result$timing))
+    })
+
+    it("stays total when error-capture helpers themselves fail", {
+      # Mirai daemons without an installed bayesim (source-loaded controller)
+      # can fail to resolve the handler's package helpers; the handler must
+      # fall back to base-R capture instead of dying (PR #49 review).
+      task <- create_test_task()
+      config_spec <- list(
+        data_generator = function(data_spec, task_ctx) {
+          stop("Data generation error")
+        }
+      )
+
+      testthat::local_mocked_bindings(
+        capture_error_info = function(e) stop("namespace unavailable"),
+        .package = "bayesim"
+      )
+      result <- run_task_safe(task, config_spec, MockFitter(), list())
+
+      expect_s3_class(result, "bayesim_task_result")
+      expect_equal(result$status, "failed")
+      expect_equal(result$task_id, "d001_f001_r00001")
+      # run_task() itself calls capture_error_info() on generator errors, so
+      # the captured condition may be the mock's error rather than the
+      # generator's; either way the fallback must record a non-empty message
+      # and flag the degradation.
+      expect_type(result$error$error_message, "character")
+      expect_true(nzchar(result$error$error_message))
+      expect_match(result$error$handler_error, "fell back to base capture")
+      expect_false(result$error$fatal)
+      expect_type(result$error$condition_class, "character")
     })
   })
 
@@ -792,7 +608,7 @@ describe("Worker", {
     it("with failing data generator returns failed status", {
       task <- create_test_task()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional data generation failure")
         }
       )
@@ -816,7 +632,7 @@ describe("Worker", {
           name = S7::new_property(S7::class_character, default = "failing")
         )
       )
-      S7::method(fit, FailingFitter) <- function(
+      S7::method(fit_model, FailingFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -856,15 +672,14 @@ describe("Worker", {
       received_ctx <- NULL
 
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           received_ctx <<- task_ctx
           list(
             train = data.frame(y = 1:10, x = 1:10),
             test = NULL,
             response = "y",
             true_params = c(beta = 1.0),
-            vars_of_interest = "beta",
-            references = c(beta = 0)
+            vars_of_interest = "beta"
           )
         }
       )
@@ -880,15 +695,14 @@ describe("Worker", {
       fitter_seed <- NULL
 
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
-          received_seed <<- seed
+        data_generator = function(data_spec, task_ctx) {
+          received_seed <<- task_ctx$seed
           list(
             train = data.frame(y = 1:10, x = 1:10),
             test = NULL,
             response = "y",
             true_params = c(beta = 1.0),
-            vars_of_interest = "beta",
-            references = c(beta = 0)
+            vars_of_interest = "beta"
           )
         }
       )
@@ -900,7 +714,7 @@ describe("Worker", {
           name = S7::new_property(S7::class_character, default = "seed_capture")
         )
       )
-      S7::method(fit, SeedCapturingFitter) <- function(
+      S7::method(fit_model, SeedCapturingFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -927,14 +741,13 @@ describe("Worker", {
       task <- create_test_task(seed = 321)
       result_path <- withr::local_tempdir()
       config_spec <- list(
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           list(
             train = data.frame(y = 1:10, x = 1:10),
             test = NULL,
             response = "y",
             true_params = c(beta = 1.0),
-            vars_of_interest = "beta",
-            references = c(beta = 0)
+            vars_of_interest = "beta"
           )
         },
         result_path = result_path
@@ -1033,7 +846,7 @@ describe("Worker", {
           supports_loo = S7::new_property(S7::class_logical, default = TRUE)
         )
       )
-      S7::method(fit, NoPredFitter) <- function(
+      S7::method(fit_model, NoPredFitter) <- function(
         fitter,
         data_bundle,
         fit_spec,
@@ -1069,6 +882,49 @@ describe("Worker", {
   })
 
   describe("compute_all_metrics()", {
+    it("isolates stochastic metrics from metric ordering", {
+      StochasticTestMetric <- S7::new_class(
+        "StochasticTestMetric",
+        parent = Metric,
+        properties = list(
+          name = S7::new_property(S7::class_character),
+          needs = S7::new_property(S7::class_character, default = character()),
+          required = S7::new_property(S7::class_logical, default = FALSE)
+        )
+      )
+      S7::method(compute_metric, StochasticTestMetric) <- function(
+        metric,
+        fit_result,
+        data_bundle,
+        context,
+        task_ctx
+      ) {
+        list(value = stats::runif(1))
+      }
+      metric_a <- StochasticTestMetric(name = "random_a")
+      metric_b <- StochasticTestMetric(name = "random_b")
+      args <- list(
+        fit_result = new_fit_result(success = TRUE),
+        data_bundle = valid_data_bundle(),
+        context = list(),
+        task_ctx = list(task_id = "t1", seed = 123L)
+      )
+
+      forward <- do.call(
+        compute_all_metrics,
+        c(args, list(metrics = list(metric_a, metric_b)))
+      )
+      reverse <- do.call(
+        compute_all_metrics,
+        c(args, list(metrics = list(metric_b, metric_a)))
+      )
+
+      expect_identical(
+        forward$metrics[c("random_a__value", "random_b__value")],
+        reverse$metrics[c("random_a__value", "random_b__value")]
+      )
+    })
+
     it("handles required vs optional metrics - required failures propagate", {
       # Required metric that fails should cause error
       required_metric <- create_test_metric(
@@ -1261,6 +1117,59 @@ describe("Worker", {
       expect_null(result$diagnostics)
     })
   })
+
+  describe("prediction retention", {
+    it("copies metric-context predictions onto the task result", {
+      task_result <- new_task_result(
+        task_id = "t1",
+        status = "success",
+        metrics = list(value = 1),
+        timing = list(total = 0)
+      )
+      fit_result <- new_fit_result(success = TRUE)
+      predictions <- list(
+        predicted_mean = c(1, 2),
+        predicted_samples = matrix(1:4, nrow = 2)
+      )
+
+      retained <- apply_task_retention(
+        task_result,
+        fit_result,
+        valid_data_bundle(),
+        retain = c("metrics", "predictions"),
+        predictions = predictions
+      )
+
+      expect_identical(retained$predictions, predictions)
+    })
+
+    it("computes retained predictions even when no metric requests them", {
+      config <- simulation_config(
+        data_grid = data.frame(n = 10L),
+        fit_grid = data.frame(model = "linear"),
+        data_generator = function(data_spec, task_ctx) {
+          x <- stats::rnorm(data_spec$n)
+          list(
+            train = data.frame(y = 1 + x, x = x),
+            test = NULL,
+            response = "y",
+            true_params = c(Intercept = 1, x = 1, sigma = 0.1),
+            vars_of_interest = c("Intercept", "x", "sigma")
+          )
+        },
+        fitter = LinearRegressionFitter(n_draws = 10L),
+        metrics = list(),
+        n_replicates = 1L,
+        seed = 42L,
+        retain = c("metrics", "predictions")
+      )
+
+      result <- run_simulation(config, resume = "never", progress = FALSE)
+
+      expect_true(is.list(result$task_results[[1]]$predictions))
+      expect_length(result$task_results[[1]]$predictions$predicted_mean, 10L)
+    })
+  })
 })
 
 
@@ -1280,14 +1189,13 @@ describe("run_simulation()", {
       simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           list(
             train = data.frame(y = rnorm(10)),
             test = NULL,
             response = "y",
             true_params = c(a = 1),
-            vars_of_interest = "a",
-            references = c(a = 0)
+            vars_of_interest = "a"
           )
         },
         seed = 42L
@@ -1305,14 +1213,13 @@ describe("run_simulation()", {
     simulation_config(
       data_grid = data.frame(n = c(50, 100)),
       fit_grid = data.frame(model = c("baseline")),
-      data_generator = function(data_spec, seed, task_ctx) {
+      data_generator = function(data_spec, task_ctx) {
         list(
           train = data.frame(y = rnorm(data_spec$n), x = rnorm(data_spec$n)),
           test = NULL,
           response = "y",
           true_params = c(beta = 1.0, sigma = 1.0),
-          vars_of_interest = c("beta", "sigma"),
-          references = c(beta = 0, sigma = 1)
+          vars_of_interest = c("beta", "sigma")
         )
       },
       fitter = MockFitter(),
@@ -1381,7 +1288,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional failure")
         },
         fitter = MockFitter(),
@@ -1410,7 +1317,7 @@ describe("run_simulation()", {
       config <- simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
+        data_generator = function(data_spec, task_ctx) {
           stop("Intentional failure")
         },
         fitter = MockFitter(),
@@ -1493,7 +1400,7 @@ describe("run_simulation()", {
         fit_grid = data.frame(model = "baseline"),
         data_generator = bayesim:::bayesim_example_data_generator,
         fitter = MockFitter(),
-        metrics = list(rmse_metric()),
+        metrics = list(pred_rmse_metric()),
         n_replicates = 1L,
         seed = 42L,
         result_path = result_path
@@ -1507,29 +1414,28 @@ describe("run_simulation()", {
       expect_equal(nrow(resumed$summary), nrow(first$summary))
     })
 
-    it("produces matching summaries under sequential and multisession future plans", {
+    it("produces matching summaries under sequential and mirai daemon execution", {
       skip_if_not(
         run_sim_exists(),
         "run_simulation not available or is_simulation_config broken"
       )
 
-      old_plan <- future::plan()
-      on.exit(future::plan(old_plan), add = TRUE)
-
       config <- simulation_config(
         data_grid = data.frame(n = c(50, 100), beta = c(1, 2)),
         fit_grid = data.frame(model = "baseline"),
-        data_generator = bayesim:::bayesim_example_data_generator,
+        data_generator = mock_data_generator,
         fitter = MockFitter(),
-        metrics = list(rmse_metric()),
+        metrics = list(pred_rmse_metric()),
         n_replicates = 2L,
         seed = 42L
       )
 
-      future::plan(future::sequential)
+      # Sequential path (no daemons set)
       seq_result <- run_simulation(config, resume = "never", progress = FALSE)
 
-      future::plan(future::multisession, workers = 2)
+      # Parallel path via mirai daemons; reset on exit
+      mirai::daemons(2)
+      on.exit(mirai::daemons(0), add = TRUE)
       par_result <- run_simulation(config, resume = "never", progress = FALSE)
 
       normalize_summary <- function(x) {
@@ -1544,12 +1450,75 @@ describe("run_simulation()", {
       )
     })
 
+    it("ships the model bank once per run, not per batch (F6)", {
+      skip_if_not(
+        run_sim_exists(),
+        "run_simulation not available or is_simulation_config broken"
+      )
+
+      # F6 hoisted the mirai::everywhere() bank-ship + daemon_setup hook out of
+      # run_batch() into execute_tasks(), so it fires once per run instead of
+      # once per batch. Verify by counting everywhere() calls across a
+      # multi-batch run. We bypass run_simulation() (which overwrites the bank
+      # for non-BrmsFitters) and call execute_tasks() directly with a
+      # non-NULL bank in the session option.
+      config <- simulation_config(
+        data_grid = data.frame(n = 50),
+        fit_grid = data.frame(model = "baseline"),
+        data_generator = mock_data_generator,
+        fitter = MockFitter(),
+        metrics = list(pred_rmse_metric()),
+        n_replicates = 6L,
+        seed = 42L,
+        checkpoint_every = 2L
+      )
+      task_grid <- create_task_grid(config)
+
+      mirai::daemons(2)
+      on.exit(mirai::daemons(0), add = TRUE)
+
+      # Set a non-NULL bank so the ship branch fires.
+      bayesim:::set_model_bank(list(dummy = "entry"))
+      on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
+
+      # Intercept mirai::everywhere to count dispatches (3 batches would have
+      # fired 3x under the old per-batch placement; the hoist fires exactly 1x).
+      orig_everywhere <- mirai::everywhere
+      everywhere_calls <- 0L
+      mock_everywhere <- function(expr = NULL, .args = list(), .local = FALSE) {
+        everywhere_calls <<- everywhere_calls + 1L
+      }
+      unlockBinding("everywhere", asNamespace("mirai"))
+      assign("everywhere", mock_everywhere, envir = asNamespace("mirai"))
+      on.exit(
+        {
+          assign("everywhere", orig_everywhere, envir = asNamespace("mirai"))
+          lockBinding("everywhere", asNamespace("mirai"))
+        },
+        add = TRUE
+      )
+
+      execute_tasks(
+        task_grid = task_grid,
+        config = config,
+        config_spec = as_config_spec(config),
+        fitter = config@fitter,
+        metrics = config@metrics,
+        retain = config@retain,
+        max_errors = config@max_errors,
+        progress = FALSE
+      )
+
+      # Exactly one bank-ship per run across 3 batches (F6 hoist).
+      expect_equal(everywhere_calls, 1L)
+    })
+
     it("rejects parquet checkpoint_format at construction time", {
       expect_error(
         simulation_config(
           data_grid = data.frame(n = 50),
           fit_grid = data.frame(model = "baseline"),
-          data_generator = function(data_spec, seed, task_ctx) {
+          data_generator = function(data_spec, task_ctx) {
             list(
               train = data.frame(y = rnorm(data_spec$n)),
               test = NULL,

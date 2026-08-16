@@ -35,6 +35,7 @@ and values are either scalar atomic types or named numeric vectors.
 }
 
 \examples{
+\dontrun{
 # Valid output
 validate_metric_output(list(rmse = 0.5, n_obs = 100L), "rmse")
 
@@ -53,3 +54,5 @@ validate_metric_output(list(nested = list(a = 1)), "rmse")  # Error
 }
 
 }
+}
+\keyword{internal}

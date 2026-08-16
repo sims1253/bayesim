@@ -19,10 +19,12 @@ Creates a timer object with methods for tracking elapsed time across
 execution phases.
 }
 \examples{
+\dontrun{
 timer <- make_timer()
 timer$start()
 Sys.sleep(0.1)
 timer$stop()
 timer$elapsed()
+}
 }
 \keyword{internal}

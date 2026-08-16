@@ -14,7 +14,6 @@
 #'
 #' @format Character vector
 #' @keywords internal
-#' @export
 RETAIN_OPTIONS <- c(
   "metrics", # Always retained
   "diagnostics", # Convergence diagnostics
@@ -66,11 +65,12 @@ RETENTION_PROFILES <- list(
 #' @return Character vector of valid retention options
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' resolve_retention("minimal")
 #' resolve_retention(c("metrics", "draws"))
+#' }
 resolve_retention <- function(retain) {
   if (is.null(retain)) {
     return(character())
@@ -270,7 +270,6 @@ retention_for_task_result <- function(
 #' @return Modified bayesim_fit_result object with non-retained fields removed
 #'
 #' @keywords internal
-#' @export
 apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
   if (!"fit" %in% retain) {
     fit_result$fit <- NULL
@@ -303,12 +302,18 @@ apply_fit_retention <- function(fit_result, retain, data_bundle = NULL) {
 #' @param fit_result A bayesim_fit_result object (before retention applied)
 #' @param data_bundle Data bundle from generator containing train/test data
 #' @param retain Character vector of retention options specifying what to keep
+#' @param predictions Prediction context returned by [predict_fit()], or NULL.
 #'
 #' @return Modified bayesim_task_result object with retained fields added
 #'
 #' @keywords internal
-#' @export
-apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
+apply_task_retention <- function(
+  task_result,
+  fit_result,
+  data_bundle,
+  retain,
+  predictions = NULL
+) {
   # Add optional retained fields
   if ("draws" %in% retain && !is.null(fit_result$draws)) {
     task_result$draws <- fit_result$draws
@@ -321,6 +326,9 @@ apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
       train = data_bundle$train,
       test = data_bundle$test
     )
+  }
+  if ("predictions" %in% retain && !is.null(predictions)) {
+    task_result$predictions <- predictions
   }
 
   task_result
@@ -337,37 +345,14 @@ apply_task_retention <- function(task_result, fit_result, data_bundle, retain) {
 #' @return Size in bytes as numeric
 #'
 #' @keywords internal
-#' @export
 #'
 #' @examples
+#' \dontrun{
 #' estimate_size(1:1000)
 #' estimate_size(iris)
+#' }
 estimate_size <- function(x) {
   as.numeric(utils::object.size(x))
-}
-
-#' Check if result row exceeds size threshold
-#'
-#' Determines whether a task result exceeds a specified memory threshold,
-#' useful for deciding whether to externalize large artifacts.
-#'
-#' @param task_result A bayesim_task_result object
-#' @param threshold_bytes Maximum allowed size in bytes. Default is 5 MB.
-#'
-#' @return TRUE if the task_result exceeds the threshold, FALSE otherwise
-#'
-#' @keywords internal
-#' @export
-#'
-#' @examples
-#' result <- list(metrics = list(rmse = 0.1), diagnostics = list(rhat = 1.01))
-#' exceeds_size_threshold(result)
-#' exceeds_size_threshold(result, threshold_bytes = 10)
-exceeds_size_threshold <- function(
-  task_result,
-  threshold_bytes = 5 * 1024 * 1024
-) {
-  estimate_size(task_result) > threshold_bytes
 }
 
 ## Externalization -------------------------------------------------------------
@@ -391,7 +376,6 @@ exceeds_size_threshold <- function(
 #'   }
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [write_rds_atomic()], [compute_hash()]
 externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
@@ -432,16 +416,16 @@ externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
 #' \itemize{
 #'   \item Always keeps: task_id, status, metrics, timing, error
 #'   \item Keeps diagnostics only if "diagnostics" is in retain
-#'   \item Removes: draws, predictions, fit, data (always, since checkpointed)
+#'   \item Keeps retained fit, draws, predictions, and data fields; these are
+#'     intentionally omitted only when their retention option is absent
 #'   \item Keeps warnings only if "warnings" is in retain
 #' }
 #'
-#' The rationale is that metrics and diagnostics are needed for the final
-#' summary dataframe construction, while heavy objects (fit, draws, data)
-#' can be loaded from checkpoint if needed for detailed analysis.
+#' The retention policy is authoritative: metrics-only runs stay lightweight,
+#' while users who explicitly retain heavy artifacts receive them in the final
+#' result even when checkpointing is enabled.
 #'
 #' @keywords internal
-#' @export
 #'
 #' @seealso [execute_tasks()], [write_checkpoint()]
 lighten_task_result <- function(task_result, retain) {
@@ -455,7 +439,9 @@ lighten_task_result <- function(task_result, retain) {
     status = task_result$status,
     metrics = task_result$metrics,
     timing = task_result$timing,
-    error = task_result$error
+    error = task_result$error,
+    truth = task_result$truth,
+    stop_reason = task_result$stop_reason
   )
 
   # Keep diagnostics if retention includes it (needed for summary)
@@ -468,10 +454,15 @@ lighten_task_result <- function(task_result, retain) {
     light$warnings <- task_result$warnings
   }
 
-  # Always remove heavy objects after checkpointing:
-  # - fit, draws, predictions, data
-  # These can be loaded from checkpoint if needed for analysis
-  # We do NOT copy them even if in retain, since they're now on disk
+  heavy_fields <- intersect(
+    c("fit", "draws", "predictions", "data"),
+    retain
+  )
+  for (field in heavy_fields) {
+    if (!is.null(task_result[[field]])) {
+      light[[field]] <- task_result[[field]]
+    }
+  }
 
   # Preserve class if it exists
   if (!is.null(attr(task_result, "class"))) {

@@ -6,9 +6,10 @@
 \usage{
 Fitter(
   name = character(0),
-  supports_predictions = TRUE,
-  supports_log_lik = TRUE,
-  supports_loo = TRUE
+  supports_predictions = FALSE,
+  supports_log_lik = FALSE,
+  supports_loo = FALSE,
+  supports_epred = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,10 @@ Fitter(
 \item{supports_log_lik}{Logical indicating if the fitter supports log-likelihood computation}
 
 \item{supports_loo}{Logical indicating if the fitter supports LOO-CV}
+
+\item{supports_epred}{Logical indicating if the fitter supports posterior
+expectation predictions (\code{predict_epred()}; required by the \code{r2_loo} /
+\code{rmse_loo} LOO metrics)}
 }
 \value{
 An S7 class object representing the abstract Fitter
@@ -33,23 +38,32 @@ model diagnostics.
 }
 \section{Methods}{
 
-The following S7 generics must be implemented by subclasses:
+The following S7 generics form the fitter interface. A minimal custom
+fitter only needs to implement \code{fit_model()} and \code{extract_draws()};
+diagnostics default to an empty list and unsupported optional capabilities
+default to \code{NULL}.
 \describe{
-\item{\code{fit(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
+\item{\code{fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)}}{Main fitting method}
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
 \item{\code{predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
-\item{\code{log_lik(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
-\item{\code{loo(fitter, fit_result)}}{LOO-CV computation}
-\item{\code{diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
+\item{\code{log_lik_matrix(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
+\item{\code{loo_fit(fitter, fit_result)}}{LOO-CV computation}
+\item{\code{fit_diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
 }
 }
 
 \section{Creating Custom Fitters}{
 
 To create a custom fitter, extend this class and implement methods for the
-S7 generics: \code{fit()}, \code{extract_draws()}, \code{predict()}, \code{log_lik()}, \code{loo()}, \code{diagnostics()}.
+core S7 generics: \code{fit_model()} and \code{extract_draws()}. Implement optional
+\code{predict_fit()}, \code{log_lik_matrix()}, and \code{loo_fit()} methods only when the
+matching \verb{supports_*} property is \code{TRUE}. All matrices follow the
+draws-by-observations (S x N) orientation; see
+\code{vignette("custom-fitters")} for the full contract.
 }
 
 \seealso{
-\link{MockFitter} for a simple example implementation
+\link{LinearRegressionFitter}, \link{BrmsFitter}, and \link{CmdStanFitter} for
+the built-in implementations, and \code{\link[=validate_fitter]{validate_fitter()}} to check a custom
+fitter against the contract
 }

@@ -359,6 +359,56 @@ describe("Checkpoint Writing", {
   })
 
   describe("write_checkpoint()", {
+    it("prunes snapshots older than the configured retention count", {
+      tmpdir <- withr::local_tempdir()
+      result_path <- file.path(tmpdir, "results")
+      init_checkpoint_dir(result_path, config_fingerprint = "test_fingerprint")
+      task_grid <- data.frame(task_id = "t1", status = "success")
+      task_results <- list(create_test_task_result())
+
+      for (i in seq_len(4L)) {
+        write_checkpoint(
+          result_path,
+          task_grid,
+          task_results,
+          config_fingerprint = "test_fingerprint",
+          keep_checkpoints = 2L
+        )
+      }
+
+      expect_equal(list_checkpoints(result_path), c(3L, 4L))
+      expect_equal(
+        jsonlite::read_json(file.path(
+          result_path,
+          "latest.json"
+        ))$checkpoint_id,
+        4L
+      )
+    })
+
+    it("uses cached prior results without re-reading the previous checkpoint", {
+      tmpdir <- withr::local_tempdir()
+      result_path <- file.path(tmpdir, "results")
+      init_checkpoint_dir(result_path, config_fingerprint = "test_fingerprint")
+      task_grid <- data.frame(task_id = "t1", status = "success")
+      task_results <- list(create_test_task_result())
+      local_mocked_bindings(
+        read_checkpoint = function(...) stop("unexpected checkpoint read"),
+        .package = "bayesim"
+      )
+
+      expect_no_error(write_checkpoint(
+        result_path,
+        task_grid,
+        task_results,
+        config_fingerprint = "test_fingerprint",
+        prior_results_df = data.frame(
+          task_id = character(),
+          status = character()
+        )
+      ))
+    })
+
     it("creates checkpoint directory with correct name", {
       tmpdir <- withr::local_tempdir()
       result_path <- file.path(tmpdir, "results")
@@ -1210,6 +1260,33 @@ describe("Resume Logic", {
       expect_equal(result$metric_rmse[result$task_id == "t2"], 0.10)
     })
 
+    it("accepts resume-equivalent rows despite timing and missing-value representation", {
+      old_results <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("success", "success"),
+        metric_rmse = c(0.05, 0.10),
+        timing_total = c(0.5, 0.75),
+        typed_optional = c(NA_integer_, NA_integer_),
+        legacy_optional = c(NA, NA),
+        stringsAsFactors = FALSE
+      )
+      new_results <- data.frame(
+        task_id = c("t2", "t3"),
+        status = c("success", "success"),
+        metric_rmse = c(0.10, 0.15),
+        timing_total = c(2L, 3L),
+        typed_optional = c(NA_real_, NA_real_),
+        stringsAsFactors = FALSE
+      )
+
+      result <- merge_results(old_results, new_results)
+
+      expect_equal(result$task_id, c("t1", "t2", "t3"))
+      expect_equal(result$timing_total[result$task_id == "t2"], 2)
+      expect_true(all(is.na(result$typed_optional)))
+      expect_true(all(is.na(result$legacy_optional)))
+    })
+
     it("errors on conflicting duplicate terminal rows", {
       old_results <- data.frame(
         task_id = c("t1", "t2"),
@@ -1675,4 +1752,150 @@ describe("Checkpoint Integration", {
       expect_true("metric_with_special" %in% names(cp_data$results_df))
     })
   })
+})
+
+# =============================================================================
+# 7. Legacy flat-view migration (task_outcomes_from_dataframe)
+# =============================================================================
+
+test_that("legacy flat rows rebuild with truth, stop_reason, and diagnostics intact", {
+  # Build the flat view exactly as results_to_dataframe() produces it for real
+  # outcomes, so the column layout matches a genuine legacy checkpoint.
+  success <- new_task_result(
+    task_id = "d001_f001_r00001",
+    status = "success",
+    metrics = list(pred_bias__bias = 0.1),
+    diagnostics = list(rhat = 1.01),
+    timing = list(total = 1.5),
+    truth = c(beta = 1.25)
+  )
+  policy_stopped <- new_task_result(
+    task_id = "d001_f001_r00002",
+    status = "skipped",
+    timing = list(total = 0),
+    stop_reason = "adaptive_stop"
+  )
+  failed <- new_task_result(
+    task_id = "d001_f001_r00003",
+    status = "failed",
+    timing = list(total = 0.5),
+    error = list(
+      error_class = "bayesim_fit_error",
+      error_message = "fit failed"
+    )
+  )
+  flat <- results_to_dataframe(list(success, policy_stopped, failed))
+
+  outcomes <- task_outcomes_from_dataframe(flat)
+  by_id <- stats::setNames(
+    outcomes,
+    vapply(outcomes, function(x) x$task_id, character(1))
+  )
+
+  # Success: truth, metrics, and diagnostics are routed to their own fields.
+  expect_equal(by_id[["d001_f001_r00001"]]$truth, c(beta = 1.25))
+  expect_equal(by_id[["d001_f001_r00001"]]$metrics, list(pred_bias__bias = 0.1))
+  expect_equal(by_id[["d001_f001_r00001"]]$diagnostics, list(rhat = 1.01))
+  expect_false(any(startsWith(
+    names(by_id[["d001_f001_r00001"]]$metrics),
+    "truth__"
+  )))
+  expect_false("stop_reason" %in% names(by_id[["d001_f001_r00001"]]$metrics))
+
+  # Policy-stopped: stop_reason is restored as a field, not a metric.
+  expect_equal(
+    by_id[["d001_f001_r00002"]]$stop_reason,
+    "adaptive_stop"
+  )
+  expect_null(by_id[["d001_f001_r00002"]]$metrics)
+
+  # Failed: error details are restored as the error field.
+  expect_equal(
+    by_id[["d001_f001_r00003"]]$error$error_class,
+    "bayesim_fit_error"
+  )
+  expect_null(by_id[["d001_f001_r00003"]]$metrics)
+})
+
+test_that("materialize_task_results keeps truth and stop_reason out of metrics", {
+  success <- new_task_result(
+    task_id = "d001_f001_r00001",
+    status = "success",
+    metrics = list(pred_bias__bias = 0.1),
+    diagnostics = list(rhat = 1.01),
+    timing = list(total = 1.5),
+    truth = c(beta = 1.25)
+  )
+  policy_stopped <- new_task_result(
+    task_id = "d001_f001_r00002",
+    status = "skipped",
+    timing = list(total = 0),
+    stop_reason = "adaptive_stop"
+  )
+  flat <- results_to_dataframe(list(success, policy_stopped))
+  task_grid <- data.frame(
+    task_id = c("d001_f001_r00001", "d001_f001_r00002"),
+    status = c("success", "skipped"),
+    stop_reason = c(NA_character_, "adaptive_stop"),
+    stringsAsFactors = FALSE
+  )
+
+  # Only flat rows available (legacy resume path): task_results are NULL.
+  rebuilt <- materialize_task_results(
+    task_results = list(NULL, NULL),
+    final_results_df = flat,
+    task_grid = task_grid,
+    prior_task_results = NULL
+  )
+
+  expect_equal(rebuilt[[1]]$truth, c(beta = 1.25))
+  expect_equal(rebuilt[[1]]$metrics, list(pred_bias__bias = 0.1))
+  expect_equal(rebuilt[[1]]$diagnostics, list(rhat = 1.01))
+  expect_false(any(startsWith(names(rebuilt[[1]]$metrics), "truth__")))
+  expect_false("stop_reason" %in% names(rebuilt[[1]]$metrics))
+  expect_equal(rebuilt[[2]]$stop_reason, "adaptive_stop")
+})
+
+# =============================================================================
+# 8. Failed-write cleanup
+# =============================================================================
+
+test_that("a failed delta write removes its outcome and ledger shards", {
+  path <- file.path(withr::local_tempdir(), "cleanup-run")
+  store <- new_run_store(
+    result_path = path,
+    config_fingerprint = "cleanup-test",
+    checkpoint_format = "rds",
+    keep_checkpoints = 2L
+  )
+  store$initialize()
+
+  outcome <- new_task_result(
+    task_id = "d001_f001_r00001",
+    status = "success",
+    metrics = list(value = 1),
+    timing = list(total = 0)
+  )
+  grid <- data.frame(
+    task_id = outcome$task_id,
+    status = "success",
+    stop_reason = NA_character_,
+    stringsAsFactors = FALSE
+  )
+
+  # Fail the commit after the immutable shards have been written.
+  local_mocked_bindings(
+    verify_checksums = function(directory) FALSE,
+    .package = "bayesim"
+  )
+  expect_error(store$write(grid, list(outcome)), "checksum")
+
+  # No half-published files survive: neither the shards nor their redundant
+  # mirrors and descriptors (.mirror.rds / .json / .mirror.json).
+  expect_equal(list.files(file.path(path, "outcomes")), character(0))
+  expect_equal(list.files(file.path(path, "ledger")), character(0))
+  expect_equal(
+    list.files(file.path(path, "checkpoints")),
+    character(0)
+  )
 })

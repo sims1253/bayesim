@@ -61,20 +61,30 @@ describe("lighten_task_result()", {
     expect_null(light$error)
   })
 
-  it("removes heavy objects (fit, draws, data) regardless of retain", {
+  it("preserves data-generating truth", {
+    heavy <- create_heavy_task_result()
+    heavy$truth <- c(beta = 0.5)
+
+    light <- lighten_task_result(heavy, retain = "metrics")
+
+    expect_identical(light$truth, c(beta = 0.5))
+  })
+
+  it("keeps only heavy objects explicitly requested by retain", {
     heavy <- create_heavy_task_result(
       include_fit = TRUE,
       include_draws = TRUE,
       include_data = TRUE
     )
 
-    # Even with "debug" retention, lighten removes heavy objects
+    heavy$predictions <- list(predicted_mean = 1:3)
     light <- lighten_task_result(
       heavy,
-      retain = c("metrics", "diagnostics", "fit", "draws", "data")
+      retain = c("metrics", "fit", "predictions")
     )
 
-    expect_null(light$fit)
+    expect_identical(light$fit, heavy$fit)
+    expect_identical(light$predictions, heavy$predictions)
     expect_null(light$draws)
     expect_null(light$data)
   })
@@ -164,106 +174,78 @@ describe("Retention profiles", {
 })
 
 # =============================================================================
-# Tests for chunk_size parameter
+# Tests for checkpoint_every parameter (B4: chunk_size merged into it)
 # =============================================================================
 
-describe("simulation_config() chunk_size parameter", {
-  it("accepts chunk_size parameter", {
+describe("simulation_config() checkpoint_every parameter", {
+  .gen <- function(data_spec, task_ctx) {
+    list(
+      train = data.frame(x = 1:10, y = 1:10),
+      test = NULL,
+      response = "y",
+      true_params = c(a = 1),
+      vars_of_interest = "a",
+      meta = list()
+    )
+  }
+
+  it("accepts checkpoint_every parameter", {
     config <- simulation_config(
       data_grid = data.frame(n = 100),
       fit_grid = data.frame(model = "test"),
-      data_generator = function(data_spec, seed, task_ctx) {
-        list(
-          train = data.frame(x = 1:10, y = 1:10),
-          test = NULL,
-          response = "y",
-          true_params = c(a = 1),
-          vars_of_interest = "a",
-          references = c(a = 0),
-          meta = list()
-        )
-      },
+      data_generator = .gen,
       fitter = NULL,
       n_replicates = 2L,
       seed = 42L,
-      chunk_size = 10L
+      checkpoint_every = 10L
     )
-
-    expect_equal(config@chunk_size, 10L)
+    expect_equal(config@checkpoint_every, 10L)
+    expect_equal(config@keep_checkpoints, 2L)
   })
 
-  it("defaults chunk_size to checkpoint_every when not specified", {
-    config <- simulation_config(
-      data_grid = data.frame(n = 100),
-      fit_grid = data.frame(model = "test"),
-      data_generator = function(data_spec, seed, task_ctx) {
-        list(
-          train = data.frame(x = 1:10, y = 1:10),
-          test = NULL,
-          response = "y",
-          true_params = c(a = 1),
-          vars_of_interest = "a",
-          references = c(a = 0),
-          meta = list()
-        )
-      },
-      fitter = NULL,
-      n_replicates = 2L,
-      seed = 42L,
-      checkpoint_every = 25L
-    )
-
-    expect_equal(config@chunk_size, 25L)
-  })
-
-  it("allows chunk_size different from checkpoint_every", {
-    config <- simulation_config(
-      data_grid = data.frame(n = 100),
-      fit_grid = data.frame(model = "test"),
-      data_generator = function(data_spec, seed, task_ctx) {
-        list(
-          train = data.frame(x = 1:10, y = 1:10),
-          test = NULL,
-          response = "y",
-          true_params = c(a = 1),
-          vars_of_interest = "a",
-          references = c(a = 0),
-          meta = list()
-        )
-      },
-      fitter = NULL,
-      n_replicates = 2L,
-      seed = 42L,
-      checkpoint_every = 50L,
-      chunk_size = 10L
-    )
-
-    expect_equal(config@checkpoint_every, 50L)
-    expect_equal(config@chunk_size, 10L)
-  })
-
-  it("validates chunk_size is positive integer", {
+  it("validates checkpoint snapshot retention", {
     expect_error(
       simulation_config(
         data_grid = data.frame(n = 100),
         fit_grid = data.frame(model = "test"),
-        data_generator = function(data_spec, seed, task_ctx) {
-          list(
-            train = data.frame(x = 1:10, y = 1:10),
-            test = NULL,
-            response = "y",
-            true_params = c(a = 1),
-            vars_of_interest = "a",
-            references = c(a = 0),
-            meta = list()
-          )
-        },
+        data_generator = .gen,
         fitter = NULL,
         n_replicates = 2L,
         seed = 42L,
-        chunk_size = 0L
+        keep_checkpoints = 0L
       ),
-      "chunk_size must be a positive integer"
+      "keep_checkpoints must be a positive integer"
+    )
+  })
+
+  it("B4: chunk_size and max_in_memory are no longer arguments", {
+    # Pre-release API: the merged knobs were removed entirely (no shim).
+    expect_error(
+      simulation_config(
+        data_grid = data.frame(n = 100),
+        fit_grid = data.frame(model = "test"),
+        data_generator = .gen,
+        fitter = NULL,
+        n_replicates = 2L,
+        seed = 42L,
+        chunk_size = 10L
+      ),
+      class = "simpleError"
+    )
+  })
+
+  it("validates checkpoint_every is positive integer", {
+    expect_error(
+      simulation_config(
+        data_grid = data.frame(n = 100),
+        fit_grid = data.frame(model = "test"),
+        data_generator = .gen,
+        fitter = NULL,
+        n_replicates = 2L,
+        seed = 42L,
+        checkpoint_every = 0L
+      ),
+      "checkpoint_every must be a positive integer"
     )
   })
 })
