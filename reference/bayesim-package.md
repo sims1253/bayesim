@@ -18,4 +18,6 @@ memory-bounded task processing.
 
 Authors:
 
+- Maximilian Scholz <research.scholz@mailbox.org>
+
 - Paul-Christian Bürkner <paul.buerkner@gmail.com>

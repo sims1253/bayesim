@@ -14,19 +14,28 @@ compute_config_fingerprint(config)
 
 - config:
 
-  An S7 SimulationConfig object.
+  An S7 SimulationConfig object or a `StudySpec` created by
+  [`new_study_spec()`](https://sims1253.github.io/bayesim/reference/new_study_spec.md).
 
 ## Value
 
-A character string containing the SHA256 hash of the configuration.
+A character string containing the SHA256 hash of the study design.
 
 ## Details
 
-The fingerprint excludes runtime-specific settings:
+The fingerprint excludes runtime policy settings (B4):
 
 - `result_path`: Output location doesn't affect simulation identity
 
-- `checkpoint_every`: Checkpoint frequency is runtime optimization
+- `checkpoint_every` / `checkpoint_format`: checkpoint cadence/format is
+  runtime optimization
+
+- `retain`: retention is runtime policy; fingerprint exclusion does not
+  make every retention change legal on resume (a compatible resume may
+  narrow retention; widening is rejected once completed outcomes lack
+  the requested artifacts)
+
+- `max_errors`: error tolerance is runtime policy
 
 ## Examples
 

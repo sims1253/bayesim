@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Creating Custom Fitters • bayesim</title>
+<title>Custom Fitters • bayesim</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Creating Custom Fitters">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Custom Fitters">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,16 +34,21 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Get started</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Learn</h6></li>
+    <li><a class="dropdown-item" href="../articles/design-of-simulation-studies.html">Design of simulation studies</a></li>
+    <li><a class="dropdown-item" href="../articles/sbc-and-calibration.html">SBC and calibration</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="../articles/brms-studies.html">brms studies</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom fitters</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-metrics.html">Custom metrics</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Operations</h6></li>
+    <li><a class="dropdown-item" href="../articles/parallel-and-hpc.html">Parallel execution, HPC, and memory</a></li>
     <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
-    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+    <li><a class="dropdown-item" href="../articles/targets.html">Running bayesim with targets</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -63,7 +68,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Creating Custom Fitters</h1>
+      <h1>Custom Fitters</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/sims1253/bayesim/blob/master/vignettes/custom-fitters.Rmd" class="external-link"><code>vignettes/custom-fitters.Rmd</code></a></small>
@@ -73,1174 +78,399 @@
     
     
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="custom-fitters">Custom Fitters<a class="anchor" aria-label="anchor" href="#custom-fitters"></a>
 </h2>
-<p>bayesim provides a framework for Bayesian simulation studies through
-its extensible fitter interface. The package includes built-in fitters
-like <code><a href="../reference/MockFitter.html">MockFitter()</a></code> and <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code>, but you
-may need to create custom fitters to:</p>
-<ul>
-<li>
-<strong>Interface with different backends</strong>: Connect to Stan
-via <code>cmdstanr</code>, or other probabilistic programming
-languages</li>
-<li>
-<strong>Implement custom models</strong>: Fit specialized models not
-covered by existing fitters</li>
-<li>
-<strong>Add preprocessing</strong>: Transform data or apply custom
-initialization strategies</li>
-<li>
-<strong>Control inference</strong>: Implement custom sampling
-algorithms or diagnostics</li>
-</ul>
-<p>This vignette explains the fitter interface and demonstrates creating
-a cmdstanr fitter from scratch.</p>
-</div>
-<div class="section level2">
-<h2 id="the-fitter-interface">The Fitter Interface<a class="anchor" aria-label="anchor" href="#the-fitter-interface"></a>
-</h2>
+<p>bayesim ships three fitters: <code><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter()</a></code>
+(exact conjugate inference, no Stan), <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> (Stan
+via brms, with the compile-once model bank), and
+<code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> (your own <code>.stan</code> programs via
+cmdstanr). To use a different backend, implement a custom fitter by
+extending the <code>Fitter</code> class. The core contract is
+deliberately small: implement <code><a href="../reference/fit_model.html">fit_model()</a></code> and
+<code><a href="../reference/extract_draws.html">extract_draws()</a></code>, then opt into optional capabilities by
+declaring the matching <code>supports_*</code> property and method.</p>
 <div class="section level3">
-<h3 id="the-abstract-fitter-s7-class">The Abstract <code>Fitter</code> S7 Class<a class="anchor" aria-label="anchor" href="#the-abstract-fitter-s7-class"></a>
+<h3 id="the-fitter-contract">The Fitter contract<a class="anchor" aria-label="anchor" href="#the-fitter-contract"></a>
 </h3>
-<p>All fitters in bayesim extend the abstract <code>Fitter</code> S7
-class. This class defines the interface contract that all fitters must
-implement:</p>
-<div class="section level4">
-<h4 id="properties">Properties<a class="anchor" aria-label="anchor" href="#properties"></a>
-</h4>
+<p>The public fitter contract is:</p>
 <table class="table">
 <colgroup>
-<col width="34%">
-<col width="20%">
-<col width="44%">
+<col width="33%">
+<col width="33%">
+<col width="33%">
 </colgroup>
 <thead><tr class="header">
-<th>Property</th>
-<th>Type</th>
-<th>Description</th>
+<th>generic</th>
+<th>signature</th>
+<th>returns</th>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td><code>name</code></td>
-<td><code>character</code></td>
-<td>Identifier for the fitter (e.g., “stan”, “brms”)</td>
+<td><code>fit_model(fitter, data_bundle, fit_spec, seed, task_ctx)</code></td>
+<td>required</td>
+<td>a <code>bayesim_fit_result</code>, constructed with exported
+<code><a href="../reference/new_fit_result.html">new_fit_result()</a></code>
+</td>
 </tr>
 <tr class="even">
-<td><code>supports_predictions</code></td>
-<td><code>logical</code></td>
-<td>Whether the fitter supports <code><a href="../reference/predict_fit.html">predict_fit()</a></code>
+<td><code>extract_draws(fitter, fit_result, variables)</code></td>
+<td>required</td>
+<td>numeric draws matrix (rows = draws, cols = parameters, with unique
+colnames)</td>
+</tr>
+<tr class="odd">
+<td><code>predict_fit(fitter, fit_result, newdata, seed)</code></td>
+<td>optional; <code>supports_predictions = TRUE</code>
+</td>
+<td>list with <code>predicted_mean</code> (length N),
+<code>predicted_samples</code> (S x N), <code>predicted_sd</code>
+(length N)</td>
+</tr>
+<tr class="even">
+<td><code>log_lik_matrix(fitter, fit_result, newdata)</code></td>
+<td>optional; <code>supports_log_lik = TRUE</code>
+</td>
+<td>numeric log-likelihood matrix (S x N)</td>
+</tr>
+<tr class="odd">
+<td><code>predict_epred(fitter, fit_result, newdata)</code></td>
+<td>optional; <code>supports_epred = TRUE</code>
+</td>
+<td>numeric expectation matrix (S x N), or <code>NULL</code> when
+unsupported (<code>r2_loo</code> then degrades to NA)</td>
+</tr>
+<tr class="even">
+<td><code>loo_fit(fitter, fit_result)</code></td>
+<td>optional; <code>supports_loo = TRUE</code>
+</td>
+<td>list with <code>elpd</code>, <code>p_loo</code>,
+<code>elpd_se</code>, <code>pareto_k</code>
 </td>
 </tr>
 <tr class="odd">
-<td><code>supports_log_lik</code></td>
-<td><code>logical</code></td>
-<td>Whether the fitter supports <code><a href="../reference/log_lik.html">log_lik()</a></code>
-</td>
-</tr>
-<tr class="even">
-<td><code>supports_loo</code></td>
-<td><code>logical</code></td>
-<td>Whether the fitter supports <code><a href="../reference/loo.html">loo()</a></code>
+<td><code>fit_diagnostics(fitter, fit_result)</code></td>
+<td>optional</td>
+<td>named diagnostic list; the default is <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>
 </td>
 </tr>
 </tbody>
 </table>
-<p>These properties allow metrics and simulation code to query fitter
-capabilities before attempting operations that may not be supported.</p>
-</div>
-<div class="section level4">
-<h4 id="required-generics">Required Generics<a class="anchor" aria-label="anchor" href="#required-generics"></a>
-</h4>
-<p>The following S7 generics must have methods implemented for your
-fitter class:</p>
-<div class="section level5">
-<h5 id="fitfitter-data_bundle-fit_spec-seed-task_ctx">
-<code>fit(fitter, data_bundle, fit_spec, seed, task_ctx)</code><a class="anchor" aria-label="anchor" href="#fitfitter-data_bundle-fit_spec-seed-task_ctx"></a>
-</h5>
-<p>The main fitting method. Returns a <code>bayesim_fit_result</code> S3
-object.</p>
-<p><strong>Parameters:</strong> - <code>fitter</code>: Your fitter
-object - <code>data_bundle</code>: List containing <code>train</code>,
-<code>test</code>, <code>response</code>, <code>true_params</code>,
-<code>vars_of_interest</code> - <code>fit_spec</code>: Single-row data
-frame with model specification from fit_grid - <code>seed</code>:
-Integer seed for reproducibility - <code>task_ctx</code>: List with
-<code>task_id</code>, <code>data_idx</code>, <code>fit_idx</code>,
-<code>rep_idx</code></p>
-<p><strong>Returns:</strong> A <code>bayesim_fit_result</code> with
-fields: - <code>success</code>: Logical indicating if fit succeeded -
-<code>fit</code>: The backend fit object (or NULL) - <code>draws</code>:
-Matrix of posterior draws (S × P) with column names -
-<code>diagnostics</code>: Named list of diagnostic values -
-<code>timing</code>: List with <code>total</code>, <code>warmup</code>,
-<code>sample</code> times - <code>warnings</code>: Character vector of
-captured warnings - <code>error</code>: NULL or error condition</p>
-</div>
-<div class="section level5">
-<h5 id="extract_drawsfitter-fit_result-variables-null">
-<code>extract_draws(fitter, fit_result, variables = NULL)</code><a class="anchor" aria-label="anchor" href="#extract_drawsfitter-fit_result-variables-null"></a>
-</h5>
-<p>Extract posterior draws from a fitted model.</p>
-<p><strong>Returns:</strong> Matrix with dimensions S × P (draws ×
-parameters) with column names matching variable names.</p>
-</div>
-<div class="section level5">
-<h5 id="predict_fitfitter-fit_result-newdata-null-seed-null">
-<code>predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)</code><a class="anchor" aria-label="anchor" href="#predict_fitfitter-fit_result-newdata-null-seed-null"></a>
-</h5>
-<p>Generate predictions from a fitted model.</p>
-<p><strong>Returns:</strong> List containing: -
-<code>predicted_mean</code>: Vector of mean predictions (length N) -
-<code>predicted_samples</code>: Matrix of posterior predictive samples
-(N × S) - <code>predicted_sd</code>: Vector of prediction standard
-deviations (length N)</p>
-</div>
-<div class="section level5">
-<h5 id="log_likfitter-fit_result-newdata-null">
-<code>log_lik(fitter, fit_result, newdata = NULL)</code><a class="anchor" aria-label="anchor" href="#log_likfitter-fit_result-newdata-null"></a>
-</h5>
-<p>Compute pointwise log-likelihood values.</p>
-<p><strong>Returns:</strong> Matrix with dimensions N × S (observations
-× draws).</p>
-</div>
-<div class="section level5">
-<h5 id="loofitter-fit_result">
-<code>loo(fitter, fit_result)</code><a class="anchor" aria-label="anchor" href="#loofitter-fit_result"></a>
-</h5>
-<p>Compute leave-one-out cross-validation.</p>
-<p><strong>Returns:</strong> List with: - <code>elpd</code>: Expected
-log predictive density - <code>p_loo</code>: Effective number of
-parameters - <code>elpd_se</code>: Standard error of ELPD -
-<code>pareto_k</code>: Pareto k diagnostic values</p>
-</div>
-<div class="section level5">
-<h5 id="diagnosticsfitter-fit_result">
-<code>diagnostics(fitter, fit_result)</code><a class="anchor" aria-label="anchor" href="#diagnosticsfitter-fit_result"></a>
-</h5>
-<p>Extract convergence and fit diagnostics.</p>
-<p><strong>Returns:</strong> Named list with diagnostics such as: -
-<code>rhat_max</code>: Maximum R-hat statistic - <code>ess_bulk</code>:
-Minimum bulk effective sample size - <code>ess_tail</code>: Minimum tail
-effective sample size - <code>divergent</code>: Number of divergent
-transitions - <code>max_treedepth</code>: Number of max treedepth
-warnings</p>
-</div>
-</div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="cmdstanr-fitter">Example: cmdstanr Fitter with Configurable Priors<a class="anchor" aria-label="anchor" href="#cmdstanr-fitter"></a>
-</h2>
-<p>This section demonstrates a cmdstanr fitter for simple linear
-regression. The design pattern is that <strong><code>fit_spec</code>
-controls model aspects</strong>—in this case, the prior distributions.
-This allows you to run simulation studies comparing different prior
-specifications.</p>
-<div class="section level3">
-<h3 id="why-cmdstanr">Why cmdstanr?<a class="anchor" aria-label="anchor" href="#why-cmdstanr"></a>
-</h3>
-<p><a href="https://mc-stan.org/cmdstanr/" class="external-link">cmdstanr</a> is the R
-interface to Stan:</p>
-<ul>
-<li>
-<strong>Direct Stan control</strong>: Compile and run Stan models
-directly</li>
-<li>
-<strong>Fast</strong>: Uses CmdStan, the command-line interface to
-Stan</li>
-<li>
-<strong>Active development</strong>: Better integration with the
-<code>posterior</code> package</li>
-<li>
-<strong>Transparent</strong>: Clear separation between model, data,
-and sampling</li>
-</ul>
+<p><strong>All matrices are draws x observations (S x N)</strong> —
+<code>predicted_samples</code>, <code><a href="../reference/log_lik_matrix.html">log_lik_matrix()</a></code>, and
+<code><a href="../reference/predict_epred.html">predict_epred()</a></code> all put posterior draws in rows and
+observations in columns, matching the brms/loo convention. This is the
+single most common custom-fitter bug;
+<code>validate_fitter(smoke_test = TRUE)</code> rejects transposed
+matrices.</p>
+<p>The generics avoid masking common names: <code>loo_fit</code> (not
+<code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo</a></code>), <code>log_lik_matrix</code> (not
+<code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik</a></code>), <code>fit_model</code> (not
+<code><a href="https://generics.r-lib.org/reference/fit.html" class="external-link">generics::fit</a></code>).</p>
 </div>
 <div class="section level3">
-<h3 id="the-stan-model">The Stan Model<a class="anchor" aria-label="anchor" href="#the-stan-model"></a>
+<h3 id="a-minimal-fitter-linearfitter">A minimal fitter: LinearFitter<a class="anchor" aria-label="anchor" href="#a-minimal-fitter-linearfitter"></a>
 </h3>
-<p>We use a simple linear regression with <strong>configurable
-priors</strong> passed as data. This is the key pattern: priors come
-from <code>fit_spec</code>, not hardcoded in the model:</p>
+<p>This fitter fits a linear model by OLS and synthesizes posterior
+draws by bootstrapping the residual variance. It is executable without
+Stan.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Define the Stan model as a character string</span></span>
-<span><span class="co"># Note: Priors are passed as DATA, allowing fit_spec to control them</span></span>
-<span><span class="va">stan_model_code</span> <span class="op">&lt;-</span> <span class="st">"</span></span>
-<span><span class="st">data {</span></span>
-<span><span class="st">  int&lt;lower=0&gt; N;</span></span>
-<span><span class="st">  vector[N] y;</span></span>
-<span><span class="st">  vector[N] x;</span></span>
-<span><span class="st">  // Prior parameters - controlled by fit_spec</span></span>
-<span><span class="st">  real prior_intercept_mean;</span></span>
-<span><span class="st">  real&lt;lower=0&gt; prior_intercept_sd;</span></span>
-<span><span class="st">  real prior_slope_mean;</span></span>
-<span><span class="st">  real&lt;lower=0&gt; prior_slope_sd;</span></span>
-<span><span class="st">}</span></span>
-<span><span class="st">parameters {</span></span>
-<span><span class="st">  real alpha;  // Intercept</span></span>
-<span><span class="st">  real beta;   // Slope</span></span>
-<span><span class="st">  real&lt;lower=0&gt; sigma;  // Error SD (fixed prior)</span></span>
-<span><span class="st">}</span></span>
-<span><span class="st">model {</span></span>
-<span><span class="st">  // Configurable priors from data</span></span>
-<span><span class="st">  alpha ~ normal(prior_intercept_mean, prior_intercept_sd);</span></span>
-<span><span class="st">  beta ~ normal(prior_slope_mean, prior_slope_sd);</span></span>
-<span><span class="st">  sigma ~ exponential(1);  // Fixed prior for sigma</span></span>
-<span><span class="st">  </span></span>
-<span><span class="st">  // Likelihood</span></span>
-<span><span class="st">  y ~ normal(alpha + beta * x, sigma);</span></span>
-<span><span class="st">}</span></span>
-<span><span class="st">generated quantities {</span></span>
-<span><span class="st">  vector[N] log_lik;</span></span>
-<span><span class="st">  vector[N] y_rep;</span></span>
-<span><span class="st">  for (n in 1:N) {</span></span>
-<span><span class="st">    log_lik[n] = normal_lpdf(y[n] | alpha + beta * x[n], sigma);</span></span>
-<span><span class="st">    y_rep[n] = normal_rng(alpha + beta * x[n], sigma);</span></span>
-<span><span class="st">  }</span></span>
-<span><span class="st">}</span></span>
-<span><span class="st">"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="cmdstanfitter-class-definition">CmdStanFitter Class Definition<a class="anchor" aria-label="anchor" href="#cmdstanfitter-class-definition"></a>
-</h3>
-<p>The S7 class holds MCMC settings and caches the compiled model:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Define the CmdStanFitter class</span></span>
-<span><span class="va">CmdStanFitter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
-<span>  <span class="st">"CmdStanFitter"</span>,</span>
-<span>  parent <span class="op">=</span> <span class="va">Fitter</span>,</span>
-<span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="co"># Required Fitter properties</span></span>
-<span>    name <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_character</span>, default <span class="op">=</span> <span class="st">"cmdstanr"</span><span class="op">)</span>,</span>
-<span>    supports_predictions <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>    supports_log_lik <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>    supports_loo <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>    <span class="co"># MCMC settings</span></span>
-<span>    chains <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_integer</span>, default <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>,</span>
-<span>    iter_sampling <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_integer</span>, default <span class="op">=</span> <span class="fl">1000L</span><span class="op">)</span>,</span>
-<span>    iter_warmup <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_integer</span>, default <span class="op">=</span> <span class="fl">1000L</span><span class="op">)</span>,</span>
-<span>    adapt_delta <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_double</span>, default <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
-<span>    max_treedepth <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_integer</span>, default <span class="op">=</span> <span class="fl">10L</span><span class="op">)</span>,</span>
-<span>    <span class="co"># Model caching</span></span>
-<span>    stan_file <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_character</span>, default <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span>,</span>
-<span>    compiled_model <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_any</span>, default <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="the-fit-method">The <code>fit()</code> Method<a class="anchor" aria-label="anchor" href="#the-fit-method"></a>
-</h3>
-<p>This is where the magic happens: we build <code>stan_data</code> from
-<strong>both</strong> <code>data_bundle</code> (the data)
-<strong>and</strong> <code>fit_spec</code> (the priors):</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">data_bundle</span>,</span>
-<span>  <span class="va">fit_spec</span>,</span>
-<span>  <span class="va">seed</span>,</span>
-<span>  <span class="va">task_ctx</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">start_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="va">warnings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="co"># Step 1: Compile model (with caching)</span></span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">compiled_model</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="co"># Write model to temp file if not already done</span></span>
-<span>      <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">stan_file</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>        <span class="va">stan_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".stan"</span><span class="op">)</span></span>
-<span>        <span class="fu"><a href="https://rdrr.io/r/base/writeLines.html" class="external-link">writeLines</a></span><span class="op">(</span><span class="va">stan_model_code</span>, <span class="va">stan_file</span><span class="op">)</span></span>
-<span>      <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>        <span class="va">stan_file</span> <span class="op">&lt;-</span> <span class="va">fitter</span><span class="op">@</span><span class="va">stan_file</span></span>
-<span>      <span class="op">}</span></span>
-<span>      </span>
-<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="fu">cmdstanr</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/cmdstanr/reference/cmdstan_model.html" class="external-link">cmdstan_model</a></span><span class="op">(</span><span class="va">stan_file</span><span class="op">)</span></span>
-<span>    <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>      <span class="va">model</span> <span class="op">&lt;-</span> <span class="va">fitter</span><span class="op">@</span><span class="va">compiled_model</span></span>
-<span>    <span class="op">}</span></span>
-<span>    </span>
-<span>    <span class="co"># Step 2: Prepare data - combine data_bundle with fit_spec</span></span>
-<span>    <span class="va">train_data</span> <span class="op">&lt;-</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span></span>
-<span>    <span class="va">response</span> <span class="op">&lt;-</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">response</span></span>
-<span>    <span class="va">predictor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">train_data</span><span class="op">)</span>, <span class="va">response</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">predictor</span><span class="op">)</span> <span class="op">!=</span> <span class="fl">1</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="st">"CmdStanFitter expects exactly one predictor"</span><span class="op">)</span></span>
-<span>    <span class="op">}</span></span>
-<span>    </span>
-<span>    <span class="co"># Build stan_data from BOTH data_bundle AND fit_spec</span></span>
-<span>    <span class="co"># KEY PATTERN: fit_spec controls model aspects (here: priors)</span></span>
-<span>    <span class="va">stan_data</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      <span class="co"># From data_bundle</span></span>
-<span>      N <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">train_data</span><span class="op">)</span>,</span>
-<span>      y <span class="op">=</span> <span class="va">train_data</span><span class="op">[[</span><span class="va">response</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>      x <span class="op">=</span> <span class="va">train_data</span><span class="op">[[</span><span class="va">predictor</span><span class="op">]</span><span class="op">]</span>,</span>
-<span>      <span class="co"># From fit_spec - these control the priors!</span></span>
-<span>      prior_intercept_mean <span class="op">=</span> <span class="va">fit_spec</span><span class="op">$</span><span class="va">prior_intercept_mean</span>,</span>
-<span>      prior_intercept_sd <span class="op">=</span> <span class="va">fit_spec</span><span class="op">$</span><span class="va">prior_intercept_sd</span>,</span>
-<span>      prior_slope_mean <span class="op">=</span> <span class="va">fit_spec</span><span class="op">$</span><span class="va">prior_slope_mean</span>,</span>
-<span>      prior_slope_sd <span class="op">=</span> <span class="va">fit_spec</span><span class="op">$</span><span class="va">prior_slope_sd</span></span>
-<span>    <span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Step 3: Run MCMC</span></span>
-<span>    <span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>      <span class="va">model</span><span class="op">$</span><span class="fu">sample</span><span class="op">(</span></span>
-<span>        data <span class="op">=</span> <span class="va">stan_data</span>,</span>
-<span>        chains <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">chains</span>,</span>
-<span>        iter_sampling <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">iter_sampling</span>,</span>
-<span>        iter_warmup <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">iter_warmup</span>,</span>
-<span>        seed <span class="op">=</span> <span class="va">seed</span>,</span>
-<span>        adapt_delta <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">adapt_delta</span>,</span>
-<span>        max_treedepth <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">max_treedepth</span>,</span>
-<span>        refresh <span class="op">=</span> <span class="fl">0</span>  <span class="co"># Suppress verbose output</span></span>
-<span>      <span class="op">)</span></span>
-<span>    <span class="op">}</span>, warning <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">{</span></span>
-<span>      <span class="va">warnings</span> <span class="op">&lt;&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">warnings</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
-<span>      <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">invokeRestart</a></span><span class="op">(</span><span class="st">"muffleWarning"</span><span class="op">)</span></span>
-<span>    <span class="op">}</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Step 4: Extract draws using posterior package</span></span>
-<span>    <span class="va">draws_df</span> <span class="op">&lt;-</span> <span class="fu">posterior</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws_df.html" class="external-link">as_draws_df</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">$</span><span class="fu">draws</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="va">param_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span>, <span class="st">"sigma"</span><span class="op">)</span></span>
-<span>    <span class="va">param_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">draws_df</span><span class="op">[</span>, <span class="va">param_names</span><span class="op">]</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Step 5: Get diagnostics from cmdstanr</span></span>
-<span>    <span class="va">diag_summary</span> <span class="op">&lt;-</span> <span class="va">fit_obj</span><span class="op">$</span><span class="fu">summary</span><span class="op">(</span></span>
-<span>      variables <span class="op">=</span> <span class="va">param_names</span>,</span>
-<span>      <span class="fu">posterior</span><span class="fu">::</span><span class="va"><a href="https://mc-stan.org/posterior/reference/rhat.html" class="external-link">rhat</a></span>,</span>
-<span>      <span class="fu">posterior</span><span class="fu">::</span><span class="va"><a href="https://mc-stan.org/posterior/reference/ess_bulk.html" class="external-link">ess_bulk</a></span>,</span>
-<span>      <span class="fu">posterior</span><span class="fu">::</span><span class="va"><a href="https://mc-stan.org/posterior/reference/ess_tail.html" class="external-link">ess_tail</a></span></span>
-<span>    <span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="va">sampler_diag</span> <span class="op">&lt;-</span> <span class="va">fit_obj</span><span class="op">$</span><span class="fu">sampler_diagnostics</span><span class="op">(</span>format <span class="op">=</span> <span class="st">"df"</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="va">end_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="va">total_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">end_time</span>, <span class="va">start_time</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="co"># Step 6: Return fit result</span></span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
-<span>      success <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>      fit <span class="op">=</span> <span class="va">fit_obj</span>,</span>
-<span>      draws <span class="op">=</span> <span class="va">param_draws</span>,</span>
-<span>      diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        rhat_max <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">diag_summary</span><span class="op">$</span><span class="va">rhat</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>        ess_bulk <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">diag_summary</span><span class="op">$</span><span class="va">ess_bulk</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>        ess_tail <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">diag_summary</span><span class="op">$</span><span class="va">ess_tail</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>        divergent <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sampler_diag</span><span class="op">$</span><span class="va">divergent__</span><span class="op">)</span>,</span>
-<span>        max_treedepth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">sampler_diag</span><span class="op">$</span><span class="va">treedepth__</span> <span class="op">&gt;=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">max_treedepth</span><span class="op">)</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        total <span class="op">=</span> <span class="va">total_time</span>,</span>
-<span>        warmup <span class="op">=</span> <span class="va">fit_obj</span><span class="op">$</span><span class="fu">time</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">chains</span><span class="op">$</span><span class="va">warmup</span>,</span>
-<span>        sample <span class="op">=</span> <span class="va">fit_obj</span><span class="op">$</span><span class="fu">time</span><span class="op">(</span><span class="op">)</span><span class="op">$</span><span class="va">chains</span><span class="op">$</span><span class="va">sampling</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      warnings <span class="op">=</span> <span class="va">warnings</span>,</span>
-<span>      error <span class="op">=</span> <span class="cn">NULL</span></span>
-<span>    <span class="op">)</span></span>
-<span>    </span>
-<span>  <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">end_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
-<span>      success <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>      fit <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>      draws <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>      diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>      timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">end_time</span>, <span class="va">start_time</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>        warmup <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>        sample <span class="op">=</span> <span class="fl">0</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      warnings <span class="op">=</span> <span class="va">warnings</span>,</span>
-<span>      error <span class="op">=</span> <span class="va">e</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">result</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="other-required-methods">Other Required Methods<a class="anchor" aria-label="anchor" href="#other-required-methods"></a>
-</h3>
-<div class="section level4">
-<h4 id="extract_draws">
-<code>extract_draws()</code><a class="anchor" aria-label="anchor" href="#extract_draws"></a>
-</h4>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">extract_draws</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">variables</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Use posterior package for clean extraction</span></span>
-<span>  <span class="va">draws_df</span> <span class="op">&lt;-</span> <span class="fu">posterior</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/posterior/reference/draws_df.html" class="external-link">as_draws_df</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="fu">draws</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="va">param_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span>, <span class="st">"sigma"</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">variables</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">param_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="va">param_names</span>, <span class="va">variables</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="va">draws_df</span><span class="op">[</span>, <span class="va">param_names</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="predict_fit">
-<code>predict_fit()</code><a class="anchor" aria-label="anchor" href="#predict_fit"></a>
-</h4>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">predict_fit</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">seed</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_draws.html">extract_draws</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span>  <span class="va">alpha_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="st">"alpha"</span><span class="op">]</span></span>
-<span>  <span class="va">beta_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="st">"beta"</span><span class="op">]</span></span>
-<span>  <span class="va">sigma_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="st">"sigma"</span><span class="op">]</span></span>
-<span>  </span>
-<span>  <span class="co"># For newdata or training data</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">newdata</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">x_new</span> <span class="op">&lt;-</span> <span class="va">newdata</span><span class="op">$</span><span class="va">x</span></span>
-<span>  <span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>    <span class="co"># Use y_rep from generated quantities for training data</span></span>
-<span>    <span class="va">y_rep</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="fu">draws</span><span class="op">(</span><span class="st">"y_rep"</span>, format <span class="op">=</span> <span class="st">"matrix"</span><span class="op">)</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      predicted_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">y_rep</span><span class="op">)</span>,</span>
-<span>      predicted_samples <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">y_rep</span><span class="op">)</span>,  <span class="co"># N x S</span></span>
-<span>      predicted_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">y_rep</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span></span>
-<span>    <span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">n_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">x_new</span><span class="op">)</span></span>
-<span>  <span class="va">n_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">alpha_draws</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Compute predictions</span></span>
-<span>  <span class="va">linear_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="va">x_new</span>, <span class="va">beta_draws</span>, <span class="va">`*`</span><span class="op">)</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="va">alpha_draws</span>, nrow <span class="op">=</span> <span class="va">n_obs</span>, ncol <span class="op">=</span> <span class="va">n_draws</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Posterior predictive (with noise)</span></span>
-<span>  <span class="va">predicted_samples</span> <span class="op">&lt;-</span> <span class="va">linear_pred</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_obs</span> <span class="op">*</span> <span class="va">n_draws</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">n_obs</span>, ncol <span class="op">=</span> <span class="va">n_draws</span><span class="op">)</span> <span class="op">*</span> </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="va">sigma_draws</span>, nrow <span class="op">=</span> <span class="va">n_obs</span>, ncol <span class="op">=</span> <span class="va">n_draws</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    predicted_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">predicted_samples</span><span class="op">)</span>,</span>
-<span>    predicted_samples <span class="op">=</span> <span class="va">predicted_samples</span>,</span>
-<span>    predicted_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">predicted_samples</span>, <span class="fl">1</span>, <span class="va">sd</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="log_lik">
-<code>log_lik()</code><a class="anchor" aria-label="anchor" href="#log_lik"></a>
-</h4>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">log_lik</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">newdata</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning</a></span><span class="op">(</span><span class="st">"CmdStanFitter log_lik() for newdata not yet implemented"</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="co"># Extract log_lik from generated quantities</span></span>
-<span>  <span class="va">ll_matrix</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">$</span><span class="fu">draws</span><span class="op">(</span><span class="st">"log_lik"</span>, format <span class="op">=</span> <span class="st">"matrix"</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">ll_matrix</span><span class="op">)</span>  <span class="co"># N x S</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="loo">
-<code>loo()</code><a class="anchor" aria-label="anchor" href="#loo"></a>
-</h4>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">loo</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>elpd <span class="op">=</span> <span class="cn">NA_real_</span>, p_loo <span class="op">=</span> <span class="cn">NA_real_</span>, elpd_se <span class="op">=</span> <span class="cn">NA_real_</span>, pareto_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">ll</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/log_lik.html">log_lik</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">ll</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>elpd <span class="op">=</span> <span class="cn">NA_real_</span>, p_loo <span class="op">=</span> <span class="cn">NA_real_</span>, elpd_se <span class="op">=</span> <span class="cn">NA_real_</span>, pareto_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">loo_result</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
-<span>    <span class="fu">loo</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo</a></span><span class="op">(</span><span class="va">ll</span><span class="op">)</span>,</span>
-<span>    error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="cn">NULL</span></span>
-<span>  <span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">loo_result</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>elpd <span class="op">=</span> <span class="cn">NA_real_</span>, p_loo <span class="op">=</span> <span class="cn">NA_real_</span>, elpd_se <span class="op">=</span> <span class="cn">NA_real_</span>, pareto_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    elpd <span class="op">=</span> <span class="va">loo_result</span><span class="op">$</span><span class="va">estimates</span><span class="op">[</span><span class="st">"elpd_loo"</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
-<span>    p_loo <span class="op">=</span> <span class="va">loo_result</span><span class="op">$</span><span class="va">estimates</span><span class="op">[</span><span class="st">"p_loo"</span>, <span class="st">"Estimate"</span><span class="op">]</span>,</span>
-<span>    elpd_se <span class="op">=</span> <span class="va">loo_result</span><span class="op">$</span><span class="va">estimates</span><span class="op">[</span><span class="st">"elpd_loo"</span>, <span class="st">"SE"</span><span class="op">]</span>,</span>
-<span>    pareto_k <span class="op">=</span> <span class="fu">loo</span><span class="fu">::</span><span class="fu"><a href="https://mc-stan.org/loo/reference/pareto-k-diagnostic.html" class="external-link">pareto_k_values</a></span><span class="op">(</span><span class="va">loo_result</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="diagnostics">
-<code>diagnostics()</code><a class="anchor" aria-label="anchor" href="#diagnostics"></a>
-</h4>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">diagnostics</span>, <span class="va">CmdStanFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  <span class="va">fit_result</span><span class="op">$</span><span class="va">diagnostics</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level3">
-<h3 id="example-simulation-weak-vs-strong-priors">Example Simulation: Weak vs Strong Priors<a class="anchor" aria-label="anchor" href="#example-simulation-weak-vs-strong-priors"></a>
-</h3>
-<p>Now we demonstrate the key pattern: using <code>fit_grid</code> to
-specify different priors, which flow through <code>fit_spec</code> into
-the Stan model.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://tibble.tidyverse.org/" class="external-link">tibble</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Define fit_grid with different prior specifications</span></span>
-<span><span class="co"># This shows how fit_spec controls model aspects</span></span>
-<span><span class="va">fit_grid</span> <span class="op">&lt;-</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
-<span>  model <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"weak_prior"</span>, <span class="st">"strong_prior"</span><span class="op">)</span>,</span>
-<span>  prior_intercept_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0</span><span class="op">)</span>,</span>
-<span>  prior_intercept_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">1</span><span class="op">)</span>,      <span class="co"># Strong prior is more informative</span></span>
-<span>  prior_slope_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">1</span><span class="op">)</span>,          <span class="co"># Strong prior "knows" true slope!</span></span>
-<span>  prior_slope_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">0.5</span><span class="op">)</span>          <span class="co"># Strong prior is tighter</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fit_grid</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 2 × 5</span></span>
-<span><span class="co">#&gt;   model         prior_intercept_mean prior_intercept_sd prior_slope_mean prior_slope_sd</span></span>
-<span><span class="co">#&gt;   &lt;chr&gt;                        &lt;dbl&gt;              &lt;dbl&gt;            &lt;dbl&gt;          &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1 weak_prior                       0                 10              0             10  </span></span>
-<span><span class="co">#&gt; 2 strong_prior                     0                  1              1              0.5</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="data-generator">Data Generator<a class="anchor" aria-label="anchor" href="#data-generator"></a>
-</h4>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Data generator for simple linear regression</span></span>
-<span><span class="va">linear_data_generator</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">seed</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Note: seed is a scalar task seed.</span></span>
-<span>  <span class="co"># The simulation engine also restores the task RNG stream before each call,</span></span>
-<span>  <span class="co"># so you typically don't need to call set.seed() here.</span></span>
-<span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
-<span>  </span>
-<span>  <span class="co"># True parameters (strong_prior happens to "know" these)</span></span>
-<span>  <span class="va">alpha_true</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">alpha</span></span>
-<span>  <span class="va">beta_true</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">beta</span></span>
-<span>  <span class="va">sigma_true</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">sigma</span></span>
-<span>  </span>
-<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">alpha_true</span> <span class="op">+</span> <span class="va">beta_true</span> <span class="op">*</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="va">sigma_true</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
-<span>    test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>    true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="va">alpha_true</span>, beta <span class="op">=</span> <span class="va">beta_true</span>, sigma <span class="op">=</span> <span class="va">sigma_true</span><span class="op">)</span>,</span>
-<span>    vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span>, <span class="st">"sigma"</span><span class="op">)</span>,</span>
-<span>    references <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="run-the-simulation">Run the Simulation<a class="anchor" aria-label="anchor" href="#run-the-simulation"></a>
-</h4>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create the fitter</span></span>
-<span><span class="va">fitter</span> <span class="op">&lt;-</span> <span class="fu">CmdStanFitter</span><span class="op">(</span></span>
-<span>  chains <span class="op">=</span> <span class="fl">4L</span>,</span>
-<span>  iter_sampling <span class="op">=</span> <span class="fl">1000L</span>,</span>
-<span>  iter_warmup <span class="op">=</span> <span class="fl">1000L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Simulation configuration</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu">tibble</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html" class="external-link">tibble</a></span><span class="op">(</span></span>
-<span>    n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span><span class="op">)</span>,</span>
-<span>    alpha <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>    beta <span class="op">=</span> <span class="fl">1</span>,      <span class="co"># True slope is 1</span></span>
-<span>    sigma <span class="op">=</span> <span class="fl">1</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="va">fit_grid</span>,  <span class="co"># Different priors!</span></span>
-<span>  data_generator <span class="op">=</span> <span class="va">linear_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="va">fitter</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/BiasMetric.html">bias_metric</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/PosteriorMeanMetric.html">posterior_mean_metric</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">10L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Run simulation</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="analyze-results">Analyze Results<a class="anchor" aria-label="anchor" href="#analyze-results"></a>
-</h4>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Compare posterior means across prior specifications</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">result</span><span class="op">$</span><span class="va">summary</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">data_idx</span>, <span class="va">fit_idx</span>, <span class="va">posterior_mean__alpha</span>, <span class="va">posterior_mean__beta</span>, <span class="va">posterior_mean__sigma</span><span class="op">)</span></span>
-<span><span class="co">#&gt; # A tibble: 4 × 5</span></span>
-<span><span class="co">#&gt;   data_idx fit_idx posterior_mean__alpha posterior_mean__beta posterior_mean__sigma</span></span>
-<span><span class="co">#&gt;      &lt;int&gt;   &lt;int&gt;                 &lt;dbl&gt;                &lt;dbl&gt;                &lt;dbl&gt;</span></span>
-<span><span class="co">#&gt; 1        1       1               0.0234                0.982                0.998  # weak_prior, n=50</span></span>
-<span><span class="co">#&gt; 2        1       2              -0.0412                1.012                1.023  # strong_prior, n=50 (closer to truth!)</span></span>
-<span><span class="co">#&gt; 3        2       1               0.0089                0.995                0.987  # weak_prior, n=100</span></span>
-<span><span class="co">#&gt; 4        2       2              -0.0156                1.003                1.001  # strong_prior, n=100</span></span>
-<span></span>
-<span><span class="co"># Strong prior gives better estimates when prior mean matches truth!</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level3">
-<h3 id="key-takeaways">Key Takeaways<a class="anchor" aria-label="anchor" href="#key-takeaways"></a>
-</h3>
-<ol style="list-style-type: decimal">
-<li><p><strong><code>fit_spec</code> controls model aspects</strong>: In
-this example, priors come from <code>fit_grid</code> →
-<code>fit_spec</code> → <code>stan_data</code>. This pattern works for
-any model hyperparameters.</p></li>
-<li><p><strong>cmdstanr + posterior is the modern stack</strong>: Use
-<code><a href="https://mc-stan.org/cmdstanr/reference/cmdstan_model.html" class="external-link">cmdstanr::cmdstan_model()</a></code> for compilation and
-<code><a href="https://mc-stan.org/posterior/reference/draws_df.html" class="external-link">posterior::as_draws_df()</a></code> for extraction.</p></li>
-<li>
-<p><strong>Pattern generalizes</strong>: The same approach works
-for:</p>
-<ul>
-<li>Different likelihood functions</li>
-<li>Hierarchical model structures</li>
-<li>Regularization strengths</li>
-<li>Any model configuration you want to vary in a simulation</li>
-</ul>
-</li>
-</ol>
-</div>
-</div>
-<div class="section level2">
-<h2 id="testing-your-fitter">Testing Your Fitter<a class="anchor" aria-label="anchor" href="#testing-your-fitter"></a>
-</h2>
-<p>Once you’ve implemented your fitter, test it thoroughly to ensure it
-works correctly with bayesim.</p>
-<div class="section level3">
-<h3 id="using-validate_fitter">Using validate_fitter()<a class="anchor" aria-label="anchor" href="#using-validate_fitter"></a>
-</h3>
-<p>bayesim provides a <code><a href="../reference/validate_fitter.html">validate_fitter()</a></code> function that
-checks your fitter implements the required interface correctly:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Create your fitter instance</span></span>
-<span><span class="va">fitter</span> <span class="op">&lt;-</span> <span class="fu">CmdStanFitter</span><span class="op">(</span></span>
-<span>  chains <span class="op">=</span> <span class="fl">2L</span>,      <span class="co"># Fewer chains for faster testing</span></span>
-<span>  iter_sampling <span class="op">=</span> <span class="fl">500L</span>,</span>
-<span>  iter_warmup <span class="op">=</span> <span class="fl">500L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Basic validation (checks class, properties, and methods)</span></span>
-<span><span class="fu"><a href="../reference/validate_fitter.html">validate_fitter</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Full validation with smoke test (actually calls all methods)</span></span>
-<span><span class="fu"><a href="../reference/validate_fitter.html">validate_fitter</a></span><span class="op">(</span><span class="va">fitter</span>, smoke_test <span class="op">=</span> <span class="cn">TRUE</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Checking S7 Fitter class...</span></span>
-<span><span class="co">#&gt;   [OK] Object is an S7 Fitter class</span></span>
-<span><span class="co">#&gt; Checking required properties...</span></span>
-<span><span class="co">#&gt;   [OK] Property 'name' exists: cmdstanr</span></span>
-<span><span class="co">#&gt;   [OK] Property 'supports_predictions' exists: TRUE</span></span>
-<span><span class="co">#&gt;   ...</span></span>
-<span><span class="co">#&gt; Validation passed!</span></span></code></pre></div>
-<p>The <code><a href="../reference/validate_fitter.html">validate_fitter()</a></code> function performs:</p>
-<ol style="list-style-type: decimal">
-<li><p><strong>Property checks</strong>: Verifies all required
-properties exist (<code>name</code>, <code>supports_predictions</code>,
-<code>supports_log_lik</code>, <code>supports_loo</code>)</p></li>
-<li><p><strong>Method checks</strong>: Confirms all S7 methods are
-implemented (<code>fit</code>, <code>extract_draws</code>,
-<code>predict_fit</code>, <code>log_lik</code>, <code>loo</code>,
-<code>diagnostics</code>)</p></li>
-<li>
-<p><strong>Smoke test</strong> (when
-<code>smoke_test = TRUE</code>):</p>
-<ul>
-<li>Creates simple test data</li>
-<li>Calls <code><a href="../reference/fit.html">fit()</a></code> and verifies
-<code>bayesim_fit_result</code> structure</li>
-<li>Calls <code><a href="../reference/extract_draws.html">extract_draws()</a></code> and verifies matrix with
-colnames</li>
-<li>If supported, calls <code><a href="../reference/predict_fit.html">predict_fit()</a></code> and verifies output
-structure</li>
-<li>If supported, calls <code><a href="../reference/log_lik.html">log_lik()</a></code> and verifies matrix
-dimensions</li>
-<li>Calls <code><a href="../reference/diagnostics.html">diagnostics()</a></code> and verifies list output</li>
-</ul>
-</li>
-</ol>
-<p>If any check fails, <code><a href="../reference/validate_fitter.html">validate_fitter()</a></code> throws an
-informative error explaining what went wrong.</p>
-</div>
-<div class="section level3">
-<h3 id="manual-unit-tests">Manual Unit Tests<a class="anchor" aria-label="anchor" href="#manual-unit-tests"></a>
-</h3>
-<p>For more granular testing or to test specific scenarios, you can
-write manual tests:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create minimal test data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">50</span></span>
-<span><span class="va">test_data_bundle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span>,</span>
-<span>    x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>  true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0</span>, beta <span class="op">=</span> <span class="fl">1</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"alpha"</span>, <span class="st">"beta"</span>, <span class="st">"sigma"</span><span class="op">)</span>,</span>
-<span>  references <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># fit_spec must include prior parameters!</span></span>
-<span><span class="va">test_fit_spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  model <span class="op">=</span> <span class="st">"test"</span>,</span>
-<span>  prior_intercept_mean <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  prior_intercept_sd <span class="op">=</span> <span class="fl">10</span>,</span>
-<span>  prior_slope_mean <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  prior_slope_sd <span class="op">=</span> <span class="fl">10</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">test_task_ctx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  task_id <span class="op">=</span> <span class="st">"test_001"</span>,</span>
-<span>  data_idx <span class="op">=</span> <span class="fl">1L</span>,</span>
-<span>  fit_idx <span class="op">=</span> <span class="fl">1L</span>,</span>
-<span>  rep_idx <span class="op">=</span> <span class="fl">1L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Test fit() returns valid bayesim_fit_result</span></span>
-<span><span class="va">fit_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit.html">fit</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">test_data_bundle</span>, <span class="va">test_fit_spec</span>, seed <span class="op">=</span> <span class="fl">42L</span>, <span class="va">test_task_ctx</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">inherits</a></span><span class="op">(</span><span class="va">fit_result</span>, <span class="st">"bayesim_fit_result"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">==</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"✓ fit() returns valid bayesim_fit_result\n"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Test extract_draws() returns matrix with colnames</span></span>
-<span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_draws.html">extract_draws</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">is.matrix</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"✓ extract_draws() returns matrix with colnames\n"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Test predict_fit() returns correct structure</span></span>
-<span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/predict_fit.html">predict_fit</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">predicted_mean</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">predicted_samples</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">preds</span><span class="op">$</span><span class="va">predicted_sd</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"✓ predict_fit() returns correct structure\n"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"All unit tests passed!\n"</span><span class="op">)</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="best-practices">Best Practices<a class="anchor" aria-label="anchor" href="#best-practices"></a>
-</h2>
-<div class="section level3">
-<h3 id="error-handling-in-fit">Error Handling in fit()<a class="anchor" aria-label="anchor" href="#error-handling-in-fit"></a>
-</h3>
-<p>Always wrap fitting code in <code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch()</a></code> to gracefully
-handle failures:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
-<span>  <span class="op">{</span></span>
-<span>    <span class="co"># Fitting code here</span></span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span>success <span class="op">=</span> <span class="cn">TRUE</span>, <span class="va">...</span><span class="op">)</span></span>
-<span>  <span class="op">}</span>,</span>
-<span>  error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
-<span>      success <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>      error <span class="op">=</span> <span class="va">e</span>,</span>
-<span>      timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>total <span class="op">=</span> <span class="va">elapsed_time</span>, warmup <span class="op">=</span> <span class="fl">0</span>, sample <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>      warnings <span class="op">=</span> <span class="va">warnings</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-<p>This ensures that: - Failed fits don’t crash the entire simulation -
-Error information is preserved for debugging - Timing information is
-still recorded - Partial progress can be checkpointed</p>
-</div>
-<div class="section level3">
-<h3 id="timing-the-fit">Timing the Fit<a class="anchor" aria-label="anchor" href="#timing-the-fit"></a>
-</h3>
-<p>Always record timing information:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">start_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co"># ... fitting code ...</span></span>
-<span><span class="va">end_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="va">total_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">end_time</span>, <span class="va">start_time</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>The <code>bayesim_fit_result</code> expects timing as a list with
-<code>total</code>, <code>warmup</code>, and <code>sample</code>
-components. cmdstanr provides these directly via
-<code>fit_obj$time()</code>.</p>
-</div>
-<div class="section level3">
-<h3 id="handling-warnings">Handling Warnings<a class="anchor" aria-label="anchor" href="#handling-warnings"></a>
-</h3>
-<p>Capture warnings during fitting to prevent them from cluttering
-output while preserving them for diagnostics:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">warnings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
-<span>  <span class="op">{</span></span>
-<span>    <span class="fu">fitting_function</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span>
-<span>  <span class="op">}</span>,</span>
-<span>  warning <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">warnings</span> <span class="op">&lt;&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">warnings</span>, <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">invokeRestart</a></span><span class="op">(</span><span class="st">"muffleWarning"</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="seed-management">Seed Management<a class="anchor" aria-label="anchor" href="#seed-management"></a>
-</h3>
-<p>Pass the seed to the backend for reproducibility:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Pass seed to cmdstanr</span></span>
-<span><span class="va">model</span><span class="op">$</span><span class="fu">sample</span><span class="op">(</span><span class="va">...</span>, seed <span class="op">=</span> <span class="va">seed</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># For predictions, accept a seed parameter</span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="checking-fitter-capabilities">Checking Fitter Capabilities<a class="anchor" aria-label="anchor" href="#checking-fitter-capabilities"></a>
-</h3>
-<p>Before calling methods that may not be supported, check the fitter’s
-properties:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">supports_predictions</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/predict_fit.html">predict_fit</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, <span class="va">newdata</span><span class="op">)</span></span>
-<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="va">preds</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="kw">if</span> <span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">supports_loo</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="va">loo_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/loo.html">loo</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span><span class="op">}</span> <span class="kw">else</span> <span class="op">{</span></span>
-<span>  <span class="va">loo_result</span> <span class="op">&lt;-</span> <span class="cn">NULL</span></span>
-<span><span class="op">}</span></span></code></pre></div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
-</h2>
-<p>Creating custom fitters in bayesim involves:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Extending the <code>Fitter</code> class</strong> with your
-fitter-specific properties</li>
-<li>
-<strong>Implementing six S7 methods</strong>: <code><a href="../reference/fit.html">fit()</a></code>,
-<code><a href="../reference/extract_draws.html">extract_draws()</a></code>, <code><a href="../reference/predict_fit.html">predict_fit()</a></code>,
-<code><a href="../reference/log_lik.html">log_lik()</a></code>, <code><a href="../reference/loo.html">loo()</a></code>, and
-<code><a href="../reference/diagnostics.html">diagnostics()</a></code>
-</li>
-<li>
-<strong>Returning properly structured</strong>
-<code>bayesim_fit_result</code> objects from <code><a href="../reference/fit.html">fit()</a></code>
-</li>
-<li>
-<strong>Using <code>fit_spec</code> to control model
-aspects</strong> (priors, hyperparameters, etc.)</li>
-<li>
-<strong>Handling errors gracefully</strong> with
-<code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch()</a></code> and preserving warnings with
-<code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers()</a></code>
-</li>
-<li>
-<strong>Recording timing information</strong> for performance
-analysis</li>
-<li>
-<strong>Extracting real diagnostics</strong> from the backend
-(R-hat, ESS, divergences)</li>
-<li>
-<strong>Testing thoroughly</strong> to ensure integration with the
-simulation framework</li>
-</ol>
-<p>The <code>CmdStanFitter</code> example in this vignette demonstrates
-all these patterns. By following these patterns, you can extend bayesim
-to work with any Bayesian modeling backend.</p>
-</div>
-<div class="section level2">
-<h2 id="appendix-linearfitter-no-external-dependencies">Appendix: LinearFitter (No External Dependencies)<a class="anchor" aria-label="anchor" href="#appendix-linearfitter-no-external-dependencies"></a>
-</h2>
-<p>For users without Stan installed, here’s a <code>LinearFitter</code>
-that uses base R’s <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm()</a></code>. This is <strong>a better
-alternative than MockFitter</strong> when you need a no-Stan fitter:</p>
-<ul>
-<li>Unlike <code>MockFitter</code>, <code>LinearFitter</code>
-<strong>respects your fit_spec</strong> and performs actual statistical
-inference</li>
-<li>Provides approximate Bayesian posterior draws using sampling
-distributions</li>
-<li>Suitable for lightweight simulation studies where MCMC isn’t
-required</li>
-</ul>
-<p>Note: This fitter doesn’t provide true Bayesian inference (no priors,
-no MCMC), but it’s useful for testing the simulation framework with
-realistic statistical behavior:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://rconsortium.github.io/S7/" class="external-link">S7</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Define the LinearFitter class</span></span>
-<span><span class="va">LinearFitter</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
+<span><span class="co"># Define the class</span></span>
+<span><span class="va">LinearFitter</span> <span class="op">&lt;-</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
 <span>  <span class="st">"LinearFitter"</span>,</span>
 <span>  parent <span class="op">=</span> <span class="va">Fitter</span>,</span>
 <span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    name <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_character</span>, default <span class="op">=</span> <span class="st">"lm"</span><span class="op">)</span>,</span>
-<span>    supports_predictions <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>    supports_log_lik <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>    supports_loo <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_logical</span>, default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
-<span>    n_draws <span class="op">=</span> <span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="va">class_integer</span>, default <span class="op">=</span> <span class="fl">1000L</span><span class="op">)</span></span>
+<span>    name <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span>, default <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
+<span>    supports_predictions <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_logical</a></span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    supports_log_lik <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_logical</a></span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>    supports_loo <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_logical</a></span>, default <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
+<span>    n_draws <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_integer</a></span>, default <span class="op">=</span> <span class="fl">500L</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># fit() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">fit</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">data_bundle</span>,</span>
-<span>  <span class="va">fit_spec</span>,</span>
-<span>  <span class="va">seed</span>,</span>
-<span>  <span class="va">task_ctx</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Note: seed is a scalar task seed.</span></span>
-<span>  <span class="co"># The simulation engine also restores the task RNG stream before each call,</span></span>
-<span>  <span class="co"># so you typically don't need to call set.seed() here.</span></span>
-<span>  <span class="va">start_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="va">warnings</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">result</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
-<span>    <span class="va">train_data</span> <span class="op">&lt;-</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span></span>
-<span>    <span class="va">response</span> <span class="op">&lt;-</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">response</span></span>
-<span>    <span class="va">formula</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/formula.html" class="external-link">as.formula</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">response</span>, <span class="st">"~ ."</span><span class="op">)</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">formula</span>, data <span class="op">=</span> <span class="va">train_data</span><span class="op">)</span></span>
-<span>    <span class="va">fit_obj</span><span class="op">$</span><span class="va">bayesim_seed</span> <span class="op">&lt;-</span> <span class="va">seed</span>  <span class="co"># Store seed for extract_draws</span></span>
-<span>    </span>
-<span>    <span class="va">end_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="va">total_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">end_time</span>, <span class="va">start_time</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span></span>
-<span>    </span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
-<span>      success <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>      fit <span class="op">=</span> <span class="va">fit_obj</span>,</span>
-<span>      draws <span class="op">=</span> <span class="cn">NULL</span>,  <span class="co"># Generated on-demand</span></span>
-<span>      diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>        rhat_max <span class="op">=</span> <span class="fl">1.0</span>,</span>
-<span>        ess_bulk <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span>,</span>
-<span>        ess_tail <span class="op">=</span> <span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span>,</span>
-<span>        divergent <span class="op">=</span> <span class="fl">0L</span>,</span>
-<span>        max_treedepth <span class="op">=</span> <span class="fl">0L</span></span>
-<span>      <span class="op">)</span>,</span>
-<span>      timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>total <span class="op">=</span> <span class="va">total_time</span>, warmup <span class="op">=</span> <span class="fl">0</span>, sample <span class="op">=</span> <span class="va">total_time</span><span class="op">)</span>,</span>
-<span>      warnings <span class="op">=</span> <span class="va">warnings</span>,</span>
-<span>      error <span class="op">=</span> <span class="cn">NULL</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">end_time</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.time.html" class="external-link">Sys.time</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
-<span>      success <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>      error <span class="op">=</span> <span class="va">e</span>,</span>
-<span>      timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>total <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/difftime.html" class="external-link">difftime</a></span><span class="op">(</span><span class="va">end_time</span>, <span class="va">start_time</span>, units <span class="op">=</span> <span class="st">"secs"</span><span class="op">)</span><span class="op">)</span>, warmup <span class="op">=</span> <span class="fl">0</span>, sample <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>      warnings <span class="op">=</span> <span class="va">warnings</span></span>
-<span>    <span class="op">)</span></span>
-<span>  <span class="op">}</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">result</span></span>
-<span><span class="op">}</span></span>
+<span><span class="co"># fit_model(): estimate the model and package draws</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">fit_model</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">data_bundle</span>, <span class="va">fit_spec</span>, <span class="va">seed</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">train</span> <span class="op">&lt;-</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span></span>
+<span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="va">x</span>, data <span class="op">=</span> <span class="va">train</span><span class="op">)</span></span>
+<span>  <span class="va">coefs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span>  <span class="va">vc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu">MASS</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MASS/man/mvrnorm.html" class="external-link">mvrnorm</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span>, mu <span class="op">=</span> <span class="va">coefs</span>, Sigma <span class="op">=</span> <span class="va">vc</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"intercept"</span>, <span class="st">"slope"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># extract_draws() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">extract_draws</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">variables</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">$</span><span class="va">bayesim_seed</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">coef_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span></span>
-<span>  <span class="va">vcov_mat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span></span>
-<span>  <span class="va">sigma_est</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span><span class="op">$</span><span class="va">sigma</span></span>
-<span>  </span>
-<span>  <span class="va">n_draws</span> <span class="op">&lt;-</span> <span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span></span>
-<span>  <span class="va">n_coef</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">coef_est</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Generate draws from sampling distribution</span></span>
-<span>  <span class="va">coef_draws</span> <span class="op">&lt;-</span> <span class="fu">MASS</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MASS/man/mvrnorm.html" class="external-link">mvrnorm</a></span><span class="op">(</span><span class="va">n_draws</span>, <span class="va">coef_est</span>, <span class="va">vcov_mat</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="co"># Chi-squared approximation for sigma</span></span>
-<span>  <span class="va">n_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/nobs.html" class="external-link">nobs</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span></span>
-<span>  <span class="va">df</span> <span class="op">&lt;-</span> <span class="va">n_obs</span> <span class="op">-</span> <span class="va">n_coef</span></span>
-<span>  <span class="va">sigma_draws</span> <span class="op">&lt;-</span> <span class="va">sigma_est</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">df</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/stats/Chisquare.html" class="external-link">rchisq</a></span><span class="op">(</span><span class="va">n_draws</span>, <span class="va">df</span><span class="op">)</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="va">coef_draws</span>, sigma <span class="op">=</span> <span class="va">sigma_draws</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">variables</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="va">draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">intersect</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="va">variables</span><span class="op">)</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">draws</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># predict_fit() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">predict_fit</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  <span class="va">seed</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="va">newdata</span> <span class="op"><a href="../reference/null-coalescing.html">%||%</a></span> <span class="va">fit_obj</span><span class="op">$</span><span class="va">model</span></span>
-<span>  <span class="va">n_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="va">seed</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_draws.html">extract_draws</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span>  <span class="va">n_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span>, <span class="va">data</span><span class="op">)</span></span>
-<span>  <span class="va">coef_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="st">"sigma"</span><span class="op">)</span></span>
-<span>  <span class="va">coef_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="va">coef_names</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span>  <span class="va">sigma_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="st">"sigma"</span><span class="op">]</span></span>
-<span>  </span>
-<span>  <span class="va">linear_pred</span> <span class="op">&lt;-</span> <span class="va">X</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">coef_draws</span><span class="op">)</span></span>
-<span>  <span class="va">predicted_samples</span> <span class="op">&lt;-</span> <span class="va">linear_pred</span> <span class="op">+</span> </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n_obs</span> <span class="op">*</span> <span class="va">n_draws</span><span class="op">)</span>, nrow <span class="op">=</span> <span class="va">n_obs</span>, ncol <span class="op">=</span> <span class="va">n_draws</span><span class="op">)</span> <span class="op">*</span> </span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">sigma_draws</span>, each <span class="op">=</span> <span class="va">n_obs</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    predicted_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">predicted_samples</span><span class="op">)</span>,</span>
-<span>    predicted_samples <span class="op">=</span> <span class="va">predicted_samples</span>,</span>
-<span>    predicted_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">predicted_samples</span>, <span class="fl">1</span>, <span class="va">sd</span><span class="op">)</span></span>
+<span>  <span class="co"># Package into the supported public fit-result type. The engine validates</span></span>
+<span>  <span class="co"># and canonicalizes the draws at the task seam.</span></span>
+<span>  <span class="fu">bayesim</span><span class="fu">::</span><span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
+<span>    fit <span class="op">=</span> <span class="va">fit</span>,</span>
+<span>    draws <span class="op">=</span> <span class="va">draws</span>,</span>
+<span>    diagnostics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      rhat_max <span class="op">=</span> <span class="fl">1.0</span>, ess_bulk_min <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span><span class="op">)</span>,</span>
+<span>      ess_tail_min <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span><span class="op">)</span>, divergent <span class="op">=</span> <span class="fl">0L</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    timing <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>total <span class="op">=</span> <span class="fl">0</span>, warmup <span class="op">=</span> <span class="fl">0</span>, sample <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
+<span>    success <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>    warnings <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span>,</span>
+<span>    error <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>    data_bundle <span class="op">=</span> <span class="va">data_bundle</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># log_lik() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">log_lik</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
-<span>  <span class="va">fitter</span>,</span>
-<span>  <span class="va">fit_result</span>,</span>
-<span>  <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="cn">NULL</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">fit_obj</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span></span>
-<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="va">newdata</span> <span class="op"><a href="../reference/null-coalescing.html">%||%</a></span> <span class="va">fit_obj</span><span class="op">$</span><span class="va">model</span></span>
-<span>  <span class="va">n_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">data</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">response</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">data</span><span class="op">[[</span><span class="va">response</span><span class="op">]</span><span class="op">]</span></span>
-<span>  </span>
-<span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_draws.html">extract_draws</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span>  <span class="va">n_draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/formula.html" class="external-link">formula</a></span><span class="op">(</span><span class="va">fit_obj</span><span class="op">)</span>, <span class="va">data</span><span class="op">)</span></span>
-<span>  <span class="va">coef_names</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://generics.r-lib.org/reference/setops.html" class="external-link">setdiff</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span>, <span class="st">"sigma"</span><span class="op">)</span></span>
-<span>  <span class="va">coef_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="va">coef_names</span>, drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
-<span>  <span class="va">sigma_draws</span> <span class="op">&lt;-</span> <span class="va">draws</span><span class="op">[</span>, <span class="st">"sigma"</span><span class="op">]</span></span>
-<span>  </span>
-<span>  <span class="va">linear_pred</span> <span class="op">&lt;-</span> <span class="va">X</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">coef_draws</span><span class="op">)</span></span>
-<span>  <span class="va">sigma_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="va">sigma_draws</span>, each <span class="op">=</span> <span class="va">n_obs</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">dnorm</a></span><span class="op">(</span><span class="va">y</span>, mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="va">linear_pred</span><span class="op">)</span>, sd <span class="op">=</span> <span class="va">sigma_matrix</span>, log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>         nrow <span class="op">=</span> <span class="va">n_obs</span>, ncol <span class="op">=</span> <span class="va">n_draws</span><span class="op">)</span></span>
+<span><span class="co"># extract_draws(): return the draws matrix</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">extract_draws</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, <span class="va">variables</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">fit_result</span><span class="op">$</span><span class="va">draws</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># loo() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">loo</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>elpd <span class="op">=</span> <span class="cn">NA_real_</span>, p_loo <span class="op">=</span> <span class="cn">NA_real_</span>, elpd_se <span class="op">=</span> <span class="cn">NA_real_</span>, pareto_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">numeric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
-<span>  </span>
-<span>  <span class="va">n_obs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/nobs.html" class="external-link">nobs</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co"># predict_fit(): posterior-mean predictions</span></span>
+<span><span class="co"># Convention: predicted_samples is S x N (draws as rows, observations as cols),</span></span>
+<span><span class="co"># matching log_lik() and predict_epred().</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">predict_fit</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">seed</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">newdata</span><span class="op">)</span><span class="op">)</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span> <span class="kw">else</span> <span class="va">newdata</span></span>
+<span>  <span class="co"># draws is S x P; design matrix X is N x P, so draws %*% t(X) is S x N.</span></span>
+<span>  <span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">data</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">preds</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">draws</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    elpd <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
-<span>    p_loo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    elpd_se <span class="op">=</span> <span class="cn">NA_real_</span>,</span>
-<span>    pareto_k <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="cn">NA_real_</span>, <span class="va">n_obs</span><span class="op">)</span></span>
+<span>    predicted_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">preds</span><span class="op">)</span>,</span>
+<span>    predicted_samples <span class="op">=</span> <span class="va">preds</span>,</span>
+<span>    predicted_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/apply.html" class="external-link">apply</a></span><span class="op">(</span><span class="va">preds</span>, <span class="fl">2</span>, <span class="va">sd</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co"># diagnostics() method</span></span>
-<span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">diagnostics</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span> <span class="op">||</span> <span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="kw"><a href="https://rdrr.io/r/base/function.html" class="external-link">return</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span>  <span class="op">}</span></span>
+<span><span class="co"># log_lik_matrix(): per-observation log-likelihood of each draw</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">log_lik_matrix</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">newdata</span><span class="op">)</span><span class="op">)</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span> <span class="kw">else</span> <span class="va">newdata</span></span>
+<span>  <span class="va">fit</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">fit</span></span>
+<span>  <span class="va">sigma2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/residuals.html" class="external-link">residuals</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span> <span class="op">/</span> <span class="va">fit</span><span class="op">$</span><span class="va">df.residual</span></span>
+<span>  <span class="va">X</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">as.matrix</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">cbind</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">data</span><span class="op">$</span><span class="va">x</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="va">mu</span> <span class="op">&lt;-</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">draws</span> <span class="op"><a href="https://rdrr.io/r/base/matmult.html" class="external-link">%*%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/t.html" class="external-link">t</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span></span>
+<span>  <span class="va">residual</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sweep.html" class="external-link">sweep</a></span><span class="op">(</span><span class="va">mu</span>, <span class="fl">2</span>, <span class="va">data</span><span class="op">$</span><span class="va">y</span>, <span class="st">"-"</span><span class="op">)</span></span>
+<span>  <span class="co"># matrix: draws (rows) x observations (cols)</span></span>
+<span>  <span class="op">-</span><span class="fl">0.5</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">log</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">sigma2</span><span class="op">)</span> <span class="op">-</span> <span class="va">residual</span><span class="op">^</span><span class="fl">2</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">sigma2</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="co"># fit_diagnostics()</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">fit_diagnostics</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">fit_result</span><span class="op">$</span><span class="va">diagnostics</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>Test the LinearFitter:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Quick test with LinearFitter</span></span>
-<span><span class="va">fitter</span> <span class="op">&lt;-</span> <span class="fu">LinearFitter</span><span class="op">(</span><span class="op">)</span></span>
+</div>
+<div class="section level3">
+<h3 id="using-the-custom-fitter">Using the custom fitter<a class="anchor" aria-label="anchor" href="#using-the-custom-fitter"></a>
+</h3>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">my_generator</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">train_x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n_train</span><span class="op">)</span></span>
+<span>  <span class="va">test_x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n_test</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>      y <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">slope</span> <span class="op">*</span> <span class="va">train_x</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n_train</span><span class="op">)</span>,</span>
+<span>      x <span class="op">=</span> <span class="va">train_x</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    test <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>      y <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">slope</span> <span class="op">*</span> <span class="va">test_x</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">data_spec</span><span class="op">$</span><span class="va">n_test</span><span class="op">)</span>,</span>
+<span>      x <span class="op">=</span> <span class="va">test_x</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    response <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>    true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>slope <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">slope</span><span class="op">)</span>,</span>
+<span>    vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slope"</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">test_data_bundle</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span>, x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>  true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>`(Intercept)` <span class="op">=</span> <span class="fl">0</span>, x <span class="op">=</span> <span class="fl">0</span>, sigma <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span>, <span class="st">"x"</span>, <span class="st">"sigma"</span><span class="op">)</span>,</span>
-<span>  references <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co"># This metric deliberately requests both optional capabilities. Its output</span></span>
+<span><span class="co"># makes the S x N contract observable in the completed simulation.</span></span>
+<span><span class="va">ContractMetric</span> <span class="op">&lt;-</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_class.html" class="external-link">new_class</a></span><span class="op">(</span></span>
+<span>  <span class="st">"ContractMetric"</span>,</span>
+<span>  parent <span class="op">=</span> <span class="va">Metric</span>,</span>
+<span>  properties <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span>, default <span class="op">=</span> <span class="st">"contract"</span><span class="op">)</span>,</span>
+<span>    needs <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span></span>
+<span>      <span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_character</a></span>,</span>
+<span>      default <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"predictions"</span>, <span class="st">"log_lik"</span><span class="op">)</span></span>
+<span>    <span class="op">)</span>,</span>
+<span>    required <span class="op">=</span> <span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/new_property.html" class="external-link">new_property</a></span><span class="op">(</span><span class="fu">S7</span><span class="fu">::</span><span class="va"><a href="https://rconsortium.github.io/S7/reference/base_classes.html" class="external-link">class_logical</a></span>, default <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">test_fit_spec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span></span>
-<span><span class="va">test_task_ctx</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>task_id <span class="op">=</span> <span class="st">"test"</span>, data_idx <span class="op">=</span> <span class="fl">1L</span>, fit_idx <span class="op">=</span> <span class="fl">1L</span>, rep_idx <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">compute_metric</span>, <span class="va">ContractMetric</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span></span>
+<span>  <span class="va">metric</span>, <span class="va">fit_result</span>, <span class="va">data_bundle</span>, <span class="va">context</span>, <span class="va">task_ctx</span></span>
+<span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    prediction_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">context</span><span class="op">$</span><span class="va">predictions</span><span class="op">$</span><span class="va">predicted_mean</span><span class="op">)</span>,</span>
+<span>    mean_log_lik <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">context</span><span class="op">$</span><span class="va">log_lik</span><span class="op">)</span>,</span>
+<span>    prediction_n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">context</span><span class="op">$</span><span class="va">predictions</span><span class="op">$</span><span class="va">predicted_samples</span><span class="op">)</span>,</span>
+<span>    log_lik_n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">context</span><span class="op">$</span><span class="va">log_lik</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
 <span></span>
-<span><span class="va">fit_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit.html">fit</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">test_data_bundle</span>, <span class="va">test_fit_spec</span>, seed <span class="op">=</span> <span class="fl">42L</span>, <span class="va">test_task_ctx</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="va">fit_result</span><span class="op">$</span><span class="va">success</span><span class="op">)</span></span>
+<span><span class="va">fitter</span> <span class="op">&lt;-</span> <span class="fu">LinearFitter</span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="va">representative_bundle</span> <span class="op">&lt;-</span> <span class="fu">withr</span><span class="fu">::</span><span class="fu"><a href="https://withr.r-lib.org/reference/with_seed.html" class="external-link">with_seed</a></span><span class="op">(</span></span>
+<span>  <span class="fl">11L</span>,</span>
+<span>  <span class="fu">my_generator</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>n_train <span class="op">=</span> <span class="fl">30L</span>, n_test <span class="op">=</span> <span class="fl">8L</span>, slope <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/validate_fitter.html">validate_fitter</a></span><span class="op">(</span></span>
+<span>  <span class="va">fitter</span>,</span>
+<span>  smoke_test <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  data_bundle <span class="op">=</span> <span class="va">representative_bundle</span>,</span>
+<span>  fit_spec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/extract_draws.html">extract_draws</a></span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">is.matrix</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span>, <span class="st">"x"</span>, <span class="st">"sigma"</span><span class="op">)</span> <span class="op"><a href="https://mc-stan.org/posterior/reference/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
+<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n_train <span class="op">=</span> <span class="fl">50L</span>, n_test <span class="op">=</span> <span class="fl">8L</span>, slope <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
+<span>  data_generator <span class="op">=</span> <span class="va">my_generator</span>,</span>
+<span>  fitter <span class="op">=</span> <span class="va">fitter</span>,</span>
+<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    <span class="co"># Metric is abstract, so constructing ContractMetric() directly honors</span></span>
+<span>    <span class="co"># the defaults declared above (name, needs = c("predictions",</span></span>
+<span>    <span class="co"># "log_lik"), required = TRUE).</span></span>
+<span>    <span class="fu">ContractMetric</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  n_replicates <span class="op">=</span> <span class="fl">4L</span>,</span>
+<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
+<span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"LinearFitter test passed!\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; LinearFitter test passed!</span></span></code></pre></div>
+<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">status</span> <span class="op">==</span> <span class="st">"success"</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">contract__prediction_n</span> <span class="op">==</span> <span class="fl">8L</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">contract__log_lik_n</span> <span class="op">==</span> <span class="fl">8L</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">contract__prediction_mean</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/is.finite.html" class="external-link">is.finite</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">contract__mean_log_lik</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            task_id  status stop_reason contract__prediction_mean</span></span>
+<span><span class="co">#&gt; 1 d001_f001_r00001 success        &lt;NA&gt;                -0.2697102</span></span>
+<span><span class="co">#&gt; 2 d001_f001_r00002 success        &lt;NA&gt;                 0.5809961</span></span>
+<span><span class="co">#&gt; 3 d001_f001_r00003 success        &lt;NA&gt;                -1.4781161</span></span>
+<span><span class="co">#&gt; 4 d001_f001_r00004 success        &lt;NA&gt;                -0.7460078</span></span>
+<span><span class="co">#&gt;   contract__mean_log_lik contract__prediction_n contract__log_lik_n</span></span>
+<span><span class="co">#&gt; 1              -1.202266                      8                   8</span></span>
+<span><span class="co">#&gt; 2              -1.255003                      8                   8</span></span>
+<span><span class="co">#&gt; 3              -1.278065                      8                   8</span></span>
+<span><span class="co">#&gt; 4              -1.591544                      8                   8</span></span>
+<span><span class="co">#&gt;   posterior_summary__mean__slope posterior_summary__median__slope</span></span>
+<span><span class="co">#&gt; 1                       1.828058                         1.820413</span></span>
+<span><span class="co">#&gt; 2                       1.898103                         1.905611</span></span>
+<span><span class="co">#&gt; 3                       1.990360                         1.997124</span></span>
+<span><span class="co">#&gt; 4                       2.069987                         2.069358</span></span>
+<span><span class="co">#&gt;   posterior_summary__sd__slope posterior_summary__q_lower__slope</span></span>
+<span><span class="co">#&gt; 1                    0.1283973                          1.576287</span></span>
+<span><span class="co">#&gt; 2                    0.1345020                          1.645288</span></span>
+<span><span class="co">#&gt; 3                    0.1380528                          1.723293</span></span>
+<span><span class="co">#&gt; 4                    0.1502059                          1.754710</span></span>
+<span><span class="co">#&gt;   posterior_summary__q_upper__slope truth__slope rhat_max ess_bulk_min</span></span>
+<span><span class="co">#&gt; 1                          2.071709            2        1          500</span></span>
+<span><span class="co">#&gt; 2                          2.149415            2        1          500</span></span>
+<span><span class="co">#&gt; 3                          2.259547            2        1          500</span></span>
+<span><span class="co">#&gt; 4                          2.337851            2        1          500</span></span>
+<span><span class="co">#&gt;   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test</span></span>
+<span><span class="co">#&gt; 1          500         0  0.014463663       1           50           8</span></span>
+<span><span class="co">#&gt; 2          500         0  0.017901421       2           50           8</span></span>
+<span><span class="co">#&gt; 3          500         0  0.002906561       3           50           8</span></span>
+<span><span class="co">#&gt; 4          500         0  0.002682447       4           50           8</span></span>
+<span><span class="co">#&gt;   data_slope fit_model</span></span>
+<span><span class="co">#&gt; 1          2    linear</span></span>
+<span><span class="co">#&gt; 2          2    linear</span></span>
+<span><span class="co">#&gt; 3          2    linear</span></span>
+<span><span class="co">#&gt; 4          2    linear</span></span></code></pre></div>
+<div class="section level4">
+<h4 id="parallel-runs">Parallel runs<a class="anchor" aria-label="anchor" href="#parallel-runs"></a>
+</h4>
+<p><code>run_simulation(config, workers = N)</code> sets up mirai
+daemons for the run and tears them down afterwards.
+<code>workers = 1</code> is <em>genuinely sequential</em>: no daemons
+are launched and tasks run in-process. That matters for fitters and
+metrics defined in <em>your</em> package or script —
+<code><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">S7::method()</a></code> registrations live in the process that ran
+them and do not travel to daemon workers, so an external S7 fitter that
+passes <code>validate_fitter(smoke_test = TRUE)</code> will lose
+<code><a href="../reference/fit_model.html">fit_model()</a></code> dispatch on daemons. Use
+<code>workers = 1</code> (or omit <code>workers</code>) for externally
+defined fitters; parallel execution starts at
+<code>workers &gt;= 2</code>.</p>
+</div>
+</div>
+<div class="section level3">
+<h3 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a>
+</h3>
+<p>The executable workflow above calls
+<code>validate_fitter(smoke_test = TRUE)</code> on representative data
+before running the study. That conformance check executes fit, draw
+extraction, prediction, log-likelihood, and diagnostics methods and
+checks their shapes. For a quick declaration-only check, use:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/validate_fitter.html">validate_fitter</a></span><span class="op">(</span><span class="fu">LinearFitter</span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="raw-stan-cmdstanfitter">Raw Stan: CmdStanFitter<a class="anchor" aria-label="anchor" href="#raw-stan-cmdstanfitter"></a>
+</h2>
+<p>When brms cannot express your model, write the <code>.stan</code>
+file yourself and wire it in with <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> — no
+custom fitter class needed. You supply the Stan program, a
+<code>stan_data</code> function mapping a data bundle to the Stan
+<code>data</code> list, and (optionally) the names of
+<code>log_lik</code> / <code>epred</code> generated quantities:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">stan_file</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"stan"</span>, <span class="st">"linear_regression.stan"</span>, package <span class="op">=</span> <span class="st">"bayesim"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fitter</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/CmdStanFitter.html">CmdStanFitter</a></span><span class="op">(</span></span>
+<span>  stan_file <span class="op">=</span> <span class="va">stan_file</span>,</span>
+<span>  stan_data <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_bundle</span>, <span class="va">fit_spec</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">X</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/model.matrix.html" class="external-link">model.matrix</a></span><span class="op">(</span><span class="op">~</span><span class="va">x</span>, <span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>      N <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span>, K <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">ncol</a></span><span class="op">(</span><span class="va">X</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1L</span>, X <span class="op">=</span> <span class="va">X</span>,</span>
+<span>      y <span class="op">=</span> <span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span><span class="op">[[</span><span class="va">data_bundle</span><span class="op">$</span><span class="va">response</span><span class="op">]</span><span class="op">]</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">}</span>,</span>
+<span>  log_lik <span class="op">=</span> <span class="st">"log_lik"</span>,   <span class="co"># generated-quantities vector -&gt; LOO metrics work</span></span>
+<span>  epred <span class="op">=</span> <span class="st">"mu"</span>,          <span class="co"># optional: in-sample expectation matrix</span></span>
+<span>  chains <span class="op">=</span> <span class="fl">2L</span>, iter_warmup <span class="op">=</span> <span class="fl">500L</span>, iter_sampling <span class="op">=</span> <span class="fl">500L</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>The shipped <code>inst/stan/linear_regression.stan</code> shows the
+pattern: a <code>generated quantities</code> block computing
+<code>log_lik[n]</code> (pointwise log-likelihood) and
+<code>mu[n]</code> (the expectation). With <code>log_lik</code>
+declared, <code>supports_log_lik</code>/<code>supports_loo</code> are
+set automatically and <code><a href="../reference/ElpdLooMetric.html">elpd_loo_metric()</a></code> works out of the
+box; without it, an informative error names the convention.</p>
+<p>Limitations, by design: raw Stan has no newdata semantics, so
+<code>supports_predictions</code> is <code>FALSE</code> (test-set
+prediction metrics need brms or a custom fitter), and
+<code><a href="../reference/predict_epred.html">predict_epred()</a></code> returns the in-sample GQ matrix only when
+<code>epred</code> is declared. Compilation is cached by cmdstanr (keyed
+on the file hash), so daemons compile-or-cache-hit on first use — no
+model-bank involvement.</p>
+</div>
+<div class="section level2">
+<h2 id="custom-metrics">Custom Metrics<a class="anchor" aria-label="anchor" href="#custom-metrics"></a>
+</h2>
+<p>Metrics are the other half of the extension surface — see
+<code><a href="../articles/custom-metrics.html">vignette("custom-metrics")</a></code> for the Metric contract, the
+output schema, <code>summary_type</code>, and externalization of large
+outputs.</p>
+</div>
+<div class="section level2">
+<h2 id="a-brms-based-fitter-sketch">A brms-based fitter (sketch)<a class="anchor" aria-label="anchor" href="#a-brms-based-fitter-sketch"></a>
+</h2>
+<p>For a real Stan fitter, <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> is the standard
+path and benefits from the model bank (one compile per distinct spec). A
+custom brms fitter would:</p>
+<ol style="list-style-type: decimal">
+<li>Call <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> (or reuse a prefit via the model bank)
+in <code><a href="../reference/fit_model.html">fit_model()</a></code>.</li>
+<li>Use <code><a href="https://mc-stan.org/posterior/reference/draws_matrix.html" class="external-link">brms::as_draws_matrix()</a></code> in
+<code><a href="../reference/extract_draws.html">extract_draws()</a></code>.</li>
+<li>Use <code><a href="https://mc-stan.org/rstantools/reference/posterior_predict.html" class="external-link">brms::posterior_predict()</a></code> /
+<code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik()</a></code> in the other generics.</li>
+</ol>
+<p>See <code><a href="../reference/BrmsFitter.html">?BrmsFitter</a></code> for the full method reference, and the
+<code>BrmsFitter</code> implementation in <code>R/brms-fitter.R</code>
+of the bayesim source tree for a complete worked example. Because the
+model bank keys on <code>fit_spec</code> columns (<code>formula</code>,
+<code>family</code>, <code>prior</code>, <code>stanvars</code>),
+supplying these as <code>fit_grid</code> columns lets the engine compile
+once and reuse the binary across all replicates of the same
+condition.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

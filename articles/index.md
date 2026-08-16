@@ -1,28 +1,30 @@
 # Articles
 
-### Getting Started
+### Get started
 
 - [Getting Started with
   bayesim](https://sims1253.github.io/bayesim/articles/getting-started.md):
 
-### Simulation Studies
+### Learn
 
-- [Simulation Study Example: Assessing Model
-  Performance](https://sims1253.github.io/bayesim/articles/simulation-study.md):
+- [Design of simulation
+  studies](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md):
+- [SBC and
+  calibration](https://sims1253.github.io/bayesim/articles/sbc-and-calibration.md):
 
-### Extending bayesim
+### Backends and extension
 
-- [Creating Custom
+- [brms studies: the model bank and
+  model_grid()](https://sims1253.github.io/bayesim/articles/brms-studies.md):
+- [Custom
   Fitters](https://sims1253.github.io/bayesim/articles/custom-fitters.md):
+- [Custom
+  Metrics](https://sims1253.github.io/bayesim/articles/custom-metrics.md):
 
-### Advanced Topics
+### Operations
 
-- [Reproducibility in
-  bayesim](https://sims1253.github.io/bayesim/articles/reproducibility.md):
-- [Memory Management for Large
-  Simulations](https://sims1253.github.io/bayesim/articles/memory-management.md):
-
-### Case Studies
-
-- [Case Studies: Simulation-Based Research with
-  bayesim](https://sims1253.github.io/bayesim/articles/case-studies.md):
+- [Parallel execution, HPC, and
+  memory](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md):
+- [Reproducibility](https://sims1253.github.io/bayesim/articles/reproducibility.md):
+- [Running bayesim with
+  targets](https://sims1253.github.io/bayesim/articles/targets.md):

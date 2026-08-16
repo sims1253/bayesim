@@ -6,7 +6,11 @@ checkpoint with valid checksums. Used for corruption recovery.
 ## Usage
 
 ``` r
-get_latest_valid_checkpoint(result_path, config_fingerprint = NULL)
+get_latest_valid_checkpoint(
+  result_path,
+  config_fingerprint = NULL,
+  load_outcomes = TRUE
+)
 ```
 
 ## Arguments

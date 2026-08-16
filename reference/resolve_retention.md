@@ -25,8 +25,8 @@ Character vector of valid retention options
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 resolve_retention("minimal")
-#> [1] "metrics"
 resolve_retention(c("metrics", "draws"))
-#> [1] "metrics" "draws"  
+} # }
 ```

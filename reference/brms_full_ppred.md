@@ -1,47 +1,39 @@
-# Full forward sampling of a the response of brms fit, including multivariate models.
+# Full forward sampling of a brms model's responses for a SINGLE posterior draw
 
-Full forward sampling of a the response of brms fit, including
-multivariate models.
+Simulates the response(s) of a brmsfit at a single posterior draw,
+respecting dependency order among multiple responses. Ported from the
+SBC package and the 0.x bayesim codebase; bayeshear/SBC/future
+dependencies removed.
 
 ## Usage
 
 ``` r
-brms_full_ppred(fit, newdata = NULL, draws = NULL, validate_all = FALSE)
+brms_full_ppred(fit, newdata = NULL, draw = 1L)
 ```
-
-## Source
-
-This function is taken from the SBC package
-(https://github.com/hyunjimoon/SBC) and only here to ensure stability,
-as it is not exported in SBC.
 
 ## Arguments
 
 - fit:
 
-  An object of class `brmsfit`
+  A brmsfit with posterior draws.
 
 - newdata:
 
-  An optional data.frame for which to evaluate predictions. If NULL
-  (default), the original data of the model is used.
+  Optional data.frame of predictors. If `NULL`, uses `fit$data`.
 
-- draws:
+- draw:
 
-  An integer vector specifying the posterior draws to be used. If NULL
-  (the default), all draws are used.
-
-- validate_all:
-
-  if TRUE, validation of input data will be done in all iterations,
-  otherwise only once
+  Single integer draw index to simulate.
 
 ## Value
 
-A list of data.frames containing the draws.
+A data.frame (a copy of `newdata`) with the simulated response column(s)
+filled in.
 
-## Examples
+## Details
 
-``` r
-# Pending
-```
+[`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+only ever needs one draw per task (the deterministic `rep_idx`-indexed
+draw), so this function takes a single `draw` index and returns a single
+data.frame. This eliminates the prior index mismatch where results were
+stored at `pp_data[[draw_value]]` but read at `simulated[[1]]`.

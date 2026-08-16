@@ -6,7 +6,7 @@ specified. Verifies checksums before returning data.
 ## Usage
 
 ``` r
-read_checkpoint(result_path, checkpoint_id = NULL)
+read_checkpoint(result_path, checkpoint_id = NULL, load_outcomes = TRUE)
 ```
 
 ## Arguments
@@ -20,6 +20,12 @@ read_checkpoint(result_path, checkpoint_id = NULL)
 
   Integer specifying the checkpoint ID to read. If NULL (default), reads
   the latest checkpoint from latest.json.
+
+- load_outcomes:
+
+  Logical; when FALSE, validate shard integrity but omit materializing
+  accumulated outcomes. Used by the filesystem RunStore while appending
+  the next ledger checkpoint.
 
 ## Value
 

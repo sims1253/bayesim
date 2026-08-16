@@ -11,7 +11,7 @@ all metrics, and the data_generator function signature."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,16 +23,21 @@ all metrics, and the data_generator function signature."></head><body>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Get started</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Learn</h6></li>
+    <li><a class="dropdown-item" href="../articles/design-of-simulation-studies.html">Design of simulation studies</a></li>
+    <li><a class="dropdown-item" href="../articles/sbc-and-calibration.html">SBC and calibration</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="../articles/brms-studies.html">brms studies</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom fitters</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-metrics.html">Custom metrics</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Operations</h6></li>
+    <li><a class="dropdown-item" href="../articles/parallel-and-hpc.html">Parallel execution, HPC, and memory</a></li>
     <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
-    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+    <li><a class="dropdown-item" href="../articles/targets.html">Running bayesim with targets</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/sims1253/bayesim"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -75,8 +80,8 @@ all metrics, and the data_generator function signature.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The configuration is validated for:</p><ul><li><p>Being a valid SimulationConfig S7 object</p></li>
-<li><p>Having a non-NULL fitter that passes <code><a href="check_fitter_class.html">validate_fitter_interface()</a></code></p></li>
-<li><p>Having metrics (if present) that pass <code><a href="validate_metric_interface.html">validate_metric_interface()</a></code></p></li>
+<li><p>Having a non-NULL fitter that passes <code><a href="validate_fitter.html">validate_fitter()</a></code></p></li>
+<li><p>Having metrics (if present) that pass <code><a href="validate_metric.html">validate_metric()</a></code></p></li>
 <li><p>Having a data_generator function with the correct signature</p></li>
 </ul></div>
     <div class="section level2">
@@ -87,7 +92,7 @@ all metrics, and the data_generator function signature.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="simulation_config.html">simulation_config()</a></code>, <code><a href="check_fitter_class.html">validate_fitter_interface()</a></code>, <code><a href="validate_metric_interface.html">validate_metric_interface()</a></code></p></div>
+    <div class="dont-index"><p><code><a href="simulation_config.html">simulation_config()</a></code>, <code><a href="validate_fitter.html">validate_fitter()</a></code>, <code><a href="validate_metric.html">validate_metric()</a></code></p></div>
     </div>
 
     <div class="section level2">

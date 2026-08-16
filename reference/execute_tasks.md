@@ -17,7 +17,14 @@ execute_tasks(
   result_path = NULL,
   config_fingerprint = NULL,
   checkpoint_every = 50L,
-  chunk_size = NULL
+  keep_checkpoints = 2L,
+  prior_results_df = data.frame(task_id = character(), status = character()),
+  prior_task_results = NULL,
+  adaptive_next_check = NULL,
+  adaptive_state = NULL,
+  stop_on = NULL,
+  verbose = TRUE,
+  run_store = NULL
 )
 ```
 
@@ -65,13 +72,33 @@ execute_tasks(
 
 - checkpoint_every:
 
-  Integer; write checkpoint every N completed tasks
+  Integer; write checkpoint every N completed tasks. B4: also bounds the
+  number of task results held in memory at once.
 
-- chunk_size:
+- keep_checkpoints:
 
-  Integer; maximum task results to keep in memory before forcing a
-  checkpoint write and clearing memory (default: same as
-  checkpoint_every)
+  Integer; number of checkpoint commit directories retained. Pruning
+  removes old commit directories only; immutable outcome shards and
+  ledger history are never pruned.
+
+- prior_results_df:
+
+  Previously resumed result rows, cached in memory to avoid re-reading
+  and re-hashing the prior checkpoint for every batch.
+
+- stop_on:
+
+  Optional adaptive stopping policy from the RunPolicy.
+
+- verbose:
+
+  Logical; if TRUE, print lifecycle messages independently of the task
+  progress bar.
+
+- run_store:
+
+  Optional internal RunStore adapter used for checkpoint persistence.
+  Defaults to an adapter created from `result_path`.
 
 ## Value
 

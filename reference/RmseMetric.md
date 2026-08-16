@@ -7,9 +7,16 @@ Constructor for RmseMetric.
 ## Usage
 
 ``` r
-RmseMetric(name = character(0), needs = character(0), required = FALSE)
+RmseMetric(
+  name = "rmse",
+  needs = "predictions",
+  required = FALSE,
+  summary_type = "mean",
+  schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), n_obs
+    = list(role = "count", aggregation = "none", mcse = "none"))
+)
 
-rmse_metric(name = "rmse")
+pred_rmse_metric(name = "rmse")
 ```
 
 ## Arguments
@@ -34,9 +41,19 @@ An RmseMetric object.
 ## Examples
 
 ``` r
-rmse_metric()
+pred_rmse_metric()
 #> <bayesim::RmseMetric>
-#>  @ name    : chr "rmse"
-#>  @ needs   : chr "predictions"
-#>  @ required: logi FALSE
+#>  @ name        : chr "rmse"
+#>  @ needs       : chr "predictions"
+#>  @ required    : logi FALSE
+#>  @ summary_type: chr "mean"
+#>  @ schema      :List of 2
+#>  .. $ value:List of 3
+#>  ..  ..$ role       : chr "estimate"
+#>  ..  ..$ aggregation: chr "mean"
+#>  ..  ..$ mcse       : chr "sd"
+#>  .. $ n_obs:List of 3
+#>  ..  ..$ role       : chr "count"
+#>  ..  ..$ aggregation: chr "none"
+#>  ..  ..$ mcse       : chr "none"
 ```

@@ -20,7 +20,7 @@ run_task_safe(
 
 - task:
 
-  A task specification list (from get_task_spec)
+  A task specification list from the task grid.
 
 - config_spec:
 

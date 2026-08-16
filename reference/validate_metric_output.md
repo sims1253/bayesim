@@ -41,22 +41,3 @@ Invisible `output` if validation passes. Otherwise, an error is raised.
 - no nested lists, data frames, or matrices allowed
 
 ## Examples
-
-``` r
-# Valid output
-validate_metric_output(list(rmse = 0.5, n_obs = 100L), "rmse")
-
-# Valid output with named vector
-validate_metric_output(
-  list(params = c(alpha = 0.1, beta = 0.2)),
-  "param_estimates"
-)
-
-if (FALSE) { # \dontrun{
-# Invalid: unnamed element
-validate_metric_output(list(0.5), "rmse")  # Error
-
-# Invalid: nested list
-validate_metric_output(list(nested = list(a = 1)), "rmse")  # Error
-} # }
-```

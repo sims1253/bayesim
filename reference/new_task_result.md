@@ -12,7 +12,9 @@ new_task_result(
   diagnostics = NULL,
   timing = list(total = 0),
   error = NULL,
-  warnings = character()
+  warnings = character(),
+  truth = NULL,
+  stop_reason = NULL
 )
 ```
 
@@ -24,7 +26,7 @@ new_task_result(
 
 - status:
 
-  Character scalar: one of "success", "failed", or "skipped"
+  Character scalar: one of "pending", "success", "failed", or "skipped"
 
 - metrics:
 
@@ -45,6 +47,11 @@ new_task_result(
 - warnings:
 
   Character vector of warning messages
+
+- stop_reason:
+
+  Optional reason a task was not executed, such as `"max_errors"` or
+  `"adaptive_stop"`.
 
 ## Value
 
@@ -69,6 +76,7 @@ Validation rules:
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Successful task
 result <- new_task_result(
   task_id = "task_001",
@@ -85,4 +93,5 @@ result <- new_task_result(
   error = list(error_class = "convergence_error", error_message = "R-hat > 1.1"),
   timing = list(total = 2.0)
 )
+} # }
 ```

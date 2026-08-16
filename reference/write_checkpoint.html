@@ -9,7 +9,7 @@ results. Uses a write-temp-then-rename protocol to ensure consistency."></head><
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -21,16 +21,21 @@ results. Uses a write-temp-then-rename protocol to ensure consistency."></head><
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Get started</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Learn</h6></li>
+    <li><a class="dropdown-item" href="../articles/design-of-simulation-studies.html">Design of simulation studies</a></li>
+    <li><a class="dropdown-item" href="../articles/sbc-and-calibration.html">SBC and calibration</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="../articles/brms-studies.html">brms studies</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom fitters</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-metrics.html">Custom metrics</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Operations</h6></li>
+    <li><a class="dropdown-item" href="../articles/parallel-and-hpc.html">Parallel execution, HPC, and memory</a></li>
     <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
-    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+    <li><a class="dropdown-item" href="../articles/targets.html">Running bayesim with targets</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/sims1253/bayesim"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -59,7 +64,16 @@ results. Uses a write-temp-then-rename protocol to ensure consistency.</p>
 <span>  <span class="va">task_grid</span>,</span>
 <span>  <span class="va">task_results</span>,</span>
 <span>  <span class="va">config_fingerprint</span>,</span>
-<span>  checkpoint_format <span class="op">=</span> <span class="st">"rds"</span></span>
+<span>  checkpoint_format <span class="op">=</span> <span class="st">"rds"</span>,</span>
+<span>  keep_checkpoints <span class="op">=</span> <span class="cn">Inf</span>,</span>
+<span>  prior_results_df <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prior_task_results <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  adaptive_next_check <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  adaptive_state <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  run_policy_spec <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  prior_checkpoint <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  return_state <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  delta_store <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -91,6 +105,54 @@ configuration for validation purposes.</p></dd>
 <dt id="arg-checkpoint-format">checkpoint_format<a class="anchor" aria-label="anchor" href="#arg-checkpoint-format"></a></dt>
 <dd><p>Character scalar naming the checkpoint storage format.</p></dd>
 
+
+<dt id="arg-keep-checkpoints">keep_checkpoints<a class="anchor" aria-label="anchor" href="#arg-keep-checkpoints"></a></dt>
+<dd><p>Positive integer; number of checkpoint commit
+directories to retain. Older commit directories are pruned only after the
+new checkpoint commit and <code>latest.json</code> have been written successfully.
+Pruning never removes immutable outcome shards or ledger history, so
+durable storage grows roughly linearly with completed tasks. <code>Inf</code>
+disables pruning for direct/internal callers.</p></dd>
+
+
+<dt id="arg-prior-results-df">prior_results_df<a class="anchor" aria-label="anchor" href="#arg-prior-results-df"></a></dt>
+<dd><p>Optional cached data frame of results from before the
+current execution. When supplied, it replaces the legacy read of the
+previous checkpoint.</p></dd>
+
+
+<dt id="arg-prior-task-results">prior_task_results<a class="anchor" aria-label="anchor" href="#arg-prior-task-results"></a></dt>
+<dd><p>Optional canonical task outcomes from before the
+current execution, used when migrating legacy checkpoints.</p></dd>
+
+
+<dt id="arg-adaptive-next-check">adaptive_next_check<a class="anchor" aria-label="anchor" href="#arg-adaptive-next-check"></a></dt>
+<dd><p>Optional persisted adaptive-check threshold.</p></dd>
+
+
+<dt id="arg-adaptive-state">adaptive_state<a class="anchor" aria-label="anchor" href="#arg-adaptive-state"></a></dt>
+<dd><p>Optional persistable adaptive precision snapshot.</p></dd>
+
+
+<dt id="arg-run-policy-spec">run_policy_spec<a class="anchor" aria-label="anchor" href="#arg-run-policy-spec"></a></dt>
+<dd><p>Optional serialized effective run policy.</p></dd>
+
+
+<dt id="arg-prior-checkpoint">prior_checkpoint<a class="anchor" aria-label="anchor" href="#arg-prior-checkpoint"></a></dt>
+<dd><p>Optional validated in-memory checkpoint state. The
+filesystem store supplies this to keep live append work proportional to
+newly completed tasks.</p></dd>
+
+
+<dt id="arg-return-state">return_state<a class="anchor" aria-label="anchor" href="#arg-return-state"></a></dt>
+<dd><p>Logical; return the validated checkpoint state instead
+of only its numeric ID.</p></dd>
+
+
+<dt id="arg-delta-store">delta_store<a class="anchor" aria-label="anchor" href="#arg-delta-store"></a></dt>
+<dd><p>Logical; write immutable outcome and ledger deltas instead
+of legacy full snapshots.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -102,10 +164,18 @@ configuration for validation purposes.</p></dd>
 <span><span class="va">checkpoints</span><span class="op">/</span></span>
 <span><span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">cp_000001</span><span class="op">/</span></span>
 <span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">meta.json</span>         <span class="co"># checkpoint metadata</span></span>
-<span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">ledger.rds</span>        <span class="co"># task grid with status</span></span>
-<span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">results.rds</span>       <span class="co"># metrics + diagnostics per task</span></span>
+<span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">ledger.rds</span>        <span class="co"># ledger view (delta in delta-store mode)</span></span>
+<span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">results.rds</span>       <span class="co"># results view (delta in delta-store mode)</span></span>
 <span>    <span class="op">+</span><span class="op">-</span><span class="op">-</span> <span class="va">checksums.json</span>    <span class="co"># file integrity checksums</span></span></code></pre></div>
 
+<p>With <code>delta_store = TRUE</code>, each checkpoint commit directory is an atomic
+commit record: its <code>meta.json</code> plus the delta views above. Newly completed
+outcomes are appended once as immutable, redundantly mirrored shards under
+<code>outcomes/</code>, and task statuses under <code>ledger/</code> are a base ledger plus
+status deltas. Readers reconstruct the accumulated run state from the
+shards a commit references; they never rewrite history. With
+<code>delta_store = FALSE</code> (legacy snapshot mode for direct/internal callers),
+the checkpoint directory itself carries the snapshot views.</p>
 <p>Atomic write protocol:</p><ol><li><p>Create temporary directory with <code>.tmp</code> suffix</p></li>
 <li><p>Write all files to temporary directory</p></li>
 <li><p>Compute and write checksums</p></li>

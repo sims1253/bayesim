@@ -23,10 +23,11 @@ A list with the following methods:
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 timer <- make_timer()
 timer$start()
 Sys.sleep(0.1)
 timer$stop()
 timer$elapsed()
-#> [1] 0.1015227
+} # }
 ```

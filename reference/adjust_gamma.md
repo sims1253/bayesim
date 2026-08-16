@@ -1,8 +1,12 @@
-# Adjust gamma for simultaneous confidence intervals
+# Adjust the coverage parameter for simultaneous ECDF confidence bands
 
-Adjusts the coverage parameter to find simultaneous confidence intervals
-for the ECDF of samples from the uniform distribution, as described in
-Modrak et al. (2023).
+Computes the gamma coverage parameter such that the simultaneous
+confidence envelope of the ECDF of a uniform sample of size N has
+(approximately) the requested confidence level (Säilynoja et al. 2022).
+For L = 1 (single chain/sample) the result is exact via dynamic
+programming; for L \> 1 the 0.x code used a Monte-Carlo simulation that
+depended on an external `u_scale` helper not ported here, so the exact L
+= 1 band is used (slightly conservative).
 
 ## Usage
 
@@ -10,56 +14,25 @@ Modrak et al. (2023).
 adjust_gamma(N, L, K = N, conf_level = 0.95)
 ```
 
-## Source
-
-This function is adapted from the SBC package
-(https://github.com/hyunjimoon/SBC).
-
 ## Arguments
 
 - N:
 
-  Length of samples (chains).
+  Integer; number of samples (ranks).
 
 - L:
 
-  Number of samples (chains).
+  Integer; number of samples/chains. Default 1.
 
 - K:
 
-  Number of equally spaced evaluation points, i.e. the right ends of the
-  partition intervals. Defaults to N.
+  Integer; number of equally spaced evaluation points (right ends of the
+  partition intervals). Defaults to N.
 
 - conf_level:
 
-  Confidence level for the intervals. Default is 0.95.
+  Numeric in (0,1); confidence level. Default 0.95.
 
 ## Value
 
-The adjusted gamma value for computing confidence bands.
-
-## Details
-
-This function is used in Simulation-Based Calibration (SBC) to compute
-confidence bands for rank statistics. It supports both single-chain
-(L=1) and multi-chain analyses.
-
-## References
-
-Modrak, Martin, Angie H. Moon, Shinyoung Kim, Paul Bürkner, Niko Huurre,
-Kateřina Faltejsková, Andrew Gelman, and Aki Vehtari. "Simulation-Based
-Calibration Checking for Bayesian Computation: The Choice of Test
-Quantities Shapes Sensitivity." arXiv, June 15, 2023.
-https://doi.org/10.48550/arXiv.2211.02383.
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-# Single chain
-gamma <- adjust_gamma(N = 1000, L = 1)
-
-# Multiple chains
-gamma <- adjust_gamma(N = 250, L = 4)
-} # }
-```
+Numeric gamma in (0, 1 - conf_level).

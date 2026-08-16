@@ -9,7 +9,3 @@ compatibility.
 ``` r
 RUN_SCHEMA_VERSION
 ```
-
-## Format
-
-An object of class `integer` of length 1.

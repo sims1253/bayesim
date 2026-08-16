@@ -8,7 +8,3 @@ result column names or types change.
 ``` r
 RESULT_SCHEMA_VERSION
 ```
-
-## Format
-
-An object of class `integer` of length 1.

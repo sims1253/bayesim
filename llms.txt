@@ -1,12 +1,47 @@
 # bayesim
 
-bayesim provides a simulation framework for reproducible Bayesian
-modeling studies. It handles task planning, checkpointing, and
-memory-bounded execution so you can focus on your research questions.
+## Overview
+
+**bayesim** is an R package for running simulation studies of Bayesian
+models: parameter recovery, calibration checking via simulation-based
+calibration (SBC), model comparison, and method evaluation.
+
+A study is declared as a grid of data-generating conditions, models, and
+replicates. bayesim expands the grid into tasks, executes them
+(sequentially or in parallel, with checkpointing and bounded memory),
+and summarizes the results as performance measures. Fixed-truth cells
+use the measures recommended by Morris, White, and Crowther (2019) —
+bias, empirical SE, MSE, and coverage, each with its Monte Carlo
+standard error. Varying-truth cells (for example prior-predictive SBC
+studies) use separately named error measures (`mean_error`, `error_sd`,
+`error_mse`).
+
+Main features:
+
+- Deterministic reproducibility: each task receives its own
+  L’Ecuyer-CMRG RNG stream derived from a single study seed, so
+  scientific outputs and canonical outcomes match across sequential,
+  parallel, and resumed runs once volatile wall-clock timing is
+  excluded.
+- Simulation-based calibration with prior-predictive and
+  inverse-forward-sampling generators, ESS-aware rank thinning, and ECDF
+  plots with simultaneous confidence bands (Säilynoja, Bürkner, and
+  Vehtari, 2022).
+- Performance measures with Monte Carlo standard errors; LOO-based
+  metrics follow their reference implementations in the loo and brms
+  packages.
+- For brms studies, a model bank compiles each distinct Stan model once
+  and reuses the binary across replicates.
+- Parallel execution via mirai, checkpoint/resume for long runs, and
+  retention profiles to bound memory use.
+- Extensible fitters and metrics. The built-in
+  [`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)
+  performs exact conjugate inference, so the documentation examples run
+  without a Stan installation.
 
 ## Installation
 
-You can install the development version of bayesim from GitHub:
+bayesim is not yet on CRAN. Install the development version with:
 
 ``` r
 
@@ -14,184 +49,200 @@ You can install the development version of bayesim from GitHub:
 pak::pak("sims1253/bayesim")
 ```
 
+For brms- or Stan-backed studies you additionally need
+[brms](https://paulbuerkner.com/brms/) and/or
+[cmdstanr](https://mc-stan.org/cmdstanr/) with a working CmdStan
+installation.
+
 ## Example
 
-The basic workflow has three steps:
-
-1.  Create a simulation config with
-    [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md)
-2.  Run it with
-    [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
-3.  Resume interrupted runs with `run_simulation(..., resume = "auto")`
-    or
-    [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md)
+A small coverage study: does a 90% credible interval cover the truth 90%
+of the time, and how does estimation error change with sample size?
 
 ``` r
 
 library(bayesim)
 
-# Define a data generator
-data_gen <- function(data_spec, seed, task_ctx) {
-  n <- data_spec$n
-  x <- rnorm(n)
-  y <- data_spec$intercept + data_spec$slope * x + rnorm(n, sd = data_spec$sigma)
-
+# Data-generating function. The engine restores a per-task RNG stream before
+# each call, so the function can simply consume the ambient RNG state.
+gen <- function(data_spec, task_ctx) {
+  x <- rnorm(data_spec$n)
+  y <- 1 + 0.5 * x + rnorm(data_spec$n, sd = data_spec$sigma)
   list(
     train = data.frame(y = y, x = x),
-    test = NULL,
     response = "y",
-    true_params = c(
-      intercept = data_spec$intercept,
-      slope = data_spec$slope,
-      sigma = data_spec$sigma
-    ),
-    vars_of_interest = c("intercept", "slope", "sigma"),
-    references = c(intercept = 0, slope = 0, sigma = 1),
-    meta = list()
+    true_params = c(Intercept = 1, x = 0.5, sigma = data_spec$sigma),
+    vars_of_interest = c("Intercept", "x", "sigma")
   )
 }
 
-# Create the config
+# 3 sample sizes x 1 model x 100 replicates = 300 tasks.
 config <- simulation_config(
-  data_grid = data.frame(
-    n = c(100, 500),
-    intercept = 1,
-    slope = 2,
-    sigma = 1
+  data_grid = data.frame(n = c(20, 50, 200), sigma = 1),
+  fit_grid = data.frame(model = "linear"),
+  data_generator = gen,
+  fitter = LinearRegressionFitter(), # exact conjugate posterior
+  metrics = list(
+    posterior_summary_metric(prob = 0.90),
+    coverage_metric(prob = 0.90)
   ),
-  fit_grid = data.frame(model = "baseline"),
-  data_generator = data_gen,
-  fitter = MockFitter(),
-  metrics = list(rmse_metric(), bias_metric()),
-  n_replicates = 10L,
+  n_replicates = 100L,
   seed = 42L
 )
 
-# Run the simulation
-result <- run_simulation(config, progress = FALSE)
-head(result$summary)
+result <- run_simulation(config, workers = 2, progress = FALSE)
+#> 300 tasks = 3 data x 1 fit x 100 reps; 2 daemons
+#> ℹ Starting simulation with 300 tasks
+
+# Estimator performance with Monte Carlo standard errors.
+performance_measures(result, by = "data_n")
+#> # A tibble: 54 × 7
+#>    data_n estimand  measure     value     mcse n_sim truth_mode
+#>     <dbl> <chr>     <chr>       <dbl>    <dbl> <int> <chr>
+#>  1     20 Intercept bias      -0.0235  0.0239    100 fixed
+#>  2     20 Intercept emp_se     0.239   0.0170    100 fixed
+#>  3     20 Intercept mse        0.0573  0.00856   100 fixed
+#>  4     20 Intercept model_se   0.204   0.00366   100 fixed
+#>  5     20 Intercept coverage   0.83    0.0376    100 fixed
+#>  6     20 Intercept n_sim    100      NA         100 fixed
+#>  7     50 Intercept bias       0.0178  0.0125    100 fixed
+#>  8     50 Intercept emp_se     0.125   0.00889   100 fixed
+#>  9     50 Intercept mse        0.0158  0.00191   100 fixed
+#> 10     50 Intercept model_se   0.137   0.00158   100 fixed
+#> # ℹ 44 more rows
 ```
 
-The engine restores the task RNG state before each call, so repeated,
-resumed, and parallel runs produce identical results.
-
-## Features
-
-- **Deterministic task planning**: A single study seed determines all
-  task seeds
-- **Checkpoint and resume**: Long-running studies can resume after
-  interruption
-- **Memory-bounded execution**: `chunk_size` controls how many results
-  stay in memory
-- **Extensible design**: S7 classes for fitters and metrics
-- **Explicit metrics**: Pass Metric objects instead of string names
-
-## Checkpointing
-
-Set `result_path` and `checkpoint_every` to make runs resumable:
+True parameter values are recorded per task, so parameter recovery can
+be plotted directly:
 
 ``` r
 
-config <- simulation_config(
-  data_grid = data.frame(n = c(100, 500)),
-  fit_grid = data.frame(model = "baseline"),
-  data_generator = data_gen,
-  fitter = MockFitter(),
-  metrics = list(rmse_metric()),
-  n_replicates = 100L,
-  seed = 42L,
-  result_path = "results/demo-study",
-  checkpoint_every = 25L,
-  chunk_size = 25L
-)
-
-run_simulation(config, resume = "auto")
+plot_recovery(result, "x", by = "data_n")
 ```
 
-Use `resume_simulation("results/demo-study")` to resume from an existing
-checkpoint.
+![Posterior mean estimates against true parameter values, faceted by
+sample size](reference/figures/README-recovery-1.png)
 
-## Fitters
+Studies backed by brms or raw Stan programs use the same interface
+through
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+and
+[`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md);
+see
+[`vignette("brms-studies")`](https://sims1253.github.io/bayesim/articles/brms-studies.md)
+and
+[`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md).
+Calibration checking is described in
+[`vignette("sbc-and-calibration")`](https://sims1253.github.io/bayesim/articles/sbc-and-calibration.md),
+and guidance on designing studies (estimands, number of replicates,
+reporting) in
+[`vignette("design-of-simulation-studies")`](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md).
 
-bayesim includes:
+## Related packages
 
-- [`MockFitter()`](https://sims1253.github.io/bayesim/reference/MockFitter.md)
-  for testing and examples
-- [`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
-  for brms workflows (default backend: “cmdstanr”)
+bayesim is not the best fit for a purely frequentist simulation that
+does not need posterior draws, SBC, LOO, or Stan-aware execution; use a
+general-purpose framework such as SimDesign in that case.
 
-Custom fitters should subclass the `Fitter` S7 class.
-
-## Documentation
-
-See the vignettes for detailed guides:
-
-- [`vignette("getting-started")`](https://sims1253.github.io/bayesim/articles/getting-started.md)
-- [`vignette("simulation-study")`](https://sims1253.github.io/bayesim/articles/simulation-study.md)
-- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)
-- [`vignette("memory-management")`](https://sims1253.github.io/bayesim/articles/memory-management.md)
-- [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md)
-- [`vignette("case-studies")`](https://sims1253.github.io/bayesim/articles/case-studies.md)
+- [SimDesign](https://cran.r-project.org/package=SimDesign) and
+  [simhelpers](https://cran.r-project.org/package=simhelpers) are
+  general-purpose simulation frameworks. bayesim focuses on Bayesian
+  workflows: posteriors, calibration, LOO, and Stan-aware execution are
+  built in.
+- [rsimsum](https://cran.r-project.org/package=rsimsum) analyzes
+  existing simulation results. bayesim runs the study and reports the
+  same Morris et al. performance measures; its MCSE formulas follow
+  rsimsum.
+- [SBC](https://hyunjimoon.github.io/SBC/) implements calibration
+  checking. bayesim provides SBC as one metric within a general study
+  engine.
 
 ## Getting help
 
-If you encounter a bug or have a feature request, please file an issue
-on [GitHub](https://github.com/sims1253/bayesim/issues).
+Bug reports and feature requests:
+[github.com/sims1253/bayesim/issues](https://github.com/sims1253/bayesim/issues).
+
+## References
+
+- Morris TP, White IR, Crowther MJ (2019). Using simulation studies to
+  evaluate statistical methods. *Statistics in Medicine*, 38(11),
+  2074-2102.
+- Talts S, Betancourt M, Simpson D, Vehtari A, Gelman A (2018).
+  Validating Bayesian inference algorithms with simulation-based
+  calibration. arXiv:1804.06788.
+- Säilynoja T, Bürkner PC, Vehtari A (2022). Graphical test for discrete
+  uniformity and its applications in goodness-of-fit evaluation.
+  *Statistics and Computing*, 32(2).
+- Vehtari A, Gelman A, Gabry J (2017). Practical Bayesian model
+  evaluation using leave-one-out cross-validation and WAIC. *Statistics
+  and Computing*, 27(5), 1413-1432.
 
 # Package index
 
-## Configuration
+## Design and run studies
 
-Functions for configuring simulation studies
+Configure and execute simulation studies
 
 - [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md)
   : Create a Simulation Configuration
-- [`is_simulation_config()`](https://sims1253.github.io/bayesim/reference/is_simulation_config.md)
-  : Check if Object is a SimulationConfig
-- [`validate_config_completeness()`](https://sims1253.github.io/bayesim/reference/validate_config_completeness.md)
-  : Validate SimulationConfig Completeness
-- [`get_total_tasks()`](https://sims1253.github.io/bayesim/reference/get_total_tasks.md)
-  : Get Total Number of Tasks in Configuration
-- [`compute_config_fingerprint()`](https://sims1253.github.io/bayesim/reference/compute_config_fingerprint.md)
-  : Compute Configuration Fingerprint
-- [`as_config_spec()`](https://sims1253.github.io/bayesim/reference/as_config_spec.md)
-  : Convert SimulationConfig to Plain List for Hashing
-
-## Running Simulations
-
-Functions for executing simulation studies
-
 - [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
   : Run a Simulation Study
 - [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md)
   : Resume a simulation from an existing result directory
-- [`can_resume()`](https://sims1253.github.io/bayesim/reference/can_resume.md)
-  : Check if Resumable Run Exists
+- [`preflight()`](https://sims1253.github.io/bayesim/reference/preflight.md)
+  : Preflight check for a simulation configuration
+- [`n_replicates_for_target()`](https://sims1253.github.io/bayesim/reference/n_replicates_for_target.md)
+  : Required number of replicates for a target MCSE
+- [`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md)
+  : Stable simulation-design fingerprint
 
 ## Fitters
 
-Classes for fitting Bayesian models
+Classes and generics for fitting Bayesian models
 
 - [`Fitter()`](https://sims1253.github.io/bayesim/reference/Fitter.md) :
   Abstract Fitter Class
+- [`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)
+  : Conjugate Bayesian Linear Regression Fitter
 - [`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
   : Brms Fitter
-- [`MockFitter()`](https://sims1253.github.io/bayesim/reference/MockFitter.md)
-  : Mock Fitter for Testing (Internal)
-- [`fit()`](https://sims1253.github.io/bayesim/reference/fit.md) : Fit a
-  Bayesian Model
+- [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  : CmdStan Fitter (user-supplied Stan programs)
+- [`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
+  : Construct a single brms model specification
+- [`model_grid()`](https://sims1253.github.io/bayesim/reference/model_grid.md)
+  : Assemble a tibble of model specifications for a fit_grid
+- [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+  : Fit a Bayesian Model
 - [`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md)
   : Extract Posterior Draws
 - [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md)
   : Generate Predictions
-- [`log_lik()`](https://sims1253.github.io/bayesim/reference/log_lik.md)
+- [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  : Compute Posterior Expectation Predictions
+- [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md)
   : Compute Pointwise Log-Likelihood
-- [`loo()`](https://sims1253.github.io/bayesim/reference/loo.md) :
-  Compute LOO-CV
-- [`diagnostics()`](https://sims1253.github.io/bayesim/reference/diagnostics.md)
+- [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  : Compute LOO-CV
+- [`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md)
   : Extract Fit Diagnostics
-- [`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md)
-  : Validate a Fitter Object
+- [`new_fit_result()`](https://sims1253.github.io/bayesim/reference/new_fit_result.md)
+  : Create a new bayesim_fit_result object
+
+## Generators
+
+Factory constructors for simulation data generators
+
+- [`fixed_truth_generator()`](https://sims1253.github.io/bayesim/reference/fixed_truth_generator.md)
+  : Construct a fixed-truth data generator
+- [`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
+  : Construct a prior-predictive data generator
+- [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+  : Construct an inverse forward sampling (IFS) data generator
+- [`prior_draws_generator()`](https://sims1253.github.io/bayesim/reference/prior_draws_generator.md)
+  : Construct a fitter-agnostic prior-draws data generator
+- [`forward_sim_generator()`](https://sims1253.github.io/bayesim/reference/forward_sim_generator.md)
+  : Construct a fitter-agnostic forward-simulation (IFS) data generator
 
 ## Metrics
 
@@ -199,102 +250,136 @@ Classes and built-in metrics for computing simulation results
 
 - [`Metric()`](https://sims1253.github.io/bayesim/reference/Metric.md) :
   Metric Abstract Class
-- [`compute()`](https://sims1253.github.io/bayesim/reference/compute.md)
+- [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
   : Compute Metric Values
-- [`RmseMetric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
-  [`rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
-  : RMSE Metric
-- [`BiasMetric()`](https://sims1253.github.io/bayesim/reference/BiasMetric.md)
-  [`bias_metric()`](https://sims1253.github.io/bayesim/reference/BiasMetric.md)
-  : Bias Metric
+- [`PosteriorSummaryMetric()`](https://sims1253.github.io/bayesim/reference/PosteriorSummaryMetric.md)
+  [`posterior_summary_metric()`](https://sims1253.github.io/bayesim/reference/PosteriorSummaryMetric.md)
+  : Posterior Summary Metric
 - [`CoverageMetric()`](https://sims1253.github.io/bayesim/reference/CoverageMetric.md)
   [`coverage_metric()`](https://sims1253.github.io/bayesim/reference/CoverageMetric.md)
   : Coverage Metric
-- [`PosteriorMeanMetric()`](https://sims1253.github.io/bayesim/reference/PosteriorMeanMetric.md)
-  [`posterior_mean_metric()`](https://sims1253.github.io/bayesim/reference/PosteriorMeanMetric.md)
-  : Posterior Mean Metric
-- [`validate_metric_output()`](https://sims1253.github.io/bayesim/reference/validate_metric_output.md)
-  : Validate Metric Output
-- [`flatten_metric_output()`](https://sims1253.github.io/bayesim/reference/flatten_metric_output.md)
-  : Flatten Metric Output
+- [`RankMetric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md)
+  [`rank_metric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md)
+  : SBC Rank Metric
+- [`PosProbMetric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)
+  [`pos_prob_metric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)
+  : Positivity Probability Metric
+- [`SamplerDiagnosticsMetric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
+  [`sampler_diagnostics_metric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
+  : Sampler Diagnostics Metric
+- [`RmseMetric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
+  [`pred_rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md)
+  : RMSE Metric
+- [`BiasMetric()`](https://sims1253.github.io/bayesim/reference/BiasMetric.md)
+  [`pred_bias_metric()`](https://sims1253.github.io/bayesim/reference/BiasMetric.md)
+  : Bias Metric
+- [`MaeMetric()`](https://sims1253.github.io/bayesim/reference/MaeMetric.md)
+  [`pred_mae_metric()`](https://sims1253.github.io/bayesim/reference/MaeMetric.md)
+  : MAE Metric
+- [`MseMetric()`](https://sims1253.github.io/bayesim/reference/MseMetric.md)
+  [`pred_mse_metric()`](https://sims1253.github.io/bayesim/reference/MseMetric.md)
+  : MSE Metric
+- [`ElpdLooMetric()`](https://sims1253.github.io/bayesim/reference/ElpdLooMetric.md)
+  [`elpd_loo_metric()`](https://sims1253.github.io/bayesim/reference/ElpdLooMetric.md)
+  : ELPD-LOO Metric
+- [`RmseLooMetric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
+  [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
+  : RMSE-LOO Metric
+- [`R2LooMetric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  [`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  : R-squared LOO Metric
+- [`ElpdTestMetric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
+  [`elpd_test_metric()`](https://sims1253.github.io/bayesim/reference/ElpdTestMetric.md)
+  : ELPD Test-Set Metric
+- [`R2TestMetric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
+  [`r2_test_metric()`](https://sims1253.github.io/bayesim/reference/R2TestMetric.md)
+  : R-squared Test-Set Metric
 
-## Results
+## Analysis and reporting
 
-Functions for working with simulation results
+Summaries, SBC diagnostics, and plotting functions for simulation
+results
 
-- [`is_bayesim_fit_result()`](https://sims1253.github.io/bayesim/reference/is_bayesim_fit_result.md)
-  : Check if object is a bayesim_fit_result
-- [`validate_bayesim_fit_result()`](https://sims1253.github.io/bayesim/reference/validate_bayesim_fit_result.md)
-  : Validate a bayesim_fit_result object
-- [`new_fit_result()`](https://sims1253.github.io/bayesim/reference/new_fit_result.md)
-  : Create a new bayesim_fit_result object
-- [`new_task_result()`](https://sims1253.github.io/bayesim/reference/new_task_result.md)
-  : Create a new bayesim_task_result object
-- [`new_simulation_result()`](https://sims1253.github.io/bayesim/reference/new_simulation_result.md)
-  : Create a new bayesim_simulation_result object
+- [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
+  : Aggregate simulation results per condition
+- [`metric_cols()`](https://sims1253.github.io/bayesim/reference/metric_cols.md)
+  : Select flattened metric columns
+- [`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+  : Simulation-method performance measures with Monte-Carlo standard
+  errors
+- [`failed_tasks()`](https://sims1253.github.io/bayesim/reference/failed_tasks.md)
+  : Extract failed tasks from a simulation result
+- [`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md)
+  : Extract SBC ranks from a simulation result
+- [`plot_rank_hist()`](https://sims1253.github.io/bayesim/reference/plot_rank_hist.md)
+  : Plot SBC rank histograms
+- [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  : Plot SBC rank ECDF with simultaneous confidence band
+- [`plot_recovery()`](https://sims1253.github.io/bayesim/reference/plot_recovery.md)
+  : Plot parameter recovery (truth vs posterior estimate)
+- [`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md)
+  : Plot coverage rates per condition/parameter
+- [`plot_metric()`](https://sims1253.github.io/bayesim/reference/plot_metric.md)
+  : Plot a metric across conditions
+- [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  : Render a simulation-study report
+- [`read_summary()`](https://sims1253.github.io/bayesim/reference/read_summary.md)
+  : Read a simulation summary file
 
-## Checkpointing
+## Extension support
 
-Functions for checkpoint and resume functionality
+Validators, error constructors, and classifiers for extending bayesim
 
-- [`init_checkpoint_dir()`](https://sims1253.github.io/bayesim/reference/init_checkpoint_dir.md)
-  : Initialize checkpoint directory
-- [`write_checkpoint()`](https://sims1253.github.io/bayesim/reference/write_checkpoint.md)
-  : Write checkpoint
-- [`read_checkpoint()`](https://sims1253.github.io/bayesim/reference/read_checkpoint.md)
-  : Read checkpoint
-- [`get_resume_summary()`](https://sims1253.github.io/bayesim/reference/get_resume_summary.md)
-  : Get Resume Summary
-- [`load_for_resume()`](https://sims1253.github.io/bayesim/reference/load_for_resume.md)
-  : Load Run for Resume
-
-## Retention
-
-Control what artifacts are retained in results
-
-- [`resolve_retention()`](https://sims1253.github.io/bayesim/reference/resolve_retention.md)
-  : Resolve retention specification
-- [`RETENTION_PROFILES`](https://sims1253.github.io/bayesim/reference/RETENTION_PROFILES.md)
-  : Retention profiles
-
-## Utilities
-
-Helper functions and utilities
-
-- [`` `%||%` ``](https://sims1253.github.io/bayesim/reference/null-coalescing.md)
-  : Null coalescing operator
-- [`format_task_id()`](https://sims1253.github.io/bayesim/reference/format_task_id.md)
-  **\[deprecated\]** : Format task ID from indices (deprecated)
-- [`make_task_id()`](https://sims1253.github.io/bayesim/reference/make_task_id.md)
-  : Create task ID from indices
-- [`resolve_retention()`](https://sims1253.github.io/bayesim/reference/resolve_retention.md)
-  : Resolve retention specification
+- [`validate_data_bundle()`](https://sims1253.github.io/bayesim/reference/validate_data_bundle.md)
+  : Validate a Data Bundle
+- [`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md)
+  : Validate a Fitter Object
+- [`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
+  : Validate a Metric Object
+- [`bayesim_config_error()`](https://sims1253.github.io/bayesim/reference/bayesim_config_error.md)
+  : Configuration validation error (Fatal)
+- [`bayesim_contract_error()`](https://sims1253.github.io/bayesim/reference/bayesim_contract_error.md)
+  : Contract/interface violation error (Fatal)
+- [`bayesim_data_error()`](https://sims1253.github.io/bayesim/reference/bayesim_data_error.md)
+  : Data generation/validation error (Recoverable)
+- [`bayesim_fit_error()`](https://sims1253.github.io/bayesim/reference/bayesim_fit_error.md)
+  : Model fitting error (Recoverable)
+- [`bayesim_metric_error()`](https://sims1253.github.io/bayesim/reference/bayesim_metric_error.md)
+  : Metric computation error (Recoverable)
+- [`is_bayesim_error()`](https://sims1253.github.io/bayesim/reference/is_bayesim_error.md)
+  : Check if a condition is a bayesim error
+- [`is_fatal_error()`](https://sims1253.github.io/bayesim/reference/is_fatal_error.md)
+  : Check if an error is fatal
+- [`is_recoverable_error()`](https://sims1253.github.io/bayesim/reference/is_recoverable_error.md)
+  : Check if an error is recoverable (task-level)
 
 # Articles
 
-### Getting Started
+### Get started
 
 - [Getting Started with
   bayesim](https://sims1253.github.io/bayesim/articles/getting-started.md):
 
-### Simulation Studies
+### Learn
 
-- [Simulation Study Example: Assessing Model
-  Performance](https://sims1253.github.io/bayesim/articles/simulation-study.md):
+- [Design of simulation
+  studies](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md):
+- [SBC and
+  calibration](https://sims1253.github.io/bayesim/articles/sbc-and-calibration.md):
 
-### Extending bayesim
+### Backends and extension
 
-- [Creating Custom
+- [brms studies: the model bank and
+  model_grid()](https://sims1253.github.io/bayesim/articles/brms-studies.md):
+- [Custom
   Fitters](https://sims1253.github.io/bayesim/articles/custom-fitters.md):
+- [Custom
+  Metrics](https://sims1253.github.io/bayesim/articles/custom-metrics.md):
 
-### Advanced Topics
+### Operations
 
-- [Reproducibility in
-  bayesim](https://sims1253.github.io/bayesim/articles/reproducibility.md):
-- [Memory Management for Large
-  Simulations](https://sims1253.github.io/bayesim/articles/memory-management.md):
-
-### Case Studies
-
-- [Case Studies: Simulation-Based Research with
-  bayesim](https://sims1253.github.io/bayesim/articles/case-studies.md):
+- [Parallel execution, HPC, and
+  memory](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md):
+- [Reproducibility](https://sims1253.github.io/bayesim/articles/reproducibility.md):
+- [Running bayesim with
+  targets](https://sims1253.github.io/bayesim/articles/targets.md):

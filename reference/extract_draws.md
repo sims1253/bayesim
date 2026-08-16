@@ -17,7 +17,7 @@ extract_draws(fitter, fit_result, variables = NULL)
 - fit_result:
 
   A `bayesim_fit_result` object from
-  [`fit()`](https://sims1253.github.io/bayesim/reference/fit.md)
+  [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
 
 - variables:
 

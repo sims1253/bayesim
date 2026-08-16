@@ -71,9 +71,15 @@ Validation rules:
 
 - If `draws` is not NULL, it must be a matrix with column names
 
+## See also
+
+[Fitter](https://sims1253.github.io/bayesim/reference/Fitter.md),
+[`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
+
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Successful fit
 draws <- matrix(rnorm(1000), ncol = 2, nrow = 500)
 colnames(draws) <- c("alpha", "beta")
@@ -91,4 +97,5 @@ result <- new_fit_result(
   diagnostics = list(),
   timing = list(total = 2.0, warmup = 2.0, sample = 0)
 )
+} # }
 ```

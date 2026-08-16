@@ -19,7 +19,7 @@ run_task(
 
 - task:
 
-  A task specification list (from get_task_spec) containing:
+  A task specification list from the task grid containing:
 
   - `task_id`: Unique task identifier string
 
@@ -41,8 +41,8 @@ run_task(
 
 - fitter:
 
-  S7 Fitter object that implements the fit(), predict_fit(), log_lik(),
-  and loo() methods
+  S7 Fitter object that implements the fit_model(), predict_fit(),
+  log_lik_matrix(), and loo_fit() methods
 
 - metrics:
 

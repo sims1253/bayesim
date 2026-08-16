@@ -27,10 +27,10 @@ The configuration is validated for:
 - Being a valid SimulationConfig S7 object
 
 - Having a non-NULL fitter that passes
-  [`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/check_fitter_class.md)
+  [`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md)
 
 - Having metrics (if present) that pass
-  [`validate_metric_interface()`](https://sims1253.github.io/bayesim/reference/validate_metric_interface.md)
+  [`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
 
 - Having a data_generator function with the correct signature
 
@@ -41,8 +41,8 @@ Throws a `bayesim_config_error` condition if validation fails.
 ## See also
 
 [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md),
-[`validate_fitter_interface()`](https://sims1253.github.io/bayesim/reference/check_fitter_class.md),
-[`validate_metric_interface()`](https://sims1253.github.io/bayesim/reference/validate_metric_interface.md)
+[`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md),
+[`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
 
 ## Examples
 

@@ -12,7 +12,9 @@ new_simulation_result(
   summary = NULL,
   timing = list(total = 0),
   errors = NULL,
-  checkpoint_path = NULL
+  checkpoint_path = NULL,
+  metric_summary_types = NULL,
+  metric_field_metadata = NULL
 )
 ```
 
@@ -73,6 +75,7 @@ Validation rules:
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Create a simulation result
 task1 <- new_task_result(
   task_id = "task_001",
@@ -96,4 +99,5 @@ result <- new_simulation_result(
   errors = tibble::tibble(task_id = character(), error_message = character()),
   checkpoint_path = "/path/to/checkpoint.rds"
 )
+} # }
 ```

@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Reproducibility in bayesim • bayesim</title>
+<title>Reproducibility • bayesim</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Reproducibility in bayesim">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Reproducibility">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,16 +34,21 @@
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+<li><a class="dropdown-item" href="../articles/getting-started.html">Get started</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Learn</h6></li>
+    <li><a class="dropdown-item" href="../articles/design-of-simulation-studies.html">Design of simulation studies</a></li>
+    <li><a class="dropdown-item" href="../articles/sbc-and-calibration.html">SBC and calibration</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="../articles/brms-studies.html">brms studies</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom fitters</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-metrics.html">Custom metrics</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Operations</h6></li>
+    <li><a class="dropdown-item" href="../articles/parallel-and-hpc.html">Parallel execution, HPC, and memory</a></li>
     <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
-    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+    <li><a class="dropdown-item" href="../articles/targets.html">Running bayesim with targets</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -63,7 +68,7 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Reproducibility in bayesim</h1>
+      <h1>Reproducibility</h1>
             
       
       <small class="dont-index">Source: <a href="https://github.com/sims1253/bayesim/blob/master/vignettes/reproducibility.Rmd" class="external-link"><code>vignettes/reproducibility.Rmd</code></a></small>
@@ -73,803 +78,147 @@
     
     
 <div class="section level2">
-<h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
+<h2 id="reproducibility-guarantees">Reproducibility guarantees<a class="anchor" aria-label="anchor" href="#reproducibility-guarantees"></a>
 </h2>
-<p>Reproducibility is a requirement for rigorous scientific research. In
-simulation studies, reproducibility means that running the same
-simulation with the same inputs should produce identical results—every
-time, on any machine, regardless of interruptions or execution mode.</p>
-<p>bayesim provides deterministic reproducibility as a core guarantee.
-This vignette explains:</p>
+<p>bayesim is designed so that simulation results are reproducible
+across sequential, parallel, interrupted-and-resumed, and re-run
+executions, given a fixed seed. Full result objects also record
+wall-clock timings, and those change between runs, so the guarantee
+covers scientific outputs and canonical task outcomes, not timing
+fields.</p>
+<div class="section level3">
+<h3 id="what-is-guaranteed">What is guaranteed<a class="anchor" aria-label="anchor" href="#what-is-guaranteed"></a>
+</h3>
 <ul>
 <li>
-<strong>Why</strong> reproducibility matters</li>
+<strong>Same seed + same package/backend versions + same
+platform</strong>: scientific outputs and canonical task outcomes match
+across sequential, parallel, re-run, and interrupted-and-resumed
+execution once volatile timing fields are excluded. Timing fields record
+wall-clock time, so they differ between runs.</li>
 <li>
-<strong>How</strong> bayesim ensures reproducibility through careful
-RNG management</li>
-<li>
-<strong>What</strong> is and isn’t guaranteed to be
-deterministic</li>
-<li>
-<strong>Best practices</strong> for ensuring your simulations remain
-reproducible</li>
+<strong>Across platforms</strong> (or when the Stan/brms/cmdstanr
+version changes), results are <strong>statistically equivalent</strong>
+but may differ in the least significant bits due to floating-point
+ordering and backend differences.</li>
 </ul>
-<div class="section level3">
-<h3 id="why-reproducibility-matters">Why Reproducibility Matters<a class="anchor" aria-label="anchor" href="#why-reproducibility-matters"></a>
-</h3>
-<p>Simulation studies are experiments, and like any experiment, they
-must be reproducible to be scientifically valid:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Verification</strong>: Others (and future you) can verify
-your results</li>
-<li>
-<strong>Debugging</strong>: Deterministic behavior makes it possible
-to reproduce and fix bugs</li>
-<li>
-<strong>Collaboration</strong>: Team members can share and build
-upon each other’s work</li>
-<li>
-<strong>Publication</strong>: Reviewers and readers can replicate
-your findings</li>
-<li>
-<strong>Longevity</strong>: Results remain valid even as hardware
-and software evolve</li>
-</ol>
-<p>Without reproducibility, simulation results are unverifiable
-claims.</p>
+<p>Bit-identical reproducibility of the full result object is not
+promised on any platform: the object records wall-clock timings, and
+those change between runs.</p>
 </div>
-</div>
-<div class="section level2">
-<h2 id="how-bayesim-ensures-reproducibility">How bayesim Ensures Reproducibility<a class="anchor" aria-label="anchor" href="#how-bayesim-ensures-reproducibility"></a>
-</h2>
-<p>bayesim achieves reproducibility through four mechanisms:</p>
 <div class="section level3">
-<h3 id="lecuyer-cmrg-rng-for-parallel-safe-streams">1. L’Ecuyer-CMRG RNG for Parallel-Safe Streams<a class="anchor" aria-label="anchor" href="#lecuyer-cmrg-rng-for-parallel-safe-streams"></a>
+<h3 id="how-determinism-is-achieved">How determinism is achieved<a class="anchor" aria-label="anchor" href="#how-determinism-is-achieved"></a>
 </h3>
-<p>bayesim uses the <strong>L’Ecuyer-CMRG</strong> (Combined Multiple
-Recursive Generator) random number generator instead of R’s default
-Mersenne-Twister. This choice is deliberate:</p>
-<ul>
-<li>
-<strong>Multiple independent streams</strong>: L’Ecuyer-CMRG can
-generate multiple independent RNG streams from a single seed</li>
-<li>
-<strong>Reproducible parallel execution</strong>: Each task gets its
-own stream, ensuring results do not depend on execution order</li>
-<li>
-<strong>Long period</strong>: The generator has a long period,
-preventing overlap between streams</li>
-</ul>
+<div class="section level4">
+<h4 id="per-task-rng-streams">Per-task RNG streams<a class="anchor" aria-label="anchor" href="#per-task-rng-streams"></a>
+</h4>
+<p>At the start of a run, bayesim derives one L’Ecuyer-CMRG RNG stream
+per task from the simulation seed. Each task restores its stream before
+its data generator and fitter run, so the RNG state a task sees depends
+only on its position in the grid – not on execution order, parallelism,
+or which other tasks have completed.</p>
+<p>Stochastic metrics receive deterministic sub-seeds derived from the
+task seed and metric name. Adding or reordering metrics therefore does
+not change the random draws used by another metric.
+<code><a href="../reference/run_simulation.html">run_simulation()</a></code> also restores the caller’s RNG kind and
+state when it returns.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># bayesim automatically sets L'Ecuyer-CMRG when you run a simulation</span></span>
-<span><span class="co"># You can also set it manually for custom code:</span></span>
-<span><span class="fu"><a href="../reference/setup_global_rng.html">setup_global_rng</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Check the RNG kind</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">RNGkind</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "L'Ecuyer-CMRG" "Inversion"     "Rejection"</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="pre-computed-rng-streams-per-task">2. Pre-computed RNG Streams per Task<a class="anchor" aria-label="anchor" href="#pre-computed-rng-streams-per-task"></a>
-</h3>
-<p>Before any tasks execute, bayesim pre-computes an independent RNG
-stream for each task:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create 5 independent RNG streams from seed 42</span></span>
-<span><span class="co"># Note: create_task_rng_streams() is an internal API used here for demonstration</span></span>
-<span><span class="va">streams</span> <span class="op">&lt;-</span> <span class="fu">bayesim</span><span class="fu">:::</span><span class="fu"><a href="../reference/create_task_rng_streams.html">create_task_rng_streams</a></span><span class="op">(</span><span class="fl">42</span>, <span class="fl">5</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Each stream is a complete RNG state</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">streams</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  int [1:7] 10407 -2133391687 507561766 1260545903 1362917092 -1772566379 -1344458670</span></span>
-<span></span>
-<span><span class="co"># These streams are independent---advancing one doesn't affect others</span></span>
-<span><span class="co"># This is important for reproducibility regardless of execution order</span></span></code></pre></div>
-<p>Each task receives its own stream via the <code>rng_seed</code>
-column in the task grid. A scalar task seed is also derived from that
-stream and passed into the data generator and fitter context. This
-means:</p>
-<ul>
-<li>Task execution order does not matter—each task uses its pre-assigned
-stream</li>
-<li>Parallel execution produces identical results to sequential
-execution</li>
-<li>Resuming from a checkpoint produces identical results to an
-uninterrupted run</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="deterministic-task-ordering">3. Deterministic Task Ordering<a class="anchor" aria-label="anchor" href="#deterministic-task-ordering"></a>
-</h3>
-<p>Tasks are always processed in a deterministic, lexicographic order
-based on their task IDs:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Task IDs follow the pattern: d..._f..._r...</span></span>
-<span><span class="co"># - d...: zero-padded data grid index</span></span>
-<span><span class="co"># - f...: zero-padded fit grid index</span></span>
-<span><span class="co"># - r...: zero-padded replicate number</span></span>
-<span><span class="co"># Padding width is chosen from the study size so ordering stays stable.</span></span>
-<span></span>
-<span><span class="co"># Example: With 2 data configs, 2 fit configs, and 3 replicates:</span></span>
-<span><span class="co"># d001_f001_r00001, d001_f001_r00002, d001_f001_r00003,</span></span>
-<span><span class="co"># d001_f002_r00001, d001_f002_r00002, d001_f002_r00003,</span></span>
-<span><span class="co"># d002_f001_r00001, d002_f001_r00002, d002_f001_r00003,</span></span>
-<span><span class="co"># d002_f002_r00001, d002_f002_r00002, d002_f002_r00003</span></span></code></pre></div>
-<p>This deterministic ordering ensures that:</p>
-<ul>
-<li>Tasks are always processed in the same sequence</li>
-<li>Checkpoint resume always continues from the same point</li>
-<li>Results are assembled in a predictable order</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="configuration-fingerprinting">4. Configuration Fingerprinting<a class="anchor" aria-label="anchor" href="#configuration-fingerprinting"></a>
-</h3>
-<p>Every simulation configuration gets a unique cryptographic
-fingerprint:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a simple configuration</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">seed</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
-<span>    <span class="co"># Note: seed is a scalar task seed.</span></span>
-<span>    <span class="co"># The simulation engine also restores the task RNG stream before each call.</span></span>
+<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"m"</span><span class="op">)</span>,</span>
+<span>  data_generator <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="co"># consume the AMBIENT RNG state (restored by the worker before this call);</span></span>
+<span>    <span class="co"># do NOT call set.seed() or withr::with_seed() here</span></span>
 <span>    <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
-<span>    <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>    <span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">1</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span>    <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span>    <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">x</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>      train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
-<span>      test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>      response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>      true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">1</span>, slope <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span>
-<span>      vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"intercept"</span>, <span class="st">"slope"</span><span class="op">)</span>,</span>
-<span>      references <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>      meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
+<span>      train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>, test <span class="op">=</span> <span class="cn">NULL</span>, response <span class="op">=</span> <span class="st">"y"</span>,</span>
+<span>      true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>slope <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>, vars_of_interest <span class="op">=</span> <span class="st">"slope"</span></span>
 <span>    <span class="op">)</span></span>
 <span>  <span class="op">}</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/BiasMetric.html">bias_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">3L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Compute the configuration fingerprint</span></span>
-<span><span class="va">fingerprint</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_config_fingerprint.html">compute_config_fingerprint</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">fingerprint</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "33e998951dcaad6ce989f0669adf3820b382be6702c60d640c79869a59fa6187"</span></span></code></pre></div>
-<p>The fingerprint is a SHA256 hash of the normalized configuration,
-excluding only runtime-specific fields (<code>result_path</code>,
-<code>checkpoint_every</code>). This fingerprint:</p>
-<ul>
-<li>Uniquely identifies a simulation configuration</li>
-<li>Enables validation during checkpoint resume</li>
-<li>Allows detection of configuration changes</li>
-</ul>
-</div>
-</div>
-<div class="section level2">
-<h2 id="reproducibility-across-execution-modes">Reproducibility Across Execution Modes<a class="anchor" aria-label="anchor" href="#reproducibility-across-execution-modes"></a>
-</h2>
-<div class="section level3">
-<h3 id="sequential-vs-parallel-execution">Sequential vs Parallel Execution<a class="anchor" aria-label="anchor" href="#sequential-vs-parallel-execution"></a>
-</h3>
-<p>Supported sequential and parallel executions use the same
-pre-assigned task streams, so results stay aligned when the R, package,
-and model-backend environment matches:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Sequential execution</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span><span class="va">...</span>, seed <span class="op">=</span> <span class="fl">42L</span><span class="op">)</span></span>
-<span><span class="va">result_seq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Parallel execution</span></span>
-<span><span class="fu">future</span><span class="fu">::</span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="fu">future</span><span class="fu">::</span><span class="va"><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">multisession</a></span>, workers <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
-<span><span class="va">result_par</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># These will produce identical results:</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result_seq</span><span class="op">$</span><span class="va">summary</span>, <span class="va">result_par</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span></code></pre></div>
-<p>This is possible because each task has its own pre-computed RNG
-stream. Tasks can execute in any order without affecting their assigned
-randomness.</p>
-</div>
-<div class="section level3">
-<h3 id="resume-from-checkpoint">Resume from Checkpoint<a class="anchor" aria-label="anchor" href="#resume-from-checkpoint"></a>
-</h3>
-<p>Checkpoint/resume preserves the same task streams and completed-task
-ledger:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># First run (interrupted)</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"my_simulation"</span>,</span>
-<span>  checkpoint_every <span class="op">=</span> <span class="fl">10L</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span><span class="co"># Suppose this gets interrupted after 50 tasks</span></span>
-<span></span>
-<span><span class="co"># Resume from checkpoint</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"must"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># result2 matches the uninterrupted run under the same software/backend stack</span></span></code></pre></div>
-<p>The resume mechanism:</p>
-<ol style="list-style-type: decimal">
-<li>Loads the checkpoint ledger (task grid with statuses)</li>
-<li>Validates the configuration fingerprint matches</li>
-<li>Skips already-completed tasks</li>
-<li>Continues with pending tasks using their pre-assigned RNG
-streams</li>
-<li>Reassembles the same final results under the same software/backend
-stack</li>
-</ol>
-</div>
-<div class="section level3">
-<h3 id="different-machines-and-operating-systems">Different Machines and Operating Systems<a class="anchor" aria-label="anchor" href="#different-machines-and-operating-systems"></a>
-</h3>
-<p>Simulations are reproducible across different machines and operating
-systems <strong>when</strong>:</p>
-<ul>
-<li>The R version matches (see below for details)</li>
-<li>The bayesim version matches</li>
-<li>All package dependencies match</li>
-<li>The configuration and seed are identical</li>
-</ul>
-<p>This allows you to:</p>
-<ul>
-<li>Start a simulation on your laptop and resume on a cluster</li>
-<li>Share results with collaborators who use different operating
-systems</li>
-<li>Archive simulations for long-term reproducibility</li>
-</ul>
-</div>
-</div>
-<div class="section level2">
-<h2 id="what-is-deterministic">What Is Deterministic<a class="anchor" aria-label="anchor" href="#what-is-deterministic"></a>
-</h2>
-<p>bayesim guarantees the following are reproducible within a matched
-software/backend environment:</p>
-<div class="section level3">
-<h3 id="same-seed-produces-same-results">Same Seed Produces Same Results<a class="anchor" aria-label="anchor" href="#same-seed-produces-same-results"></a>
-</h3>
-<p>Given identical configuration and seed, you get identical
-results:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Create a simple simulation configuration</span></span>
-<span><span class="va">data_gen</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">seed</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Note: seed is a scalar task seed.</span></span>
-<span>  <span class="co"># The simulation engine also restores the task RNG stream before each call.</span></span>
-<span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
-<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">+</span> <span class="fl">3</span> <span class="op">*</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
-<span>    test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>    true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">2</span>, slope <span class="op">=</span> <span class="fl">3</span>, sigma <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>    vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"intercept"</span>, <span class="st">"slope"</span><span class="op">)</span>,</span>
-<span>    references <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>    meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">50</span>, sigma <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">data_gen</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/BiasMetric.html">bias_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">5L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">123L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Run twice with same seed</span></span>
-<span><span class="va">result_a</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 5 tasks</span></span>
-<span><span class="va">result_b</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 5 tasks</span></span>
-<span></span>
-<span><span class="co"># Results are identical</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">result_a</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span>, <span class="va">result_b</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">result_a</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">bias__value</span>, <span class="va">result_b</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">bias__value</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="resume-produces-same-final-results">Resume Produces Same Final Results<a class="anchor" aria-label="anchor" href="#resume-produces-same-final-results"></a>
-</h3>
-<p>Resuming from a checkpoint produces the same final results as an
-uninterrupted run:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># This is demonstrated conceptually - in practice you would need</span></span>
-<span><span class="co"># to interrupt and resume an actual run</span></span>
-<span></span>
-<span><span class="co"># Uninterrupted run</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"uninterrupted_run"</span>,</span>
-<span>  checkpoint_every <span class="op">=</span> <span class="fl">1000L</span>  <span class="co"># Won't trigger during run</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">result_full</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Interrupted and resumed run</span></span>
-<span><span class="va">config2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"resumed_run"</span>,</span>
-<span>  checkpoint_every <span class="op">=</span> <span class="fl">10L</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">result_resumed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config2</span>, resume <span class="op">=</span> <span class="st">"must"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Final results are identical</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result_full</span><span class="op">$</span><span class="va">summary</span>, <span class="va">result_resumed</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="task-execution-order">Task Execution Order<a class="anchor" aria-label="anchor" href="#task-execution-order"></a>
-</h3>
-<p>Tasks are planned in a deterministic order:</p>
-<ol style="list-style-type: decimal">
-<li>Sorted lexicographically by task ID</li>
-<li>Each task uses its pre-assigned RNG stream</li>
-<li>Results are assembled in task ID order</li>
-</ol>
-</div>
-</div>
-<div class="section level2">
-<h2 id="what-is-not-guaranteed">What is NOT Guaranteed<a class="anchor" aria-label="anchor" href="#what-is-not-guaranteed"></a>
-</h2>
-<p>While bayesim strives for complete reproducibility, some aspects are
-inherently non-deterministic:</p>
-<div class="section level3">
-<h3 id="exact-timing-values">Exact Timing Values<a class="anchor" aria-label="anchor" href="#exact-timing-values"></a>
-</h3>
-<p>Task execution times will vary between runs:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Run the same simulation twice</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">100</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"test"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">data_gen</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">3L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 3 tasks</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 3 tasks</span></span>
-<span></span>
-<span><span class="co"># Timing will differ</span></span>
-<span><span class="va">timing1</span> <span class="op">&lt;-</span> <span class="va">result1</span><span class="op">$</span><span class="va">timing</span><span class="op">$</span><span class="va">total</span></span>
-<span><span class="va">timing2</span> <span class="op">&lt;-</span> <span class="va">result2</span><span class="op">$</span><span class="va">timing</span><span class="op">$</span><span class="va">total</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Run 1:"</span>, <span class="va">timing1</span>, <span class="st">"seconds\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Run 1: 0.03979683 seconds</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Run 2:"</span>, <span class="va">timing2</span>, <span class="st">"seconds\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Run 2: 0.03935027 seconds</span></span></code></pre></div>
-<p>This is expected and doesn’t affect the scientific validity of
-results.</p>
-</div>
-<div class="section level3">
-<h3 id="order-of-warning-messages">Order of Warning Messages<a class="anchor" aria-label="anchor" href="#order-of-warning-messages"></a>
-</h3>
-<p>If multiple tasks produce warnings, the order in which they appear
-may vary:</p>
-<ul>
-<li>In sequential execution, warnings appear in task order</li>
-<li>In parallel execution, warning order depends on task completion
-order</li>
-<li>The warnings themselves are deterministic, just their order may
-vary</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="results-across-r-versions">Results Across R Versions<a class="anchor" aria-label="anchor" href="#results-across-r-versions"></a>
-</h3>
-<p><strong>Critical</strong>: Results may differ across different
-versions of R, even with the same seed. This is because:</p>
-<ul>
-<li>R’s random number generation may change between versions</li>
-<li>Underlying algorithms (e.g., for linear algebra) may be updated</li>
-<li>Floating-point behavior can vary</li>
-</ul>
-<p><strong>Best practice</strong>: Always record the R version used for
-your simulations.</p>
-</div>
-<div class="section level3">
-<h3 id="results-across-package-versions">Results Across Package Versions<a class="anchor" aria-label="anchor" href="#results-across-package-versions"></a>
-</h3>
-<p>Similarly, results may differ across versions of bayesim or its
-dependencies:</p>
-<ul>
-<li>Algorithm improvements may change results</li>
-<li>Bug fixes may alter behavior</li>
-<li>New features may change defaults</li>
-</ul>
-<p><strong>Best practice</strong>: Use package version pinning (e.g.,
-renv, packrat) for critical simulations.</p>
-</div>
-</div>
-<div class="section level2">
-<h2 id="best-practices">Best Practices<a class="anchor" aria-label="anchor" href="#best-practices"></a>
-</h2>
-<div class="section level3">
-<h3 id="always-set-a-seed">Always Set a Seed<a class="anchor" aria-label="anchor" href="#always-set-a-seed"></a>
-</h3>
-<p>Always explicitly set a seed in your simulation configuration:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Good: explicit seed</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span>  <span class="co"># Use any integer</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Without a seed, your results won't be reproducible</span></span></code></pre></div>
-<p>Choose a seed arbitrarily (many researchers use their birthday,
-favorite number, or random.org). The specific value doesn’t matter—only
-that it’s documented.</p>
-</div>
-<div class="section level3">
-<h3 id="version-control-your-configuration">Version Control Your Configuration<a class="anchor" aria-label="anchor" href="#version-control-your-configuration"></a>
-</h3>
-<p>Store your simulation configuration in version control:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># In your R script or R Markdown document</span></span>
-<span><span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"data_grid.csv"</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="st">"fit_grid.csv"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_gen</span>,  <span class="co"># Defined in the same file</span></span>
-<span>  fitter <span class="op">=</span> <span class="va">my_fitter</span>,            <span class="co"># Defined in the same file</span></span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/BiasMetric.html">bias_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">1000L</span>,</span>
+<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter</a></span><span class="op">(</span>n_draws <span class="op">=</span> <span class="fl">200L</span><span class="op">)</span>,</span>
+<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  n_replicates <span class="op">=</span> <span class="fl">2L</span>,</span>
 <span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<p>This ensures that:</p>
-<ul>
-<li>The exact configuration is preserved</li>
-<li>Changes are tracked over time</li>
-<li>Others can reproduce your setup</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="use-checkpointing-for-long-runs">Use Checkpointing for Long Runs<a class="anchor" aria-label="anchor" href="#use-checkpointing-for-long-runs"></a>
-</h3>
-<p>For long-running simulations, always enable checkpointing:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  <span class="va">...</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"path/to/results"</span>,  <span class="co"># Enable checkpointing</span></span>
-<span>  checkpoint_every <span class="op">=</span> <span class="fl">50L</span>             <span class="co"># Save every 50 tasks</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Run with resume capability</span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, resume <span class="op">=</span> <span class="st">"auto"</span><span class="op">)</span></span></code></pre></div>
-<p>This protects against:</p>
-<ul>
-<li>System crashes</li>
-<li>Power failures</li>
-<li>Time limits on clusters</li>
-<li>Accidental interruption</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="record-r-and-package-versions">Record R and Package Versions<a class="anchor" aria-label="anchor" href="#record-r-and-package-versions"></a>
-</h3>
-<p>Document your computational environment:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Record R version</span></span>
-<span><span class="va">R.version.string</span></span>
-<span><span class="co">#&gt; [1] "R version 4.6.1 (2026-06-24)"</span></span>
-<span></span>
-<span><span class="co"># Record package versions</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
-<span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
-<span><span class="co">#&gt; Running under: Ubuntu 24.04.4 LTS</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Matrix products: default</span></span>
-<span><span class="co">#&gt; BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 </span></span>
-<span><span class="co">#&gt; LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Random number generation:</span></span>
-<span><span class="co">#&gt;  RNG:     L'Ecuyer-CMRG </span></span>
-<span><span class="co">#&gt;  Normal:  Inversion </span></span>
-<span><span class="co">#&gt;  Sample:  Rejection </span></span>
-<span><span class="co">#&gt;  </span></span>
-<span><span class="co">#&gt; locale:</span></span>
-<span><span class="co">#&gt;  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       </span></span>
-<span><span class="co">#&gt;  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   </span></span>
-<span><span class="co">#&gt;  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          </span></span>
-<span><span class="co">#&gt; [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; time zone: UTC</span></span>
-<span><span class="co">#&gt; tzcode source: system (glibc)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; attached base packages:</span></span>
-<span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] future_1.75.0 bayesim_1.0.1</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
-<span><span class="co">#&gt;  [1] future.apply_1.20.2 jsonlite_2.0.0      dplyr_1.2.1        </span></span>
-<span><span class="co">#&gt;  [4] compiler_4.6.1      tidyselect_1.2.1    parallel_4.6.1     </span></span>
-<span><span class="co">#&gt;  [7] jquerylib_0.1.4     globals_0.19.1      systemfonts_1.3.2  </span></span>
-<span><span class="co">#&gt; [10] textshaping_1.0.5   yaml_2.3.12         fastmap_1.2.0      </span></span>
-<span><span class="co">#&gt; [13] R6_2.6.1            generics_0.1.4      knitr_1.51         </span></span>
-<span><span class="co">#&gt; [16] tibble_3.3.1        desc_1.4.3          bslib_0.12.0       </span></span>
-<span><span class="co">#&gt; [19] pillar_1.11.1       rlang_1.3.0         cachem_1.1.0       </span></span>
-<span><span class="co">#&gt; [22] xfun_0.60           fs_2.1.0            sass_0.4.10        </span></span>
-<span><span class="co">#&gt; [25] S7_0.2.2            otel_0.2.0          cli_3.6.6          </span></span>
-<span><span class="co">#&gt; [28] pkgdown_2.2.1       withr_3.0.3         magrittr_2.0.5     </span></span>
-<span><span class="co">#&gt; [31] digest_0.6.39       lifecycle_1.0.5     vctrs_0.7.3        </span></span>
-<span><span class="co">#&gt; [34] evaluate_1.0.5      glue_1.8.1          listenv_1.0.0      </span></span>
-<span><span class="co">#&gt; [37] codetools_0.2-20    ragg_1.5.2          parallelly_1.48.0  </span></span>
-<span><span class="co">#&gt; [40] rmarkdown_2.31      tools_4.6.1         pkgconfig_2.0.3    </span></span>
-<span><span class="co">#&gt; [43] htmltools_0.5.9</span></span></code></pre></div>
-<p>For publication, include a section like:</p>
-<blockquote>
-<p>“Simulations were conducted using R version 4.3.1 with bayesim
-version 0.1.0. The computational environment is available at
-[repository/link].”</p>
-</blockquote>
-</div>
-<div class="section level3">
-<h3 id="environment-management">Environment Management<a class="anchor" aria-label="anchor" href="#environment-management"></a>
-</h3>
-<p>For stronger reproducibility guarantees, use environment management
-tools to ensure consistent package versions and R environments across
-machines and sessions.</p>
-<div class="section level4">
-<h4 id="renv-project-local-dependencies">renv: Project-Local Dependencies<a class="anchor" aria-label="anchor" href="#renv-project-local-dependencies"></a>
-</h4>
-<p><strong>renv</strong> creates a project-specific package library with
-a lockfile capturing exact package versions:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Initialize renv in your project</span></span>
-<span><span class="fu">renv</span><span class="fu">::</span><span class="fu">init</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Snapshot current package versions to lockfile</span></span>
-<span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Restore packages from lockfile (on another machine or session)</span></span>
-<span><span class="fu">renv</span><span class="fu">::</span><span class="fu">restore</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>The <code>renv.lock</code> file ensures collaborators and future-you
-install identical package versions. This is necessary for long-term
-reproducibility of simulation results.</p>
 </div>
 <div class="section level4">
-<h4 id="rv-and-containers-full-environment-capture">rv and Containers: Full Environment Capture<a class="anchor" aria-label="anchor" href="#rv-and-containers-full-environment-capture"></a>
+<h4 id="determinism-across-executors">Determinism across executors<a class="anchor" aria-label="anchor" href="#determinism-across-executors"></a>
 </h4>
-<p>For capturing the complete R environment (R version + packages +
-system libraries):</p>
-<ul>
-<li>
-<strong>rv</strong> is a newer tool for managing R environments with
-version-controlled snapshots</li>
-<li>
-<strong>Docker/containers</strong> provide the strongest guarantees
-by capturing the entire OS, R version, and all dependencies</li>
-</ul>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Example: Using rv to manage environments</span></span>
-<span><span class="fu">rv</span><span class="fu">::</span><span class="fu">init</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">rv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu">rv</span><span class="fu">::</span><span class="fu">restore</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>Container-based approaches (Docker, Singularity) are recommended for
-published research where reproducibility must survive years of software
-evolution.</p>
-</div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="verifying-reproducibility">Verifying Reproducibility<a class="anchor" aria-label="anchor" href="#verifying-reproducibility"></a>
-</h2>
-<p>Here’s a complete example demonstrating reproducibility:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim">bayesim</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Define a data generator</span></span>
-<span><span class="va">my_data_generator</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">data_spec</span>, <span class="va">seed</span>, <span class="va">task_ctx</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="co"># Note: seed is a scalar task seed.</span></span>
-<span>  <span class="co"># The simulation engine also restores the task RNG stream before each call.</span></span>
-<span>  <span class="va">n</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">n</span></span>
-<span>  </span>
-<span>  <span class="co"># Generate synthetic data with known parameters</span></span>
-<span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
-<span>  <span class="va">y</span> <span class="op">&lt;-</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">intercept</span> <span class="op">+</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">slope</span> <span class="op">*</span> <span class="va">x</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">sigma</span><span class="op">)</span></span>
-<span>  </span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    train <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>y <span class="op">=</span> <span class="va">y</span>, x <span class="op">=</span> <span class="va">x</span><span class="op">)</span>,</span>
-<span>    test <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>    response <span class="op">=</span> <span class="st">"y"</span>,</span>
-<span>    true_params <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
-<span>      intercept <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">intercept</span>,</span>
-<span>      slope <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">slope</span>,</span>
-<span>      sigma <span class="op">=</span> <span class="va">data_spec</span><span class="op">$</span><span class="va">sigma</span></span>
-<span>    <span class="op">)</span>,</span>
-<span>    vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"intercept"</span>, <span class="st">"slope"</span><span class="op">)</span>,</span>
-<span>    references <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>intercept <span class="op">=</span> <span class="fl">0</span>, slope <span class="op">=</span> <span class="fl">0</span><span class="op">)</span>,</span>
-<span>    meta <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span></span>
-<span><span class="op">}</span></span>
-<span></span>
-<span><span class="co"># Create configuration</span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    n <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">100</span><span class="op">)</span>,</span>
-<span>    intercept <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>    slope <span class="op">=</span> <span class="fl">2</span>,</span>
-<span>    sigma <span class="op">=</span> <span class="fl">0.5</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    model <span class="op">=</span> <span class="st">"linear"</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="../reference/BiasMetric.html">bias_metric</a></span><span class="op">(</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">10L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
+<p>Because the RNG is per-task and stream-derived, sequential runs and
+mirai daemon runs produce the same scientific outputs and canonical task
+outcomes. Volatile timing fields are the only difference, so the example
+drops them before comparing:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Sequential</span></span>
+<span><span class="va">seq_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># Run simulation twice with same seed</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Running simulation for the first time...\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Running simulation for the first time...</span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 20 tasks</span></span>
+<span><span class="co"># Parallel via mirai</span></span>
+<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">par_result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
+<span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"never"</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Running simulation for the second time...\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Running simulation for the second time...</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 20 tasks</span></span>
-<span></span>
-<span><span class="co"># Verify results are identical</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\n=== Reproducibility Check ===\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; === Reproducibility Check ===</span></span>
-<span></span>
-<span><span class="co"># Check summary structure</span></span>
-<span><span class="va">structures_match</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">result2</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Summary structures match:"</span>, <span class="va">structures_match</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Summary structures match: TRUE</span></span>
-<span></span>
-<span><span class="co"># Check metric values</span></span>
-<span><span class="va">rmse_match</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span>, <span class="va">result2</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span><span class="op">)</span></span>
-<span><span class="va">bias_match</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/all.equal.html" class="external-link">all.equal</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">bias__value</span>, <span class="va">result2</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">bias__value</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"RMSE values match:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">rmse_match</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; RMSE values match: TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Bias values match:"</span>, <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">bias_match</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Bias values match: TRUE</span></span>
-<span></span>
-<span><span class="co"># Check task statuses</span></span>
-<span><span class="va">status_match</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">task_grid</span><span class="op">$</span><span class="va">status</span>, <span class="va">result2</span><span class="op">$</span><span class="va">task_grid</span><span class="op">$</span><span class="va">status</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Task statuses match:"</span>, <span class="va">status_match</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Task statuses match: TRUE</span></span>
-<span></span>
-<span><span class="co"># Overall reproducibility</span></span>
-<span><span class="va">is_reproducible</span> <span class="op">&lt;-</span> <span class="va">structures_match</span> <span class="op">&amp;&amp;</span> <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">rmse_match</span><span class="op">)</span> <span class="op">&amp;&amp;</span> </span>
-<span>                   <span class="fu"><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE</a></span><span class="op">(</span><span class="va">bias_match</span><span class="op">)</span> <span class="op">&amp;&amp;</span> <span class="va">status_match</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"\nOverall reproducibility:"</span>, <span class="va">is_reproducible</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Overall reproducibility: TRUE</span></span></code></pre></div>
+<span><span class="co"># Timing columns record wall-clock time, so drop them before comparing.</span></span>
+<span><span class="va">drop_timing</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">df</span><span class="op">)</span> <span class="va">df</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^timing_"</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span></span>
+<span>  <span class="fu">drop_timing</span><span class="op">(</span><span class="va">seq_result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span>,</span>
+<span>  <span class="fu">drop_timing</span><span class="op">(</span><span class="va">par_result</span><span class="op">$</span><span class="va">summary</span><span class="op">)</span></span>
+<span><span class="op">)</span> <span class="co"># TRUE</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+</div>
+<div class="section level4">
+<h4 id="determinism-under-resume">Determinism under resume<a class="anchor" aria-label="anchor" href="#determinism-under-resume"></a>
+</h4>
+<p>When a run is interrupted and resumed, the task grid (including each
+task’s RNG stream) is recomputed deterministically from the seed, and
+only terminal task statuses are copied from the checkpoint. Resuming
+therefore completes the remaining tasks with the exact RNG streams they
+would have had in a full run. The resumed study then matches a single
+uninterrupted run once volatile timing fields are excluded.</p>
+</div>
+</div>
 <div class="section level3">
-<h3 id="testing-with-different-seeds">Testing with Different Seeds<a class="anchor" aria-label="anchor" href="#testing-with-different-seeds"></a>
+<h3 id="the-config-fingerprint">The config fingerprint<a class="anchor" aria-label="anchor" href="#the-config-fingerprint"></a>
 </h3>
-<p>To verify that different seeds produce different (but still
-reproducible) results:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Same configuration, different seeds</span></span>
-<span><span class="va">config1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">100</span>, intercept <span class="op">=</span> <span class="fl">1</span>, slope <span class="op">=</span> <span class="fl">2</span>, sigma <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">5L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">config2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">100</span>, intercept <span class="op">=</span> <span class="fl">1</span>, slope <span class="op">=</span> <span class="fl">2</span>, sigma <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>model <span class="op">=</span> <span class="st">"linear"</span><span class="op">)</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/MockFitter.html">MockFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/RmseMetric.html">rmse_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">5L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">123L</span>  <span class="co"># Different seed</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">result1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config1</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 5 tasks</span></span>
-<span><span class="va">result2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config2</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 5 tasks</span></span>
-<span></span>
-<span><span class="co"># Results should be different (different random data)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Same seed produces same results: "</span>,</span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span>, <span class="va">result2</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Same seed produces same results:  TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="st">"Different seeds produce different results: "</span>,</span>
-<span>    <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">result1</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span>, <span class="va">result2</span><span class="op">$</span><span class="va">summary</span><span class="op">$</span><span class="va">rmse__value</span><span class="op">)</span>, <span class="st">"\n"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Different seeds produce different results:  FALSE</span></span></code></pre></div>
+<p>Each simulation configuration is hashed into a stable fingerprint
+that is written to the checkpoint manifest. On resume, bayesim verifies
+the fingerprint matches, so a resumed run cannot silently use a
+different config than the one that wrote the checkpoint.</p>
 </div>
+<div class="section level3">
+<h3 id="generators-and-determinism">Generators and determinism<a class="anchor" aria-label="anchor" href="#generators-and-determinism"></a>
+</h3>
+<p>The factory generators (<code><a href="../reference/fixed_truth_generator.html">fixed_truth_generator()</a></code>,
+<code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code>, <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code>)
+all consume the ambient RNG state. IFS and prior-predictive generators
+additionally select their truth-draw parameter vector by a
+<strong>deterministic</strong> index derived from
+<code>task_ctx$rep_idx</code> – never by random sampling of draw indices
+– so SBC ranks are well-defined and resume is reproducible.</p>
 </div>
-<div class="section level2">
-<h2 id="summary">Summary<a class="anchor" aria-label="anchor" href="#summary"></a>
-</h2>
-<p>bayesim provides strong determinism guarantees for simulation
-studies:</p>
-<table class="table">
-<colgroup>
-<col width="42%">
-<col width="57%">
-</colgroup>
-<thead><tr class="header">
-<th>Aspect</th>
-<th>Guarantee</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td>Same seed → same results</td>
-<td>✅ Guaranteed</td>
-</tr>
-<tr class="even">
-<td>Sequential vs parallel</td>
-<td>✅ Identical in supported execution modes</td>
-</tr>
-<tr class="odd">
-<td>Resume from checkpoint</td>
-<td>✅ Identical to uninterrupted run</td>
-</tr>
-<tr class="even">
-<td>Task execution order</td>
-<td>✅ Deterministic</td>
-</tr>
-<tr class="odd">
-<td>Cross-platform (same R version)</td>
-<td>⚠️ Expected under controlled environment</td>
-</tr>
-<tr class="even">
-<td>Timing values</td>
-<td>❌ Not guaranteed</td>
-</tr>
-<tr class="odd">
-<td>Warning message order</td>
-<td>❌ Not guaranteed</td>
-</tr>
-<tr class="even">
-<td>Across R versions</td>
-<td>❌ Not guaranteed</td>
-</tr>
-<tr class="odd">
-<td>Across package versions</td>
-<td>❌ Not guaranteed</td>
-</tr>
-</tbody>
-</table>
-<p>By following the best practices outlined in this vignette—always
-setting a seed, version controlling your configuration, using
-checkpointing, recording your computational environment, and using
-environment management tools—you ensure that your simulation studies
-remain reproducible and scientifically valid.</p>
-<p>For more information, see:</p>
+<div class="section level3">
+<h3 id="what-can-break-reproducibility">What can break reproducibility<a class="anchor" aria-label="anchor" href="#what-can-break-reproducibility"></a>
+</h3>
 <ul>
-<li>
-<code><a href="../articles/getting-started.html">vignette("getting-started")</a></code> for basic bayesim
-usage</li>
-<li>
-<code><a href="../articles/simulation-study.html">vignette("simulation-study")</a></code> for a complete
-example</li>
-<li>
-<code><a href="../articles/memory-management.html">vignette("memory-management")</a></code> for handling large
-simulations</li>
+<li>Changing the seed.</li>
+<li>Changing the data generator’s RNG consumption (e.g. adding an extra
+<code>rnorm</code> call) – this shifts all downstream draws for that
+task.</li>
+<li>Renaming a stochastic metric, because its name is part of its
+deterministic metric-specific seed.</li>
+<li>Reordering the data/fit grid (tasks are identified by grid
+position).</li>
+<li>Upgrading Stan/brms/cmdstanr – results stay statistically equivalent
+but not bit-identical.</li>
 </ul>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

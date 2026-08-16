@@ -51,6 +51,7 @@ Throws a `bayesim_contract_error` condition if validation fails.
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 # Create a valid fit result
 draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
 colnames(draws) <- c("alpha", "beta")
@@ -61,4 +62,5 @@ result <- new_fit_result(
   timing = list(total = 5.0, warmup = 2.5, sample = 2.5)
 )
 validate_fit_result_interface(result)
+} # }
 ```

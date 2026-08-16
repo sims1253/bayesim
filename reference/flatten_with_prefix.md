@@ -38,19 +38,9 @@ serves as the outer namespace.
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 x <- list(a = 1, b = c(x = 2, y = 3), c = 4)
 flatten_with_prefix(x, "param")
-#> $a
-#> [1] 1
-#> 
-#> $param__b__x
-#> [1] 2
-#> 
-#> $param__b__y
-#> [1] 3
-#> 
-#> $c
-#> [1] 4
-#> 
 # Returns: list(a = 1, param__b__x = 2, param__b__y = 3, c = 4)
+} # }
 ```

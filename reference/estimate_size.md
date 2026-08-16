@@ -21,8 +21,8 @@ Size in bytes as numeric
 ## Examples
 
 ``` r
+if (FALSE) { # \dontrun{
 estimate_size(1:1000)
-#> [1] 4048
 estimate_size(iris)
-#> [1] 7256
+} # }
 ```

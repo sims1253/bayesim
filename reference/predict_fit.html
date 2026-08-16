@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">bayesim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">1.0.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Released version">2.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,16 +19,21 @@
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
-  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Getting Started</a></li>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting-started.html">Get started</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/simulation-study.html">Simulation Studies</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Learn</h6></li>
+    <li><a class="dropdown-item" href="../articles/design-of-simulation-studies.html">Design of simulation studies</a></li>
+    <li><a class="dropdown-item" href="../articles/sbc-and-calibration.html">SBC and calibration</a></li>
     <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom Fitters</a></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Backends</h6></li>
+    <li><a class="dropdown-item" href="../articles/brms-studies.html">brms studies</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-fitters.html">Custom fitters</a></li>
+    <li><a class="dropdown-item" href="../articles/custom-metrics.html">Custom metrics</a></li>
     <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Operations</h6></li>
+    <li><a class="dropdown-item" href="../articles/parallel-and-hpc.html">Parallel execution, HPC, and memory</a></li>
     <li><a class="dropdown-item" href="../articles/reproducibility.html">Reproducibility</a></li>
-    <li><a class="dropdown-item" href="../articles/memory-management.html">Memory Management</a></li>
-    <li><hr class="dropdown-divider"></li>
-    <li><a class="dropdown-item" href="../articles/case-studies.html">Case Studies</a></li>
+    <li><a class="dropdown-item" href="../articles/targets.html">Running bayesim with targets</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/sims1253/bayesim"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -63,7 +68,7 @@
 
 
 <dt id="arg-fit-result">fit_result<a class="anchor" aria-label="anchor" href="#arg-fit-result"></a></dt>
-<dd><p>A <code>bayesim_fit_result</code> object from <code><a href="fit.html">fit()</a></code></p></dd>
+<dd><p>A <code>bayesim_fit_result</code> object from <code><a href="fit_model.html">fit_model()</a></code></p></dd>
 
 
 <dt id="arg-newdata">newdata<a class="anchor" aria-label="anchor" href="#arg-newdata"></a></dt>
@@ -77,11 +82,15 @@ If NULL, predictions are generated for the original training data.</p></dd>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list containing:</p><ul><li><p><code>predicted_mean</code>: Vector of mean predictions (N)</p></li>
-<li><p><code>predicted_samples</code>: Matrix of posterior predictive samples (N x S)</p></li>
-<li><p><code>predicted_sd</code>: Vector of prediction standard deviations (N)</p></li>
+    <p>A list containing:</p><ul><li><p><code>predicted_mean</code>: Vector of mean predictions (length N)</p></li>
+<li><p><code>predicted_samples</code>: Matrix of posterior predictive samples
+(S x N; draws as rows, observations as columns)</p></li>
+<li><p><code>predicted_sd</code>: Vector of prediction standard deviations (length N)</p></li>
 <li><p>Additional fitter-specific outputs</p></li>
-</ul></div>
+</ul><p><code>predicted_samples</code> follows the same orientation convention as
+<code><a href="log_lik_matrix.html">log_lik_matrix()</a></code> and <code><a href="predict_epred.html">predict_epred()</a></code>: all matrices are draws x observations
+(S rows, N columns).</p>
+    </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

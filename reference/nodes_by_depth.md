@@ -1,19 +1,11 @@
-# Determine depth of nodes in dependency graph
+# Topological sort of response variables by dependency depth (Kahn's algorithm). Nodes with no incoming edges (predictors that depend on no other response) come first.
 
-Determine depth of nodes in dependency graph
+Topological sort of response variables by dependency depth (Kahn's
+algorithm). Nodes with no incoming edges (predictors that depend on no
+other response) come first.
 
 ## Usage
 
 ``` r
 nodes_by_depth(adj_matrix)
 ```
-
-## Arguments
-
-- adj_matrix:
-
-  Adjacency matrix representing variable dependencies
-
-## Value
-
-List of nodes grouped by their depth in the dependency graph

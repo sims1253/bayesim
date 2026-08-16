@@ -21,12 +21,3 @@ x %||% y
 ## Value
 
 `x` if not NULL, otherwise `y`
-
-## Examples
-
-``` r
-NULL %||% "default"  # returns "default"
-#> [1] "default"
-"value" %||% "default"  # returns "value"
-#> [1] "value"
-```

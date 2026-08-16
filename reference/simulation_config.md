@@ -19,10 +19,12 @@ simulation_config(
   result_path = NULL,
   checkpoint_format = c("rds"),
   checkpoint_every = 50L,
-  chunk_size = NULL,
-  max_in_memory = lifecycle::deprecated(),
+  keep_checkpoints = 2L,
   retain = c("metrics", "diagnostics"),
-  max_errors = Inf
+  max_errors = Inf,
+  daemon_setup = NULL,
+  stop_on = NULL,
+  summary_format = c("rds", "parquet")
 )
 ```
 
@@ -46,9 +48,10 @@ simulation_config(
 
 - data_generator:
 
-  A function with signature
-  `(data_spec, seed, task_ctx) -> data_bundle`. Generates data for a
-  single replicate given a data specification row.
+  A function with signature `(data_spec, task_ctx) -> data_bundle`.
+  Generates data for a single replicate given a data specification row.
+  `task_ctx$seed` carries the per-task integer seed for backends that
+  need one.
 
 - fitter:
 
@@ -73,29 +76,71 @@ simulation_config(
 - checkpoint_format:
 
   Character scalar. Checkpoint storage format. Currently only `"rds"` is
-  implemented for checkpoint persistence.
+  implemented for checkpoint persistence. (B4: excluded from the config
+  fingerprint — it is runtime policy.)
 
 - checkpoint_every:
 
-  Positive integer. Save progress every N tasks.
+  Positive integer. Save progress every N tasks. This single knob also
+  bounds the number of task results held in memory at once (B4: the
+  former separate `chunk_size` knob was merged into this).
 
-- chunk_size:
+- keep_checkpoints:
 
-  Positive integer. Maximum number of task results to keep in memory
-  before forcing a checkpoint write. Defaults to `checkpoint_every`.
-
-- max_in_memory:
-
-  Deprecated alias for `chunk_size`.
+  Positive integer. Number of checkpoint commit directories to retain.
+  Defaults to 2, preserving the newest commit plus one older fallback
+  for corruption recovery. Pruning removes old commit directories only;
+  the immutable outcome shards and ledger history are never pruned, so
+  durable storage grows roughly linearly with completed tasks. Runtime
+  policy; excluded from the config fingerprint.
 
 - retain:
 
   Character vector. What to retain in results. Must be subset of
   `c("metrics", "diagnostics", "draws", "predictions", "fit", "data", "warnings")`.
+  A single profile name is also accepted: `"minimal"` (metrics only),
+  `"standard"` (metrics, diagnostics, warnings), or `"debug"`
+  (everything). Alternatively, a named list with `success`, `warning`,
+  and `error` entries to retain more for tasks that warn or fail.
+  `"metrics"` is always retained. (B4: excluded from the config
+  fingerprint, but exclusion does not make every retention change legal
+  on resume: a compatible resume may narrow retention, while widening is
+  rejected once completed outcomes lack the requested artifacts —
+  discarded artifacts cannot be recreated.)
 
 - max_errors:
 
-  Numeric. Maximum errors before stopping. Use `Inf` for no limit.
+  Numeric. Maximum errors before stopping. Use `Inf` for no limit. (B4:
+  excluded from the config fingerprint.)
+
+- daemon_setup:
+
+  Optional function run once per mirai daemon (via
+  [`mirai::everywhere()`](https://mirai.r-lib.org/reference/everywhere.html))
+  before tasks start, e.g. to configure cmdstan paths or load a model
+  bank. Ignored when no daemons are set. Default NULL.
+
+- stop_on:
+
+  Optional adaptive stopping policy (experimental). `NULL` (default)
+  runs all tasks. Otherwise a list with elements: `estimand` (character
+  parameter name), `measure` (one of `"bias"`, `"coverage"`, `"emp_se"`,
+  `"mse"`, `"model_se"`), `target_mcse` (numeric \> 0), `min_reps`
+  (integer, default 50), `check_every` (integer, default 50). Once the
+  MCSE of `measure` for `estimand` falls below `target_mcse` AND at
+  least `min_reps` replicates have completed, remaining pending tasks
+  are marked `"skipped"` and the run stops. (I3: excluded from the
+  config fingerprint — it is runtime policy.)
+
+- summary_format:
+
+  Character scalar. Output format for the final summary. `"rds"`
+  (default) writes nothing extra – the durable run store (outcome shards
+  plus ledger) carries the results and remains the resume artifact.
+  `"parquet"` additionally writes `<result_path>/summary.parquet` using
+  the suggested `nanoparquet` package, for downstream consumption
+  (pandas, arrow, polars). (I8: excluded from the config fingerprint –
+  runtime policy.)
 
 ## Value
 
@@ -110,7 +155,7 @@ config <- simulation_config(
   fit_grid = data.frame(model = c("baseline", "full")),
   data_generator = my_data_gen,
   fitter = my_fitter,
-  metrics = list(rmse_metric(), bias_metric()),
+  metrics = list(pred_rmse_metric(), pred_bias_metric()),
   n_replicates = 100L,
   seed = 42L,
   checkpoint_format = "rds"

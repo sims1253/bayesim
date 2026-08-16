@@ -37,9 +37,6 @@ The data_bundle must have the following structure:
 
 - `vars_of_interest`: A non-empty character vector of unique names
 
-- `references`: A named numeric vector where names exactly match
-  `vars_of_interest` (optional)
-
 - `meta`: Optional named list with scalar values only
 
 Validation rules:
@@ -56,9 +53,6 @@ Validation rules:
 - `vars_of_interest` must be a non-empty unique character vector
 
 - `setequal(names(true_params), vars_of_interest)` must be TRUE
-
-- If provided, `setequal(names(references), vars_of_interest)` must be
-  TRUE
 
 - No duplicate names in any named vector/list
 
@@ -77,8 +71,7 @@ data_bundle <- list(
   test = data.frame(x = 11:15, y = rnorm(5)),
   response = "y",
   true_params = c(beta = 1.5, sigma = 0.5),
-  vars_of_interest = c("beta", "sigma"),
-  references = c(beta = 0, sigma = 1)
+  vars_of_interest = c("beta", "sigma")
 )
 validate_data_bundle(data_bundle)
 ```

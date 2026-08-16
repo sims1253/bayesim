@@ -2,12 +2,23 @@
 
 Abstract base class for defining simulation metrics in bayesim. Metrics
 compute summary statistics or diagnostic values from fitted model
-results and data bundles.
+results and data bundles. `Metric` is abstract: it has no direct
+instances, so calling `Metric()` errors. Subclasses are created with
+`S7::new_class(..., parent = Metric)` and instantiated directly. Because
+the parent is abstract, S7 honors the defaults a subclass declares for
+the inherited `name`/`needs`/`required`/`summary_type`/`schema`
+properties when the subclass constructor is called.
 
 ## Usage
 
 ``` r
-Metric(name = character(0), needs = character(0), required = FALSE)
+Metric(
+  name = character(0),
+  needs = character(0),
+  required = FALSE,
+  summary_type = "mean",
+  schema = list()
+)
 ```
 
 ## Arguments
@@ -30,17 +41,36 @@ Metric(name = character(0), needs = character(0), required = FALSE)
   entire task. If FALSE (default), metric failure results in NA values
   being recorded.
 
+- summary_type:
+
+  Character; how
+  [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
+  aggregates this metric's flattened columns: `"mean"` (default,
+  sd/sqrt(n) MCSE), `"proportion"` (coverage-style sqrt(p(1-p)/n) MCSE),
+  or `"none"`.
+
+- schema:
+
+  Named list of field-level metadata. Each emitted field can declare a
+  `role` (`estimate`, `binary`, `count`, `diagnostic`, `rank`, or
+  `artifact`), an `aggregation` (`mean`, `proportion`, or `none`), an
+  MCSE method (`sd`, `binomial`, or `none`), and optional `nominal`,
+  `units`, or `dimension` metadata. `summary_type` remains supported as
+  a compatibility default for metrics that do not declare a schema.
+
 ## Value
 
-An S7 class object representing a Metric.
+An S7 class object representing the abstract Metric base class.
+Construct subclasses directly (e.g. `MyMetric()`); do not call
+`Metric()`.
 
 ## Methods
 
 The
-[`compute()`](https://sims1253.github.io/bayesim/reference/compute.md)
+[`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
 S7 generic must be implemented by subclasses.
 
-- compute(metric, fit_result, data_bundle, context, task_ctx):
+- compute_metric(metric, fit_result, data_bundle, context, task_ctx):
 
   Compute metric values from a fitted model result. This method must be
   implemented by subclasses.
@@ -51,8 +81,7 @@ S7 generic must be implemented by subclasses.
           model output (draws, diagnostics, etc.)
         \item data_bundle: A list containing data-related objects including
           train (training data), test (test data if applicable), response
-          (response variable), true_params (true parameter values if known),
-          references (reference values), etc.
+          (response variable), true_params (true parameter values if known)
         \item context: A list with precomputed values based on the metric's
           `needs` property. May include predictions, log_lik (log-likelihood
           values), loo (leave-one-out cross-validation results), etc.
@@ -96,12 +125,22 @@ RMSEMetric <- S7::new_class(
   )
 )
 
-S7::method(compute, RMSEMetric) <- function(metric, fit_result, data_bundle, context, task_ctx) {
-  preds <- context$predictions
+S7::method(compute_metric, RMSEMetric) <- function(
+  metric, fit_result, data_bundle, context, task_ctx
+) {
+  preds <- context$predictions$predicted_mean
   actual <- data_bundle$test[[data_bundle$response]]
   list(
     value = sqrt(mean((preds - actual)^2)),
     n_obs = length(actual)
   )
 }
+
+# Construct the subclass directly; the declared defaults are honored.
+RMSEMetric()@name     # "rmse"
+#> [1] "rmse"
+RMSEMetric()@needs    # "predictions"
+#> [1] "predictions"
+RMSEMetric()@required # FALSE
+#> [1] FALSE
 ```
