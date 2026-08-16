@@ -53,8 +53,14 @@
 <h2 class="pkg-version" data-toc-text="development version" id="bayesim-development-version">bayesim (development version)<a class="anchor" aria-label="anchor" href="#bayesim-development-version"></a></h2>
 <p>Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.</p>
 <div class="section level3">
+<h3 id="runtime-ux-development-version">Runtime UX<a class="anchor" aria-label="anchor" href="#runtime-ux-development-version"></a></h3>
+<ul><li>
+<code><a href="../reference/run_simulation.html">run_simulation()</a></code> now prints a single end-of-run summary block when <code>verbose = TRUE</code>: completion status, task counts (succeeded, failed, not run), the stop reason for early stops (<code>max_errors</code> or adaptive stopping), the results path, and — when unexecuted work remains — the literal <code><a href="../reference/resume_simulation.html">resume_simulation()</a></code> command for that run. The block subsumes the former standalone failure summary.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="engine-and-resume-development-version">Engine and resume<a class="anchor" aria-label="anchor" href="#engine-and-resume-development-version"></a></h3>
-<ul><li>Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no longer lose or mangle recorded truths and fit diagnostics when prior task results are reloaded from a checkpoint.</li>
+<ul><li>Fixed a <code><a href="../reference/merge_results.html">merge_results()</a></code> crash on resume-to-completion: when the resumed execution re-covered every prior task and the new rows carried columns the prior rows lacked (e.g. diagnostics after a failed-only prior run), the schema-alignment step assigned a length-1 <code>NA</code> into a 0-row frame (<a href="https://github.com/sims1253/bayesim/issues/63" class="external-link">#63</a>).</li>
+<li>Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no longer lose or mangle recorded truths and fit diagnostics when prior task results are reloaded from a checkpoint.</li>
 <li>Fatal mid-batch errors now persist the batch’s already-completed sibling outcomes before re-raising, so a crash no longer discards finished work.</li>
 <li>Resume no longer double-loads the full run history (prior results were loaded once to resume and again during the run).</li>
 <li>In-memory (<code>result_path = NULL</code>) run-store writes are now linear in the number of completed tasks instead of repeatedly rewriting the full state.</li>

@@ -175,6 +175,8 @@ sampling) use the factory constructors
 <code class="sourceCode R"><span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, progress <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 8 tasks = 2 data x 1 fit x 4 reps</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 8 tasks</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Simulation complete: 8/8 tasks succeeded in 0.2s</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/print.html" class="external-link">print</a></span><span class="op">(</span><span class="va">result</span><span class="op">)</span></span>
 <span><span class="co">#&gt; &lt;bayesim_simulation_result&gt;</span></span>
 <span><span class="co">#&gt;   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 </span></span>
@@ -185,7 +187,7 @@ sampling) use the factory constructors
 <span><span class="co">#&gt;     - Skipped (policy-stopped): 0 </span></span>
 <span><span class="co">#&gt;   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... </span></span>
 <span><span class="co">#&gt;   Task grid: 8 rows x 7 cols</span></span>
-<span><span class="co">#&gt;   Total time: 0.24 s</span></span></code></pre></div>
+<span><span class="co">#&gt;   Total time: 0.23 s</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="examine-results">Examine Results<a class="anchor" aria-label="anchor" href="#examine-results"></a>
@@ -270,12 +272,12 @@ sampling) use the factory constructors
 <span><span class="co">#&gt; 5                                  0                1        2            1</span></span>
 <span><span class="co">#&gt; 6                                  0                1        2            1</span></span>
 <span><span class="co">#&gt;   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx</span></span>
-<span><span class="co">#&gt; 1        1      500      500         0             0  0.016973495       1</span></span>
-<span><span class="co">#&gt; 2        1      500      500         0             0  0.037239313       2</span></span>
-<span><span class="co">#&gt; 3        1      500      500         0             0  0.045665979       3</span></span>
-<span><span class="co">#&gt; 4        1      500      500         0             0  0.004889965       4</span></span>
-<span><span class="co">#&gt; 5        1      500      500         0             0  0.004315615       1</span></span>
-<span><span class="co">#&gt; 6        1      500      500         0             0  0.004588604       2</span></span>
+<span><span class="co">#&gt; 1        1      500      500         0             0  0.015710354       1</span></span>
+<span><span class="co">#&gt; 2        1      500      500         0             0  0.035906792       2</span></span>
+<span><span class="co">#&gt; 3        1      500      500         0             0  0.044959068       3</span></span>
+<span><span class="co">#&gt; 4        1      500      500         0             0  0.004861116       4</span></span>
+<span><span class="co">#&gt; 5        1      500      500         0             0  0.004269838       1</span></span>
+<span><span class="co">#&gt; 6        1      500      500         0             0  0.004215479       2</span></span>
 <span><span class="co">#&gt;   data_n data_intercept data_slope data_sigma fit_model</span></span>
 <span><span class="co">#&gt; 1     50              1          2          1    linear</span></span>
 <span><span class="co">#&gt; 2     50              1          2          1    linear</span></span>

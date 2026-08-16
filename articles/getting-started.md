@@ -95,6 +95,8 @@ config <- simulation_config(
 result <- run_simulation(config, progress = FALSE)
 #> 8 tasks = 2 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 8 tasks
+#> 
+#> ✔ Simulation complete: 8/8 tasks succeeded in 0.2s
 print(result)
 #> <bayesim_simulation_result>
 #>   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 
@@ -105,7 +107,7 @@ print(result)
 #>     - Skipped (policy-stopped): 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
 #>   Task grid: 8 rows x 7 cols
-#>   Total time: 0.24 s
+#>   Total time: 0.23 s
 ```
 
 ### Examine Results
@@ -191,12 +193,12 @@ head(result$summary)
 #> 5                                  0                1        2            1
 #> 6                                  0                1        2            1
 #>   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx
-#> 1        1      500      500         0             0  0.016973495       1
-#> 2        1      500      500         0             0  0.037239313       2
-#> 3        1      500      500         0             0  0.045665979       3
-#> 4        1      500      500         0             0  0.004889965       4
-#> 5        1      500      500         0             0  0.004315615       1
-#> 6        1      500      500         0             0  0.004588604       2
+#> 1        1      500      500         0             0  0.015710354       1
+#> 2        1      500      500         0             0  0.035906792       2
+#> 3        1      500      500         0             0  0.044959068       3
+#> 4        1      500      500         0             0  0.004861116       4
+#> 5        1      500      500         0             0  0.004269838       1
+#> 6        1      500      500         0             0  0.004215479       2
 #>   data_n data_intercept data_slope data_sigma fit_model
 #> 1     50              1          2          1    linear
 #> 2     50              1          2          1    linear
