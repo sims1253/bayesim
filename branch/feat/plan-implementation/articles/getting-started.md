@@ -105,7 +105,7 @@ print(result)
 #>     - Skipped (policy-stopped): 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
 #>   Task grid: 8 rows x 7 cols
-#>   Total time: 0.22 s
+#>   Total time: 0.21 s
 ```
 
 ### Examine Results
@@ -191,12 +191,12 @@ head(result$summary)
 #> 5                                  0                1        2            1
 #> 6                                  0                1        2            1
 #>   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx
-#> 1        1      500      500         0             0  0.015394926       1
-#> 2        1      500      500         0             0  0.034210920       2
-#> 3        1      500      500         0             0  0.037766695       3
-#> 4        1      500      500         0             0  0.004510880       4
-#> 5        1      500      500         0             0  0.004056454       1
-#> 6        1      500      500         0             0  0.004071951       2
+#> 1        1      500      500         0             0  0.014884233       1
+#> 2        1      500      500         0             0  0.030179024       2
+#> 3        1      500      500         0             0  0.040881634       3
+#> 4        1      500      500         0             0  0.003740311       4
+#> 5        1      500      500         0             0  0.003561497       1
+#> 6        1      500      500         0             0  0.003600836       2
 #>   data_n data_intercept data_slope data_sigma fit_model
 #> 1     50              1          2          1    linear
 #> 2     50              1          2          1    linear
