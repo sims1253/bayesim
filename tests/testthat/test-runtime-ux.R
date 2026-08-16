@@ -148,9 +148,11 @@ describe("F5 run reporting", {
 })
 
 describe("F7 end-of-run summary", {
-  # cli alerts signal message or warning conditions depending on level;
-  # run verbosely, collect every emitted condition into one searchable text
-  # block, and return the result alongside it.
+  # All cli alerts (any visual level) signal cliMessage conditions, which
+  # inherit from "message"; the warning handler additionally collects genuine
+  # warnings the run may emit (e.g. cli_warn). Run verbosely, collect every
+  # emitted condition into one searchable text block, and return the result
+  # alongside it.
   .run_messages <- function(config, ...) {
     conds <- character()
     result <- withCallingHandlers(
@@ -278,6 +280,63 @@ describe("F7 end-of-run summary", {
     )
     expect_match(out$text, "tasks not run")
     expect_match(out$text, "Resume with: resume_simulation", fixed = TRUE)
+  })
+
+  it("reports cumulative counts after resuming to completion", {
+    path <- withr::local_tempdir()
+    # Fails the first replicate only: run 1 exhausts the error budget on the
+    # rep-1 failure, and resume re-runs the remaining (skipped) replicates,
+    # which succeed.
+    flaky_gen <- function(data_spec, task_ctx) {
+      if (identical(task_ctx$rep_idx, 1L)) {
+        stop("Intentional failure")
+      }
+      n <- data_spec$n
+      x <- stats::rnorm(n)
+      y <- x + stats::rnorm(n)
+      list(
+        train = data.frame(y = y, x = x),
+        test = NULL,
+        response = "y",
+        true_params = c(x = 1),
+        vars_of_interest = "x",
+        meta = list()
+      )
+    }
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = flaky_gen,
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 4L,
+      seed = 46L,
+      max_errors = 1L,
+      checkpoint_every = 1L,
+      result_path = file.path(path, "flaky")
+    )
+    stopped <- .run_messages(config, resume = "never", progress = FALSE)
+    expect_match(
+      stopped$text,
+      "Simulation stopped early \\(error budget exhausted\\): 0 succeeded, 1 failed, 3 of 4 tasks not run"
+    )
+
+    # Raising the error budget is runtime policy, so the same study resumes
+    # compatibly. The advertised resume path completes the study: counts are
+    # cumulative across the resume (the prior failure is terminal), and the
+    # completion block offers no resume command.
+    config@max_errors <- Inf
+    resumed <- .run_messages(
+      config,
+      resume = "must",
+      progress = FALSE
+    )
+    expect_match(
+      resumed$text,
+      "Simulation finished: 3/4 tasks succeeded, 1 failed"
+    )
+    expect_false(grepl("Resume with", resumed$text, fixed = TRUE))
+    expect_match(resumed$text, "Results:", fixed = TRUE)
   })
 
   it("stays silent when verbose = FALSE", {
