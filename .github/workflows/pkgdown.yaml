@@ -34,10 +34,7 @@ jobs:
         if: github.event.action != 'closed'
         with:
           use-public-rspm: true
-
-      - name: Register r-universe repository for pak
-        shell: bash
-        run: printf 'options(repos = c(getOption("repos"), stan_dev_r_universe_dev = "https://stan-dev.r-universe.dev"))\n' >> "$HOME/.Rprofile"
+          extra-repositories: https://stan-dev.r-universe.dev
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         if: github.event.action != 'closed'
