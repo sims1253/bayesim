@@ -35,8 +35,9 @@ every tier.
 - **backend** — requires brms, cmdstanr, and a compiled CmdStan
   (`brms-fitter`, `cmdstan-fitter`, `generators`, `loo-metrics-parity`,
   `metrics-brms`, `sbc-acceptance`). These tests skip unless
-  `BAYESIM_TEST_TIER=backend` is set. CI: `test-nightly` and the
-  `backend-acceptance` job of `release-check` (one cached Linux runner).
+  `BAYESIM_TEST_TIER=backend` is set. CI: `test-backend` (on merges to
+  master, with a cached CmdStan) and the `backend-acceptance` job of
+  `release-check`.
 
 Run a tier locally either through the helper (it applies the file filter
 and exports the tier env var for you):

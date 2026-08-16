@@ -333,7 +333,7 @@
 </ul><p>Once integration coverage exists, remove repetitive tests for constructor defaults, individual class hierarchy entries, shallow wrappers, and every minor invalid-input permutation.</p>
 </div>
 <div class="section level3">
-<h3 id="backend-suite-nightly-or-release">Backend suite: nightly or release<a class="anchor" aria-label="anchor" href="#backend-suite-nightly-or-release"></a></h3>
+<h3 id="backend-suite-on-merge-or-release">Backend suite: on merge or release<a class="anchor" aria-label="anchor" href="#backend-suite-on-merge-or-release"></a></h3>
 <p>Run on one cached Linux job:</p>
 <ul><li>One tiny <code>BrmsFitter</code> workflow.</li>
 <li>One tiny <code>CmdStanFitter</code> workflow.</li>
@@ -348,7 +348,7 @@
 <ul><li>
 <strong>Pull request:</strong> package check without CmdStan, fast integration suite, formatting, and linting.</li>
 <li>
-<strong>Nightly:</strong> cached Stan backend suite and heavier statistical acceptance.</li>
+<strong>Merge to master:</strong> cached Stan backend suite and heavier statistical acceptance.</li>
 <li>
 <strong>Release:</strong> full supported R/OS matrix plus backend acceptance on the chosen reference platform.</li>
 <li>

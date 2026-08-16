@@ -68,7 +68,7 @@
 <li>
 <strong>core</strong> — fast plus the rest of the analytic suite: engine internals, analysis layer, model grid, parquet summaries, parallel transport, and report rendering. This is what <code>R CMD check</code> and a plain <code>devtools::test()</code> run. CI: <code>test-coverage</code>.</li>
 <li>
-<strong>backend</strong> — requires brms, cmdstanr, and a compiled CmdStan (<code>brms-fitter</code>, <code>cmdstan-fitter</code>, <code>generators</code>, <code>loo-metrics-parity</code>, <code>metrics-brms</code>, <code>sbc-acceptance</code>). These tests skip unless <code>BAYESIM_TEST_TIER=backend</code> is set. CI: <code>test-nightly</code> and the <code>backend-acceptance</code> job of <code>release-check</code> (one cached Linux runner).</li>
+<strong>backend</strong> — requires brms, cmdstanr, and a compiled CmdStan (<code>brms-fitter</code>, <code>cmdstan-fitter</code>, <code>generators</code>, <code>loo-metrics-parity</code>, <code>metrics-brms</code>, <code>sbc-acceptance</code>). These tests skip unless <code>BAYESIM_TEST_TIER=backend</code> is set. CI: <code>test-backend</code> (on merges to master, with a cached CmdStan) and the <code>backend-acceptance</code> job of <code>release-check</code>.</li>
 </ul><p>Run a tier locally either through the helper (it applies the file filter and exports the tier env var for you):</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"tools/ci/test-tiers.R"</span><span class="op">)</span></span>
