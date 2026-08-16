@@ -22,6 +22,14 @@
 #'   back to a fresh `brms::brm()` per task. When precompiling, specify priors
 #'   explicitly: some brms defaults are derived from the template dataset and
 #'   would otherwise remain embedded in the reused compiled model.
+#' @param allow_default_priors Logical, default FALSE. When FALSE, precompiled
+#'   model banks reject model specs without an explicit prior with a fatal
+#'   [bayesim_config_error()]: brms derives data-dependent default priors from
+#'   the template dataset, and they stay embedded in the compiled model that
+#'   the bank reuses for every task (the whole study would silently be fit
+#'   with the template's priors). Set TRUE to permit brms data-derived default
+#'   priors to be embedded from the template data (rarely what you want; a
+#'   notice is emitted once per run). Ignored when `precompile` is FALSE.
 #' @param stan_args Named list of Stan/brms arguments passed through to the fit,
 #'   e.g. `list(adapt_delta = 0.95, max_treedepth = 12, init = 0.1, threads = 2)`.
 #'   NULL (default) uses brms/Stan defaults.
@@ -47,6 +55,7 @@ BrmsFitter <- S7::new_class(
     silent = S7::new_property(S7::class_integer, default = 2L),
     cores = S7::new_property(S7::class_integer, default = 1L),
     precompile = S7::new_property(S7::class_logical, default = TRUE),
+    allow_default_priors = S7::new_property(S7::class_logical, default = FALSE),
     stan_args = S7::new_property(
       S7::new_union(S7::class_list, NULL),
       default = NULL

@@ -181,8 +181,20 @@ prior_predictive_generator <- function(
 #'
 #' Unlike [prior_predictive_generator()] (which samples from the prior), IFS
 #' samples from a preconditioning posterior, concentrating the truth draw in a
-#' region of high posterior mass. This is the canonical SBC generator for
-#' models with diffuse or improper priors.
+#' region of high posterior mass. This is practically attractive for models
+#' with diffuse or improper priors, where prior-predictive draws would almost
+#' never land in a region the posterior can resolve.
+#'
+#' SBC validity caveat: valid SBC (Talts et al., 2018, Theorem 1) requires the
+#' theta-GENERATING distribution to equal the prior used for FITTING. Because
+#' `ifs_generator()` draws theta from the preconditioning posterior (not from
+#' the fitting prior), rank uniformity only holds when the fitting prior is
+#' set to a representation of that same preconditioning posterior (cf. Talts
+#' et al., 2018, Section 6.1). With a diffuse or otherwise unmatched fitting
+#' prior, systematically non-uniform (typically cap-shaped) rank distributions
+#' are EXPECTED and do not by themselves indicate sampler error. To run valid
+#' SBC with this generator, set the model-grid `prior` to match the
+#' preconditioning distribution.
 #'
 #' @param prefit A brmsfit with posterior draws to sample theta from (the
 #'   preconditioning fit).
@@ -758,8 +770,12 @@ prior_draws_generator <- function(
 #' (LinearRegressionFitter, BrmsFitter, ...).
 #'
 #' Unlike [prior_draws_generator()] (which targets the prior), this generator
-#' concentrates the truth draw in a region of high posterior mass — the
-#' canonical SBC generator for models with diffuse or improper priors.
+#' concentrates the truth draw in a region of high posterior mass, which is
+#' practical for diffuse or improper priors. Note this is not by itself a
+#' valid SBC configuration: valid SBC requires the fitting prior to match the
+#' theta-generating distribution (here the pilot posterior), so a diffuse or
+#' unmatched fitting prior yields systematically non-uniform (cap-shaped)
+#' ranks; see the caveat in [ifs_generator()].
 #'
 #' Because forward simulation here relies on [predict_fit()], the response is
 #' drawn exactly as the fitter implements its posterior-predictive sampling,

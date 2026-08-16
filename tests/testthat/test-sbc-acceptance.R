@@ -56,6 +56,9 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    # Explicit prior required: precompiled banks reject prior-less specs. It
+    # matches the generating prior_fit's prior (normal(0, 5) on class = "b").
+    fit_grid$prior <- list(brms::prior(normal(0, 5), class = "b"))
 
     config <- simulation_config(
       data_grid = data.frame(n = 20L),
@@ -192,6 +195,8 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    # Explicit prior required: precompiled banks reject prior-less specs.
+    fit_grid$prior <- list(brms::prior(normal(0, 5), class = "b"))
 
     config <- simulation_config(
       data_grid = data.frame(n = 20L),

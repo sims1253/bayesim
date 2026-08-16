@@ -54,9 +54,11 @@ Some brms default priors are data-dependent (for example, the intercept prior
 can be centered using the response in the template dataset). Those constants
 are embedded in the compiled model and cannot be refreshed by
 `update(recompile = FALSE)`. Therefore, always supply explicit priors in every
-`brms_model()` when `precompile = TRUE`; bayesim warns when a model-bank row
-omits them. Use `precompile = FALSE` if task-specific default priors are part
-of the study design.
+`brms_model()` when `precompile = TRUE`; bayesim raises a fatal configuration
+error when a model-bank row omits them (opt in with
+`BrmsFitter(allow_default_priors = TRUE)` if you deliberately want
+template-derived priors). Use `precompile = FALSE` if task-specific default
+priors are part of the study design.
 
 ## Declaring models: `brms_model()` and `model_grid()`
 

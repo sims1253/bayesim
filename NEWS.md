@@ -37,6 +37,11 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   for `LinearRegressionFitter()`/`BrmsFitter()`, dynamic (set when an
   `epred` generated quantity is declared) for `CmdStanFitter()`.
 * `bayesim_contract_error()` is now exported.
+* Precompiled model banks now reject model specs without an explicit prior
+  with a configuration error instead of warning: brms derives
+  data-dependent default priors from the template data and embeds them in
+  the reused binary, silently fitting the whole study with the template's
+  priors. Opt back in with `BrmsFitter(allow_default_priors = TRUE)`.
 
 ## Analysis and reporting
 
@@ -44,6 +49,23 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   generic of the easystats *report* package. `report()` remains as a
   deprecated alias that forwards to `render_report()` and warns once per
   session.
+* `plot_rank_ecdf()` normalizes each task's ranks by that task's own
+  post-thinning support instead of the panel maximum, so pooling tasks
+  with different `n_ranks` (ESS-aware thinning) no longer manufactures
+  miscalibration; mixed-support panels warn that the simultaneous band is
+  approximate.
+* The fixed-truth bias MCSE uniformly uses `sd(est - truth) / sqrt(n)`,
+  matching the varying-truth `mean_error` measures (Morris, White &
+  Crowther 2019, Table 2).
+
+## SBC documentation
+
+* `ifs_generator()` and `forward_sim_generator()` now state the Talts et
+  al. (2018) condition for valid SBC — the fitting prior must match the
+  parameter-generating distribution — instead of calling inverse forward
+  sampling the canonical SBC generator unconditionally. With an unmatched
+  fitting prior, cap-shaped ranks are expected and do not indicate sampler
+  error.
 
 # bayesim 2.0.0
 

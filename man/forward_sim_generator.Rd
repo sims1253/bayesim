@@ -43,8 +43,12 @@ parameters. Works with any Fitter that supports \code{\link[=predict_fit]{predic
 }
 \details{
 Unlike \code{\link[=prior_draws_generator]{prior_draws_generator()}} (which targets the prior), this generator
-concentrates the truth draw in a region of high posterior mass — the
-canonical SBC generator for models with diffuse or improper priors.
+concentrates the truth draw in a region of high posterior mass, which is
+practical for diffuse or improper priors. Note this is not by itself a
+valid SBC configuration: valid SBC requires the fitting prior to match the
+theta-generating distribution (here the pilot posterior), so a diffuse or
+unmatched fitting prior yields systematically non-uniform (cap-shaped)
+ranks; see the caveat in \code{\link[=ifs_generator]{ifs_generator()}}.
 
 Because forward simulation here relies on \code{\link[=predict_fit]{predict_fit()}}, the response is
 drawn exactly as the fitter implements its posterior-predictive sampling,

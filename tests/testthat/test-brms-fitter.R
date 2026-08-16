@@ -30,6 +30,11 @@ tiny_fitter <- function() {
   BrmsFitter(chains = 1L, iter = 50L, warmup = 25L, cores = 1L)
 }
 
+# An explicit prior shared by every bank test: without one, build_model_bank()
+# now aborts with a bayesim_config_error (default-prior hazard is fatal unless
+# the fitter opts in via allow_default_priors = TRUE).
+test_prior <- brms::prior(normal(0, 5), class = "b")
+
 describe("BrmsFitter timings", {
   it("reads timings directly from cmdstanr fits without rstan", {
     cmdstan_fit <- structure(
@@ -66,17 +71,15 @@ describe("BrmsFitter model bank", {
     )
     fit_grid$formula <- list(y ~ x, y ~ x, y ~ x)
     fit_grid$family <- list(gaussian(), gaussian(), brms::brmsfamily("student"))
+    fit_grid$prior <- list(test_prior, test_prior, test_prior)
 
     fitter <- tiny_fitter()
-    expect_warning(
-      bank <- bayesim:::build_model_bank(
-        fitter = fitter,
-        fit_grid = fit_grid,
-        data_generator = gaussian_data_generator,
-        data_spec_template = list(n = 20),
-        result_path = NULL
-      ),
-      "explicit priors"
+    bank <- bayesim:::build_model_bank(
+      fitter = fitter,
+      fit_grid = fit_grid,
+      data_generator = gaussian_data_generator,
+      data_spec_template = list(n = 20),
+      result_path = NULL
     )
 
     # Two distinct specs: gaussian (deduped from 2 rows) and student_t.
@@ -84,11 +87,62 @@ describe("BrmsFitter model bank", {
     expect_length(bank, 2L)
   })
 
+  it("rejects a prior-less spec with a fatal config error (guard)", {
+    # The default-prior hazard is fatal with the default fitter config, and the
+    # error is raised from build_model_bank() before any compilation work.
+    fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
+    fit_grid$formula <- list(y ~ x)
+    fit_grid$family <- list(gaussian())
+
+    expect_error(
+      bayesim:::build_model_bank(
+        fitter = tiny_fitter(),
+        fit_grid = fit_grid,
+        data_generator = gaussian_data_generator,
+        data_spec_template = list(n = 20),
+        result_path = NULL
+      ),
+      class = "bayesim_config_error"
+    )
+  })
+
+  it("embeds template-derived priors only when allow_default_priors = TRUE", {
+    bayesim:::.reset_warn_once()
+    fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
+    fit_grid$formula <- list(y ~ x)
+    fit_grid$family <- list(gaussian())
+
+    fitter <- tiny_fitter()
+    fitter@allow_default_priors <- TRUE
+
+    caught <- character()
+    bank <- withCallingHandlers(
+      bayesim:::build_model_bank(
+        fitter = fitter,
+        fit_grid = fit_grid,
+        data_generator = gaussian_data_generator,
+        data_spec_template = list(n = 20),
+        result_path = NULL
+      ),
+      warning = function(w) {
+        caught <<- c(caught, conditionMessage(w))
+        invokeRestart("muffleWarning")
+      }
+    )
+    expect_true(
+      any(grepl("default priors", caught, ignore.case = TRUE)),
+      info = paste("captured warnings:", paste(caught, collapse = " | "))
+    )
+    expect_type(bank, "list")
+    expect_length(bank, 1L)
+  })
+
   it("reuses the prefit across tasks (no recompilation)", {
     fitter <- tiny_fitter()
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    fit_grid$prior <- list(test_prior)
 
     bank <- bayesim:::build_model_bank(
       fitter = fitter,
@@ -101,7 +155,7 @@ describe("BrmsFitter model bank", {
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
-    fit_spec <- list(formula = y ~ x, family = gaussian())
+    fit_spec <- list(formula = y ~ x, family = gaussian(), prior = test_prior)
 
     # Two fit_model() calls on different data should reuse the same prefit binary.
     # Capture warnings: a recompile warning would indicate the bank was bypassed.
@@ -144,6 +198,7 @@ describe("BrmsFitter model bank", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    fit_grid$prior <- list(test_prior)
 
     bank <- bayesim:::build_model_bank(
       fitter = fitter,
@@ -156,7 +211,7 @@ describe("BrmsFitter model bank", {
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
-    fit_spec <- list(formula = y ~ x, family = gaussian())
+    fit_spec <- list(formula = y ~ x, family = gaussian(), prior = test_prior)
 
     r1 <- fit_model(
       fitter,
@@ -195,6 +250,7 @@ describe("BrmsFitter model bank", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    fit_grid$prior <- list(test_prior)
 
     bank <- bayesim:::build_model_bank(
       fitter = fitter,
@@ -207,7 +263,7 @@ describe("BrmsFitter model bank", {
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
-    fit_spec <- list(formula = y ~ x, family = gaussian())
+    fit_spec <- list(formula = y ~ x, family = gaussian(), prior = test_prior)
     result <- fit_model(
       fitter,
       data_bundle,
@@ -360,6 +416,7 @@ describe("BrmsFitter model bank", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    fit_grid$prior <- list(test_prior)
 
     config <- simulation_config(
       data_grid = data.frame(n = 20),
@@ -424,6 +481,7 @@ describe("BrmsFitter warning capture (F5)", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
+    fit_grid$prior <- list(test_prior)
 
     bank <- bayesim:::build_model_bank(
       fitter = fitter,
@@ -436,7 +494,7 @@ describe("BrmsFitter warning capture (F5)", {
     on.exit(bayesim:::set_model_bank(NULL), add = TRUE)
 
     data_bundle <- gaussian_data_generator(list(n = 20), list(seed = 1L))
-    fit_spec <- list(formula = y ~ x, family = gaussian())
+    fit_spec <- list(formula = y ~ x, family = gaussian(), prior = test_prior)
 
     result <- fit_model(
       fitter,

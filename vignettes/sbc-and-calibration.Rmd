@@ -47,7 +47,13 @@ This vignette runs end-to-end with `LinearRegressionFitter()` — exact
 conjugate Normal-Inverse-Gamma Bayesian linear regression (real posteriors,
 no Stan, milliseconds per fit). For Stan/brms models, swap the fitter for
 `BrmsFitter()` or `CmdStanFitter()` and use `prior_predictive_generator()` /
-`ifs_generator()`; the SBC workflow below is identical.
+`ifs_generator()`; the SBC workflow below is identical. One caveat:
+`prior_predictive_generator()` draws theta from the model prior (valid SBC by
+construction when the fitting prior matches), but `ifs_generator()` draws
+theta from a preconditioning posterior, so its ranks are only uniform if the
+fitting prior is set to match that preconditioning distribution — with a
+diffuse/unmatched fitting prior, cap-shaped ranks are expected and do not
+indicate sampler error (see `?ifs_generator`).
 
 # Running SBC
 

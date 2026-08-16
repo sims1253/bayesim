@@ -44,5 +44,12 @@ back to a fresh \code{brms::brm()} per task).
 
 A compile failure is fatal: it raises a \code{\link[=bayesim_internal_error]{bayesim_internal_error()}} since the
 simulation cannot proceed without a compilable model.
+
+A model spec without an explicit \code{prior} is likewise fatal (a
+\code{\link[=bayesim_config_error]{bayesim_config_error()}}, raised before any compilation work for that spec)
+unless the fitter opts in via \code{allow_default_priors = TRUE}: brms
+data-derived default priors from the template dataset would otherwise stay
+embedded in the compiled model reused for every task. When opted in, a
+one-time notice is emitted instead.
 }
 \keyword{internal}

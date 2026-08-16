@@ -19,6 +19,7 @@ BrmsFitter(
   silent = 2L,
   cores = 1L,
   precompile = TRUE,
+  allow_default_priors = FALSE,
   stan_args = list()
 )
 }
@@ -56,6 +57,15 @@ across tasks via \code{stats::update(recompile = FALSE)}. Set to FALSE to fall
 back to a fresh \code{brms::brm()} per task. When precompiling, specify priors
 explicitly: some brms defaults are derived from the template dataset and
 would otherwise remain embedded in the reused compiled model.}
+
+\item{allow_default_priors}{Logical, default FALSE. When FALSE, precompiled
+model banks reject model specs without an explicit prior with a fatal
+\code{\link[=bayesim_config_error]{bayesim_config_error()}}: brms derives data-dependent default priors from
+the template dataset, and they stay embedded in the compiled model that
+the bank reuses for every task (the whole study would silently be fit
+with the template's priors). Set TRUE to permit brms data-derived default
+priors to be embedded from the template data (rarely what you want; a
+notice is emitted once per run). Ignored when \code{precompile} is FALSE.}
 
 \item{stan_args}{Named list of Stan/brms arguments passed through to the fit,
 e.g. \code{list(adapt_delta = 0.95, max_treedepth = 12, init = 0.1, threads = 2)}.

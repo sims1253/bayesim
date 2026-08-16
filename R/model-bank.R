@@ -353,6 +353,13 @@ model_spec_from_grid_row <- function(fit_grid, i) {
 #' A compile failure is fatal: it raises a [bayesim_internal_error()] since the
 #' simulation cannot proceed without a compilable model.
 #'
+#' A model spec without an explicit `prior` is likewise fatal (a
+#' [bayesim_config_error()], raised before any compilation work for that spec)
+#' unless the fitter opts in via `allow_default_priors = TRUE`: brms
+#' data-derived default priors from the template dataset would otherwise stay
+#' embedded in the compiled model reused for every task. When opted in, a
+#' one-time notice is emitted instead.
+#'
 #' @param fitter A BrmsFitter S7 object.
 #' @param fit_grid A data.frame of model fitting specifications. Each row's
 #'   `formula`, `family`, `prior`, `stanvars` columns (list-columns) define a
@@ -408,14 +415,35 @@ build_model_bank <- function(
     stanvars <- spec$stanvars
 
     if (is.null(prior) || length(prior) == 0L) {
-      .warn_once(
-        "model_bank_default_prior",
-        c(
-          "Precompiled brms models should use explicit priors.",
-          i = "Some brms default priors depend on the template data and remain embedded when the compiled model is reused.",
-          i = "Set an explicit {.code prior} in every model-grid row, or use {.code BrmsFitter(precompile = FALSE)}."
+      if (isTRUE(fitter@allow_default_priors)) {
+        .warn_once(
+          "model_bank_default_prior",
+          c(
+            "Embedding template-derived default priors in the precompiled model bank.",
+            i = "Specs without an explicit {.code prior} use brms default priors derived from the template data; those constants stay embedded in the compiled model reused for every task.",
+            i = "Set an explicit {.code prior} in every model-grid row to keep priors data-independent."
+          )
         )
-      )
+      } else {
+        # Fatal by default: brms default priors derived from the template data
+        # remain embedded in the reused compiled model, so the whole study
+        # would silently be fit with the template's priors while the structural
+        # guard in update_prefit() stays green. Check BEFORE any compilation
+        # work for this spec.
+        formula_lbl <- tryCatch(
+          paste(deparse(formula), collapse = " "),
+          error = function(e) "<undeparseable formula>"
+        )
+        stop(bayesim_config_error(paste(
+          "fit_grid row " %+%
+            i %+%
+            " (formula: " %+%
+            formula_lbl %+%
+            ") has no explicit prior.",
+          "With precompilation, brms derives data-dependent default priors from the template dataset and they remain embedded in the compiled model that is reused for every task, so the whole study would silently be fit with the template's priors.",
+          "Remedies: set an explicit 'prior' in the model-grid row; use BrmsFitter(precompile = FALSE); or set BrmsFitter(allow_default_priors = TRUE) to accept template-derived priors."
+        )))
+      }
     }
 
     spec_hash <- model_spec_hash(
