@@ -10,8 +10,6 @@
 ^air\.toml$
 ^jarl\.toml$
 ^CONTRIBUTING\.md$
-^review\.md$
-^IMPROVEMENT_PLAN\.md$
 # Ignore compiled cmdstan binaries (extensionless) shipped next to .stan sources.
 ^inst/stan/[^/.]+$
 # Stray rendered vignette html (build artifacts; sources are the .Rmd files).
