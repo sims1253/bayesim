@@ -483,6 +483,13 @@ build_metric_context <- function(
       "Metric requires loo but fitter does not support it"
     )
   }
+  if ("epred" %in% all_needs && !fitter@supports_epred) {
+    .warn_once(
+      "unsupported_capability.epred",
+      "Metric requires epred but fitter does not support it",
+      i = "epred-based LOO metrics (rmse_loo, r2_loo) will be NA."
+    )
+  }
 
   # Predictions and pointwise log-lik are evaluated on the test set when one
   # exists (all consuming metrics compare against the test response); NULL
@@ -573,6 +580,21 @@ build_metric_context <- function(
       context$loo_psis <- loo_ctx$psis
       context$loo_psis_ll <- loo_ctx$log_lik
       context$loo_epred <- loo_ctx$epred
+      # A fitter that declares epred support but produced no matrix at run
+      # time is an anomaly like a failing predict_fit(); the unsupported-
+      # capability warning above did not fire, so explain the NA degradation.
+      needs_epred <- "epred" %in% all_needs
+      if (
+        needs_epred && isTRUE(fitter@supports_epred) && is.null(loo_ctx$epred)
+      ) {
+        .warn_once(
+          "loo_epred_failed",
+          paste0(
+            "predict_epred() failed or returned NULL; ",
+            "epred-based LOO metrics (rmse_loo, r2_loo) will be NA."
+          )
+        )
+      }
     }
   }
 
@@ -595,8 +617,9 @@ build_metric_context <- function(
 #' accurate.
 #'
 #' epred must be the posterior expectation (mu, no observation noise); for brms
-#' this is `brms::posterior_epred`. The Fitter must expose this via
-#' `predict_epred()`; fitters that cannot return NULL (the metrics then NA).
+#' this is `brms::posterior_epred`. Only fitters with `supports_epred = TRUE`
+#' are asked for it via `predict_epred()`; otherwise epred is NULL and the
+#' consuming metrics (r2_loo, rmse_loo) degrade to NA.
 #'
 #' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, or NULL on
 #'   failure. `psis`/`log_lik`/`epred` may be individually NULL if unavailable.
@@ -632,11 +655,16 @@ build_loo_context <- function(fitter, fit_result) {
   }
 
   # Posterior expectation predictions (mu, no noise). Required for r2_loo;
-  # rmse_loo also degrades to NA when epred is absent.
-  epred <- tryCatch(
-    predict_epred(fitter, fit_result),
-    error = function(e) NULL
-  )
+  # rmse_loo also degrades to NA when epred is absent. Gated on the declared
+  # capability: fitters with supports_epred = FALSE skip the call entirely.
+  epred <- if (!isTRUE(fitter@supports_epred)) {
+    NULL
+  } else {
+    tryCatch(
+      predict_epred(fitter, fit_result),
+      error = function(e) NULL
+    )
+  }
 
   list(
     loo = loo_result,

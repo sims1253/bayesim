@@ -44,6 +44,40 @@ describe("F1 preflight", {
     expect_invisible(preflight(config, condensed = TRUE))
   })
 
+  it("surfaces epred as an unmet need for epred-incapable fitters (#62)", {
+    # MockFitter declares supports_loo = TRUE but inherits the Fitter default
+    # supports_epred = FALSE: without epred in the capability vocabulary,
+    # preflight reported "all needs satisfied" while r2_loo NA-degraded.
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "mock"),
+      data_generator = .gen,
+      fitter = MockFitter(),
+      metrics = list(r2_loo_metric()),
+      n_replicates = 1L,
+      seed = 1L
+    )
+    info <- suppressMessages(suppressWarnings(preflight(config)))
+    expect_equal(info$fitter_capabilities, c("predictions", "log_lik", "loo"))
+    expect_equal(info$metric_needs, c("loo", "epred"))
+    expect_equal(info$unmet_needs, "epred")
+  })
+
+  it("reports no unmet epred need when the fitter supports it", {
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 50L),
+      metrics = list(r2_loo_metric()),
+      n_replicates = 1L,
+      seed = 1L
+    )
+    info <- suppressMessages(preflight(config))
+    expect_true("epred" %in% info$fitter_capabilities)
+    expect_equal(info$unmet_needs, character())
+  })
+
   it("counts distinct brms model specs rather than fit-grid rows", {
     skip_if_not(requireNamespace("brms", quietly = TRUE))
     grid <- data.frame(model = c("a", "a-copy"))

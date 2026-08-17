@@ -11,7 +11,7 @@
 #' @param name Character identifier for the metric. Used as a prefix when
 #'   flattening metric output to column names.
 #' @param needs Character vector of required capabilities from the fitter.
-#'   Common values include "predictions", "log_lik", "loo". The metric
+#'   Common values include "predictions", "log_lik", "loo", "epred". The metric
 #'   will only receive these values in the context if the fitter provides
 #'   them.
 #' @param required Logical indicating whether metric failure causes task

@@ -17,7 +17,7 @@ Metric(
 flattening metric output to column names.}
 
 \item{needs}{Character vector of required capabilities from the fitter.
-Common values include "predictions", "log_lik", "loo". The metric
+Common values include "predictions", "log_lik", "loo", "epred". The metric
 will only receive these values in the context if the fitter provides
 them.}
 

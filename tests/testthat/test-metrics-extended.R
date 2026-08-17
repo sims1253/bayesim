@@ -454,6 +454,16 @@ describe("M5 extended metrics", {
     expect_true(is.na(out$value))
   })
 
+  it("rmse_loo / r2_loo declare the epred capability need (#62)", {
+    # Both consume context$loo_epred; declaring it in `needs` lets preflight()
+    # and build_metric_context() warn about epred-incapable fitters instead of
+    # silently NA-degrading. elpd_loo only reads the loo summary, so it must
+    # keep declaring "loo" alone.
+    expect_equal(rmse_loo_metric()@needs, c("loo", "epred"))
+    expect_equal(r2_loo_metric()@needs, c("loo", "epred"))
+    expect_equal(elpd_loo_metric()@needs, "loo")
+  })
+
   it("elpd_test_metric computes log-sum-exp elpd on log_lik", {
     ll <- matrix(c(-1, -2, -1.5, -2.5), nrow = 2) # 2 draws x 2 obs
     fx <- make_fixture(log_lik = ll, test = data.frame(y = c(1, 2)))
