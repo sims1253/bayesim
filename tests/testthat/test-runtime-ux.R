@@ -339,6 +339,43 @@ describe("F7 end-of-run summary", {
     expect_match(resumed$text, "Results:", fixed = TRUE)
   })
 
+  it("reports the specific stop reason when a resume stops before executing", {
+    path <- withr::local_tempdir()
+    config <- simulation_config(
+      data_grid = data.frame(n = 20),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = function(data_spec, task_ctx) {
+        stop("Intentional failure")
+      },
+      fitter = LinearRegressionFitter(n_draws = 20L),
+      metrics = list(),
+      n_replicates = 4L,
+      seed = 47L,
+      max_errors = 1L,
+      checkpoint_every = 1L,
+      result_path = file.path(path, "restopped")
+    )
+    .run_messages(config, resume = "never", progress = FALSE)
+
+    # Resuming with the unchanged budget stops before executing anything (the
+    # persisted failure already exhausts it). The summary must name the reason
+    # instead of falling back to the generic "stopped early", and the grid must
+    # re-label the restored placeholders as policy stops (#64).
+    restopped <- .run_messages(config, resume = "must", progress = FALSE)
+    expect_match(
+      restopped$text,
+      "Simulation stopped early \\(error budget exhausted\\): 0 succeeded, 1 failed, 3 of 4 tasks not run"
+    )
+    expect_false(grepl("(stopped early)", restopped$text, fixed = TRUE))
+    expect_equal(sum(restopped$result$task_grid$status == "skipped"), 3L)
+    expect_equal(
+      restopped$result$task_grid$stop_reason[
+        restopped$result$task_grid$status == "skipped"
+      ],
+      rep("max_errors", 3L)
+    )
+  })
+
   it("stays silent when verbose = FALSE", {
     path <- withr::local_tempdir()
     config <- simulation_config(

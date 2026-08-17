@@ -1236,6 +1236,51 @@ describe("Resume Logic", {
 
       expect_equal(result$status, c("success", "pending"))
     })
+
+    it("carries stop_reason for terminal rows and clears it for resumable rows", {
+      task_grid <- data.frame(
+        task_id = c("t1", "t2", "t3"),
+        status = c("pending", "pending", "pending"),
+        stop_reason = c(NA_character_, NA_character_, NA_character_),
+        stringsAsFactors = FALSE
+      )
+
+      # Policy-stopped rows return to pending on resume and must not keep a
+      # stop reason; terminal rows keep whatever the checkpoint recorded.
+      checkpoint_grid <- data.frame(
+        task_id = c("t1", "t2", "t3"),
+        status = c("failed", "skipped", "skipped"),
+        stop_reason = c("max_errors", "adaptive_stop", "max_errors"),
+        stringsAsFactors = FALSE
+      )
+
+      result <- merge_task_grid_status(task_grid, checkpoint_grid)
+
+      expect_equal(result$status, c("failed", "pending", "pending"))
+      expect_equal(
+        result$stop_reason,
+        c("max_errors", NA_character_, NA_character_)
+      )
+    })
+
+    it("adds the stop_reason column when only the checkpoint grid has one", {
+      task_grid <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("pending", "pending"),
+        stringsAsFactors = FALSE
+      )
+
+      checkpoint_grid <- data.frame(
+        task_id = c("t1", "t2"),
+        status = c("success", "skipped"),
+        stop_reason = c(NA_character_, "max_errors"),
+        stringsAsFactors = FALSE
+      )
+
+      result <- merge_task_grid_status(task_grid, checkpoint_grid)
+
+      expect_equal(result$stop_reason, c(NA_character_, NA_character_))
+    })
   })
 
   describe("merge_results()", {

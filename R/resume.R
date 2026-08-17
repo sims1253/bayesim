@@ -234,9 +234,12 @@ validate_resume_retention <- function(requested, persisted, checkpoint) {
 #'
 #' @details
 #' The function preserves the deterministic task ordering and RNG seeds
-#' from the fresh grid, only updating status for tasks that were terminal
-#' in the checkpoint. This ensures resumed runs maintain identical
-#' reproducibility guarantees.
+#' from the fresh grid, only updating status (and any recorded
+#' `stop_reason`) for tasks that were terminal in the checkpoint. This
+#' ensures resumed runs maintain identical reproducibility guarantees.
+#' Policy-stopped rows return to pending with no stop reason; a resumed
+#' run that stops before executing them re-marks them in
+#' [execute_tasks()].
 #'
 #' @keywords internal
 merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
@@ -269,6 +272,20 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
   hit <- match(task_ids, names(status_lookup))
   hit_ids <- which(!is.na(hit))
   fresh_grid$status[hit_ids] <- unname(status_lookup)[hit[hit_ids]]
+
+  # Carry the recorded stop reason for merged terminal rows so the resumed
+  # grid does not silently drop it. Rows reset to pending stay NA here;
+  # execute_tasks() re-labels them if this run stops before executing them.
+  if ("stop_reason" %in% names(checkpoint_grid)) {
+    if (!"stop_reason" %in% names(fresh_grid)) {
+      fresh_grid$stop_reason <- NA_character_
+    }
+    reason_lookup <- stats::setNames(
+      as.character(terminal_tasks$stop_reason),
+      terminal_tasks$task_id
+    )
+    fresh_grid$stop_reason[hit_ids] <- unname(reason_lookup)[hit[hit_ids]]
+  }
 
   fresh_grid
 }
