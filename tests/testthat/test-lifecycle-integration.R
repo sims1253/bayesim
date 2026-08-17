@@ -350,6 +350,17 @@ test_that("resume error budget includes persisted failed outcomes", {
     as.integer(table(unchanged$summary$status)[c("failed", "skipped")]),
     c(1, 2)
   )
+  # The carried-over failure count exhausts the budget before any task runs,
+  # so the restored placeholders must be re-labeled as policy stops instead of
+  # staying pending with no recorded reason (#64).
+  expect_equal(
+    unchanged$task_grid$status,
+    c("failed", "skipped", "skipped")
+  )
+  expect_equal(
+    unchanged$task_grid$stop_reason,
+    c(NA_character_, "max_errors", "max_errors")
+  )
 
   raised_path <- file.path(withr::local_tempdir(), "raised-budget")
   run_simulation(

@@ -13,6 +13,14 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ## Engine and resume
 
+* Resumed task grids no longer lose policy-stop labels when the resumed run
+  stops before executing anything (e.g. the carried-over failure count
+  already exhausts an unchanged `max_errors` budget): tasks restored from
+  the checkpoint are re-marked `skipped` with the run's stop reason instead
+  of staying `pending`/`NA`, so the result grid and the end-of-run summary
+  report the specific reason rather than the generic fallback (#64).
+  `merge_task_grid_status()` also carries a recorded `stop_reason` for
+  terminal rows instead of dropping the column's values.
 * Fixed a `merge_results()` crash on resume-to-completion: when the resumed
   execution re-covered every prior task and the new rows carried columns the
   prior rows lacked (e.g. diagnostics after a failed-only prior run), the

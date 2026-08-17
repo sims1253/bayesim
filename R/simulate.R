@@ -679,11 +679,20 @@ execute_tasks <- function(
     }
   }
 
-  # After the main loop, fill any remaining NULL slots with policy-stopped
-  # outcomes. These rows are deliberately not terminal on resume.
+  # After the main loop, fill every task this invocation did not execute with
+  # a policy-stopped outcome. These rows are deliberately not terminal on
+  # resume. Besides NULL slots (never reached), that includes placeholders
+  # restored from a prior checkpoint: their slots are non-NULL, but the merge
+  # reset their grid rows to pending, so they must be re-marked when the
+  # resumed run stops before executing them (#64). Placeholders this loop
+  # marked inline for an adaptive stop (grid row already skipped) keep their
+  # more specific message.
   for (i in seq_along(task_results)) {
+    unexecuted <- is.null(task_results[[i]]) ||
+      (identical(task_grid$status[i], "pending") &&
+        identical(task_results[[i]]$status, "skipped"))
     if (
-      is.null(task_results[[i]]) &&
+      unexecuted &&
         is_resumable_task_status(task_grid$status[i])
     ) {
       task_grid$status[i] <- "skipped"

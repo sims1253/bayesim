@@ -21,8 +21,11 @@ were completed (success/failed/skipped) in the checkpoint are updated.
 }
 \details{
 The function preserves the deterministic task ordering and RNG seeds
-from the fresh grid, only updating status for tasks that were terminal
-in the checkpoint. This ensures resumed runs maintain identical
-reproducibility guarantees.
+from the fresh grid, only updating status (and any recorded
+\code{stop_reason}) for tasks that were terminal in the checkpoint. This
+ensures resumed runs maintain identical reproducibility guarantees.
+Policy-stopped rows return to pending with no stop reason; a resumed
+run that stops before executing them re-marks them in
+\code{\link[=execute_tasks]{execute_tasks()}}.
 }
 \keyword{internal}
