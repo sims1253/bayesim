@@ -17,6 +17,17 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ### Engine and resume
 
+- Resumed task grids no longer lose policy-stop labels when the resumed
+  run stops before executing anything (e.g. the carried-over failure
+  count already exhausts an unchanged `max_errors` budget): tasks
+  restored from the checkpoint are re-marked `skipped` with the run’s
+  stop reason instead of staying `pending`/`NA`, so the result grid and
+  the end-of-run summary report the specific reason rather than the
+  generic fallback
+  ([\#64](https://github.com/sims1253/bayesim/issues/64)).
+  [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
+  also carries a recorded `stop_reason` for terminal rows instead of
+  dropping the column’s values.
 - Fixed a
   [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
   crash on resume-to-completion: when the resumed execution re-covered

@@ -28,6 +28,9 @@ Task grid tibble with status merged from checkpoint.
 ## Details
 
 The function preserves the deterministic task ordering and RNG seeds
-from the fresh grid, only updating status for tasks that were terminal
-in the checkpoint. This ensures resumed runs maintain identical
-reproducibility guarantees.
+from the fresh grid, only updating status (and any recorded
+`stop_reason`) for tasks that were terminal in the checkpoint. This
+ensures resumed runs maintain identical reproducibility guarantees.
+Policy-stopped rows return to pending with no stop reason; a resumed run
+that stops before executing them re-marks them in
+[`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md).

@@ -84,9 +84,12 @@ were completed (success/failed/skipped) in the checkpoint are updated.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The function preserves the deterministic task ordering and RNG seeds
-from the fresh grid, only updating status for tasks that were terminal
-in the checkpoint. This ensures resumed runs maintain identical
-reproducibility guarantees.</p>
+from the fresh grid, only updating status (and any recorded
+<code>stop_reason</code>) for tasks that were terminal in the checkpoint. This
+ensures resumed runs maintain identical reproducibility guarantees.
+Policy-stopped rows return to pending with no stop reason; a resumed
+run that stops before executing them re-marks them in
+<code><a href="execute_tasks.html">execute_tasks()</a></code>.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
