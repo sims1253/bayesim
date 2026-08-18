@@ -99,9 +99,10 @@ flattening metric output to column names.</p></dd>
 <dd><p>Character vector of required capabilities from the fitter.
 Common values include "predictions", "log_lik", "loo", "epred". The metric
 will only receive these values in the context if the fitter provides
-them. <code>epred</code> is delivered as <code>context$loo_epred</code> inside the LOO context,
-so declare it alongside <code>"loo"</code> (as <code><a href="RmseLooMetric.html">rmse_loo_metric()</a></code> does); a metric
-declaring <code>needs = "epred"</code> alone never receives the matrix.</p></dd>
+them. <code>epred</code> is delivered as <code>context$loo_epred</code>, a draws x observations
+matrix computed on the training set; it is delivered whether or not
+<code>"loo"</code> is also declared — without <code>"loo"</code> the matrix is built directly
+instead of through the LOO context.</p></dd>
 
 
 <dt id="arg-required">required<a class="anchor" aria-label="anchor" href="#arg-required"></a></dt>

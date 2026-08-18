@@ -99,6 +99,9 @@ predictions even when no metric needs them.</p></dd>
     <p>A named list containing any of:</p><ul><li><p><code>predictions</code>: Prediction results from the fitter</p></li>
 <li><p><code>log_lik</code>: Pointwise log-likelihood matrix (S x N)</p></li>
 <li><p><code>loo</code>: LOO-CV results</p></li>
+<li><p><code>loo_psis</code>, <code>loo_psis_ll</code>, <code>loo_epred</code>: PSIS object, pointwise
+log-lik, and posterior-expectation predictions backing the LOO
+prediction metrics</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -110,7 +113,10 @@ in NULL values for that context element.</p>
 when <code>data_bundle$test</code> is present, otherwise on the training set. Every
 built-in metric that consumes them (<code>pred_*</code>, <code>elpd_test</code>, <code>r2_test</code>) compares against the test response, so the predictions must be
 for the test rows. The LOO context is always built on the training set —
-leave-one-out is in-sample by construction.</p>
+leave-one-out is in-sample by construction. <code>loo_epred</code> is likewise a
+training-set matrix; when no metric needs <code>"loo"</code> (or the fitter lacks LOO
+support) it is built directly via <code><a href="predict_epred.html">predict_epred()</a></code> rather than through
+the LOO context, so declaring <code>needs = "epred"</code> alone still delivers it.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

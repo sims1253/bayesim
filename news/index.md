@@ -87,6 +87,23 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   return with the wrong shape now degrades through the same warn-once NA
   path instead of surfacing as a generic metric error inside
   [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
+- Metrics declaring `needs = "epred"` without `"loo"` now actually
+  receive `context$loo_epred`: the matrix used to be built only inside
+  the LOO context, so an epred-only metric silently computed on a
+  missing context element and NA-degraded with no explanation. epred is
+  now built directly via
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  whenever the LOO context did not deliver it and never attempted it (no
+  `"loo"` need, unsupported or failed LOO build, or a LOO context that
+  bailed at the train-set log-lik matrix), with its own warn-once NA
+  path when
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  fails or returns a wrong-shaped matrix. When the context carries
+  `loo_epred` without a LOO summary, an exact NULL `loo` binding is
+  pinned (and the built-in loo metrics read `context[["loo"]]`) so `$`
+  partial matching can no longer hand a metric the epred matrix when it
+  asked for `context$loo`
+  ([\#68](https://github.com/sims1253/bayesim/issues/68)).
 
 ### Fitters and errors
 

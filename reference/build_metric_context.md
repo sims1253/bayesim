@@ -50,6 +50,10 @@ A named list containing any of:
 
 - `loo`: LOO-CV results
 
+- `loo_psis`, `loo_psis_ll`, `loo_epred`: PSIS object, pointwise
+  log-lik, and posterior-expectation predictions backing the LOO
+  prediction metrics
+
 ## Details
 
 The function inspects the `needs` property of each metric to determine
@@ -62,4 +66,9 @@ set when `data_bundle$test` is present, otherwise on the training set.
 Every built-in metric that consumes them (`pred_*`, `elpd_test`,
 `r2_test`) compares against the test response, so the predictions must
 be for the test rows. The LOO context is always built on the training
-set — leave-one-out is in-sample by construction.
+set — leave-one-out is in-sample by construction. `loo_epred` is
+likewise a training-set matrix; when no metric needs `"loo"` (or the
+fitter lacks LOO support) it is built directly via
+[`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+rather than through the LOO context, so declaring `needs = "epred"`
+alone still delivers it.

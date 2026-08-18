@@ -121,7 +121,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 80 tasks = 1 data x 1 fit x 80 reps
 #> ℹ Starting simulation with 80 tasks
 #> 
-#> ✔ Simulation complete: 80/80 tasks succeeded in 0.6s
+#> ✔ Simulation complete: 80/80 tasks succeeded in 0.5s
 
 pm <- performance_measures(result, estimand = "x")
 pm
@@ -230,7 +230,7 @@ design_result <- run_simulation(design_config, progress = FALSE)
 #> 240 tasks = 4 data x 1 fit x 60 reps
 #> ℹ Starting simulation with 240 tasks
 #> 
-#> ✔ Simulation complete: 240/240 tasks succeeded in 1s
+#> ✔ Simulation complete: 240/240 tasks succeeded in 0.8s
 ```
 
 Group the performance measures by both conditions with the `by`

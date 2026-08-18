@@ -33,11 +33,10 @@ Metric(
   Character vector of required capabilities from the fitter. Common
   values include "predictions", "log_lik", "loo", "epred". The metric
   will only receive these values in the context if the fitter provides
-  them. `epred` is delivered as `context$loo_epred` inside the LOO
-  context, so declare it alongside `"loo"` (as
-  [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
-  does); a metric declaring `needs = "epred"` alone never receives the
-  matrix.
+  them. `epred` is delivered as `context$loo_epred`, a draws x
+  observations matrix computed on the training set; it is delivered
+  whether or not `"loo"` is also declared — without `"loo"` the matrix
+  is built directly instead of through the LOO context.
 
 - required:
 
