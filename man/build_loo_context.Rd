@@ -7,8 +7,12 @@
 build_loo_context(fitter, fit_result)
 }
 \value{
-A list with elements \code{loo}, \code{psis}, \code{log_lik}, \code{epred}, or NULL on
-failure. \code{psis}/\code{log_lik}/\code{epred} may be individually NULL if unavailable.
+A list with elements \code{loo}, \code{psis}, \code{log_lik}, \code{epred}, and
+\code{epred_attempted} (logical; whether \code{predict_epred()} was called), or
+NULL on failure. \code{psis}/\code{log_lik}/\code{epred} may be individually NULL if
+unavailable; when the train-set log-lik matrix fails the function bails
+with \code{epred_attempted = FALSE} so the caller can still build epred
+directly (it does not depend on the log-lik).
 }
 \description{
 Constructs the full LOO context for F3's rmse_loo / r2_loo metrics. Computes

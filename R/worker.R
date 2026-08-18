@@ -580,32 +580,13 @@ build_metric_context <- function(
       }
     )
     if (!is.null(loo_ctx)) {
-      context$loo <- loo_ctx$loo
       # F3: PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
       # here so both metrics share it. May be absent (NULL) if the fitter does
       # not provide epred/log_lik or the build failed.
+      context$loo <- loo_ctx$loo
       context$loo_psis <- loo_ctx$psis
       context$loo_psis_ll <- loo_ctx$log_lik
       context$loo_epred <- loo_ctx$epred
-      # A fitter that declares epred support but produced no matrix at run
-      # time is an anomaly like a failing predict_fit(); the unsupported-
-      # capability warning above did not fire, so explain the NA degradation.
-      # Deliberately generic: build_loo_context() also returns epred = NULL
-      # when the train-set log-lik matrix failed (predict_epred() is then
-      # never attempted), so naming predict_epred() would misattribute the
-      # cause.
-      needs_epred <- "epred" %in% all_needs
-      if (
-        needs_epred && isTRUE(fitter@supports_epred) && is.null(loo_ctx$epred)
-      ) {
-        .warn_once(
-          "loo_epred_failed",
-          paste0(
-            "epred matrix unavailable from the LOO context; ",
-            "epred-based LOO metrics (rmse_loo, r2_loo) will be NA."
-          )
-        )
-      }
     }
   }
 
@@ -613,15 +594,26 @@ build_metric_context <- function(
   # only inside the LOO branch above — a metric declaring needs = "epred"
   # without "loo" (or on a fitter without LOO support) never received
   # context$loo_epred and silently NA-degraded with no warn-once explaining
-  # it. Build the matrix directly whenever the LOO branch did not, so the
-  # declared capability is honored like any other.
-  if ("epred" %in% all_needs && is.null(loo_ctx)) {
-    # Pin an exact NULL "loo" binding when a metric asked for "loo": $loo
-    # would otherwise partial-match the loo_epred matrix below and hand a
-    # $-reading metric (elpd_loo) the matrix instead of NULL.
-    # context["loo"] <- list(NULL) creates the element; $loo <- NULL would
-    # not.
-    if ("loo" %in% all_needs) {
+  # it. Build the matrix directly whenever it is still missing and the LOO
+  # context never attempted it:
+  # - the LOO context was not built at all (no "loo" need, unsupported LOO,
+  #   or a failed build), or
+  # - it bailed before epred (train-set log-lik failure).
+  # predict_epred() is deliberately not retried when the LOO context already
+  # attempted it and failed; that failure is explained by the warn-once
+  # below.
+  if (
+    "epred" %in%
+      all_needs &&
+      is.null(context[["loo_epred"]]) &&
+      (is.null(loo_ctx) || !isTRUE(loo_ctx$epred_attempted))
+  ) {
+    # Pin an exact NULL "loo" binding when a metric asked for "loo" but the
+    # LOO context was not built: $loo would otherwise partial-match the
+    # loo_epred matrix below and hand a $-reading metric (elpd_loo) the
+    # matrix instead of NULL. context["loo"] <- list(NULL) creates the
+    # element; $loo <- NULL would not.
+    if ("loo" %in% all_needs && is.null(loo_ctx)) {
       context["loo"] <- list(NULL)
     }
     context$loo_epred <- if (!isTRUE(fitter@supports_epred)) {
@@ -630,7 +622,8 @@ build_metric_context <- function(
       tryCatch(
         {
           # epred is a training-set quantity (LOO is in-sample by
-          # construction); no log-lik matrix exists to align draws against.
+          # construction); outside a complete LOO context there is no
+          # log-lik matrix to align draws against.
           epred <- predict_epred(fitter, fit_result)
           validate_fitter_epred(
             epred,
@@ -652,6 +645,29 @@ build_metric_context <- function(
         }
       )
     }
+  }
+
+  # A fitter that declares epred support but produced no matrix at run
+  # time is an anomaly like a failing predict_fit(); the unsupported-
+  # capability warning above did not fire, so explain the NA degradation.
+  # Only the attempted-and-failed-inside-the-LOO-context case reaches this:
+  # every other no-matrix shape was either built (or warned) by the direct
+  # branch above.
+  if (
+    "epred" %in%
+      all_needs &&
+      isTRUE(fitter@supports_epred) &&
+      is.null(context[["loo_epred"]]) &&
+      !is.null(loo_ctx) &&
+      isTRUE(loo_ctx$epred_attempted)
+  ) {
+    .warn_once(
+      "loo_epred_failed",
+      paste0(
+        "epred matrix unavailable from the LOO context; ",
+        "epred-based LOO metrics (rmse_loo, r2_loo) will be NA."
+      )
+    )
   }
 
   context
@@ -677,8 +693,12 @@ build_metric_context <- function(
 #' are asked for it via `predict_epred()`; otherwise epred is NULL and the
 #' consuming metrics (r2_loo, rmse_loo) degrade to NA.
 #'
-#' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, or NULL on
-#'   failure. `psis`/`log_lik`/`epred` may be individually NULL if unavailable.
+#' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, and
+#'   `epred_attempted` (logical; whether `predict_epred()` was called), or
+#'   NULL on failure. `psis`/`log_lik`/`epred` may be individually NULL if
+#'   unavailable; when the train-set log-lik matrix fails the function bails
+#'   with `epred_attempted = FALSE` so the caller can still build epred
+#'   directly (it does not depend on the log-lik).
 #' @keywords internal
 build_loo_context <- function(fitter, fit_result) {
   loo_result <- loo_fit(fitter, fit_result)
@@ -689,7 +709,13 @@ build_loo_context <- function(fitter, fit_result) {
   # Pointwise log-likelihood matrix (S x N, draws x observations).
   ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
   if (!is.matrix(ll)) {
-    return(list(loo = loo_result, psis = NULL, log_lik = NULL, epred = NULL))
+    return(list(
+      loo = loo_result,
+      psis = NULL,
+      log_lik = NULL,
+      epred = NULL,
+      epred_attempted = FALSE
+    ))
   }
 
   # Per-observation relative-efficiency via chain structure.
@@ -732,7 +758,8 @@ build_loo_context <- function(fitter, fit_result) {
     loo = loo_result,
     psis = psis_obj,
     log_lik = ll,
-    epred = epred
+    epred = epred,
+    epred_attempted = isTRUE(fitter@supports_epred)
   )
 }
 

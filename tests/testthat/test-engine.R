@@ -1154,6 +1154,58 @@ describe("Worker", {
       expect_true(all(is.na(out)))
     })
 
+    it("builds epred when the LOO context bails at the train-set log-lik (#68)", {
+      # build_loo_context() returns a partial context (loo summary only) when
+      # log_lik_matrix() fails, never attempting epred there; the direct
+      # fallback must still deliver the matrix (coderabbit review on #70).
+      bayesim:::.reset_warn_once()
+      BrokenLlFitter <- S7::new_class("BrokenLlFitter", parent = MockFitter)
+      S7::method(log_lik_matrix, BrokenLlFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        stop("ll boom")
+      }
+      S7::method(predict_epred, BrokenLlFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- BrokenLlFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+      metric <- list(create_test_metric(
+        name = "both",
+        needs = c("loo", "epred")
+      ))
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        metric
+      ))
+
+      # Partial LOO context: the summary is present, the PSIS machinery is
+      # not (rmse_loo/r2_loo NA-degrade on the missing psis/log_lik)...
+      expect_false(is.null(context[["loo"]]))
+      expect_null(context$loo_psis)
+      expect_null(context$loo_psis_ll)
+      # ...but epred does not depend on the log-lik and must be delivered.
+      expect_equal(dim(context$loo_epred), c(50, 10))
+    })
+
     it("warns once when an epred-only metric's predict_epred fails (#68)", {
       bayesim:::.reset_warn_once()
       BrokenEpredOnlyFitter <- S7::new_class(
