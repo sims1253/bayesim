@@ -1,0 +1,794 @@
+# Changelog
+
+## bayesim (development version)
+
+Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
+
+### Runtime UX
+
+- [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  now prints a single end-of-run summary block when `verbose = TRUE`:
+  completion status, task counts (succeeded, failed, not run), the stop
+  reason for early stops (`max_errors` or adaptive stopping), the
+  results path, and — when unexecuted work remains — the literal
+  [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md)
+  command for that run. The block subsumes the former standalone failure
+  summary.
+
+### Engine and resume
+
+- Checkpoint `meta.json` diagnostics no longer conflate policy-stopped
+  work with genuinely pending work: `n_pending` now counts only rows
+  labeled `pending`, so it no longer double-counts the policy-stopped
+  tasks that `n_policy_stopped` already reports. The resumable row count
+  remains derivable as `n_tasks - n_success - n_failed`
+  ([\#65](https://github.com/sims1253/bayesim/issues/65)).
+- Resumed task grids no longer lose policy-stop labels when the resumed
+  run stops before executing anything (e.g. the carried-over failure
+  count already exhausts an unchanged `max_errors` budget): tasks
+  restored from the checkpoint are re-marked `skipped` with the run’s
+  stop reason instead of staying `pending`/`NA`, so the result grid and
+  the end-of-run summary report the specific reason rather than the
+  generic fallback
+  ([\#64](https://github.com/sims1253/bayesim/issues/64)).
+  [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
+  also carries a recorded `stop_reason` for terminal rows instead of
+  dropping the column’s values.
+- Fixed a
+  [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
+  crash on resume-to-completion: when the resumed execution re-covered
+  every prior task and the new rows carried columns the prior rows
+  lacked (e.g. diagnostics after a failed-only prior run), the
+  schema-alignment step assigned a length-1 `NA` into a 0-row frame
+  ([\#63](https://github.com/sims1253/bayesim/issues/63)).
+- Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
+  longer lose or mangle recorded truths and fit diagnostics when prior
+  task results are reloaded from a checkpoint.
+- Fatal mid-batch errors now persist the batch’s already-completed
+  sibling outcomes before re-raising, so a crash no longer discards
+  finished work.
+- Resume no longer double-loads the full run history (prior results were
+  loaded once to resume and again during the run).
+- In-memory (`result_path = NULL`) run-store writes are now linear in
+  the number of completed tasks instead of repeatedly rewriting the full
+  state.
+- Adaptive stopping now warns when its evaluation step fails instead of
+  passing silently.
+
+### Metrics
+
+- Removed the unvalidated mori shared-memory model-bank integration;
+  model banks travel to daemons by ordinary serialization.
+- Removed `rstar_metric()` (and with it the caret/randomForest
+  dependencies) and the `rmse_test_metric()` alias, and merged
+  `convergence_metric()` into an extended
+  [`sampler_diagnostics_metric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
+  (now emitting `rhat_max`, `ess_bulk_min`, `ess_tail_min`, `divergent`,
+  and `max_treedepth`).
+- [`pos_prob_metric()`](https://sims1253.github.io/bayesim/reference/PosProbMetric.md)’s
+  `by_param` field now declares mean/sd aggregation instead of a
+  binomial MCSE, which was wrong for a posterior probability mean.
+- Metric NA-degradation paths now emit schema-conformant fields (present
+  with `NA` values) instead of dropping fields from the flattened
+  summary.
+- [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
+  and
+  [`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  now declare `needs = c("loo", "epred")` and the `supports_epred`
+  fitter capability is actually consulted:
+  [`preflight()`](https://sims1253.github.io/bayesim/reference/preflight.md)
+  includes `epred` in its capability vocabulary (surfacing it in
+  `unmet_needs` before a run), the worker warns once when an
+  epred-needing metric runs on an epred-incapable fitter, and
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
+  only calls
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  for fitters that declare support. A
+  `supports_loo = TRUE, supports_epred = FALSE` fitter (e.g. a
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  without an `epred` generated quantity) no longer produces silently
+  all-NA LOO-prediction columns
+  ([\#62](https://github.com/sims1253/bayesim/issues/62)). A
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  return with the wrong shape now degrades through the same warn-once NA
+  path instead of surfacing as a generic metric error inside
+  [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
+- Metrics declaring `needs = "epred"` without `"loo"` now actually
+  receive `context$loo_epred`: the matrix used to be built only inside
+  the LOO context, so an epred-only metric silently computed on a
+  missing context element and NA-degraded with no explanation. epred is
+  now built directly via
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  whenever the LOO context did not deliver it and never attempted it (no
+  `"loo"` need, unsupported or failed LOO build, or a LOO context that
+  bailed at the train-set log-lik matrix), with its own warn-once NA
+  path when
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  fails or returns a wrong-shaped matrix. When the context carries
+  `loo_epred` without a LOO summary, an exact NULL `loo` binding is
+  pinned (and the built-in loo metrics read `context[["loo"]]`) so `$`
+  partial matching can no longer hand a metric the epred matrix when it
+  asked for `context$loo`
+  ([\#68](https://github.com/sims1253/bayesim/issues/68)).
+- The LOO context no longer computes the PSIS weighted-prediction
+  machinery (train-set log-lik matrix, `r_eff`, PSIS object, epred
+  matrix) when no metric declares the `"epred"` need: a run configuring
+  only
+  [`elpd_loo_metric()`](https://sims1253.github.io/bayesim/reference/ElpdLooMetric.md)
+  (`needs = "loo"`) pays for the
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  summary alone ([\#69](https://github.com/sims1253/bayesim/issues/69)).
+  `context$loo_psis`/`loo_psis_ll`/`loo_epred` are consequently NULL in
+  such runs — custom metrics reading them must declare `"epred"`
+  alongside `"loo"` (the documented `Metric` `needs` contract; the
+  built-in
+  [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)/[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  already do).
+- On the weighted-prediction (PSIS) path the train-set log-lik matrix
+  and the chain-aware relative efficiencies are now computed once per
+  task instead of twice:
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
+  passes the matrix it computed to
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  through a new optional `log_lik` argument, and reuses the `r_eff` that
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  now returns for the PSIS object
+  ([\#73](https://github.com/sims1253/bayesim/issues/73)). For
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  this also means the PSIS weights finally use the same chain-aware
+  `r_eff` as the elpd summary (they silently ran without it before).
+  **Breaking for custom fitters**:
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  methods must accept the new `log_lik` argument (S7 requires method
+  formals to match the generic exactly) and may return `r_eff` alongside
+  the summary fields; standalone `loo_fit(fitter, fit_result)` calls are
+  unchanged.
+
+### Fitters and errors
+
+- New `supports_epred` fitter capability gating
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  — `TRUE` for
+  [`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)/[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md),
+  dynamic (set when an `epred` generated quantity is declared) for
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md).
+- [`bayesim_contract_error()`](https://sims1253.github.io/bayesim/reference/bayesim_contract_error.md)
+  is now exported.
+- Precompiled model banks now reject model specs without an explicit
+  prior with a configuration error instead of warning: brms derives
+  data-dependent default priors from the template data and embeds them
+  in the reused binary, silently fitting the whole study with the
+  template’s priors. Opt back in with
+  `BrmsFitter(allow_default_priors = TRUE)`.
+
+### Analysis and reporting
+
+- [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
+  was renamed to
+  [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  to stop colliding with the generic of the easystats *report* package.
+  [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
+  remains as a deprecated alias that forwards to
+  [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
+  and warns once per session.
+- [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  normalizes each task’s ranks by that task’s own post-thinning support
+  instead of the panel maximum, so pooling tasks with different
+  `n_ranks` (ESS-aware thinning) no longer manufactures miscalibration;
+  mixed-support panels warn that the simultaneous band is approximate.
+- The fixed-truth bias MCSE uniformly uses `sd(est - truth) / sqrt(n)`,
+  matching the varying-truth `mean_error` measures (Morris, White &
+  Crowther 2019, Table 2).
+
+### SBC documentation
+
+- [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+  and
+  [`forward_sim_generator()`](https://sims1253.github.io/bayesim/reference/forward_sim_generator.md)
+  now state the Talts et al. (2018) condition for valid SBC — the
+  fitting prior must match the parameter-generating distribution —
+  instead of calling inverse forward sampling the canonical SBC
+  generator unconditionally. With an unmatched fitting prior, cap-shaped
+  ranks are expected and do not indicate sampler error.
+
+## bayesim 2.0.0
+
+A ground-up rewrite of the simulation engine, fitters, generators,
+metrics, and analysis layer, redesigned around the needs of
+simulation-method studies (Morris, White & Crowther 2019). Breaking
+across the public API; the package remains GitHub-only and
+lifecycle-experimental.
+
+### Review hardening
+
+- Fixed default simulation summaries with failed tasks: error payloads
+  and other flattened metric metadata no longer become condition
+  columns, and each aggregate now reports the number of finite values
+  used.
+- Adaptive stopping now requires the requested MCSE target in every
+  condition cell, not only the first.
+- Retained predictions are computed and returned even without a
+  prediction metric; checkpoint lightening now honors all explicit
+  retention options and preserves truths.
+- [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  restores the caller’s RNG state and kind. Stochastic metrics use
+  stable metric-specific sub-seeds, so metric order is irrelevant.
+- Task-grid bookkeeping is vectorized by batch. The run store is
+  append-only: completed outcomes are written once as immutable,
+  mirrored outcome shards, and each checkpoint commit directory records
+  its deltas plus metadata. `keep_checkpoints = 2L` by default prunes
+  old checkpoint commits, keeping one fallback commit; immutable
+  outcome/ledger history is never pruned, so durable storage grows
+  roughly linearly with completed tasks.
+- Fixed S7 class checks that had made automatic BrmsFitter model-bank
+  and generator shortcuts unreachable. Precompiled brms models now warn
+  when explicit priors are missing, and preflight reports deduplicated
+  compile counts.
+- Added exported
+  [`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md),
+  repaired the targets/HPC/SBC vignettes, consolidated
+  `rmse_test_metric()` onto
+  [`pred_rmse_metric()`](https://sims1253.github.io/bayesim/reference/RmseMetric.md),
+  and removed unused dependencies, helpers, and a committed Stan binary.
+
+### Fitters and the fitter contract
+
+- **Contract matrices are now `S x N` (draws x observations)
+  everywhere** — `log_lik_matrix`, `predict_fit()$predicted_samples`,
+  `predict_epred`. The brms/loo convention, enforced by non-square
+  [`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md)
+  smoke tests.
+- **New
+  [`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)**
+  — an exact conjugate Normal-Inverse-Gamma Bayesian linear regression
+  fitter. Real posteriors in milliseconds with zero Stan; the package’s
+  executable-docs teaching backbone.
+- **New
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)**
+  — run user-supplied Stan programs via cmdstanr (declared
+  `log_lik`/`epred` generated quantities). No model-bank integration
+  (cmdstanr caches binaries by file hash).
+- **New
+  [`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
+  /
+  [`model_grid()`](https://sims1253.github.io/bayesim/reference/model_grid.md)**
+  — assemble tidy `fit_grid`s of brms model specs (formula/family/prior
+  list-columns), validated at construction.
+- `MockFitter` demoted to internal (testing only).
+- `BrmsFitter` diagnostics now computed over **all** parameters
+  (group-level, distributional, sigma) via
+  [`posterior::summarise_draws`](https://mc-stan.org/posterior/reference/draws_summary.html),
+  not just fixed effects; `loo_fit` uses chain-aware `r_eff`, matching
+  [`brms::loo()`](https://mc-stan.org/loo/reference/loo.html).
+- Consolidated fitter/metric validation into the exported
+  [`validate_fitter()`](https://sims1253.github.io/bayesim/reference/validate_fitter.md)
+  /
+  [`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
+  (removed `check_fitter_class`, `validate_fitter_interface`,
+  `validate_metric_interface`).
+
+### Renamed generics (no aliases — pre-release API)
+
+| old | new |
+|----|----|
+| `fit()` | [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md) |
+| `compute()` | [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md) |
+| `log_lik()` | [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md) |
+| `diagnostics()` | [`fit_diagnostics()`](https://sims1253.github.io/bayesim/reference/fit_diagnostics.md) |
+
+bayesim no longer exports `fit`/`compute`/`log_lik`/`diagnostics`, so it
+stops masking
+[`generics::fit`](https://generics.r-lib.org/reference/fit.html),
+[`dplyr::compute`](https://dplyr.tidyverse.org/reference/compute.html),
+and
+[`brms::log_lik`](https://mc-stan.org/rstantools/reference/log_lik.html).
+
+### Transport: purrr + mirai
+
+- Dispatch is now a single
+  [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) +
+  [`purrr::in_parallel()`](https://purrr.tidyverse.org/reference/in_parallel.html)
+  code path; mirai remains the daemon engine.
+  [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
+  is total (fatal conditions are captured and re-raised after the batch
+  with their full class chain), removing the cross-boundary
+  condition-restoration machinery.
+- `run_simulation(config, workers = N)` sets up and tears down mirai
+  daemons for the run (the simple path);
+  [`mirai::daemons()`](https://mirai.r-lib.org/reference/daemons.html)
+  remains for advanced/HPC.
+- The model bank is now shared across local daemons via
+  [mori](https://shikokuchuo.net/mori/) shared memory, so each daemon
+  zero-copy maps the bank instead of deserializing a private copy.
+  Locality is auto-detected from the mirai daemon URL (machine-local
+  transports and loopback TCP qualify); remote and wildcard-bound
+  daemons, and sequential runs, are passed through unchanged. `mori` is
+  an optional suggested dependency because its current releases require
+  R \>= 4.3 while bayesim supports R \>= 4.1. Without it, or when shared
+  memory creation fails, bayesim safely uses ordinary serialized
+  dispatch.
+
+### Metrics and analysis (Morris et al. framing)
+
+- **[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)**
+  — bias, empirical SE, MSE, coverage, average model SE, and `n_sim`,
+  each with its Morris et al. MCSE, per estimand and condition. The
+  centerpiece of the analysis layer.
+- Task results now carry the data-generating truth, flattened to
+  `truth__<param>` summary columns — enabling parameter-recovery
+  analysis and
+  [`plot_recovery()`](https://sims1253.github.io/bayesim/reference/plot_recovery.md)
+  for generator-drawn truths.
+- Prediction metrics renamed honestly: `rmse`/`bias`/`mae`/`mse` →
+  `pred_*_metric`. They **refuse to silently fall back to the training
+  set**: default to test data, NA with a one-time warning when no test
+  set.
+- `Metric` gained a `summary_type` property (`"mean"`, `"proportion"`,
+  `"none"`), recorded on the result and consumed by
+  [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
+  — replacing both the 0-1-column coverage heuristic and the
+  mathematically wrong per-task-RMSE delta-method MCSE.
+- Metric context is computed on the **test set** when one exists:
+  predictions and pointwise log-lik previously came from the training
+  data while every consuming metric compared against the test response.
+  LOO metrics (`rmse_loo`, `r2_loo`) now always compare against the
+  training response (LOO is in-sample by construction).
+- `true_params` / `vars_of_interest` are now optional (truth-free
+  studies run).
+- `rstar_metric()` reimplemented for real (was a placebo returning NA):
+  uses
+  [`posterior::rstar()`](https://mc-stan.org/posterior/reference/rstar.html)
+  on per-chain draws from the underlying fit; degrades to NA with a
+  one-time warning for chain-less fitters.
+- [`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md)
+  redesigned as a point-range plot with MCSE error bars.
+
+### Config knobs
+
+- `chunk_size` and the deprecated `max_in_memory` merged into a single
+  `checkpoint_every` knob.
+- Data-generator signature is now `(data_spec, task_ctx)`;
+  `task_ctx$seed` carries the integer for backends that need one.
+- `retain`, `max_errors`, and `checkpoint_format` excluded from the
+  config fingerprint — changing retention no longer invalidates resume.
+
+### Runtime UX
+
+- `preflight(config)` reports task count, grid shape, metrics’ needs vs
+  fitter capabilities, daemons status, compile count (auto one-liner in
+  [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)).
+- `failed_tasks(result)` accessor; compact failure summary printed at
+  run end.
+- [`print()`](https://rdrr.io/r/base/print.html) shows a metrics
+  preview; `as_tibble.bayesim_simulation_result` returns the summary for
+  tidyverse piping.
+- Better `seed` error message.
+
+### Error API
+
+- Exported error constructors narrowed to `bayesim_data_error`,
+  `bayesim_fit_error`, `bayesim_metric_error`, `bayesim_config_error`
+  plus `is_bayesim_error`, `is_fatal_error`, `is_recoverable_error`.
+  Base `bayesim_error`/contract/checkpoint/internal constructors are
+  internal.
+
+------------------------------------------------------------------------
+
+### Earlier 2.0.0 implementation milestones
+
+#### Engine
+
+- Parallelization switched from `future`/`future.apply` to **mirai**.
+  The engine owns parallelism; `SimulationConfig` gained a
+  `daemon_setup` property for per-daemon initialization (e.g. cmdstan
+  path configuration). Tasks run sequentially when no mirai daemons are
+  set.
+- Per-task RNG is L’Ecuyer-CMRG streams restored in the worker before
+  the data generator runs; generators consume the ambient state (do not
+  re-seed).
+
+#### BrmsFitter and the model bank
+
+- `BrmsFitter` now compiles each distinct model spec **once** via
+  `brms::brm(chains = 0)` at
+  [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  start and reuses the compiled binary via
+  `stats::update(recompile = FALSE)` per task — eliminating the
+  catastrophic per-task recompilation of 1.x.
+- Added `precompile` (default `TRUE`) and `stan_args` properties. A
+  structural data-mismatch guard aborts loudly if task data would
+  require recompilation.
+- `extract_brms_timings` now reports real warmup/sample timings from the
+  stanfit object for both cmdstanr and rstan backends.
+
+#### Generators (new)
+
+- [`fixed_truth_generator()`](https://sims1253.github.io/bayesim/reference/fixed_truth_generator.md),
+  [`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md),
+  [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+  — factory constructors for the standard generator signature
+  `(data_spec, task_ctx) -> data_bundle`. IFS and prior-predictive use a
+  deterministic draw index (`task_ctx$rep_idx`) so SBC ranks are
+  well-defined and resume is reproducible.
+- Inverse forward sampling internals (`brms_full_ppred`,
+  `brms_response_sequence`, `nodes_by_depth`) ported from 0.x and
+  decoupled from SBC/bayeshear/future.
+
+#### Metrics (expanded)
+
+- 14 new metric constructors: `mae_metric`, `mse_metric`,
+  `pos_prob_metric`, `posterior_summary_metric`, `convergence_metric`,
+  `sampler_diagnostics_metric`, `rank_metric`, `rstar_metric`,
+  `elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
+  `elpd_test_metric`, `rmse_test_metric`, `r2_test_metric`.
+- Removed the internal metric registry; metrics are constructed
+  directly.
+
+#### Analysis & reporting (new)
+
+- [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
+  — per-condition aggregation with Monte Carlo standard errors (rsimsum
+  formulas).
+- SBC diagnostics:
+  [`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md),
+  [`plot_rank_hist()`](https://sims1253.github.io/bayesim/reference/plot_rank_hist.md),
+  [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  (with simultaneous confidence bands),
+  [`plot_recovery()`](https://sims1253.github.io/bayesim/reference/plot_recovery.md),
+  [`plot_coverage()`](https://sims1253.github.io/bayesim/reference/plot_coverage.md),
+  [`plot_metric()`](https://sims1253.github.io/bayesim/reference/plot_metric.md).
+  Plotting requires ggplot2 (Suggests, loaded on demand).
+
+### Breaking changes
+
+- Public API contracted to a curated surface of 65 exports (see
+  `_pkgdown.yml`).
+- The `loo` S7 generic was renamed `loo_fit` to avoid clashing with
+  [`loo::loo()`](https://mc-stan.org/loo/reference/loo.html). Custom
+  fitters must implement `loo_fit`.
+- Operators `%+%` and `%||%` are no longer exported (use `rlang::%||%`
+  or the public equivalents).
+
+### Reproducibility
+
+Same seed + same package/backend versions + same platform produces
+identical results. Across platforms (or backend version changes) results
+are statistically equivalent but may differ in the least significant
+bits due to floating-point and Stan version differences.
+
+### Bug fixes (post-implementation review)
+
+These fixes address defects found in a code review of the initial 2.0
+build. Each is verified by a behavioral test, not just `R CMD check`
+green.
+
+- **IFS forward sampling (critical):**
+  [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+  no longer returns the pilot dataset unchanged. The 0.x
+  response-dependency topological sort (`brms_response_sequence` →
+  adjacency matrix → `nodes_by_depth`) is restored so the response
+  column is actually simulated for univariate and multivariate models;
+  [`brms_full_ppred()`](https://sims1253.github.io/bayesim/reference/brms_full_ppred.md)
+  now takes a single draw and returns a single data.frame, eliminating
+  the draw-index/list-index mismatch that produced `NULL` for
+  `rep_idx > 1`.
+- **vars_of_interest / draws-column mismatch (critical):** generators
+  strip the `b_` prefix (`vars_of_interest = c("x","Intercept")`) but
+  brms draws keep it (`c("b_x","b_Intercept","sigma")`), so every
+  truth-comparing metric silently returned NA on real brms fits. A new
+  [`resolve_draw_columns()`](https://sims1253.github.io/bayesim/reference/resolve_draw_columns.md)
+  helper maps cleaned names to actual columns (or errors) and is used by
+  `coverage_metric`, `posterior_summary_metric`, `pos_prob_metric`,
+  `posterior_summary_metric`, and `rank_metric`. Output field names stay
+  on the cleaned names.
+- **LOO-RMSE and LOO-R² (critical):** the invented formulas
+  (`sqrt(-2*mean(elpd))`, `1-exp(2*elpd/n)`) are replaced with
+  PSIS-based constructions on
+  [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
+  [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
+  computes the PSIS object once (with chain-derived `r_eff`, falling
+  back to `r_eff = NULL`); `rmse_loo` uses `E_loo(ppred, type="mean")`
+  and reports max Pareto-k̂; `r2_loo` reproduces brms’ `loo_R2()`
+  variance construction verbatim and uses `posterior_epred` (a new
+  `predict_epred` Fitter generic). Parity with
+  [`brms::loo_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html)
+  verified on a fixture fit.
+- **SBC rank metric (critical for SBC validity):**
+  [`rank_metric()`](https://sims1253.github.io/bayesim/reference/RankMetric.md)
+  gained `thin = "auto"` (default), thinning toward the min bulk-ESS
+  across ranked variables to mitigate autocorrelation bias;
+  `thin = FALSE` and integer strides are alternatives. Output now
+  includes per-variable `n_ranks` (post-thinning sample size + 1);
+  [`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md)
+  and
+  [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  surface it.
+- **BrmsFitter warning capture:** warnings are now captured in the `fit`
+  method (covering both the fit and the lazy
+  [`summary()`](https://rdrr.io/r/base/summary.html)-driven convergence
+  warning from diagnostics extraction), for both the model-bank and
+  fresh-compile paths. Previously the fresh path had no handler and
+  warnings were lost.
+- **mirai / model-bank efficiency:** the model bank and `daemon_setup`
+  hook are shipped to daemons once per
+  [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  instead of per batch; the prefit-side Stan data-structure signature is
+  computed once in
+  [`build_model_bank()`](https://sims1253.github.io/bayesim/reference/build_model_bank.md)
+  and cached (not recomputed per task); the session bank is cleared on
+  run exit.
+- **Cleanup:**
+  [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
+  now uses true simultaneous ECDF bands (`adjust_gamma` ported from 0.x
+  / Säilynoja et al. 2022) instead of an approximate KS bound;
+  `posterior` moved from Suggests to Imports; the `dplyr` dependency was
+  dropped (base-R row-binding replaces `bind_rows`); internal error
+  constructors remain intentionally unexported; dead `hash_to_row`
+  removed and a missing-`formula` guard added to
+  [`build_model_bank()`](https://sims1253.github.io/bayesim/reference/build_model_bank.md);
+  the IFS bounds `resample` docstring now honestly describes the NA-out
+  / truncate behavior and its rank-bias implication.
+- **Metric flatten:** single-parameter named-vector metric outputs
+  (e.g. a one-variable `rank`/`coverage` `by_param`) now carry the
+  `__<param>` suffix when flattened, so downstream consumers grepping
+  for `<metric>__by_param__<param>` find them.
+
+## bayesim 1.0.1
+
+This release finalizes the rewrite follow-up work around the new
+simulation API, resume/checkpoint behavior, and package documentation.
+
+### Changes
+
+- Removed legacy code that was superseded by the 1.0 rewrite:
+  `simulation.R`, `inverse_forward_sampling.R`, `loo_handler.R`,
+  `metric_list_handler.R`, `metric_lookup.R`, `ifs_sbc.R`,
+  `ll_lookup.R`, `prefit.R`, `parallel_helpers.R`, and
+  `simulation_building_blocks.R`.
+
+- Removed corresponding man pages for all deleted functions.
+
+- Simplified contracts, checkpoint, retention, worker, and simulation
+  config code to eliminate dead paths and tighten validation.
+
+- Updated NAMESPACE and DESCRIPTION to reflect the reduced API surface.
+
+- Code quality improvements from desloppify review.
+
+- Standardized the public workflow around
+  [`simulation_config()`](https://sims1253.github.io/bayesim/reference/simulation_config.md),
+  [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md),
+  and
+  [`resume_simulation()`](https://sims1253.github.io/bayesim/reference/resume_simulation.md).
+
+- Added support for explicit `task_grid`, `chunk_size`, conditional
+  retention, manifest-based resume, stricter duplicate-check handling,
+  and future-based batch execution.
+
+- Switched the default
+  [`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+  backend to `"cmdstanr"`.
+
+- Kept `checkpoint_format = "rds"` as the supported checkpoint backend
+  and made unsupported `"parquet"` requests fail fast.
+
+- Externalized large metric payloads into artifacts to avoid excessively
+  wide summary tables.
+
+- Updated README, vignettes, roxygen docs, man pages, and NAMESPACE to
+  match the rewritten API and current package behavior.
+
+## bayesim 1.0.0
+
+This is a major rewrite of bayesim, introducing a modern simulation
+framework with deterministic reproducibility, checkpoint/resume
+capabilities, and memory-bounded execution.
+
+### Breaking Changes
+
+- Complete rewrite of the simulation execution path
+- New S7-based interface for custom fitters and metrics
+- Old `full_simulation()`, `dataset_sim()`, `fit_sim()` functions are
+  deprecated
+
+### New Features
+
+#### Extension System
+
+- `SimulationConfig` S7 class for validated, immutable configuration
+- `Fitter` S7 abstract class for custom model fitting backends
+- `Metric` S7 abstract class for custom metrics
+- `MockFitter` for testing custom fitters and metrics
+
+#### Error Handling
+
+- Structured error conditions: `bayesim_config_error`,
+  `bayesim_contract_error`, `bayesim_checkpoint_error`,
+  `bayesim_internal_error` (fatal)
+- Task-level recoverable errors: `bayesim_data_error`,
+  `bayesim_fit_error`, `bayesim_metric_error`
+- Helper predicates:
+  [`is_bayesim_error()`](https://sims1253.github.io/bayesim/reference/is_bayesim_error.md),
+  [`is_fatal_error()`](https://sims1253.github.io/bayesim/reference/is_fatal_error.md),
+  [`is_recoverable_error()`](https://sims1253.github.io/bayesim/reference/is_recoverable_error.md)
+
+#### Result Types
+
+- `bayesim_fit_result` S3 class for fit outputs
+- `bayesim_task_result` S3 class for task outcomes  
+- `bayesim_simulation_result` S3 class for complete runs
+
+#### Validation
+
+- [`validate_data_bundle()`](https://sims1253.github.io/bayesim/reference/validate_data_bundle.md)
+  for data generator output validation
+- `validate_fitter_interface()` for fitter contract validation
+- `validate_metric_interface()` for metric contract validation
+- [`validate_simulation_config()`](https://sims1253.github.io/bayesim/reference/validate_simulation_config.md)
+  for complete configuration validation
+
+#### Utilities
+
+- Atomic file operations:
+  [`write_json_atomic()`](https://sims1253.github.io/bayesim/reference/write_json_atomic.md),
+  [`write_rds_atomic()`](https://sims1253.github.io/bayesim/reference/write_rds_atomic.md)
+- Config fingerprinting:
+  [`compute_config_fingerprint()`](https://sims1253.github.io/bayesim/reference/compute_config_fingerprint.md)
+- Task ID formatting: `format_task_id()`, `parse_task_id()`
+- Timing utilities:
+  [`make_timer()`](https://sims1253.github.io/bayesim/reference/make_timer.md)
+- Error capture:
+  [`capture_error_info()`](https://sims1253.github.io/bayesim/reference/capture_error_info.md)
+
+### Dependencies
+
+- Added S7 for OOP
+- Added digest for hashing
+- Added jsonlite for serialization
+- Added tibble for result data frames
+- Moved brms, rstan, cmdstanr to Suggests
+
+### Phase 2: Deterministic Engine Core
+
+#### Execution Engine
+
+- [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  main entry point for simulation runs
+- [`create_task_grid()`](https://sims1253.github.io/bayesim/reference/create_task_grid.md)
+  generates deterministic task table with precomputed RNG streams
+- Task IDs in format `dXXX_fXXX_rXXXXX` for lexicographic ordering
+- [`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md)
+  iterates through tasks with progress bar and error tracking
+
+#### RNG Management
+
+- `setup_global_rng()` initializes L’Ecuyer-CMRG RNG
+- [`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)
+  restores per-task RNG state deterministically
+- Each task gets independent, precomputed RNG stream
+
+#### Worker Execution
+
+- [`run_task()`](https://sims1253.github.io/bayesim/reference/run_task.md)
+  executes single task: data generation, fitting, metrics
+- [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
+  wrapper with fatal error propagation
+- [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
+  precomputes context (predictions, log_lik, loo)
+- [`compute_all_metrics()`](https://sims1253.github.io/bayesim/reference/compute_all_metrics.md)
+  with required vs optional metric handling
+- `apply_retention()` removes large objects based on retention policy
+
+#### Metric Registry
+
+- `register_metric()` adds metrics with Metric subtype enforcement
+- `get_metric()` retrieves metrics by name
+- `list_metrics()` returns all registered metric names
+- `unregister_metric()` removes metrics
+- `clear_registry()` for testing (internal)
+
+#### Bug Fixes
+
+- Fixed
+  [`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)
+  to use explicit environment assignment
+- Fixed
+  [`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md)
+  to pass proper S7 config object
+- Fixed
+  [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
+  to propagate fatal errors
+- Removed duplicate
+  [`create_task_rng_streams()`](https://sims1253.github.io/bayesim/reference/create_task_rng_streams.md)
+  function
+
+### Phase 3: Checkpoint/Resume
+
+#### Checkpoint System
+
+- [`init_checkpoint_dir()`](https://sims1253.github.io/bayesim/reference/init_checkpoint_dir.md)
+  creates checkpoint directory structure
+- [`write_checkpoint()`](https://sims1253.github.io/bayesim/reference/write_checkpoint.md)
+  atomically writes checkpoint with validation
+- [`read_checkpoint()`](https://sims1253.github.io/bayesim/reference/read_checkpoint.md)
+  reads checkpoint with checksum verification
+- [`list_checkpoints()`](https://sims1253.github.io/bayesim/reference/list_checkpoints.md)
+  lists available checkpoint IDs
+- [`get_latest_valid_checkpoint()`](https://sims1253.github.io/bayesim/reference/get_latest_valid_checkpoint.md)
+  finds newest valid checkpoint
+- Schema versioning for format compatibility
+- Read-back validation for integrity
+
+#### Resume Logic
+
+- [`can_resume()`](https://sims1253.github.io/bayesim/reference/can_resume.md)
+  checks for valid resumable run
+- [`load_for_resume()`](https://sims1253.github.io/bayesim/reference/load_for_resume.md)
+  loads previous state with validation
+- `get_resume_summary()` shows resumption summary
+- [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
+  merges task status from checkpoint
+- [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
+  deduplicates results by task_id
+
+#### Integration
+
+- [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
+  supports `resume` and `force_restart` parameters
+- Periodic checkpointing during execution
+- Resume continues from pending tasks
+- Prior results carried into final output
+
+#### Bug Fixes
+
+- Fixed checkpoint write to use atomic RDS operations
+- Fixed get_next_checkpoint_id() to ignore .tmp directories
+- Fixed resume to validate both schema versions
+- Fixed resume to not reinitialize manifest
+- Fixed resume to carry prior results into final checkpoint
+
+### Phase 4: Memory Management
+
+#### Retention System
+
+- [`resolve_retention()`](https://sims1253.github.io/bayesim/reference/resolve_retention.md)
+  resolves retention profiles to explicit options
+- [`apply_fit_retention()`](https://sims1253.github.io/bayesim/reference/apply_fit_retention.md)
+  removes non-retained fields from fit results
+- [`apply_task_retention()`](https://sims1253.github.io/bayesim/reference/apply_task_retention.md)
+  adds retained fields to task results
+- [`estimate_size()`](https://sims1253.github.io/bayesim/reference/estimate_size.md)
+  estimates object memory size
+- `exceeds_size_threshold()` checks if result exceeds size limit
+- [`externalize_artifact()`](https://sims1253.github.io/bayesim/reference/externalize_artifact.md)
+  moves large artifacts to external files
+
+#### Retention Profiles
+
+- `minimal`: metrics only
+- `standard`: metrics + diagnostics (default)
+- `debug`: all fields retained
+
+### Phase 5: brms Integration and Documentation
+
+#### BrmsFitter
+
+- `BrmsFitter` class extending Fitter
+- Supports rstan and cmdstanr backends
+- Configurable MCMC settings (chains, iter, warmup, etc.)
+- Full method implementations: fit, extract_draws, predict, log_lik,
+  loo, diagnostics
+- Automatic warning capture and diagnostic extraction
+
+#### Built-in Metrics
+
+- `RmseMetric`: Root Mean Square Error
+- `BiasMetric`: Mean prediction bias
+- `CoverageMetric`: Credible interval coverage
+- `PosteriorMeanMetric`: Posterior mean estimates
+- `register_built_in_metrics()` for auto-registration
+
+#### Documentation
+
+- Getting started vignette with examples
+- Collate field added for proper file load order
