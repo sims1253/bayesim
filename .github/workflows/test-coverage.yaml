@@ -32,6 +32,41 @@ jobs:
 
       - name: Core-tier coverage
         run: |
+          # A daemon subprocess occasionally dies mid-way through writing its
+          # covr trace file (observed: two byte-identical files truncated at
+          # exactly 224 KiB), and covr's merge_coverage() then fails the whole
+          # job with "Error in readRDS(f) : error reading from connection"
+          # even though every test passed. Skip unreadable trace files instead
+          # of failing on them; the surviving traces (main process + the other
+          # daemons) still yield valid coverage. See the tracking issue
+          # referenced in the PR discussion for the full forensics.
+          covr_ns <- asNamespace("covr")
+          tolerant_merge <- function(x) {
+            coverage_objs <- Filter(
+              Negate(is.null),
+              lapply(x, function(f) {
+                tryCatch(
+                  as.list(suppressWarnings(readRDS(f))),
+                  error = function(e) {
+                    warning(sprintf("skipping unreadable covr trace file %s", f))
+                    NULL
+                  }
+                )
+              })
+            )
+            covr:::merge_coverage(coverage_objs)
+          }
+          unlockBinding("merge_coverage.character", covr_ns)
+          assign("merge_coverage.character", tolerant_merge, envir = covr_ns)
+          lockBinding("merge_coverage.character", covr_ns)
+          # S3 dispatch reads the cached method from the methods table, so the
+          # table entry must be replaced alongside the namespace binding.
+          assign(
+            "merge_coverage.character",
+            tolerant_merge,
+            envir = get(".__S3MethodsTable__.", envir = covr_ns)
+          )
+
           cov <- covr::package_coverage(
             quiet = FALSE,
             clean = FALSE,
@@ -40,20 +75,6 @@ jobs:
           print(cov)
           covr::to_cobertura(cov)
         shell: Rscript {0}
-
-      - name: Trace forensics (temporary debug, remove before merge)
-        if: failure()
-        run: |
-          echo "=== processes at failure ==="
-          ps -eo pid,ppid,stat,lstart,args --sort=start_time || true
-          echo "=== trace files at failure ==="
-          ls -la --full-time "${RUNNER_TEMP}/package"/covr_trace_* || true
-          sleep 45
-          echo "=== trace files 45s later ==="
-          ls -la --full-time "${RUNNER_TEMP}/package"/covr_trace_* || true
-          echo "=== processes 45s later ==="
-          ps -eo pid,ppid,stat,lstart,args --sort=start_time || true
-        shell: bash
 
       - uses: codecov/codecov-action@v7
         with:
