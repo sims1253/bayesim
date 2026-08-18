@@ -27,7 +27,7 @@ loo_fit(fitter, fit_result, log_lik = NULL)
   for the training set, as returned by
   [`log_lik_matrix()`](https://sims1253.github.io/bayesim/reference/log_lik_matrix.md).
   When supplied, methods should use it instead of recomputing their own;
-  [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
   passes the matrix it already computed so the weighted-prediction
   (PSIS) path pays for it once per task (#73). NULL (the default, and
   for standalone calls) means the method computes its own.
@@ -47,7 +47,7 @@ A list containing:
 - `r_eff`: Chain-aware relative efficiencies used for the summary
   (vector of length N), or NULL when none were computed (e.g. i.i.d.
   draws).
-  [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
   reuses it for the PSIS object (#73).
 
 - Additional loo-specific diagnostics

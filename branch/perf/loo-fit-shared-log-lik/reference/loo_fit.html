@@ -78,7 +78,7 @@ sampling (PSIS-LOO). Named <code>loo_fit</code> to avoid clashing with <code><a 
 <dd><p>Optional pointwise log-likelihood matrix (S x N, draws x
 observations) for the training set, as returned by <code><a href="log_lik_matrix.html">log_lik_matrix()</a></code>.
 When supplied, methods should use it instead of recomputing their own;
-<code><a href="build_metric_context.html">build_metric_context()</a></code> passes the matrix it already computed so the
+<code><a href="build_loo_context.html">build_loo_context()</a></code> passes the matrix it already computed so the
 weighted-prediction (PSIS) path pays for it once per task (#73). NULL
 (the default, and for standalone calls) means the method computes its
 own.</p></dd>
@@ -92,7 +92,7 @@ own.</p></dd>
 <li><p><code>pareto_k</code>: Pareto k diagnostic values (vector of length N)</p></li>
 <li><p><code>r_eff</code>: Chain-aware relative efficiencies used for the summary
 (vector of length N), or NULL when none were computed (e.g. i.i.d.
-draws). <code><a href="build_metric_context.html">build_metric_context()</a></code> reuses it for the PSIS object (#73).</p></li>
+draws). <code><a href="build_loo_context.html">build_loo_context()</a></code> reuses it for the PSIS object (#73).</p></li>
 <li><p>Additional loo-specific diagnostics</p></li>
 </ul></div>
 

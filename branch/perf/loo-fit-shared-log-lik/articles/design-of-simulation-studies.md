@@ -121,7 +121,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 80 tasks = 1 data x 1 fit x 80 reps
 #> ℹ Starting simulation with 80 tasks
 #> 
-#> ✔ Simulation complete: 80/80 tasks succeeded in 0.6s
+#> ✔ Simulation complete: 80/80 tasks succeeded in 0.7s
 
 pm <- performance_measures(result, estimand = "x")
 pm
