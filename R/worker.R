@@ -785,8 +785,16 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   # through to the direct route below instead of erroring opaquely inside
   # loo::E_loo().
   psis_obj <- loo_result[["psis_object"]]
-  psis_dim <- dim(psis_obj[["log_weights"]] %||% psis_obj[["lw"]])
-  if (!inherits(psis_obj, "psis") || !identical(psis_dim, dim(ll))) {
+  if (
+    !inherits(psis_obj, "psis") ||
+      # Inside || so a non-list psis_object (e.g. a fitter that returned the
+      # save_psis flag itself) short-circuits to the fallback instead of
+      # erroring on [[.
+      !identical(
+        dim(psis_obj[["log_weights"]] %||% psis_obj[["lw"]]),
+        dim(ll)
+      )
+  ) {
     # #73: derive the chain-aware relative efficiencies loo_fit() returned;
     # fall back to relative_eff_from_chains() when the fitter's loo_fit()
     # did not return any. Exact [[ ]] read: loo_result is a fitter-controlled

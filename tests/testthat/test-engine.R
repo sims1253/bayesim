@@ -1400,6 +1400,66 @@ describe("Worker", {
       expect_identical(dim(context$loo_psis$log_weights), c(50L, 10L))
     })
 
+    it("falls back when psis_object is not a psis object at all (#76)", {
+      # A non-list psis_object (e.g. a method that returned the save_psis
+      # flag itself) must short-circuit to the fallback, not error on [[
+      # and lose the whole LOO context — elpd summary included.
+      FlagPsisFitter <- S7::new_class("FlagPsisFitter", parent = MockFitter)
+      S7::method(log_lik_matrix, FlagPsisFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(seq_len(500) / 500, nrow = 50, ncol = 10)
+      }
+      S7::method(loo_fit, FlagPsisFitter) <- function(
+        fitter,
+        fit_result,
+        log_lik = NULL,
+        save_psis = FALSE
+      ) {
+        ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
+        list(
+          elpd = -20,
+          p_loo = 3,
+          elpd_se = 1.5,
+          pareto_k = runif(ncol(ll)),
+          r_eff = NULL,
+          psis_object = save_psis # the flag itself: atomic, not a psis object
+        )
+      }
+      S7::method(predict_epred, FlagPsisFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- FlagPsisFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        list(rmse_loo_metric())
+      ))
+
+      # The summary survives and the fallback built a usable PSIS object.
+      expect_false(is.null(context[["loo"]]))
+      expect_equal(context$loo$elpd, -20)
+      expect_true(inherits(context$loo_psis, "psis"))
+    })
+
     it("builds epred without LOO support when \"loo\" is also declared (#68)", {
       # needs = c("loo", "epred") on a supports_loo = FALSE fitter: the LOO
       # branch is skipped (warn-once), but epred no longer disappears with it.
