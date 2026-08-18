@@ -41,6 +41,20 @@ jobs:
           covr::to_cobertura(cov)
         shell: Rscript {0}
 
+      - name: Trace forensics (temporary debug, remove before merge)
+        if: failure()
+        run: |
+          echo "=== processes at failure ==="
+          ps -eo pid,ppid,stat,lstart,args --sort=start_time || true
+          echo "=== trace files at failure ==="
+          ls -la --full-time "${RUNNER_TEMP}/package"/covr_trace_* || true
+          sleep 45
+          echo "=== trace files 45s later ==="
+          ls -la --full-time "${RUNNER_TEMP}/package"/covr_trace_* || true
+          echo "=== processes 45s later ==="
+          ps -eo pid,ppid,stat,lstart,args --sort=start_time || true
+        shell: bash
+
       - uses: codecov/codecov-action@v7
         with:
           fail_ci_if_error: false
