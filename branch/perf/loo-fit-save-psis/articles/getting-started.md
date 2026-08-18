@@ -96,7 +96,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 8 tasks = 2 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 8 tasks
 #> 
-#> ✔ Simulation complete: 8/8 tasks succeeded in 0.1s
+#> ✔ Simulation complete: 8/8 tasks succeeded in 0.2s
 print(result)
 #> <bayesim_simulation_result>
 #>   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 
@@ -107,7 +107,7 @@ print(result)
 #>     - Skipped (policy-stopped): 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
 #>   Task grid: 8 rows x 7 cols
-#>   Total time: 0.14 s
+#>   Total time: 0.22 s
 ```
 
 ### Examine Results
@@ -193,12 +193,12 @@ head(result$summary)
 #> 5                                  0                1        2            1
 #> 6                                  0                1        2            1
 #>   rhat_max ess_bulk ess_tail divergent max_treedepth timing_total rep_idx
-#> 1        1      500      500         0             0  0.009528875       1
-#> 2        1      500      500         0             0  0.016061544       2
-#> 3        1      500      500         0             0  0.037523270       3
-#> 4        1      500      500         0             0  0.002589226       4
-#> 5        1      500      500         0             0  0.002291679       1
-#> 6        1      500      500         0             0  0.002235174       2
+#> 1        1      500      500         0             0  0.015455246       1
+#> 2        1      500      500         0             0  0.029792786       2
+#> 3        1      500      500         0             0  0.039349318       3
+#> 4        1      500      500         0             0  0.004379272       4
+#> 5        1      500      500         0             0  0.004078627       1
+#> 6        1      500      500         0             0  0.004114151       2
 #>   data_n data_intercept data_slope data_sigma fit_model
 #> 1     50              1          2          1    linear
 #> 2     50              1          2          1    linear
