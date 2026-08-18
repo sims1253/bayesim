@@ -1170,9 +1170,10 @@ describe("Worker", {
     it("computes the train-set log-lik matrix once on the PSIS path (#73)", {
       # loo_fit() used to recompute the train-set log-lik matrix (and r_eff)
       # that build_loo_context() had just computed. The matrix now travels to
-      # loo_fit() via its log_lik argument. The counting fitter mirrors
-      # BrmsFitter's shape: its loo_fit() derives from log_lik_matrix() when
-      # called without a precomputed matrix.
+      # loo_fit() via its log_lik argument. The counting fitter mirrors the
+      # CmdStanFitter/LinearRegressionFitter shape: their loo_fit() derives
+      # from log_lik_matrix() when called without a precomputed matrix
+      # (BrmsFitter instead falls back to brms' stored model frame).
       SharingLooFitter <- S7::new_class("SharingLooFitter", parent = MockFitter)
       calls <- new.env(parent = emptyenv())
       calls$log_lik <- 0L
