@@ -349,6 +349,48 @@ describe("Fitter Class", {
     })
   })
 
+  # #73: the NA-degradation paths of loo_fit() must return the same
+  # documented structure (now including r_eff) instead of erroring, without
+  # requiring a compiled Stan backend to exercise.
+  describe("loo_fit() NA degradation (#73)", {
+    it("MockFitter returns the NA structure when the fit object is missing", {
+      out <- loo_fit(MockFitter(), list(success = TRUE))
+      expect_setequal(
+        names(out),
+        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+      )
+      expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
+      expect_length(out$pareto_k, 0)
+      expect_null(out$r_eff)
+    })
+
+    it("CmdStanFitter without a log_lik GQ degrades without touching the fit", {
+      fitter <- CmdStanFitter(
+        stan_code = "parameters { real y; } model { y ~ normal(0, 1); }",
+        stan_data = function(data_bundle, fit_spec) list()
+      )
+      expect_null(fitter@log_lik_name)
+      out <- loo_fit(fitter, list())
+      expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
+      expect_length(out$pareto_k, 0)
+      expect_null(out$r_eff)
+    })
+
+    it("CmdStanFitter degrades to NA when the draws cannot be extracted", {
+      fitter <- CmdStanFitter(
+        stan_code = "parameters { real y; } model { y ~ normal(0, 1); }",
+        stan_data = function(data_bundle, fit_spec) list(),
+        log_lik = "log_lik"
+      )
+      # A fit_result without a usable fit: log_lik_matrix() fails inside
+      # loo_fit()'s tryCatch and the summary degrades to NA.
+      out <- loo_fit(fitter, list(fit = NULL))
+      expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
+      expect_length(out$pareto_k, 0)
+      expect_null(out$r_eff)
+    })
+  })
+
   it("supports custom Fitter subclasses via S7 method registration", {
     TestFitter <- S7::new_class(
       "TestFitter",
