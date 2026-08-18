@@ -442,6 +442,10 @@ run_task <- function(
 #' training-set matrix; when no metric needs `"loo"` (or the fitter lacks LOO
 #' support) it is built directly via [predict_epred()] rather than through
 #' the LOO context, so declaring `needs = "epred"` alone still delivers it.
+#' The PSIS machinery (`loo_psis`, `loo_psis_ll`) rides along with `loo_epred`:
+#' it is computed only when some metric declares `"epred"`; a run whose LOO
+#' metrics need only the elpd summary (`needs = "loo"` alone, e.g.
+#' `elpd_loo_metric()`) pays for the `loo_fit()` summary alone (#69).
 #'
 #' @keywords internal
 build_metric_context <- function(
@@ -569,7 +573,10 @@ build_metric_context <- function(
   loo_ctx <- NULL
   if ("loo" %in% all_needs && fitter@supports_loo) {
     loo_ctx <- tryCatch(
-      build_loo_context(fitter, fit_result),
+      # #69: only metrics declaring "epred" consume the weighted-prediction
+      # machinery (loo_psis/loo_psis_ll/loo_epred); a run with elpd_loo alone
+      # pays for the loo_fit() summary only.
+      build_loo_context(fitter, fit_result, need_psis = "epred" %in% all_needs),
       error = function(e) {
         .warn_once(
           "loo_build_failed",
@@ -581,8 +588,9 @@ build_metric_context <- function(
     )
     if (!is.null(loo_ctx)) {
       # F3: PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
-      # here so both metrics share it. May be absent (NULL) if the fitter does
-      # not provide epred/log_lik or the build failed.
+      # here so both metrics share it. May be absent (NULL) if no metric
+      # declared "epred" (#69), the fitter does not provide epred/log_lik, or
+      # the build failed.
       context$loo <- loo_ctx$loo
       context$loo_psis <- loo_ctx$psis
       context$loo_psis_ll <- loo_ctx$log_lik
@@ -693,6 +701,14 @@ build_metric_context <- function(
 #' are asked for it via `predict_epred()`; otherwise epred is NULL and the
 #' consuming metrics (r2_loo, rmse_loo) degrade to NA.
 #'
+#' @param need_psis Logical; whether any metric consumes the
+#'   weighted-prediction machinery (`loo_psis`/`loo_psis_ll`/`loo_epred`), i.e.
+#'   whether any metric declared the `"epred"` need (#69). When FALSE, only the
+#'   `loo_fit()` summary is computed: the train-set log-lik matrix, `r_eff`, the
+#'   PSIS object, and epred exist solely to feed that machinery, so a run
+#'   configuring elpd_loo alone skips them. The `loo_fit()` summary itself is
+#'   independent (fitters compute their own log-lik internally).
+#'
 #' @return A list with elements `loo`, `psis`, `log_lik`, `epred`, and
 #'   `epred_attempted` (logical; whether `predict_epred()` was called), or
 #'   NULL on failure. `psis`/`log_lik`/`epred` may be individually NULL if
@@ -700,10 +716,23 @@ build_metric_context <- function(
 #'   with `epred_attempted = FALSE` so the caller can still build epred
 #'   directly (it does not depend on the log-lik).
 #' @keywords internal
-build_loo_context <- function(fitter, fit_result) {
+build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   loo_result <- loo_fit(fitter, fit_result)
   if (is.null(loo_result)) {
     return(NULL)
+  }
+
+  # The train-set log-lik matrix, r_eff, the PSIS object, and epred only feed
+  # the weighted-prediction machinery; with need_psis = FALSE no metric reads
+  # them, so skip the work entirely (#69).
+  if (!isTRUE(need_psis)) {
+    return(list(
+      loo = loo_result,
+      psis = NULL,
+      log_lik = NULL,
+      epred = NULL,
+      epred_attempted = FALSE
+    ))
   }
 
   # Pointwise log-likelihood matrix (S x N, draws x observations).

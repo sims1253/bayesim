@@ -16,7 +16,11 @@
 #'   them. `epred` is delivered as `context$loo_epred`, a draws x observations
 #'   matrix computed on the training set; it is delivered whether or not
 #'   `"loo"` is also declared — without `"loo"` the matrix is built directly
-#'   instead of through the LOO context.
+#'   instead of through the LOO context. Declaring `"epred"` also delivers the
+#'   PSIS weighted-prediction machinery (`context$loo_psis`,
+#'   `context$loo_psis_ll`); declaring `"loo"` alone delivers only the
+#'   `loo_fit()` elpd/p_loo/pareto_k summary (`context$loo`), so a metric
+#'   reading the PSIS objects must declare `"epred"` too.
 #' @param required Logical indicating whether metric failure causes task
 #'   failure. If TRUE, an error in computing this metric will propagate and
 #'   fail the entire task. If FALSE (default), metric failure results in

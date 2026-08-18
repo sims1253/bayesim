@@ -79,6 +79,14 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   exact NULL `loo` binding is pinned (and the built-in loo metrics read
   `context[["loo"]]`) so `$` partial matching can no longer hand a metric
   the epred matrix when it asked for `context$loo` (#68).
+* The LOO context no longer computes the PSIS weighted-prediction machinery
+  (train-set log-lik matrix, `r_eff`, PSIS object, epred matrix) when no
+  metric declares the `"epred"` need: a run configuring only
+  `elpd_loo_metric()` (`needs = "loo"`) pays for the `loo_fit()` summary
+  alone (#69). `context$loo_psis`/`loo_psis_ll`/`loo_epred` are consequently
+  NULL in such runs — custom metrics reading them must declare `"epred"`
+  alongside `"loo"` (the documented `Metric` `needs` contract; the built-in
+  `rmse_loo_metric()`/`r2_loo_metric()` already do).
 
 ## Fitters and errors
 

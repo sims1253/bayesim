@@ -4,7 +4,16 @@
 \alias{build_loo_context}
 \title{Build the LOO context (elpd summary + PSIS object + epred)}
 \usage{
-build_loo_context(fitter, fit_result)
+build_loo_context(fitter, fit_result, need_psis = FALSE)
+}
+\arguments{
+\item{need_psis}{Logical; whether any metric consumes the
+weighted-prediction machinery (\code{loo_psis}/\code{loo_psis_ll}/\code{loo_epred}), i.e.
+whether any metric declared the \code{"epred"} need (#69). When FALSE, only the
+\code{loo_fit()} summary is computed: the train-set log-lik matrix, \code{r_eff}, the
+PSIS object, and epred exist solely to feed that machinery, so a run
+configuring elpd_loo alone skips them. The \code{loo_fit()} summary itself is
+independent (fitters compute their own log-lik internally).}
 }
 \value{
 A list with elements \code{loo}, \code{psis}, \code{log_lik}, \code{epred}, and
