@@ -28,7 +28,7 @@ The public fitter contract is:
 | `predict_fit(fitter, fit_result, newdata, seed)` | optional; `supports_predictions = TRUE` | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
 | `log_lik_matrix(fitter, fit_result, newdata)` | optional; `supports_log_lik = TRUE` | numeric log-likelihood matrix (S x N) |
 | `predict_epred(fitter, fit_result, newdata)` | optional; `supports_epred = TRUE` | numeric expectation matrix (S x N), or `NULL` when unsupported (`r2_loo` then degrades to NA) |
-| `loo_fit(fitter, fit_result)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k` |
+| `loo_fit(fitter, fit_result, log_lik)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k`, `r_eff` |
 | `fit_diagnostics(fitter, fit_result)` | optional | named diagnostic list; the default is [`list()`](https://rdrr.io/r/base/list.html) |
 
 **All matrices are draws x observations (S x N)** — `predicted_samples`,
@@ -38,6 +38,18 @@ and
 all put posterior draws in rows and observations in columns, matching
 the brms/loo convention. This is the single most common custom-fitter
 bug; `validate_fitter(smoke_test = TRUE)` rejects transposed matrices.
+
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)’s
+`log_lik` argument is optional: when the engine builds the
+weighted-prediction (PSIS) context it passes the train-set log-lik
+matrix it already computed, and the method should reuse it instead of
+recomputing; standalone calls pass `NULL` and the method computes its
+own. Returning `r_eff` (the chain-aware relative efficiencies used for
+the summary, or `NULL`) likewise lets the engine reuse them for the PSIS
+object. A
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+method registered without the `log_lik` argument is rejected by S7’s
+strict signature checking.
 
 The generics avoid masking common names: `loo_fit` (not
 [`loo::loo`](https://mc-stan.org/loo/reference/loo.html)),
@@ -243,10 +255,10 @@ head(result$summary)
 #> 3                          2.259547            2        1          500
 #> 4                          2.337851            2        1          500
 #>   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test
-#> 1          500         0  0.017174482       1           50           8
-#> 2          500         0  0.020810127       2           50           8
-#> 3          500         0  0.003610849       3           50           8
-#> 4          500         0  0.003177166       4           50           8
+#> 1          500         0  0.015320301       1           50           8
+#> 2          500         0  0.018566132       2           50           8
+#> 3          500         0  0.003016472       3           50           8
+#> 4          500         0  0.002767324       4           50           8
 #>   data_slope fit_model
 #> 1          2    linear
 #> 2          2    linear

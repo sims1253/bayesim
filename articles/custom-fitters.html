@@ -140,11 +140,11 @@ colnames)</td>
 unsupported (<code>r2_loo</code> then degrades to NA)</td>
 </tr>
 <tr class="even">
-<td><code>loo_fit(fitter, fit_result)</code></td>
+<td><code>loo_fit(fitter, fit_result, log_lik)</code></td>
 <td>optional; <code>supports_loo = TRUE</code>
 </td>
 <td>list with <code>elpd</code>, <code>p_loo</code>,
-<code>elpd_se</code>, <code>pareto_k</code>
+<code>elpd_se</code>, <code>pareto_k</code>, <code>r_eff</code>
 </td>
 </tr>
 <tr class="odd">
@@ -162,6 +162,16 @@ observations in columns, matching the brms/loo convention. This is the
 single most common custom-fitter bug;
 <code>validate_fitter(smoke_test = TRUE)</code> rejects transposed
 matrices.</p>
+<p><code><a href="../reference/loo_fit.html">loo_fit()</a></code>’s <code>log_lik</code> argument is optional:
+when the engine builds the weighted-prediction (PSIS) context it passes
+the train-set log-lik matrix it already computed, and the method should
+reuse it instead of recomputing; standalone calls pass <code>NULL</code>
+and the method computes its own. Returning <code>r_eff</code> (the
+chain-aware relative efficiencies used for the summary, or
+<code>NULL</code>) likewise lets the engine reuse them for the PSIS
+object. A <code><a href="../reference/loo_fit.html">loo_fit()</a></code> method registered without the
+<code>log_lik</code> argument is rejected by S7’s strict signature
+checking.</p>
 <p>The generics avoid masking common names: <code>loo_fit</code> (not
 <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo</a></code>), <code>log_lik_matrix</code> (not
 <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik</a></code>), <code>fit_model</code> (not
@@ -363,10 +373,10 @@ Stan.</p>
 <span><span class="co">#&gt; 3                          2.259547            2        1          500</span></span>
 <span><span class="co">#&gt; 4                          2.337851            2        1          500</span></span>
 <span><span class="co">#&gt;   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test</span></span>
-<span><span class="co">#&gt; 1          500         0  0.017174482       1           50           8</span></span>
-<span><span class="co">#&gt; 2          500         0  0.020810127       2           50           8</span></span>
-<span><span class="co">#&gt; 3          500         0  0.003610849       3           50           8</span></span>
-<span><span class="co">#&gt; 4          500         0  0.003177166       4           50           8</span></span>
+<span><span class="co">#&gt; 1          500         0  0.015320301       1           50           8</span></span>
+<span><span class="co">#&gt; 2          500         0  0.018566132       2           50           8</span></span>
+<span><span class="co">#&gt; 3          500         0  0.003016472       3           50           8</span></span>
+<span><span class="co">#&gt; 4          500         0  0.002767324       4           50           8</span></span>
 <span><span class="co">#&gt;   data_slope fit_model</span></span>
 <span><span class="co">#&gt; 1          2    linear</span></span>
 <span><span class="co">#&gt; 2          2    linear</span></span>

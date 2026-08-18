@@ -124,6 +124,25 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   built-in
   [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)/[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
   already do).
+- On the weighted-prediction (PSIS) path the train-set log-lik matrix
+  and the chain-aware relative efficiencies are now computed once per
+  task instead of twice:
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
+  passes the matrix it computed to
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  through a new optional `log_lik` argument, and reuses the `r_eff` that
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  now returns for the PSIS object
+  ([\#73](https://github.com/sims1253/bayesim/issues/73)). For
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  this also means the PSIS weights finally use the same chain-aware
+  `r_eff` as the elpd summary (they silently ran without it before).
+  **Breaking for custom fitters**:
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  methods must accept the new `log_lik` argument (S7 requires method
+  formals to match the generic exactly) and may return `r_eff` alongside
+  the summary fields; standalone `loo_fit(fitter, fit_result)` calls are
+  unchanged.
 
 ### Fitters and errors
 

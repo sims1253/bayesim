@@ -96,16 +96,22 @@ directly (it does not depend on the log-lik).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>The PSIS object uses <code>loo::psis(-ll, r_eff)</code> with per-observation
-relative-efficiency factors derived from the fit's chain structure via
-<code>posterior::as_draws_df(fit)$.chain</code> (matches brms' internal <code>r_eff_log_lik</code>
-exactly). Falls back to <code>r_eff = NULL</code> (with a captured warning) when chain
-structure is unavailable, which is mathematically valid but slightly less
-accurate.</p>
+    <p>The PSIS object uses <code>loo::psis(-ll, r_eff)</code> with the chain-aware
+relative-efficiency factors that <code><a href="loo_fit.html">loo_fit()</a></code> derived from the same matrix
+(<code>posterior::as_draws_df(fit)$.chain</code>, matching brms' internal
+<code>r_eff_log_lik</code>). Falls back to <code>r_eff = NULL</code> (with a captured warning)
+when chain structure is unavailable, which is mathematically valid but
+slightly less accurate.</p>
 <p>epred must be the posterior expectation (mu, no observation noise); for brms
 this is <code><a href="https://mc-stan.org/rstantools/reference/posterior_epred.html" class="external-link">brms::posterior_epred</a></code>. Only fitters with <code>supports_epred = TRUE</code>
 are asked for it via <code><a href="predict_epred.html">predict_epred()</a></code>; otherwise epred is NULL and the
 consuming metrics (r2_loo, rmse_loo) degrade to NA.</p>
+<p>The train-set log-lik matrix is computed once and shared: <code><a href="loo_fit.html">loo_fit()</a></code>
+receives it through its <code>log_lik</code> argument, and the PSIS object reuses the
+chain-aware relative efficiencies that <code><a href="loo_fit.html">loo_fit()</a></code> derived from the same
+matrix (falling back to <code><a href="relative_eff_from_chains.html">relative_eff_from_chains()</a></code> when the fitter's
+<code><a href="loo_fit.html">loo_fit()</a></code> returns no <code>r_eff</code>). This keeps the summary and the PSIS
+weights consistent and avoids computing each twice per task (#73).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

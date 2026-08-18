@@ -41,12 +41,13 @@ can still build epred directly (it does not depend on the log-lik).
 
 ## Details
 
-The PSIS object uses `loo::psis(-ll, r_eff)` with per-observation
-relative-efficiency factors derived from the fit's chain structure via
-`posterior::as_draws_df(fit)$.chain` (matches brms' internal
-`r_eff_log_lik` exactly). Falls back to `r_eff = NULL` (with a captured
-warning) when chain structure is unavailable, which is mathematically
-valid but slightly less accurate.
+The PSIS object uses `loo::psis(-ll, r_eff)` with the chain-aware
+relative-efficiency factors that
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+derived from the same matrix (`posterior::as_draws_df(fit)$.chain`,
+matching brms' internal `r_eff_log_lik`). Falls back to `r_eff = NULL`
+(with a captured warning) when chain structure is unavailable, which is
+mathematically valid but slightly less accurate.
 
 epred must be the posterior expectation (mu, no observation noise); for
 brms this is
@@ -55,3 +56,15 @@ Only fitters with `supports_epred = TRUE` are asked for it via
 [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md);
 otherwise epred is NULL and the consuming metrics (r2_loo, rmse_loo)
 degrade to NA.
+
+The train-set log-lik matrix is computed once and shared:
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+receives it through its `log_lik` argument, and the PSIS object reuses
+the chain-aware relative efficiencies that
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+derived from the same matrix (falling back to
+[`relative_eff_from_chains()`](https://sims1253.github.io/bayesim/reference/relative_eff_from_chains.md)
+when the fitter's
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+returns no `r_eff`). This keeps the summary and the PSIS weights
+consistent and avoids computing each twice per task (#73).
