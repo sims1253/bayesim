@@ -22,7 +22,11 @@ will only receive these values in the context if the fitter provides
 them. \code{epred} is delivered as \code{context$loo_epred}, a draws x observations
 matrix computed on the training set; it is delivered whether or not
 \code{"loo"} is also declared — without \code{"loo"} the matrix is built directly
-instead of through the LOO context.}
+instead of through the LOO context. Declaring \code{"epred"} also delivers the
+PSIS weighted-prediction machinery (\code{context$loo_psis},
+\code{context$loo_psis_ll}); declaring \code{"loo"} alone delivers only the
+\code{loo_fit()} elpd/p_loo/pareto_k summary (\code{context$loo}), so a metric
+reading the PSIS objects must declare \code{"epred"} too.}
 
 \item{required}{Logical indicating whether metric failure causes task
 failure. If TRUE, an error in computing this metric will propagate and

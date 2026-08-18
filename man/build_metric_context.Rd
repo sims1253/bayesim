@@ -54,5 +54,9 @@ leave-one-out is in-sample by construction. \code{loo_epred} is likewise a
 training-set matrix; when no metric needs \code{"loo"} (or the fitter lacks LOO
 support) it is built directly via \code{\link[=predict_epred]{predict_epred()}} rather than through
 the LOO context, so declaring \code{needs = "epred"} alone still delivers it.
+The PSIS machinery (\code{loo_psis}, \code{loo_psis_ll}) rides along with \code{loo_epred}:
+it is computed only when some metric declares \code{"epred"}; a run whose LOO
+metrics need only the elpd summary (\code{needs = "loo"} alone, e.g.
+\code{elpd_loo_metric()}) pays for the \code{loo_fit()} summary alone (#69).
 }
 \keyword{internal}

@@ -1055,6 +1055,118 @@ describe("Worker", {
       expect_true(is.null(context[["loo_psis_ll"]]))
     })
 
+    it("skips the PSIS machinery when only \"loo\" is needed (#69)", {
+      # needs = "loo" alone (the elpd_loo configuration) must pay for the
+      # loo_fit() summary only: the train-set log-lik matrix, r_eff, the PSIS
+      # object, and epred exist solely to feed the weighted-prediction
+      # machinery, which no such metric reads.
+      CountingLooFitter <- S7::new_class(
+        "CountingLooFitter",
+        parent = MockFitter
+      )
+      calls <- new.env(parent = emptyenv())
+      calls$log_lik <- 0L
+      calls$epred <- 0L
+      S7::method(log_lik_matrix, CountingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        calls$log_lik <- calls$log_lik + 1L
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      S7::method(predict_epred, CountingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        calls$epred <- calls$epred + 1L
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- CountingLooFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        list(elpd_loo_metric())
+      ))
+
+      # The summary is delivered (MockFitter: elpd = -n_obs * 2)...
+      expect_false(is.null(context[["loo"]]))
+      expect_equal(context$loo$elpd, -20)
+      # ...the PSIS machinery is not computed, not merely absent from the
+      # context.
+      expect_null(context$loo_psis)
+      expect_null(context$loo_psis_ll)
+      expect_null(context$loo_epred)
+      expect_equal(calls$log_lik, 0L)
+      expect_equal(calls$epred, 0L)
+    })
+
+    it("builds the full PSIS machinery when \"epred\" is declared alongside \"loo\" (#69)", {
+      # rmse_loo/r2_loo declare needs = c("loo", "epred"): the weighted-
+      # prediction machinery must still be computed and shared.
+      CountingLooFitter2 <- S7::new_class(
+        "CountingLooFitter2",
+        parent = MockFitter
+      )
+      calls2 <- new.env(parent = emptyenv())
+      calls2$log_lik <- 0L
+      calls2$epred <- 0L
+      S7::method(log_lik_matrix, CountingLooFitter2) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        calls2$log_lik <- calls2$log_lik + 1L
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      S7::method(predict_epred, CountingLooFitter2) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        calls2$epred <- calls2$epred + 1L
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- CountingLooFitter2()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        list(rmse_loo_metric())
+      ))
+
+      expect_false(is.null(context[["loo"]]))
+      expect_true(inherits(context$loo_psis, "psis"))
+      expect_true(is.matrix(context$loo_psis_ll))
+      expect_equal(dim(context$loo_epred), c(50, 10))
+      expect_equal(calls2$log_lik, 1L)
+      expect_equal(calls2$epred, 1L)
+    })
+
     it("builds epred without LOO support when \"loo\" is also declared (#68)", {
       # needs = c("loo", "epred") on a supports_loo = FALSE fitter: the LOO
       # branch is skipped (warn-once), but epred no longer disappears with it.
