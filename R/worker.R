@@ -779,7 +779,8 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   # (save_psis = TRUE): loo::loo()'s internal run is identical to
   # loo::psis(-ll, r_eff) on the same matrix, so reuse it instead of
   # smoothing the same tails a second time. The dim check on the log-weights
-  # matrix (S x N; named lw before loo 2.10) rejects a psis object fitted
+  # matrix (S x N; spelled lw in older loo releases — log_weights is the
+  # name at least since 2.6) rejects a psis object fitted
   # from a different matrix — e.g. a fitter that ignored the supplied
   # log_lik or returned a differently-sized one — so a buggy fitter falls
   # through to the direct route below instead of erroring opaquely inside
