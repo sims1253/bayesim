@@ -44,7 +44,8 @@ describe("C1: purrr/mirai transport", {
       class = "bayesim_config_error"
     )
 
-    local_mirai_daemons(2)
+    mirai::daemons(2)
+    on.exit(mirai::daemons(0), add = TRUE)
     expect_error(
       run_simulation(config, resume = "never", progress = FALSE),
       class = "bayesim_config_error"
@@ -62,7 +63,8 @@ describe("C1: purrr/mirai transport", {
       seed = 42L
     )
     seq_res <- run_simulation(config, resume = "never", progress = FALSE)
-    local_mirai_daemons(2)
+    mirai::daemons(2)
+    on.exit(mirai::daemons(0), add = TRUE)
     par_res <- run_simulation(config, resume = "never", progress = FALSE)
 
     norm <- function(x) {
@@ -95,10 +97,6 @@ describe("C2: workers convenience argument", {
       workers = 2
     )
     expect_false(mirai::daemons_set())
-    # run_simulation's internal teardown is also asynchronous; wait the daemon
-    # processes out so their exit-time work (covr trace dumps) is complete
-    # before the suite ends.
-    wait_for_mirai_daemons_exit()
 
     norm <- function(x) {
       x <- x[order(x$task_id), , drop = FALSE]
@@ -109,7 +107,8 @@ describe("C2: workers convenience argument", {
   })
 
   it("errors when workers is non-NULL and daemons are already set", {
-    local_mirai_daemons(2)
+    mirai::daemons(2)
+    on.exit(mirai::daemons(0), add = TRUE)
     config <- simulation_config(
       data_grid = data.frame(n = 30),
       fit_grid = data.frame(model = "baseline"),

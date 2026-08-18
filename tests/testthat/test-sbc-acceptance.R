@@ -79,7 +79,8 @@ describe("SBC acceptance — prior-predictive pass (F8)", {
     )
 
     # Run under mirai daemons (the F6/F8 transport path).
-    local_mirai_daemons(2)
+    mirai::daemons(2)
+    on.exit(mirai::daemons(0), add = TRUE)
 
     result <- run_simulation(config, resume = "never", progress = FALSE)
 
