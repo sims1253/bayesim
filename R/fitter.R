@@ -140,12 +140,15 @@ validate_fitter_log_lik <- function(log_lik, n_obs) {
 
 # epred is consumed by loo::E_loo() against the PSIS object built from the
 # pointwise log-lik, so the two must share draws x observations dimensions;
-# the checks mirror validate_fitter_log_lik().
+# the checks mirror validate_fitter_log_lik(). n_draws may be NULL when no
+# paired log-lik matrix exists (epred built outside the LOO context); then
+# only the observation count and a non-empty draws dimension are checked.
 validate_fitter_epred <- function(epred, n_draws, n_obs) {
   if (
     !is.matrix(epred) ||
       !is.numeric(epred) ||
-      nrow(epred) != n_draws ||
+      (!is.null(n_draws) && nrow(epred) != n_draws) ||
+      (is.null(n_draws) && nrow(epred) < 1L) ||
       ncol(epred) != n_obs
   ) {
     got <- if (is.matrix(epred)) {
@@ -153,11 +156,13 @@ validate_fitter_epred <- function(epred, n_draws, n_obs) {
     } else {
       paste(class(epred), collapse = "/")
     }
+    expected_draws <- if (is.null(n_draws)) "S" else n_draws
     stop(bayesim_contract_error(
       paste0(
-        "predict_epred() must return a numeric S x N matrix aligned with ",
-        "log_lik_matrix() (expected ",
-        n_draws,
+        "predict_epred() must return a numeric S x N matrix",
+        if (is.null(n_draws)) "" else " aligned with log_lik_matrix()",
+        " (expected ",
+        expected_draws,
         " x ",
         n_obs,
         ", got ",

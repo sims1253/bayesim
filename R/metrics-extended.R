@@ -629,7 +629,9 @@ S7::method(compute_metric, ElpdLooMetric) <- function(
   context,
   task_ctx
 ) {
-  loo <- context$loo
+  # Exact [[ ]] access: $loo would partial-match loo_epred when the context
+  # carries an epred matrix without a LOO summary (#68).
+  loo <- context[["loo"]]
   if (is.null(loo)) {
     return(list(
       elpd = NA_real_,
@@ -703,7 +705,9 @@ S7::method(compute_metric, RmseLooMetric) <- function(
   context,
   task_ctx
 ) {
-  loo <- context$loo
+  # Exact [[ ]] access for loo: $loo would partial-match loo_epred when the
+  # context carries an epred matrix without a LOO summary (#68).
+  loo <- context[["loo"]]
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
   ppred <- context$loo_epred
@@ -802,7 +806,9 @@ S7::method(compute_metric, R2LooMetric) <- function(
   context,
   task_ctx
 ) {
-  loo <- context$loo
+  # Exact [[ ]] access for loo: $loo would partial-match loo_epred when the
+  # context carries an epred matrix without a LOO summary (#68).
+  loo <- context[["loo"]]
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
   epred <- context$loo_epred
