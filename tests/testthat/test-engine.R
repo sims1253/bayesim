@@ -1167,6 +1167,75 @@ describe("Worker", {
       expect_equal(calls2$epred, 1L)
     })
 
+    it("computes the train-set log-lik matrix once on the PSIS path (#73)", {
+      # loo_fit() used to recompute the train-set log-lik matrix (and r_eff)
+      # that build_loo_context() had just computed. The matrix now travels to
+      # loo_fit() via its log_lik argument. The counting fitter mirrors
+      # BrmsFitter's shape: its loo_fit() derives from log_lik_matrix() when
+      # called without a precomputed matrix.
+      SharingLooFitter <- S7::new_class("SharingLooFitter", parent = MockFitter)
+      calls <- new.env(parent = emptyenv())
+      calls$log_lik <- 0L
+      S7::method(log_lik_matrix, SharingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        calls$log_lik <- calls$log_lik + 1L
+        # Deterministic matrix so the handoff can be asserted by identity.
+        calls$last_ll <- matrix(seq_len(500) / 500, nrow = 50, ncol = 10)
+      }
+      S7::method(loo_fit, SharingLooFitter) <- function(
+        fitter,
+        fit_result,
+        log_lik = NULL
+      ) {
+        ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
+        calls$received_passed_ll <- !is.null(log_lik)
+        list(
+          elpd = -20,
+          p_loo = 3,
+          elpd_se = 1.5,
+          pareto_k = runif(ncol(ll)),
+          r_eff = NULL
+        )
+      }
+      S7::method(predict_epred, SharingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- SharingLooFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        list(rmse_loo_metric())
+      ))
+
+      # Exactly one train-set log-lik computation feeds both the loo_fit()
+      # summary and the PSIS object...
+      expect_equal(calls$log_lik, 1L)
+      # ...and loo_fit() received the matrix the context computed.
+      expect_true(isTRUE(calls$received_passed_ll))
+      expect_identical(context$loo_psis_ll, calls$last_ll)
+      expect_false(is.null(context[["loo"]]))
+      expect_true(inherits(context$loo_psis, "psis"))
+    })
+
     it("builds epred without LOO support when \"loo\" is also declared (#68)", {
       # needs = c("loo", "epred") on a supports_loo = FALSE fitter: the LOO
       # branch is skipped (warn-once), but epred no longer disappears with it.

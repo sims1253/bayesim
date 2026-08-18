@@ -324,14 +324,21 @@ S7::method(log_lik_matrix, LinearRegressionFitter) <- function(
 }
 
 # loo_fit ------------------------------------------------------------------
-S7::method(loo_fit, LinearRegressionFitter) <- function(fitter, fit_result) {
-  ll <- log_lik_matrix(fitter, fit_result)
+S7::method(loo_fit, LinearRegressionFitter) <- function(
+  fitter,
+  fit_result,
+  log_lik = NULL
+) {
+  # #73: reuse a caller-supplied train-set matrix; standalone callers pass
+  # NULL and pay the single computation here.
+  ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
   if (is.null(ll)) {
     return(list(
       elpd = NA_real_,
       p_loo = NA_real_,
       elpd_se = NA_real_,
-      pareto_k = numeric()
+      pareto_k = numeric(),
+      r_eff = NULL
     ))
   }
   # i.i.d. draws => no chains; relative_eff is degenerate. PSIS-LOO still valid.
@@ -344,14 +351,16 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(fitter, fit_result) {
       elpd = NA_real_,
       p_loo = NA_real_,
       elpd_se = NA_real_,
-      pareto_k = numeric()
+      pareto_k = numeric(),
+      r_eff = NULL
     ))
   }
   list(
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
     p_loo = loo_result$estimates["p_loo", "Estimate"],
     elpd_se = loo_result$estimates["elpd_loo", "SE"],
-    pareto_k = loo::pareto_k_values(loo_result)
+    pareto_k = loo::pareto_k_values(loo_result),
+    r_eff = NULL
   )
 }
 

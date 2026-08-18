@@ -559,12 +559,18 @@ S7::method(predict_epred, BrmsFitter) <- function(
   brms::posterior_epred(fit_result$fit, newdata = data)
 }
 
-S7::method(loo_fit, BrmsFitter) <- function(fitter, fit_result) {
+S7::method(loo_fit, BrmsFitter) <- function(
+  fitter,
+  fit_result,
+  log_lik = NULL
+) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(NULL)
   }
 
-  ll <- brms::log_lik(fit_result$fit)
+  # #73: reuse a caller-supplied train-set matrix; standalone callers pass
+  # NULL and pay the single computation here.
+  ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
   # Chain-aware relative efficiency (A4): consistent with build_loo_context()
   # and brms::loo(). ll is S x N (draws x observations).
   r_eff <- relative_eff_from_chains(fitter, fit_result, ll)
@@ -574,7 +580,9 @@ S7::method(loo_fit, BrmsFitter) <- function(fitter, fit_result) {
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
     p_loo = loo_result$estimates["p_loo", "Estimate"],
     elpd_se = loo_result$estimates["elpd_loo", "SE"],
-    pareto_k = loo::pareto_k_values(loo_result)
+    pareto_k = loo::pareto_k_values(loo_result),
+    # Returned so build_loo_context() can reuse it for the PSIS object (#73).
+    r_eff = r_eff
   )
 }
 

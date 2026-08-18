@@ -349,6 +349,13 @@ log_lik_matrix <- S7::new_generic(
 #'
 #' @param fitter An S7 Fitter object
 #' @param fit_result A `bayesim_fit_result` object from [fit_model()]
+#' @param log_lik Optional pointwise log-likelihood matrix (S x N, draws x
+#'   observations) for the training set, as returned by [log_lik_matrix()].
+#'   When supplied, methods should use it instead of recomputing their own;
+#'   `build_metric_context()` passes the matrix it already computed so the
+#'   weighted-prediction (PSIS) path pays for it once per task (#73). NULL
+#'   (the default, and for standalone calls) means the method computes its
+#'   own.
 #'
 #' @return A list containing:
 #'   \itemize{
@@ -356,12 +363,19 @@ log_lik_matrix <- S7::new_generic(
 #'     \item `p_loo`: Effective number of parameters (scalar)
 #'     \item `elpd_se`: Standard error of ELPD (scalar)
 #'     \item `pareto_k`: Pareto k diagnostic values (vector of length N)
+#'     \item `r_eff`: Chain-aware relative efficiencies used for the summary
+#'       (vector of length N), or NULL when none were computed (e.g. i.i.d.
+#'       draws). `build_metric_context()` reuses it for the PSIS object (#73).
 #'     \item Additional loo-specific diagnostics
 #'   }
 #' @export
-loo_fit <- S7::new_generic("loo_fit", "fitter", function(fitter, fit_result) {
-  S7::S7_dispatch()
-})
+loo_fit <- S7::new_generic(
+  "loo_fit",
+  "fitter",
+  function(fitter, fit_result, log_lik = NULL) {
+    S7::S7_dispatch()
+  }
+)
 
 #' @title Extract Fit Diagnostics
 #' @description
@@ -412,7 +426,7 @@ S7::method(log_lik_matrix, Fitter) <- function(
   NULL
 }
 
-S7::method(loo_fit, Fitter) <- function(fitter, fit_result) {
+S7::method(loo_fit, Fitter) <- function(fitter, fit_result, log_lik = NULL) {
   NULL
 }
 
@@ -744,13 +758,18 @@ S7::method(log_lik_matrix, MockFitter) <- function(
   })
 }
 
-S7::method(loo_fit, MockFitter) <- function(fitter, fit_result) {
+S7::method(loo_fit, MockFitter) <- function(
+  fitter,
+  fit_result,
+  log_lik = NULL
+) {
   if (is.null(fit_result) || is.null(fit_result$fit)) {
     return(list(
       elpd = NA_real_,
       p_loo = NA_real_,
       elpd_se = NA_real_,
-      pareto_k = numeric()
+      pareto_k = numeric(),
+      r_eff = NULL
     ))
   }
 
@@ -763,7 +782,8 @@ S7::method(loo_fit, MockFitter) <- function(fitter, fit_result) {
       elpd = -n_obs * 2,
       p_loo = 3,
       elpd_se = sqrt(n_obs) * 0.5,
-      pareto_k = runif(n_obs, -0.5, 0.5)
+      pareto_k = runif(n_obs, -0.5, 0.5),
+      r_eff = NULL
     )
   })
 }

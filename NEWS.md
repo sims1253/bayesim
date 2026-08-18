@@ -87,6 +87,17 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   NULL in such runs — custom metrics reading them must declare `"epred"`
   alongside `"loo"` (the documented `Metric` `needs` contract; the built-in
   `rmse_loo_metric()`/`r2_loo_metric()` already do).
+* On the weighted-prediction (PSIS) path the train-set log-lik matrix and
+  the chain-aware relative efficiencies are now computed once per task
+  instead of twice: `build_loo_context()` passes the matrix it computed to
+  `loo_fit()` through a new optional `log_lik` argument, and reuses the
+  `r_eff` that `loo_fit()` now returns for the PSIS object (#73). For
+  `CmdStanFitter()` this also means the PSIS weights finally use the same
+  chain-aware `r_eff` as the elpd summary (they silently ran without it
+  before). **Breaking for custom fitters**: `loo_fit()` methods must accept
+  the new `log_lik` argument (S7 requires method formals to match the
+  generic exactly) and may return `r_eff` alongside the summary fields;
+  standalone `loo_fit(fitter, fit_result)` calls are unchanged.
 
 ## Fitters and errors
 

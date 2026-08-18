@@ -4,12 +4,20 @@
 \alias{loo_fit}
 \title{Compute LOO-CV}
 \usage{
-loo_fit(fitter, fit_result)
+loo_fit(fitter, fit_result, log_lik = NULL)
 }
 \arguments{
 \item{fitter}{An S7 Fitter object}
 
 \item{fit_result}{A \code{bayesim_fit_result} object from \code{\link[=fit_model]{fit_model()}}}
+
+\item{log_lik}{Optional pointwise log-likelihood matrix (S x N, draws x
+observations) for the training set, as returned by \code{\link[=log_lik_matrix]{log_lik_matrix()}}.
+When supplied, methods should use it instead of recomputing their own;
+\code{build_metric_context()} passes the matrix it already computed so the
+weighted-prediction (PSIS) path pays for it once per task (#73). NULL
+(the default, and for standalone calls) means the method computes its
+own.}
 }
 \value{
 A list containing:
@@ -18,6 +26,9 @@ A list containing:
 \item \code{p_loo}: Effective number of parameters (scalar)
 \item \code{elpd_se}: Standard error of ELPD (scalar)
 \item \code{pareto_k}: Pareto k diagnostic values (vector of length N)
+\item \code{r_eff}: Chain-aware relative efficiencies used for the summary
+(vector of length N), or NULL when none were computed (e.g. i.i.d.
+draws). \code{build_metric_context()} reuses it for the PSIS object (#73).
 \item Additional loo-specific diagnostics
 }
 }

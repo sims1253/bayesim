@@ -127,3 +127,33 @@ describe("loo_fit(BrmsFitter) parity with brms::loo (A4)", {
     expect_lt(abs(out$elpd_se - brms_loo$estimates["elpd_loo", "SE"]), 1e-6)
   })
 })
+
+# #73: loo_fit() accepts the train-set log-lik matrix its caller computed and
+# returns the r_eff it derived, so build_loo_context() computes each once.
+describe("loo_fit(BrmsFitter) with a supplied log_lik matrix (#73)", {
+  it("returns the identical summary and the r_eff it used", {
+    fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
+    out_passed <- loo_fit(fitter, fit_result, log_lik = ll)
+    out_own <- loo_fit(fitter, fit_result)
+    expect_equal(out_passed$elpd, out_own$elpd)
+    expect_equal(out_passed$p_loo, out_own$p_loo)
+    expect_equal(out_passed$elpd_se, out_own$elpd_se)
+    expect_equal(out_passed$pareto_k, out_own$pareto_k)
+    # The returned r_eff is the chain-aware correction the summary used,
+    # matching the fixture's manual relative_eff() computation.
+    expect_false(is.null(out_passed$r_eff))
+    expect_equal(out_passed$r_eff, r_eff)
+  })
+})
+
+describe("build_loo_context shares one log-lik and r_eff across summary and PSIS (#73)", {
+  it("delivers the same PSIS object as the manual construction", {
+    fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
+    ctx <- build_loo_context(fitter, fit_result, need_psis = TRUE)
+    expect_equal(ctx$log_lik, ll)
+    expect_equal(ctx$loo$elpd, loo_fit(fitter, fit_result)$elpd)
+    # The same chain-aware r_eff entered the PSIS smoothing as in the manual
+    # fixture (r_eff shifts the tail smoothing, hence pareto_k).
+    expect_equal(ctx$psis$diagnostics$pareto_k, psis_obj$diagnostics$pareto_k)
+  })
+})

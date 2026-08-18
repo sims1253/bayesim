@@ -31,16 +31,23 @@ matrix, and the posterior expectation predictions (epred) — all once, shared
 across metrics.
 }
 \details{
-The PSIS object uses \code{loo::psis(-ll, r_eff)} with per-observation
-relative-efficiency factors derived from the fit's chain structure via
-\code{posterior::as_draws_df(fit)$.chain} (matches brms' internal \code{r_eff_log_lik}
-exactly). Falls back to \code{r_eff = NULL} (with a captured warning) when chain
-structure is unavailable, which is mathematically valid but slightly less
-accurate.
+The PSIS object uses \code{loo::psis(-ll, r_eff)} with the chain-aware
+relative-efficiency factors that \code{loo_fit()} derived from the same matrix
+(\code{posterior::as_draws_df(fit)$.chain}, matching brms' internal
+\code{r_eff_log_lik}). Falls back to \code{r_eff = NULL} (with a captured warning)
+when chain structure is unavailable, which is mathematically valid but
+slightly less accurate.
 
 epred must be the posterior expectation (mu, no observation noise); for brms
 this is \code{brms::posterior_epred}. Only fitters with \code{supports_epred = TRUE}
 are asked for it via \code{predict_epred()}; otherwise epred is NULL and the
 consuming metrics (r2_loo, rmse_loo) degrade to NA.
+
+The train-set log-lik matrix is computed once and shared: \code{loo_fit()}
+receives it through its \code{log_lik} argument, and the PSIS object reuses the
+chain-aware relative efficiencies that \code{loo_fit()} derived from the same
+matrix (falling back to \code{\link[=relative_eff_from_chains]{relative_eff_from_chains()}} when the fitter's
+\code{loo_fit()} returns no \code{r_eff}). This keeps the summary and the PSIS
+weights consistent and avoids computing each twice per task (#73).
 }
 \keyword{internal}

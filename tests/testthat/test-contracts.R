@@ -341,7 +341,7 @@ describe("Fitter Class", {
       loo_result <- loo_fit(fitter, out$fit)
       expect_setequal(
         names(loo_result),
-        c("elpd", "p_loo", "elpd_se", "pareto_k")
+        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
       )
 
       diag <- fit_diagnostics(fitter, out$fit)
