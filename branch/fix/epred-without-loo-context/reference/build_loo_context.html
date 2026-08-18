@@ -73,8 +73,12 @@ across metrics.</p>
 
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A list with elements <code>loo</code>, <code>psis</code>, <code>log_lik</code>, <code>epred</code>, or NULL on
-failure. <code>psis</code>/<code>log_lik</code>/<code>epred</code> may be individually NULL if unavailable.</p>
+    <p>A list with elements <code>loo</code>, <code>psis</code>, <code>log_lik</code>, <code>epred</code>, and
+<code>epred_attempted</code> (logical; whether <code><a href="predict_epred.html">predict_epred()</a></code> was called), or
+NULL on failure. <code>psis</code>/<code>log_lik</code>/<code>epred</code> may be individually NULL if
+unavailable; when the train-set log-lik matrix fails the function bails
+with <code>epred_attempted = FALSE</code> so the caller can still build epred
+directly (it does not depend on the log-lik).</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>

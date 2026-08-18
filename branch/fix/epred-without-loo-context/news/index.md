@@ -93,15 +93,17 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   missing context element and NA-degraded with no explanation. epred is
   now built directly via
   [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
-  whenever the LOO context is not built (no `"loo"` need, unsupported
-  LOO, or a failed LOO build), with its own warn-once NA path when
+  whenever the LOO context did not deliver it and never attempted it (no
+  `"loo"` need, unsupported or failed LOO build, or a LOO context that
+  bailed at the train-set log-lik matrix), with its own warn-once NA
+  path when
   [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
-  fails or returns a wrong-shaped matrix
-  ([\#68](https://github.com/sims1253/bayesim/issues/68)). When the
-  context carries `loo_epred` without a LOO summary, an exact NULL `loo`
-  binding is pinned (and the built-in loo metrics read
-  `context[["loo"]]`) so `$` partial matching can no longer hand a
-  metric the epred matrix when it asked for `context$loo`.
+  fails or returns a wrong-shaped matrix. When the context carries
+  `loo_epred` without a LOO summary, an exact NULL `loo` binding is
+  pinned (and the built-in loo metrics read `context[["loo"]]`) so `$`
+  partial matching can no longer hand a metric the epred matrix when it
+  asked for `context$loo`
+  ([\#68](https://github.com/sims1253/bayesim/issues/68)).
 
 ### Fitters and errors
 

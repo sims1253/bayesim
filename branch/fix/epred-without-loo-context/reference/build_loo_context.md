@@ -16,9 +16,13 @@ build_loo_context(fitter, fit_result)
 
 ## Value
 
-A list with elements `loo`, `psis`, `log_lik`, `epred`, or NULL on
-failure. `psis`/`log_lik`/`epred` may be individually NULL if
-unavailable.
+A list with elements `loo`, `psis`, `log_lik`, `epred`, and
+`epred_attempted` (logical; whether
+[`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+was called), or NULL on failure. `psis`/`log_lik`/`epred` may be
+individually NULL if unavailable; when the train-set log-lik matrix
+fails the function bails with `epred_attempted = FALSE` so the caller
+can still build epred directly (it does not depend on the log-lik).
 
 ## Details
 
