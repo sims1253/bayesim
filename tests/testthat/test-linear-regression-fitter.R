@@ -185,7 +185,11 @@ describe("LinearRegressionFitter contract", {
       seed = 1L,
       task_ctx = list(task_id = "t")
     )
-    # A single draw cannot support PSIS smoothing; the summary degrades to NA.
+    # S = 1: loo::loo() hard-errors at one draw (psis_apply's internal
+    # vapply collapses the log-weights to a plain vector, tripping its
+    # is.matrix stopifnot) — a future loo that handles S = 1 gracefully
+    # would need this test re-pinned; the summary must degrade to NA, not
+    # propagate the error.
     out <- loo_fit(fitter, res, log_lik = matrix(rnorm(10), nrow = 1))
     expect_setequal(
       names(out),

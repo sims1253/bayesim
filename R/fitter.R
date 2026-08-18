@@ -352,7 +352,7 @@ log_lik_matrix <- S7::new_generic(
 #' @param log_lik Optional pointwise log-likelihood matrix (S x N, draws x
 #'   observations) for the training set, as returned by [log_lik_matrix()].
 #'   When supplied, methods should use it instead of recomputing their own;
-#'   `build_metric_context()` passes the matrix it already computed so the
+#'   `build_loo_context()` passes the matrix it already computed so the
 #'   weighted-prediction (PSIS) path pays for it once per task (#73). NULL
 #'   (the default, and for standalone calls) means the method computes its
 #'   own.
@@ -365,7 +365,7 @@ log_lik_matrix <- S7::new_generic(
 #'     \item `pareto_k`: Pareto k diagnostic values (vector of length N)
 #'     \item `r_eff`: Chain-aware relative efficiencies used for the summary
 #'       (vector of length N), or NULL when none were computed (e.g. i.i.d.
-#'       draws). `build_metric_context()` reuses it for the PSIS object (#73).
+#'       draws). `build_loo_context()` reuses it for the PSIS object (#73).
 #'     \item Additional loo-specific diagnostics
 #'   }
 #' @export

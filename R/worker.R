@@ -767,8 +767,9 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
 
   # #73: reuse the chain-aware relative efficiencies loo_fit() derived from
   # the same matrix; derive them here only when the fitter's loo_fit() did
-  # not return any.
-  r_eff <- loo_result$r_eff
+  # not return any. Exact [[ ]] read: loo_result is a fitter-controlled list
+  # where $ would partial-match.
+  r_eff <- loo_result[["r_eff"]]
   if (is.null(r_eff)) {
     r_eff <- tryCatch(
       relative_eff_from_chains(fitter, fit_result, ll),

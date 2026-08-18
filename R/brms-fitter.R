@@ -568,9 +568,12 @@ S7::method(loo_fit, BrmsFitter) <- function(
     return(NULL)
   }
 
-  # #73: reuse a caller-supplied train-set matrix; standalone callers pass
-  # NULL and pay the single computation here.
-  ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
+  # #73: reuse a caller-supplied train-set matrix. Standalone callers keep
+  # brms' canonical in-sample route (the fit's stored model frame): the
+  # newdata route behind log_lik_matrix() is a behavioral switch in brms
+  # (keeps rows dropped at fit time, re-samples me() latents) and errors for
+  # some model classes, so it must not become the fallback.
+  ll <- log_lik %||% brms::log_lik(fit_result$fit)
   # Chain-aware relative efficiency (A4): consistent with build_loo_context()
   # and brms::loo(). ll is S x N (draws x observations).
   r_eff <- relative_eff_from_chains(fitter, fit_result, ll)
