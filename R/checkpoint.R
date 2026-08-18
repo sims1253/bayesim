@@ -552,10 +552,7 @@ write_checkpoint <- function(
         n_tasks = nrow(task_grid),
         n_success = sum(task_grid$status == "success", na.rm = TRUE),
         n_failed = sum(task_grid$status == "failed", na.rm = TRUE),
-        n_pending = sum(
-          is_resumable_task_status(task_grid$status),
-          na.rm = TRUE
-        ),
+        n_pending = sum(task_grid$status == "pending", na.rm = TRUE),
         n_policy_stopped = if ("stop_reason" %in% names(task_grid)) {
           sum(
             task_grid$status == "skipped" &

@@ -474,6 +474,48 @@ describe("Checkpoint Writing", {
       expect_equal(meta$n_pending, 1)
     })
 
+    it("counts policy-stopped tasks in n_policy_stopped, not n_pending", {
+      tmpdir <- withr::local_tempdir()
+      result_path <- file.path(tmpdir, "results")
+      init_checkpoint_dir(result_path, config_fingerprint = "test_fingerprint")
+
+      # Mirrors a max_errors stop: one failed task, three policy-stopped
+      # placeholders, one row still genuinely pending.
+      task_grid <- data.frame(
+        task_id = c("t1", "t2", "t3", "t4", "t5"),
+        status = c("failed", "skipped", "skipped", "skipped", "pending"),
+        stop_reason = c(
+          "fit_error",
+          "max_errors",
+          "max_errors",
+          "adaptive_stop",
+          NA_character_
+        ),
+        stringsAsFactors = FALSE
+      )
+      task_results <- list(
+        create_test_task_result(task_id = "t1", status = "failed")
+      )
+
+      write_checkpoint(
+        result_path = result_path,
+        task_grid = task_grid,
+        task_results = task_results,
+        config_fingerprint = "test_fp"
+      )
+
+      meta <- jsonlite::read_json(file.path(
+        result_path,
+        "checkpoints",
+        "cp_000001",
+        "meta.json"
+      ))
+      expect_equal(meta$n_tasks, 5)
+      expect_equal(meta$n_failed, 1)
+      expect_equal(meta$n_pending, 1)
+      expect_equal(meta$n_policy_stopped, 3)
+    })
+
     it("creates ledger.rds with correct data", {
       tmpdir <- withr::local_tempdir()
       result_path <- file.path(tmpdir, "results")
