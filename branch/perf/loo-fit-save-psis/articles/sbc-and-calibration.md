@@ -133,7 +133,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 150 tasks = 1 data x 1 fit x 150 reps
 #> ℹ Starting simulation with 150 tasks
 #> 
-#> ✔ Simulation complete: 150/150 tasks succeeded in 1.5s
+#> ✔ Simulation complete: 150/150 tasks succeeded in 1.1s
 ```
 
 Each task records one rank per parameter (here `Intercept`, `x`,
