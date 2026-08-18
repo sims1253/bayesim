@@ -36,7 +36,13 @@ Metric(
   them. `epred` is delivered as `context$loo_epred`, a draws x
   observations matrix computed on the training set; it is delivered
   whether or not `"loo"` is also declared — without `"loo"` the matrix
-  is built directly instead of through the LOO context.
+  is built directly instead of through the LOO context. Declaring
+  `"epred"` also delivers the PSIS weighted-prediction machinery
+  (`context$loo_psis`, `context$loo_psis_ll`); declaring `"loo"` alone
+  delivers only the
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  elpd/p_loo/pareto_k summary (`context$loo`), so a metric reading the
+  PSIS objects must declare `"epred"` too.
 
 - required:
 

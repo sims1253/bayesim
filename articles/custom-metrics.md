@@ -68,11 +68,14 @@ receives:
 - `context` — precomputed values, driven by your metric’s `needs`
   property: `"predictions"` (a
   [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md)
-  result), `"log_lik"` (an S x N matrix), `"loo"` (elpd summary plus
-  PSIS machinery). Declare only what you use; the engine computes each
-  at most once per task and shares it across metrics. Predictions and
-  log-lik are evaluated on the **test set** when one exists, otherwise
-  on the training data.
+  result), `"log_lik"` (an S x N matrix), `"loo"` (the
+  elpd/p_loo/pareto_k summary), `"epred"` (a training-set draws x
+  observations matrix, plus the PSIS machinery `loo_psis`/`loo_psis_ll`
+  used by the weighted-prediction LOO metrics). Declare only what you
+  use; the engine computes each at most once per task, shares it across
+  metrics, and skips the PSIS work entirely when no metric declares
+  `"epred"`. Predictions and log-lik are evaluated on the **test set**
+  when one exists, otherwise on the training data.
 - `task_ctx` — task identity (`task_id`, `data_idx`, `fit_idx`,
   `rep_idx`, `seed`).
 

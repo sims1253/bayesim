@@ -110,6 +110,20 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   partial matching can no longer hand a metric the epred matrix when it
   asked for `context$loo`
   ([\#68](https://github.com/sims1253/bayesim/issues/68)).
+- The LOO context no longer computes the PSIS weighted-prediction
+  machinery (train-set log-lik matrix, `r_eff`, PSIS object, epred
+  matrix) when no metric declares the `"epred"` need: a run configuring
+  only
+  [`elpd_loo_metric()`](https://sims1253.github.io/bayesim/reference/ElpdLooMetric.md)
+  (`needs = "loo"`) pays for the
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  summary alone ([\#69](https://github.com/sims1253/bayesim/issues/69)).
+  `context$loo_psis`/`loo_psis_ll`/`loo_epred` are consequently NULL in
+  such runs — custom metrics reading them must declare `"epred"`
+  alongside `"loo"` (the documented `Metric` `needs` contract; the
+  built-in
+  [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)/[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  already do).
 
 ### Fitters and errors
 

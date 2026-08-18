@@ -71,4 +71,11 @@ likewise a training-set matrix; when no metric needs `"loo"` (or the
 fitter lacks LOO support) it is built directly via
 [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
 rather than through the LOO context, so declaring `needs = "epred"`
-alone still delivers it.
+alone still delivers it. The PSIS machinery (`loo_psis`, `loo_psis_ll`)
+rides along with `loo_epred`: it is computed only when some metric
+declares `"epred"`; a run whose LOO metrics need only the elpd summary
+(`needs = "loo"` alone, e.g.
+[`elpd_loo_metric()`](https://sims1253.github.io/bayesim/reference/ElpdLooMetric.md))
+pays for the
+[`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+summary alone (#69).

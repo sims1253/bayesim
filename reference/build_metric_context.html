@@ -116,7 +116,11 @@ for the test rows. The LOO context is always built on the training set —
 leave-one-out is in-sample by construction. <code>loo_epred</code> is likewise a
 training-set matrix; when no metric needs <code>"loo"</code> (or the fitter lacks LOO
 support) it is built directly via <code><a href="predict_epred.html">predict_epred()</a></code> rather than through
-the LOO context, so declaring <code>needs = "epred"</code> alone still delivers it.</p>
+the LOO context, so declaring <code>needs = "epred"</code> alone still delivers it.
+The PSIS machinery (<code>loo_psis</code>, <code>loo_psis_ll</code>) rides along with <code>loo_epred</code>:
+it is computed only when some metric declares <code>"epred"</code>; a run whose LOO
+metrics need only the elpd summary (<code>needs = "loo"</code> alone, e.g.
+<code><a href="ElpdLooMetric.html">elpd_loo_metric()</a></code>) pays for the <code><a href="loo_fit.html">loo_fit()</a></code> summary alone (#69).</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

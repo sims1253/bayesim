@@ -144,9 +144,13 @@ retained).</li>
 <code>context</code> — precomputed values, driven by your metric’s
 <code>needs</code> property: <code>"predictions"</code> (a
 <code><a href="../reference/predict_fit.html">predict_fit()</a></code> result), <code>"log_lik"</code> (an S x N
-matrix), <code>"loo"</code> (elpd summary plus PSIS machinery). Declare
-only what you use; the engine computes each at most once per task and
-shares it across metrics. Predictions and log-lik are evaluated on the
+matrix), <code>"loo"</code> (the elpd/p_loo/pareto_k summary),
+<code>"epred"</code> (a training-set draws x observations matrix, plus
+the PSIS machinery <code>loo_psis</code>/<code>loo_psis_ll</code> used
+by the weighted-prediction LOO metrics). Declare only what you use; the
+engine computes each at most once per task, shares it across metrics,
+and skips the PSIS work entirely when no metric declares
+<code>"epred"</code>. Predictions and log-lik are evaluated on the
 <strong>test set</strong> when one exists, otherwise on the training
 data.</li>
 <li>

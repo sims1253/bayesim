@@ -102,7 +102,11 @@ will only receive these values in the context if the fitter provides
 them. <code>epred</code> is delivered as <code>context$loo_epred</code>, a draws x observations
 matrix computed on the training set; it is delivered whether or not
 <code>"loo"</code> is also declared — without <code>"loo"</code> the matrix is built directly
-instead of through the LOO context.</p></dd>
+instead of through the LOO context. Declaring <code>"epred"</code> also delivers the
+PSIS weighted-prediction machinery (<code>context$loo_psis</code>,
+<code>context$loo_psis_ll</code>); declaring <code>"loo"</code> alone delivers only the
+<code><a href="loo_fit.html">loo_fit()</a></code> elpd/p_loo/pareto_k summary (<code>context$loo</code>), so a metric
+reading the PSIS objects must declare <code>"epred"</code> too.</p></dd>
 
 
 <dt id="arg-required">required<a class="anchor" aria-label="anchor" href="#arg-required"></a></dt>

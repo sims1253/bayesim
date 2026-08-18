@@ -68,9 +68,23 @@ across metrics.</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_loo_context</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">build_loo_context</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, need_psis <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
+    <div class="section level2">
+    <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
+
+
+<dl><dt id="arg-need-psis">need_psis<a class="anchor" aria-label="anchor" href="#arg-need-psis"></a></dt>
+<dd><p>Logical; whether any metric consumes the
+weighted-prediction machinery (<code>loo_psis</code>/<code>loo_psis_ll</code>/<code>loo_epred</code>), i.e.
+whether any metric declared the <code>"epred"</code> need (#69). When FALSE, only the
+<code><a href="loo_fit.html">loo_fit()</a></code> summary is computed: the train-set log-lik matrix, <code>r_eff</code>, the
+PSIS object, and epred exist solely to feed that machinery, so a run
+configuring elpd_loo alone skips them. The <code><a href="loo_fit.html">loo_fit()</a></code> summary itself is
+independent (fitters compute their own log-lik internally).</p></dd>
+
+</dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A list with elements <code>loo</code>, <code>psis</code>, <code>log_lik</code>, <code>epred</code>, and

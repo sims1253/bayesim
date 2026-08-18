@@ -11,8 +11,23 @@ expectation predictions (epred) — all once, shared across metrics.
 ## Usage
 
 ``` r
-build_loo_context(fitter, fit_result)
+build_loo_context(fitter, fit_result, need_psis = FALSE)
 ```
+
+## Arguments
+
+- need_psis:
+
+  Logical; whether any metric consumes the weighted-prediction machinery
+  (`loo_psis`/`loo_psis_ll`/`loo_epred`), i.e. whether any metric
+  declared the `"epred"` need (#69). When FALSE, only the
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  summary is computed: the train-set log-lik matrix, `r_eff`, the PSIS
+  object, and epred exist solely to feed that machinery, so a run
+  configuring elpd_loo alone skips them. The
+  [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
+  summary itself is independent (fitters compute their own log-lik
+  internally).
 
 ## Value
 
