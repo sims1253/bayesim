@@ -4,7 +4,7 @@
 \alias{loo_fit}
 \title{Compute LOO-CV}
 \usage{
-loo_fit(fitter, fit_result, log_lik = NULL)
+loo_fit(fitter, fit_result, log_lik = NULL, save_psis = FALSE)
 }
 \arguments{
 \item{fitter}{An S7 Fitter object}
@@ -18,6 +18,13 @@ When supplied, methods should use it instead of recomputing their own;
 weighted-prediction (PSIS) path pays for it once per task (#73). NULL
 (the default, and for standalone calls) means the method computes its
 own.}
+
+\item{save_psis}{Logical; when TRUE, methods that run the PSIS machinery
+for the summary should keep the fitted PSIS object and return it as
+\code{psis_object} (see below). \code{build_loo_context()} sets it on the
+weighted-prediction path so the tail smoothing runs once per task
+instead of twice (#76); the default FALSE discards it, as standalone
+callers have no use for it.}
 }
 \value{
 A list containing:
@@ -29,6 +36,14 @@ A list containing:
 \item \code{r_eff}: Chain-aware relative efficiencies used for the summary
 (vector of length N), or NULL when none were computed (e.g. i.i.d.
 draws). \code{build_loo_context()} reuses it for the PSIS object (#73).
+\item \code{psis_object}: The fitted PSIS (importance-sampling) object the
+summary was derived from, or NULL. Methods that compute the summary
+via \code{loo::loo(ll, r_eff, save_psis = TRUE)} return its
+\verb{$psis_object}; it is identical to \code{loo::psis(-ll, r_eff)} on the
+same matrix, so \code{build_loo_context()} reuses it for
+\code{loo::E_loo()}-weighted predictions instead of smoothing the tails
+a second time (#76). NULL when \code{save_psis = FALSE} or the fitter
+does not fit a PSIS object at all.
 \item Additional loo-specific diagnostics
 }
 }

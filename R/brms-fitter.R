@@ -562,7 +562,8 @@ S7::method(predict_epred, BrmsFitter) <- function(
 S7::method(loo_fit, BrmsFitter) <- function(
   fitter,
   fit_result,
-  log_lik = NULL
+  log_lik = NULL,
+  save_psis = FALSE
 ) {
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(NULL)
@@ -577,7 +578,10 @@ S7::method(loo_fit, BrmsFitter) <- function(
   # Chain-aware relative efficiency (A4): consistent with build_loo_context()
   # and brms::loo(). ll is S x N (draws x observations).
   r_eff <- relative_eff_from_chains(fitter, fit_result, ll)
-  loo_result <- loo::loo(ll, r_eff = r_eff)
+  # #76: save_psis keeps the PSIS object loo::loo() fits internally; it is
+  # identical to loo::psis(-ll, r_eff), so the caller can reuse it instead
+  # of smoothing the tails a second time.
+  loo_result <- loo::loo(ll, r_eff = r_eff, save_psis = save_psis)
 
   list(
     elpd = loo_result$estimates["elpd_loo", "Estimate"],
@@ -585,7 +589,9 @@ S7::method(loo_fit, BrmsFitter) <- function(
     elpd_se = loo_result$estimates["elpd_loo", "SE"],
     pareto_k = loo::pareto_k_values(loo_result),
     # Returned so build_loo_context() can reuse it for the PSIS object (#73).
-    r_eff = r_eff
+    r_eff = r_eff,
+    # NULL unless save_psis = TRUE (#76).
+    psis_object = loo_result$psis_object
   )
 }
 

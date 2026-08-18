@@ -49,5 +49,10 @@ chain-aware relative efficiencies that \code{loo_fit()} derived from the same
 matrix (falling back to \code{\link[=relative_eff_from_chains]{relative_eff_from_chains()}} when the fitter's
 \code{loo_fit()} returns no \code{r_eff}). This keeps the summary and the PSIS
 weights consistent and avoids computing each twice per task (#73).
+Since #76 the PSIS tail smoothing itself also runs only once:
+\code{loo_fit()} is called with \code{save_psis = TRUE} and its returned
+\code{psis_object} — identical to \code{loo::psis(-ll, r_eff)} on the same matrix —
+is reused directly; the direct \code{loo::psis()} route remains as a fallback
+for fitters that return no \code{psis_object} (e.g. custom or mock fitters).
 }
 \keyword{internal}

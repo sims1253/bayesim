@@ -98,6 +98,19 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   the new `log_lik` argument (S7 requires method formals to match the
   generic exactly) and may return `r_eff` alongside the summary fields;
   standalone `loo_fit(fitter, fit_result)` calls are unchanged.
+* The PSIS tail smoothing itself also runs once per task on the
+  weighted-prediction path instead of twice: `build_loo_context()` calls
+  `loo_fit()` with `save_psis = TRUE` and reuses the retained `psis_object`
+  (what `loo::loo()` fitted internally for the summary — identical to
+  `loo::psis(-ll, r_eff)` on the same matrix) for the `loo::E_loo()`
+  weighted predictions, instead of smoothing the same tails a second time
+  (#76). Fitters that return no `psis_object` (custom fitters predating
+  this, the mock) keep the previous direct `loo::psis()` route.
+  **Breaking for custom fitters**: `loo_fit()` methods must accept the new
+  `save_psis` argument (same S7 formals rule as `log_lik` above); methods
+  computing their summary via `loo::loo()` should pass it through as
+  `save_psis` and return the retained object as `psis_object` (NULL when
+  not saved). Standalone `loo_fit(fitter, fit_result)` calls are unchanged.
 
 ## Fitters and errors
 

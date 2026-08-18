@@ -341,7 +341,7 @@ describe("Fitter Class", {
       loo_result <- loo_fit(fitter, out$fit)
       expect_setequal(
         names(loo_result),
-        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff", "psis_object")
       )
 
       diag <- fit_diagnostics(fitter, out$fit)
@@ -357,11 +357,12 @@ describe("Fitter Class", {
       out <- loo_fit(MockFitter(), list(success = TRUE))
       expect_setequal(
         names(out),
-        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+        c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff", "psis_object")
       )
       expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
       expect_length(out$pareto_k, 0)
       expect_null(out$r_eff)
+      expect_null(out$psis_object)
     })
 
     it("CmdStanFitter without a log_lik GQ degrades without touching the fit", {

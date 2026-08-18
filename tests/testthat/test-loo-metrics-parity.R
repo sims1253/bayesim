@@ -157,3 +157,23 @@ describe("build_loo_context shares one log-lik and r_eff across summary and PSIS
     expect_equal(ctx$psis$diagnostics$pareto_k, psis_obj$diagnostics$pareto_k)
   })
 })
+
+# #76: the PSIS tail smoothing runs once — build_loo_context() reuses the
+# psis_object loo_fit() retained via save_psis = TRUE instead of running a
+# second loo::psis() pass over the same matrix.
+describe("build_loo_context reuses loo_fit()'s retained psis_object (#76)", {
+  it("delivers the retained object itself, not a re-smoothed copy", {
+    fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
+    retained <- loo_fit(
+      fitter,
+      fit_result,
+      log_lik = ll,
+      save_psis = TRUE
+    )$psis_object
+    expect_false(is.null(retained))
+    ctx <- build_loo_context(fitter, fit_result, need_psis = TRUE)
+    # Identity proves reuse: a fallback loo::psis() run would allocate a
+    # distinct (though numerically equal) object.
+    expect_identical(ctx$psis, retained)
+  })
+})
