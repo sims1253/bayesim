@@ -15,7 +15,7 @@ Constructor for R2LooMetric.
 ``` r
 R2LooMetric(
   name = "r2_loo",
-  needs = "loo",
+  needs = c("loo", "epred"),
   required = FALSE,
   summary_type = "mean",
   schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), elpd
@@ -43,7 +43,7 @@ An `R2LooMetric` object.
 r2_loo_metric()
 #> <bayesim::R2LooMetric>
 #>  @ name        : chr "r2_loo"
-#>  @ needs       : chr "loo"
+#>  @ needs       : chr [1:2] "loo" "epred"
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
 #>  @ schema      :List of 3

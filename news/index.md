@@ -65,6 +65,28 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 - Metric NA-degradation paths now emit schema-conformant fields (present
   with `NA` values) instead of dropping fields from the flattened
   summary.
+- [`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
+  and
+  [`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+  now declare `needs = c("loo", "epred")` and the `supports_epred`
+  fitter capability is actually consulted:
+  [`preflight()`](https://sims1253.github.io/bayesim/reference/preflight.md)
+  includes `epred` in its capability vocabulary (surfacing it in
+  `unmet_needs` before a run), the worker warns once when an
+  epred-needing metric runs on an epred-incapable fitter, and
+  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
+  only calls
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  for fitters that declare support. A
+  `supports_loo = TRUE, supports_epred = FALSE` fitter (e.g. a
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  without an `epred` generated quantity) no longer produces silently
+  all-NA LOO-prediction columns
+  ([\#62](https://github.com/sims1253/bayesim/issues/62)). A
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  return with the wrong shape now degrades through the same warn-once NA
+  path instead of surfacing as a generic metric error inside
+  [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
 
 ### Fitters and errors
 

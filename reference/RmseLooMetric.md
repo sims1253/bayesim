@@ -15,7 +15,7 @@ Constructor for RmseLooMetric.
 ``` r
 RmseLooMetric(
   name = "rmse_loo",
-  needs = "loo",
+  needs = c("loo", "epred"),
   required = FALSE,
   summary_type = "mean",
   schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), elpd
@@ -44,7 +44,7 @@ A `RmseLooMetric` object.
 rmse_loo_metric()
 #> <bayesim::RmseLooMetric>
 #>  @ name        : chr "rmse_loo"
-#>  @ needs       : chr "loo"
+#>  @ needs       : chr [1:2] "loo" "epred"
 #>  @ required    : logi FALSE
 #>  @ summary_type: chr "mean"
 #>  @ schema      :List of 3

@@ -97,9 +97,11 @@ flattening metric output to column names.</p></dd>
 
 <dt id="arg-needs">needs<a class="anchor" aria-label="anchor" href="#arg-needs"></a></dt>
 <dd><p>Character vector of required capabilities from the fitter.
-Common values include "predictions", "log_lik", "loo". The metric
+Common values include "predictions", "log_lik", "loo", "epred". The metric
 will only receive these values in the context if the fitter provides
-them.</p></dd>
+them. <code>epred</code> is delivered as <code>context$loo_epred</code> inside the LOO context,
+so declare it alongside <code>"loo"</code> (as <code><a href="RmseLooMetric.html">rmse_loo_metric()</a></code> does); a metric
+declaring <code>needs = "epred"</code> alone never receives the matrix.</p></dd>
 
 
 <dt id="arg-required">required<a class="anchor" aria-label="anchor" href="#arg-required"></a></dt>

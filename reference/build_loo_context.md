@@ -32,6 +32,7 @@ valid but slightly less accurate.
 epred must be the posterior expectation (mu, no observation noise); for
 brms this is
 [`brms::posterior_epred`](https://mc-stan.org/rstantools/reference/posterior_epred.html).
-The Fitter must expose this via
+Only fitters with `supports_epred = TRUE` are asked for it via
 [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md);
-fitters that cannot return NULL (the metrics then NA).
+otherwise epred is NULL and the consuming metrics (r2_loo, rmse_loo)
+degrade to NA.

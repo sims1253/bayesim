@@ -85,8 +85,9 @@ exactly). Falls back to <code>r_eff = NULL</code> (with a captured warning) when
 structure is unavailable, which is mathematically valid but slightly less
 accurate.</p>
 <p>epred must be the posterior expectation (mu, no observation noise); for brms
-this is <code><a href="https://mc-stan.org/rstantools/reference/posterior_epred.html" class="external-link">brms::posterior_epred</a></code>. The Fitter must expose this via
-<code><a href="predict_epred.html">predict_epred()</a></code>; fitters that cannot return NULL (the metrics then NA).</p>
+this is <code><a href="https://mc-stan.org/rstantools/reference/posterior_epred.html" class="external-link">brms::posterior_epred</a></code>. Only fitters with <code>supports_epred = TRUE</code>
+are asked for it via <code><a href="predict_epred.html">predict_epred()</a></code>; otherwise epred is NULL and the
+consuming metrics (r2_loo, rmse_loo) degrade to NA.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
