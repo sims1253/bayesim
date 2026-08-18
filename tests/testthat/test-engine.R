@@ -1060,7 +1060,10 @@ describe("Worker", {
       # loo_fit() summary only: the train-set log-lik matrix, r_eff, the PSIS
       # object, and epred exist solely to feed the weighted-prediction
       # machinery, which no such metric reads.
-      CountingLooFitter <- S7::new_class("CountingLooFitter", parent = MockFitter)
+      CountingLooFitter <- S7::new_class(
+        "CountingLooFitter",
+        parent = MockFitter
+      )
       calls <- new.env(parent = emptyenv())
       calls$log_lik <- 0L
       calls$epred <- 0L
@@ -1114,7 +1117,10 @@ describe("Worker", {
     it("builds the full PSIS machinery when \"epred\" is declared alongside \"loo\" (#69)", {
       # rmse_loo/r2_loo declare needs = c("loo", "epred"): the weighted-
       # prediction machinery must still be computed and shared.
-      CountingLooFitter2 <- S7::new_class("CountingLooFitter2", parent = MockFitter)
+      CountingLooFitter2 <- S7::new_class(
+        "CountingLooFitter2",
+        parent = MockFitter
+      )
       calls2 <- new.env(parent = emptyenv())
       calls2$log_lik <- 0L
       calls2$epred <- 0L
