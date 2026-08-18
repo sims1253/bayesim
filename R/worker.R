@@ -583,6 +583,10 @@ build_metric_context <- function(
       # A fitter that declares epred support but produced no matrix at run
       # time is an anomaly like a failing predict_fit(); the unsupported-
       # capability warning above did not fire, so explain the NA degradation.
+      # Deliberately generic: build_loo_context() also returns epred = NULL
+      # when the train-set log-lik matrix failed (predict_epred() is then
+      # never attempted), so naming predict_epred() would misattribute the
+      # cause.
       needs_epred <- "epred" %in% all_needs
       if (
         needs_epred && isTRUE(fitter@supports_epred) && is.null(loo_ctx$epred)
@@ -590,7 +594,7 @@ build_metric_context <- function(
         .warn_once(
           "loo_epred_failed",
           paste0(
-            "predict_epred() failed or returned NULL; ",
+            "epred matrix unavailable from the LOO context; ",
             "epred-based LOO metrics (rmse_loo, r2_loo) will be NA."
           )
         )
@@ -656,12 +660,18 @@ build_loo_context <- function(fitter, fit_result) {
 
   # Posterior expectation predictions (mu, no noise). Required for r2_loo;
   # rmse_loo also degrades to NA when epred is absent. Gated on the declared
-  # capability: fitters with supports_epred = FALSE skip the call entirely.
+  # capability: fitters with supports_epred = FALSE skip the call entirely. A
+  # wrong-shaped return degrades to NULL here (warn-once at the seam) instead
+  # of dying as a generic metric error inside loo::E_loo().
   epred <- if (!isTRUE(fitter@supports_epred)) {
     NULL
   } else {
     tryCatch(
-      predict_epred(fitter, fit_result),
+      {
+        epred <- predict_epred(fitter, fit_result)
+        validate_fitter_epred(epred, n_draws = nrow(ll), n_obs = ncol(ll))
+        epred
+      },
       error = function(e) NULL
     )
   }

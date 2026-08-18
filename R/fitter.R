@@ -138,6 +138,37 @@ validate_fitter_log_lik <- function(log_lik, n_obs) {
   invisible(log_lik)
 }
 
+# epred is consumed by loo::E_loo() against the PSIS object built from the
+# pointwise log-lik, so the two must share draws x observations dimensions;
+# the checks mirror validate_fitter_log_lik().
+validate_fitter_epred <- function(epred, n_draws, n_obs) {
+  if (
+    !is.matrix(epred) ||
+      !is.numeric(epred) ||
+      nrow(epred) != n_draws ||
+      ncol(epred) != n_obs
+  ) {
+    got <- if (is.matrix(epred)) {
+      paste(dim(epred), collapse = " x ")
+    } else {
+      paste(class(epred), collapse = "/")
+    }
+    stop(bayesim_contract_error(
+      paste0(
+        "predict_epred() must return a numeric S x N matrix aligned with ",
+        "log_lik_matrix() (expected ",
+        n_draws,
+        " x ",
+        n_obs,
+        ", got ",
+        got,
+        ")"
+      )
+    ))
+  }
+  invisible(epred)
+}
+
 # =============================================================================
 # S7 Generics for Fitter methods
 # =============================================================================

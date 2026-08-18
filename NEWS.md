@@ -59,7 +59,9 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   `build_loo_context()` only calls `predict_epred()` for fitters that
   declare support. A `supports_loo = TRUE, supports_epred = FALSE` fitter
   (e.g. a `CmdStanFitter()` without an `epred` generated quantity) no longer
-  produces silently all-NA LOO-prediction columns (#62).
+  produces silently all-NA LOO-prediction columns (#62). A `predict_epred()`
+  return with the wrong shape now degrades through the same warn-once NA
+  path instead of surfacing as a generic metric error inside `loo::E_loo()`.
 
 ## Fitters and errors
 
