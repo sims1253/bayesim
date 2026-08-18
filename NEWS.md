@@ -13,6 +13,11 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ## Engine and resume
 
+* Checkpoint `meta.json` diagnostics no longer conflate policy-stopped work
+  with genuinely pending work: `n_pending` now counts only rows labeled
+  `pending`, so it no longer double-counts the policy-stopped tasks that
+  `n_policy_stopped` already reports. The resumable row count remains
+  derivable as `n_tasks - n_success - n_failed` (#65).
 * Resumed task grids no longer lose policy-stop labels when the resumed run
   stops before executing anything (e.g. the carried-over failure count
   already exhausts an unchanged `max_errors` budget): tasks restored from
