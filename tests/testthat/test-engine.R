@@ -1960,9 +1960,9 @@ describe("run_simulation()", {
       # Sequential path (no daemons set)
       seq_result <- run_simulation(config, resume = "never", progress = FALSE)
 
-      # Parallel path via mirai daemons; reset on exit
-      mirai::daemons(2)
-      on.exit(mirai::daemons(0), add = TRUE)
+      # Parallel path via mirai daemons; reset on exit (the helper waits for
+      # the daemon processes to finish exiting — see its comment)
+      local_mirai_daemons(2)
       par_result <- run_simulation(config, resume = "never", progress = FALSE)
 
       normalize_summary <- function(x) {
@@ -2001,8 +2001,7 @@ describe("run_simulation()", {
       )
       task_grid <- create_task_grid(config)
 
-      mirai::daemons(2)
-      on.exit(mirai::daemons(0), add = TRUE)
+      local_mirai_daemons(2)
 
       # Set a non-NULL bank so the ship branch fires.
       bayesim:::set_model_bank(list(dummy = "entry"))

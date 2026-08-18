@@ -159,3 +159,66 @@ skip_unless_bayesim_backend <- function() {
     "requires the explicit bayesim backend test tier"
   )
 }
+
+# mirai daemon lifecycle ----------------------------------------------------
+
+# Wait for mirai daemon processes to finish exiting after mirai::daemons(0).
+#
+# daemons(0) signals the daemons and sleeps a fixed 200 ms; the daemon R
+# processes then shut down asynchronously, running end-of-session finalizers.
+# Under covr every process that loaded the instrumented package dumps a
+# coverage trace on exit (covr:::save_trace), and package_coverage() reads
+# each trace file with readRDS as soon as testthat finishes. A daemon still
+# writing its trace at that point yields a truncated read ("error reading
+# from connection" in covr's merge_coverage) and fails CI — the race is
+# tightest in test-transport-purrr-mirai.R, the alphabetically last test file,
+# whose teardown fires seconds before the traces are read.
+#
+# Polls ps for live (non-zombie) processes whose command line matches
+# mirai::daemon(<url>). Best effort: no-ops on non-unix (Windows never runs
+# under covr here) and when ps is unavailable; bounds the wait at timeout.
+wait_for_mirai_daemons_exit <- function(timeout = 30, poll = 0.05) {
+  if (.Platform$OS.type != "unix" || Sys.which("ps") == "") {
+    return(invisible(FALSE))
+  }
+  ps_lines <- function() {
+    tryCatch(
+      suppressWarnings(system("ps -eo pid=,stat=,args=", intern = TRUE)),
+      error = function(e) character()
+    )
+  }
+  n_live_daemons <- function() {
+    # Zombies (stat Z) have exited and can no longer write trace files.
+    length(Filter(
+      function(l) {
+        grepl("mirai::daemon(", l, fixed = TRUE) &&
+          !grepl("^[0-9]+ +Z", l)
+      },
+      ps_lines()
+    ))
+  }
+  deadline <- Sys.time() + timeout
+  repeat {
+    if (n_live_daemons() == 0L || Sys.time() >= deadline) {
+      break
+    }
+    Sys.sleep(poll)
+  }
+  invisible(TRUE)
+}
+
+# Set mirai daemons for the duration of the current test and tear them down
+# on exit, waiting for the daemon processes to fully exit (see
+# wait_for_mirai_daemons_exit for why the wait matters under covr). When
+# daemons exit promptly (the common case) the wait is a single ps call.
+local_mirai_daemons <- function(n = 2L, timeout = 30) {
+  mirai::daemons(n)
+  withr::defer(
+    {
+      mirai::daemons(0)
+      wait_for_mirai_daemons_exit(timeout = timeout)
+    },
+    envir = parent.frame()
+  )
+  invisible(NULL)
+}
