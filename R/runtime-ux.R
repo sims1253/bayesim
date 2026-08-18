@@ -48,7 +48,8 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
     c(
       if (isTRUE(fitter@supports_predictions)) "predictions",
       if (isTRUE(fitter@supports_log_lik)) "log_lik",
-      if (isTRUE(fitter@supports_loo)) "loo"
+      if (isTRUE(fitter@supports_loo)) "loo",
+      if (isTRUE(fitter@supports_epred)) "epred"
     )
   } else {
     character()

@@ -879,6 +879,134 @@ describe("Worker", {
       # Should not have predictions since fitter doesn't support it
       expect_false("predictions" %in% names(context))
     })
+
+    it("warns once when a metric needs epred the fitter does not support", {
+      # MockFitter supports loo but inherits supports_epred = FALSE — the
+      # silent-NA shape from #62: r2_loo/rmse_loo must explain their
+      # degradation instead of returning all-NA columns.
+      bayesim:::.reset_warn_once()
+      fitter <- MockFitter()
+      data_bundle <- valid_data_bundle()
+
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(r2_loo_metric())
+        ),
+        "Metric requires epred but fitter does not support it"
+      )
+      # The loo summary is still built (loo is supported); only the epred part
+      # of the LOO context is absent.
+      expect_false(is.null(context$loo))
+      expect_true(is.null(context$loo_epred))
+
+      # Warn once per run, not per task.
+      expect_silent(
+        build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(r2_loo_metric())
+        )
+      )
+    })
+
+    it("warns once when an epred-supporting fitter fails to produce epred", {
+      # supports_epred = TRUE but predict_epred() errors at run time: the
+      # unsupported-capability warning must not fire; the LOO-context seam
+      # explains the NA degradation instead (#62). S7 keeps the parent's
+      # property default when a subclass redeclares it, so set the flag on
+      # the instance.
+      bayesim:::.reset_warn_once()
+      BrokenEpredFitter <- S7::new_class(
+        "BrokenEpredFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, BrokenEpredFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        stop("boom")
+      }
+      fitter <- BrokenEpredFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(r2_loo_metric())
+        ),
+        "epred matrix unavailable"
+      )
+      expect_false(is.null(context$loo))
+      expect_true(is.null(context$loo_epred))
+    })
+
+    it("degrades a wrong-shaped predict_epred return to the warn-once path", {
+      # A vector or dimension-mismatched matrix would otherwise bypass the
+      # seam warning and die as a generic metric error inside loo::E_loo().
+      bayesim:::.reset_warn_once()
+      BadShapeEpredFitter <- S7::new_class(
+        "BadShapeEpredFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, BadShapeEpredFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(10), nrow = 5, ncol = 2)
+      }
+      fitter <- BadShapeEpredFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(r2_loo_metric())
+        ),
+        "epred matrix unavailable"
+      )
+      # The malformed matrix must not reach the metric context.
+      expect_true(is.null(context$loo_epred))
+      expect_false(is.null(context$loo))
+    })
   })
 
   describe("compute_all_metrics()", {

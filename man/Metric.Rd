@@ -17,9 +17,11 @@ Metric(
 flattening metric output to column names.}
 
 \item{needs}{Character vector of required capabilities from the fitter.
-Common values include "predictions", "log_lik", "loo". The metric
+Common values include "predictions", "log_lik", "loo", "epred". The metric
 will only receive these values in the context if the fitter provides
-them.}
+them. \code{epred} is delivered as \code{context$loo_epred} inside the LOO context,
+so declare it alongside \code{"loo"} (as \code{rmse_loo_metric()} does); a metric
+declaring \code{needs = "epred"} alone never receives the matrix.}
 
 \item{required}{Logical indicating whether metric failure causes task
 failure. If TRUE, an error in computing this metric will propagate and

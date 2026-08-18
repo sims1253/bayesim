@@ -11,9 +11,11 @@
 #' @param name Character identifier for the metric. Used as a prefix when
 #'   flattening metric output to column names.
 #' @param needs Character vector of required capabilities from the fitter.
-#'   Common values include "predictions", "log_lik", "loo". The metric
+#'   Common values include "predictions", "log_lik", "loo", "epred". The metric
 #'   will only receive these values in the context if the fitter provides
-#'   them.
+#'   them. `epred` is delivered as `context$loo_epred` inside the LOO context,
+#'   so declare it alongside `"loo"` (as `rmse_loo_metric()` does); a metric
+#'   declaring `needs = "epred"` alone never receives the matrix.
 #' @param required Logical indicating whether metric failure causes task
 #'   failure. If TRUE, an error in computing this metric will propagate and
 #'   fail the entire task. If FALSE (default), metric failure results in

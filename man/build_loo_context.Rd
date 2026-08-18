@@ -26,7 +26,8 @@ structure is unavailable, which is mathematically valid but slightly less
 accurate.
 
 epred must be the posterior expectation (mu, no observation noise); for brms
-this is \code{brms::posterior_epred}. The Fitter must expose this via
-\code{predict_epred()}; fitters that cannot return NULL (the metrics then NA).
+this is \code{brms::posterior_epred}. Only fitters with \code{supports_epred = TRUE}
+are asked for it via \code{predict_epred()}; otherwise epred is NULL and the
+consuming metrics (r2_loo, rmse_loo) degrade to NA.
 }
 \keyword{internal}

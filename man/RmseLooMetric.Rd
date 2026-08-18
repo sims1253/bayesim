@@ -7,7 +7,7 @@
 \usage{
 RmseLooMetric(
   name = "rmse_loo",
-  needs = "loo",
+  needs = c("loo", "epred"),
   required = FALSE,
   summary_type = "mean",
   schema = list(value = list(role = "estimate", aggregation = "mean", mcse = "sd"), elpd

@@ -665,7 +665,10 @@ RmseLooMetric <- S7::new_class(
       default = "rmse_loo",
       validator = validate_metric_name
     ),
-    needs = S7::new_property(S7::class_character, default = "loo"),
+    needs = S7::new_property(
+      S7::class_character,
+      default = c("loo", "epred")
+    ),
     required = S7::new_property(S7::class_logical, default = FALSE),
     schema = S7::new_property(
       S7::class_list,
@@ -757,7 +760,10 @@ R2LooMetric <- S7::new_class(
       default = "r2_loo",
       validator = validate_metric_name
     ),
-    needs = S7::new_property(S7::class_character, default = "loo"),
+    needs = S7::new_property(
+      S7::class_character,
+      default = c("loo", "epred")
+    ),
     required = S7::new_property(S7::class_logical, default = FALSE),
     schema = S7::new_property(
       S7::class_list,
@@ -779,7 +785,7 @@ R2LooMetric <- S7::new_class(
 r2_loo_metric <- function(name = "r2_loo") {
   R2LooMetric(
     name = name,
-    needs = "loo",
+    needs = c("loo", "epred"),
     required = FALSE,
     schema = list(
       value = list(role = "estimate", aggregation = "mean", mcse = "sd"),
