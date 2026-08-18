@@ -723,6 +723,11 @@ build_metric_context <- function(
 #' matrix (falling back to [relative_eff_from_chains()] when the fitter's
 #' `loo_fit()` returns no `r_eff`). This keeps the summary and the PSIS
 #' weights consistent and avoids computing each twice per task (#73).
+#' Since #76 the PSIS tail smoothing itself also runs only once:
+#' `loo_fit()` is called with `save_psis = TRUE` and its returned
+#' `psis_object` — identical to `loo::psis(-ll, r_eff)` on the same matrix —
+#' is reused directly; the direct `loo::psis()` route remains as a fallback
+#' for fitters that return no `psis_object` (e.g. custom or mock fitters).
 #' @keywords internal
 build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   # Compute the train-set log-lik matrix once, before loo_fit(): the summary
@@ -735,7 +740,12 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
     ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
   }
 
-  loo_result <- loo_fit(fitter, fit_result, log_lik = ll)
+  loo_result <- loo_fit(
+    fitter,
+    fit_result,
+    log_lik = ll,
+    save_psis = isTRUE(need_psis)
+  )
   if (is.null(loo_result)) {
     return(NULL)
   }
@@ -765,28 +775,41 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
     ))
   }
 
-  # #73: reuse the chain-aware relative efficiencies loo_fit() derived from
-  # the same matrix; derive them here only when the fitter's loo_fit() did
-  # not return any. Exact [[ ]] read: loo_result is a fitter-controlled list
-  # where $ would partial-match.
-  r_eff <- loo_result[["r_eff"]]
-  if (is.null(r_eff)) {
-    r_eff <- tryCatch(
-      relative_eff_from_chains(fitter, fit_result, ll),
-      error = function(e) NULL
-    )
-  }
+  # #76: loo_fit() fitted the PSIS object as part of its summary when asked
+  # (save_psis = TRUE): loo::loo()'s internal run is identical to
+  # loo::psis(-ll, r_eff) on the same matrix, so reuse it instead of
+  # smoothing the same tails a second time. The pareto_k length check
+  # (exported, stable across loo versions) rejects a psis object fitted
+  # from a different matrix — e.g. a fitter that ignored the supplied
+  # log_lik — falling through to the direct route below.
+  psis_obj <- loo_result[["psis_object"]]
+  if (
+    !inherits(psis_obj, "psis") ||
+      !identical(length(loo::pareto_k_values(psis_obj)), ncol(ll))
+  ) {
+    # #73: derive the chain-aware relative efficiencies loo_fit() returned;
+    # fall back to relative_eff_from_chains() when the fitter's loo_fit()
+    # did not return any. Exact [[ ]] read: loo_result is a fitter-controlled
+    # list where $ would partial-match.
+    r_eff <- loo_result[["r_eff"]]
+    if (is.null(r_eff)) {
+      r_eff <- tryCatch(
+        relative_eff_from_chains(fitter, fit_result, ll),
+        error = function(e) NULL
+      )
+    }
 
-  # PSIS object. If r_eff is NULL (no chain info) loo::psis warns and proceeds
-  # without the efficiency correction — mathematically valid, slightly less
-  # accurate. Capture the warning so it doesn't surface per-task.
-  psis_obj <- if (!is.null(r_eff)) {
-    tryCatch(loo::psis(-ll, r_eff = r_eff), error = function(e) NULL)
-  } else {
-    tryCatch(
-      suppressWarnings(loo::psis(-ll)),
-      error = function(e) NULL
-    )
+    # PSIS object. If r_eff is NULL (no chain info) loo::psis warns and proceeds
+    # without the efficiency correction — mathematically valid, slightly less
+    # accurate. Capture the warning so it doesn't surface per-task.
+    psis_obj <- if (!is.null(r_eff)) {
+      tryCatch(loo::psis(-ll, r_eff = r_eff), error = function(e) NULL)
+    } else {
+      tryCatch(
+        suppressWarnings(loo::psis(-ll)),
+        error = function(e) NULL
+      )
+    }
   }
 
   # Posterior expectation predictions (mu, no noise). Required for r2_loo;

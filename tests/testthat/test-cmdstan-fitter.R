@@ -85,6 +85,16 @@ describe("CmdStanFitter fit + draws + diagnostics", {
     loo_passed <- loo_fit(fitter, res, log_lik = ll)
     expect_equal(loo_passed, loo)
     expect_false(is.null(loo_passed$r_eff))
+
+    # #76: save_psis retains the PSIS object loo::loo() fitted internally —
+    # identical to a separate loo::psis(-ll, r_eff) run, so the engine can
+    # reuse it instead of re-smoothing the tails.
+    loo_saved <- loo_fit(fitter, res, log_lik = ll, save_psis = TRUE)
+    expect_true(inherits(loo_saved$psis_object, "psis"))
+    expect_identical(
+      loo_saved$psis_object,
+      suppressWarnings(loo::psis(-ll, r_eff = loo_saved$r_eff))
+    )
   })
 
   it("errors when log_lik is needed but not declared", {

@@ -35,7 +35,7 @@ The public fitter contract is:
 | `predict_fit(fitter, fit_result, newdata, seed)` | optional; `supports_predictions = TRUE` | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
 | `log_lik_matrix(fitter, fit_result, newdata)` | optional; `supports_log_lik = TRUE` | numeric log-likelihood matrix (S x N) |
 | `predict_epred(fitter, fit_result, newdata)` | optional; `supports_epred = TRUE` | numeric expectation matrix (S x N), or `NULL` when unsupported (`r2_loo` then degrades to NA) |
-| `loo_fit(fitter, fit_result, log_lik)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k`, `r_eff` |
+| `loo_fit(fitter, fit_result, log_lik, save_psis)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k`, `r_eff`, `psis_object` |
 | `fit_diagnostics(fitter, fit_result)` | optional | named diagnostic list; the default is `list()` |
 
 **All matrices are draws x observations (S x N)** — `predicted_samples`,
@@ -49,9 +49,15 @@ weighted-prediction (PSIS) context it passes the train-set log-lik matrix it
 already computed, and the method should reuse it instead of recomputing;
 standalone calls pass `NULL` and the method computes its own. Returning
 `r_eff` (the chain-aware relative efficiencies used for the summary, or
-`NULL`) likewise lets the engine reuse them for the PSIS object. A `loo_fit()`
-method registered without the `log_lik` argument is rejected by S7's strict
-signature checking.
+`NULL`) likewise lets the engine reuse them for the PSIS object. When the
+engine calls with `save_psis = TRUE`, a method that computes its summary via
+`loo::loo(ll, r_eff, save_psis = TRUE)` should return the retained
+`$psis_object` as `psis_object`; the engine reuses it for the weighted
+predictions instead of smoothing the tails a second time (`NULL` is fine for
+methods that don't use the loo machinery — the engine falls back to building
+the PSIS object itself). A `loo_fit()` method registered without the
+`log_lik`/`save_psis` arguments is rejected by S7's strict signature
+checking.
 
 The generics avoid masking common names: `loo_fit` (not `loo::loo`),
 `log_lik_matrix` (not `brms::log_lik`), `fit_model` (not `generics::fit`).
