@@ -69,6 +69,10 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   via `predict_epred()` whenever the LOO context is not built (no `"loo"`
   need, unsupported LOO, or a failed LOO build), with its own warn-once NA
   path when `predict_epred()` fails or returns a wrong-shaped matrix (#68).
+  When the context carries `loo_epred` without a LOO summary, an exact NULL
+  `loo` binding is pinned (and the built-in loo metrics read `context[["loo"]]`)
+  so `$` partial matching can no longer hand a metric the epred matrix when
+  it asked for `context$loo`.
 
 ## Fitters and errors
 

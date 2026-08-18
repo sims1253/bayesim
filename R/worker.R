@@ -616,6 +616,14 @@ build_metric_context <- function(
   # it. Build the matrix directly whenever the LOO branch did not, so the
   # declared capability is honored like any other.
   if ("epred" %in% all_needs && is.null(loo_ctx)) {
+    # Pin an exact NULL "loo" binding when a metric asked for "loo": $loo
+    # would otherwise partial-match the loo_epred matrix below and hand a
+    # $-reading metric (elpd_loo) the matrix instead of NULL.
+    # context["loo"] <- list(NULL) creates the element; $loo <- NULL would
+    # not.
+    if ("loo" %in% all_needs) {
+      context["loo"] <- list(NULL)
+    }
     context$loo_epred <- if (!isTRUE(fitter@supports_epred)) {
       NULL # the unsupported_capability.epred warning above covers this
     } else {

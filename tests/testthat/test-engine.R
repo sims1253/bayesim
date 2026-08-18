@@ -1097,6 +1097,63 @@ describe("Worker", {
       expect_equal(dim(context$loo_epred), c(50, 10))
     })
 
+    it("elpd_loo composed with an epred metric NA-degrades without LOO support (#68)", {
+      # Regression for the $-partial-match hazard (pullfrog review on #70):
+      # this branch can produce a context carrying loo_epred without a loo
+      # summary, and a $-reading metric must not receive the epred matrix
+      # via context$loo.
+      bayesim:::.reset_warn_once()
+      EpredNoLooComposeFitter <- S7::new_class(
+        "EpredNoLooComposeFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, EpredNoLooComposeFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- EpredNoLooComposeFitter()
+      fitter@supports_epred <- TRUE
+      fitter@supports_loo <- FALSE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      metrics <- list(elpd_loo_metric(), rmse_loo_metric())
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          metrics
+        ),
+        "Metric requires loo but fitter does not support it"
+      )
+      # The pinned NULL binding must win over $ partial matching of loo_epred.
+      expect_null(context$loo)
+      expect_equal(dim(context$loo_epred), c(50, 10))
+
+      # The loo-only metric degrades to clean NAs, not an error from being
+      # handed the epred matrix.
+      out <- compute_metric(
+        elpd_loo_metric(),
+        fit_result,
+        data_bundle,
+        context,
+        list(task_id = "t1", rep_idx = 1L)
+      )
+      expect_true(all(is.na(out)))
+    })
+
     it("warns once when an epred-only metric's predict_epred fails (#68)", {
       bayesim:::.reset_warn_once()
       BrokenEpredOnlyFitter <- S7::new_class(
