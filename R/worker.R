@@ -689,12 +689,12 @@ build_metric_context <- function(
 #' matrix, and the posterior expectation predictions (epred) — all once, shared
 #' across metrics.
 #'
-#' The PSIS object uses `loo::psis(-ll, r_eff)` with per-observation
-#' relative-efficiency factors derived from the fit's chain structure via
-#' `posterior::as_draws_df(fit)$.chain` (matches brms' internal `r_eff_log_lik`
-#' exactly). Falls back to `r_eff = NULL` (with a captured warning) when chain
-#' structure is unavailable, which is mathematically valid but slightly less
-#' accurate.
+#' The PSIS object uses `loo::psis(-ll, r_eff)` with the chain-aware
+#' relative-efficiency factors that `loo_fit()` derived from the same matrix
+#' (`posterior::as_draws_df(fit)$.chain`, matching brms' internal
+#' `r_eff_log_lik`). Falls back to `r_eff = NULL` (with a captured warning)
+#' when chain structure is unavailable, which is mathematically valid but
+#' slightly less accurate.
 #'
 #' epred must be the posterior expectation (mu, no observation noise); for brms
 #' this is `brms::posterior_epred`. Only fitters with `supports_epred = TRUE`
@@ -715,16 +715,34 @@ build_metric_context <- function(
 #'   unavailable; when the train-set log-lik matrix fails the function bails
 #'   with `epred_attempted = FALSE` so the caller can still build epred
 #'   directly (it does not depend on the log-lik).
+#'
+#' @details
+#' The train-set log-lik matrix is computed once and shared: `loo_fit()`
+#' receives it through its `log_lik` argument, and the PSIS object reuses the
+#' chain-aware relative efficiencies that `loo_fit()` derived from the same
+#' matrix (falling back to [relative_eff_from_chains()] when the fitter's
+#' `loo_fit()` returns no `r_eff`). This keeps the summary and the PSIS
+#' weights consistent and avoids computing each twice per task (#73).
 #' @keywords internal
 build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
-  loo_result <- loo_fit(fitter, fit_result)
+  # Compute the train-set log-lik matrix once, before loo_fit(): the summary
+  # consumes it via the log_lik argument and the PSIS object below reads the
+  # same matrix, so the PSIS path pays for log_lik_matrix() once per task
+  # instead of twice (#73). With need_psis = FALSE no consumer exists;
+  # loo_fit() computes (and pays for) its own.
+  ll <- NULL
+  if (isTRUE(need_psis)) {
+    ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
+  }
+
+  loo_result <- loo_fit(fitter, fit_result, log_lik = ll)
   if (is.null(loo_result)) {
     return(NULL)
   }
 
-  # The train-set log-lik matrix, r_eff, the PSIS object, and epred only feed
-  # the weighted-prediction machinery; with need_psis = FALSE no metric reads
-  # them, so skip the work entirely (#69).
+  # The PSIS object, epred, and (from here on) the log-lik matrix itself only
+  # feed the weighted-prediction machinery; with need_psis = FALSE no metric
+  # reads them, so skip the work entirely (#69).
   if (!isTRUE(need_psis)) {
     return(list(
       loo = loo_result,
@@ -735,8 +753,8 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
     ))
   }
 
-  # Pointwise log-likelihood matrix (S x N, draws x observations).
-  ll <- tryCatch(log_lik_matrix(fitter, fit_result), error = function(e) NULL)
+  # Train-set log-lik matrix unavailable (failed, or not matrix-shaped): bail
+  # with epred_attempted = FALSE so the caller can still build epred directly.
   if (!is.matrix(ll)) {
     return(list(
       loo = loo_result,
@@ -747,11 +765,17 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
     ))
   }
 
-  # Per-observation relative-efficiency via chain structure.
-  r_eff <- tryCatch(
-    relative_eff_from_chains(fitter, fit_result, ll),
-    error = function(e) NULL
-  )
+  # #73: reuse the chain-aware relative efficiencies loo_fit() derived from
+  # the same matrix; derive them here only when the fitter's loo_fit() did
+  # not return any. Exact [[ ]] read: loo_result is a fitter-controlled list
+  # where $ would partial-match.
+  r_eff <- loo_result[["r_eff"]]
+  if (is.null(r_eff)) {
+    r_eff <- tryCatch(
+      relative_eff_from_chains(fitter, fit_result, ll),
+      error = function(e) NULL
+    )
+  }
 
   # PSIS object. If r_eff is NULL (no chain info) loo::psis warns and proceeds
   # without the efficiency correction — mathematically valid, slightly less

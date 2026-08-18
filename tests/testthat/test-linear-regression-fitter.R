@@ -138,6 +138,67 @@ describe("LinearRegressionFitter contract", {
     expect_equal(diag$ess_bulk, 250L)
     expect_equal(diag$divergent, 0L)
   })
+
+  it("loo_fit summarizes the train-set log-lik and reuses a supplied matrix (#73)", {
+    withr::local_seed(3)
+    n <- 25L
+    data_bundle <- list(
+      train = data.frame(y = stats::rnorm(n), x = stats::rnorm(n)),
+      test = NULL,
+      response = "y"
+    )
+    fitter <- LinearRegressionFitter(n_draws = 100L)
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
+
+    # Standalone: computes its own matrix; bootstrap draws are i.i.d., so no
+    # chain-aware r_eff is available.
+    out <- loo_fit(fitter, res)
+    expect_false(is.na(out$elpd))
+    expect_false(is.na(out$p_loo))
+    expect_false(is.na(out$elpd_se))
+    expect_length(out$pareto_k, n)
+    expect_null(out$r_eff)
+
+    # Supplied matrix: identical summary without recomputation.
+    out_passed <- loo_fit(fitter, res, log_lik = log_lik_matrix(fitter, res))
+    expect_equal(out_passed, out)
+  })
+
+  it("loo_fit degrades to the NA structure on a degenerate log-lik (#73)", {
+    withr::local_seed(3)
+    data_bundle <- list(
+      train = data.frame(y = stats::rnorm(10), x = stats::rnorm(10)),
+      test = NULL,
+      response = "y"
+    )
+    fitter <- LinearRegressionFitter(n_draws = 100L)
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
+    # S = 1: loo::loo() hard-errors at one draw (psis_apply's internal
+    # vapply collapses the log-weights to a plain vector, tripping its
+    # is.matrix stopifnot) — a future loo that handles S = 1 gracefully
+    # would need this test re-pinned; the summary must degrade to NA, not
+    # propagate the error.
+    out <- loo_fit(fitter, res, log_lik = matrix(rnorm(10), nrow = 1))
+    expect_setequal(
+      names(out),
+      c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+    )
+    expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
+    expect_length(out$pareto_k, 0)
+    expect_null(out$r_eff)
+  })
 })
 
 describe("LinearRegressionFitter coverage", {

@@ -79,6 +79,12 @@ describe("CmdStanFitter fit + draws + diagnostics", {
     # loo works.
     loo <- loo_fit(fitter, res)
     expect_false(is.na(loo$elpd))
+
+    # #73: a supplied train-set matrix yields the identical summary (the
+    # engine passes the matrix it computed for the PSIS context).
+    loo_passed <- loo_fit(fitter, res, log_lik = ll)
+    expect_equal(loo_passed, loo)
+    expect_false(is.null(loo_passed$r_eff))
   })
 
   it("errors when log_lik is needed but not declared", {
