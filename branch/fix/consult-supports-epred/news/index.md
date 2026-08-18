@@ -82,7 +82,11 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
   without an `epred` generated quantity) no longer produces silently
   all-NA LOO-prediction columns
-  ([\#62](https://github.com/sims1253/bayesim/issues/62)).
+  ([\#62](https://github.com/sims1253/bayesim/issues/62)). A
+  [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
+  return with the wrong shape now degrades through the same warn-once NA
+  path instead of surfacing as a generic metric error inside
+  [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
 
 ### Fitters and errors
 
