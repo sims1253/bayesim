@@ -778,15 +778,15 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   # #76: loo_fit() fitted the PSIS object as part of its summary when asked
   # (save_psis = TRUE): loo::loo()'s internal run is identical to
   # loo::psis(-ll, r_eff) on the same matrix, so reuse it instead of
-  # smoothing the same tails a second time. The pareto_k length check
-  # (exported, stable across loo versions) rejects a psis object fitted
+  # smoothing the same tails a second time. The dim check on the log-weights
+  # matrix (S x N; named lw before loo 2.10) rejects a psis object fitted
   # from a different matrix — e.g. a fitter that ignored the supplied
-  # log_lik — falling through to the direct route below.
+  # log_lik or returned a differently-sized one — so a buggy fitter falls
+  # through to the direct route below instead of erroring opaquely inside
+  # loo::E_loo().
   psis_obj <- loo_result[["psis_object"]]
-  if (
-    !inherits(psis_obj, "psis") ||
-      !identical(length(loo::pareto_k_values(psis_obj)), ncol(ll))
-  ) {
+  psis_dim <- dim(psis_obj[["log_weights"]] %||% psis_obj[["lw"]])
+  if (!inherits(psis_obj, "psis") || !identical(psis_dim, dim(ll))) {
     # #73: derive the chain-aware relative efficiencies loo_fit() returned;
     # fall back to relative_eff_from_chains() when the fitter's loo_fit()
     # did not return any. Exact [[ ]] read: loo_result is a fitter-controlled

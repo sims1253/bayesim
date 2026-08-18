@@ -1349,10 +1349,12 @@ describe("Worker", {
         save_psis = FALSE
       ) {
         ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
-        # PSIS object fitted from a 5-observation matrix: the pareto_k
-        # length (5) mismatches the context's 10-column log-lik, so the
-        # engine must reject it and re-fit from its own matrix.
-        other <- matrix(rnorm(250, -1, 0.5), nrow = 50, ncol = 5)
+        # PSIS object fitted from a same-width but differently-sized matrix
+        # (40 draws vs the context's 50, same 10 observations): only the
+        # draws dimension betrays it, and the engine must reject it and
+        # re-fit from its own matrix instead of erroring opaquely inside
+        # loo::E_loo().
+        other <- matrix(rnorm(400, -1, 0.5), nrow = 40, ncol = 10)
         bad_psis <- suppressWarnings(loo::loo(
           other,
           save_psis = TRUE
@@ -1392,9 +1394,10 @@ describe("Worker", {
         list(rmse_loo_metric())
       ))
 
-      # A usable PSIS object fitted from the context's own 10-column matrix.
+      # A usable PSIS object fitted from the context's own 50 x 10 matrix
+      # (the mismatched 40-draw object was rejected).
       expect_true(inherits(context$loo_psis, "psis"))
-      expect_equal(ncol(context$loo_psis$log_weights), 10L)
+      expect_identical(dim(context$loo_psis$log_weights), c(50L, 10L))
     })
 
     it("builds epred without LOO support when \"loo\" is also declared (#68)", {
