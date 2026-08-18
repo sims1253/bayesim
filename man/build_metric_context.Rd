@@ -31,6 +31,9 @@ A named list containing any of:
 \item \code{predictions}: Prediction results from the fitter
 \item \code{log_lik}: Pointwise log-likelihood matrix (S x N)
 \item \code{loo}: LOO-CV results
+\item \code{loo_psis}, \code{loo_psis_ll}, \code{loo_epred}: PSIS object, pointwise
+log-lik, and posterior-expectation predictions backing the LOO
+prediction metrics
 }
 }
 \description{
@@ -47,6 +50,9 @@ Evaluation data: \code{predictions} and \code{log_lik} are computed on the TEST 
 when \code{data_bundle$test} is present, otherwise on the training set. Every
 built-in metric that consumes them (\verb{pred_*}, \code{elpd_test}, \code{r2_test}) compares against the test response, so the predictions must be
 for the test rows. The LOO context is always built on the training set —
-leave-one-out is in-sample by construction.
+leave-one-out is in-sample by construction. \code{loo_epred} is likewise a
+training-set matrix; when no metric needs \code{"loo"} (or the fitter lacks LOO
+support) it is built directly via \code{\link[=predict_epred]{predict_epred()}} rather than through
+the LOO context, so declaring \code{needs = "epred"} alone still delivers it.
 }
 \keyword{internal}

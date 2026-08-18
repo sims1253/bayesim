@@ -62,6 +62,13 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   produces silently all-NA LOO-prediction columns (#62). A `predict_epred()`
   return with the wrong shape now degrades through the same warn-once NA
   path instead of surfacing as a generic metric error inside `loo::E_loo()`.
+* Metrics declaring `needs = "epred"` without `"loo"` now actually receive
+  `context$loo_epred`: the matrix used to be built only inside the LOO
+  context, so an epred-only metric silently computed on a missing context
+  element and NA-degraded with no explanation. epred is now built directly
+  via `predict_epred()` whenever the LOO context is not built (no `"loo"`
+  need, unsupported LOO, or a failed LOO build), with its own warn-once NA
+  path when `predict_epred()` fails or returns a wrong-shaped matrix (#68).
 
 ## Fitters and errors
 

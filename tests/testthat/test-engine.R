@@ -1007,6 +1007,184 @@ describe("Worker", {
       expect_true(is.null(context$loo_epred))
       expect_false(is.null(context$loo))
     })
+
+    it("builds epred for a metric declaring needs = \"epred\" alone (#68)", {
+      # epred used to be built only inside the LOO branch, so an epred-only
+      # metric silently received context$loo_epred = NULL. The matrix must
+      # now be built directly, without the LOO machinery.
+      bayesim:::.reset_warn_once()
+      EpredCapableFitter <- S7::new_class(
+        "EpredCapableFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, EpredCapableFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- EpredCapableFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+      # Build the metric outside expect_silent: registering a fresh S7 class
+      # emits messages that expect_silent would flag.
+      metric <- list(create_test_metric(name = "epred_only", needs = "epred"))
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        metric
+      ))
+
+      # epred on the training set: 50 draws x 10 observations.
+      expect_equal(dim(context$loo_epred), c(50, 10))
+      # No "loo" need: the LOO context must not be built. Exact [[ ]] access —
+      # $loo would partially match loo_epred.
+      expect_true(is.null(context[["loo"]]))
+      expect_true(is.null(context[["loo_psis"]]))
+      expect_true(is.null(context[["loo_psis_ll"]]))
+    })
+
+    it("builds epred without LOO support when \"loo\" is also declared (#68)", {
+      # needs = c("loo", "epred") on a supports_loo = FALSE fitter: the LOO
+      # branch is skipped (warn-once), but epred no longer disappears with it.
+      bayesim:::.reset_warn_once()
+      EpredNoLooFitter <- S7::new_class(
+        "EpredNoLooFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, EpredNoLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- EpredNoLooFitter()
+      fitter@supports_epred <- TRUE
+      fitter@supports_loo <- FALSE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(create_test_metric(name = "both", needs = c("loo", "epred")))
+        ),
+        "Metric requires loo but fitter does not support it"
+      )
+      expect_true(is.null(context[["loo"]]))
+      expect_equal(dim(context$loo_epred), c(50, 10))
+    })
+
+    it("warns once when an epred-only metric's predict_epred fails (#68)", {
+      bayesim:::.reset_warn_once()
+      BrokenEpredOnlyFitter <- S7::new_class(
+        "BrokenEpredOnlyFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, BrokenEpredOnlyFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        stop("boom")
+      }
+      fitter <- BrokenEpredOnlyFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      metric <- list(create_test_metric(name = "epred_only", needs = "epred"))
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          metric
+        ),
+        "predict_epred\\(\\) failed"
+      )
+      expect_true(is.null(context$loo_epred))
+      # Warn once per run, not per task.
+      expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        metric
+      ))
+    })
+
+    it("degrades a wrong-shaped epred through the warn-once path without loo (#68)", {
+      # Outside the LOO context there is no log-lik matrix to align draws
+      # against, but the observation count must still match the training set.
+      bayesim:::.reset_warn_once()
+      BadShapeEpredOnlyFitter <- S7::new_class(
+        "BadShapeEpredOnlyFitter",
+        parent = MockFitter
+      )
+      S7::method(predict_epred, BadShapeEpredOnlyFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(10), nrow = 5, ncol = 2)
+      }
+      fitter <- BadShapeEpredOnlyFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- NULL
+      expect_warning(
+        context <- build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(create_test_metric(name = "epred_only", needs = "epred"))
+        ),
+        "predict_epred\\(\\) failed"
+      )
+      # The malformed matrix must not reach the metric context.
+      expect_true(is.null(context$loo_epred))
+      expect_true(is.null(context[["loo"]]))
+    })
   })
 
   describe("compute_all_metrics()", {

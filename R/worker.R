@@ -423,6 +423,9 @@ run_task <- function(
 #'     \item `predictions`: Prediction results from the fitter
 #'     \item `log_lik`: Pointwise log-likelihood matrix (S x N)
 #'     \item `loo`: LOO-CV results
+#'     \item `loo_psis`, `loo_psis_ll`, `loo_epred`: PSIS object, pointwise
+#'       log-lik, and posterior-expectation predictions backing the LOO
+#'       prediction metrics
 #'   }
 #'
 #' @details
@@ -435,7 +438,10 @@ run_task <- function(
 #' when `data_bundle$test` is present, otherwise on the training set. Every
 #' built-in metric that consumes them (`pred_*`, `elpd_test`, `r2_test`) compares against the test response, so the predictions must be
 #' for the test rows. The LOO context is always built on the training set —
-#' leave-one-out is in-sample by construction.
+#' leave-one-out is in-sample by construction. `loo_epred` is likewise a
+#' training-set matrix; when no metric needs `"loo"` (or the fitter lacks LOO
+#' support) it is built directly via [predict_epred()] rather than through
+#' the LOO context, so declaring `needs = "epred"` alone still delivers it.
 #'
 #' @keywords internal
 build_metric_context <- function(
@@ -560,6 +566,7 @@ build_metric_context <- function(
     )
   }
 
+  loo_ctx <- NULL
   if ("loo" %in% all_needs && fitter@supports_loo) {
     loo_ctx <- tryCatch(
       build_loo_context(fitter, fit_result),
@@ -599,6 +606,43 @@ build_metric_context <- function(
           )
         )
       }
+    }
+  }
+
+  # #68: epred does not depend on the LOO machinery, but it used to be built
+  # only inside the LOO branch above — a metric declaring needs = "epred"
+  # without "loo" (or on a fitter without LOO support) never received
+  # context$loo_epred and silently NA-degraded with no warn-once explaining
+  # it. Build the matrix directly whenever the LOO branch did not, so the
+  # declared capability is honored like any other.
+  if ("epred" %in% all_needs && is.null(loo_ctx)) {
+    context$loo_epred <- if (!isTRUE(fitter@supports_epred)) {
+      NULL # the unsupported_capability.epred warning above covers this
+    } else {
+      tryCatch(
+        {
+          # epred is a training-set quantity (LOO is in-sample by
+          # construction); no log-lik matrix exists to align draws against.
+          epred <- predict_epred(fitter, fit_result)
+          validate_fitter_epred(
+            epred,
+            n_draws = NULL,
+            n_obs = nrow(data_bundle$train)
+          )
+          epred
+        },
+        error = function(e) {
+          # No is_fatal_error() re-stop: a wrong-shaped predict_epred() return
+          # raises a contract error and must degrade through this warn-once
+          # exactly as it does when built via the LOO context.
+          .warn_once(
+            "epred_build_failed",
+            "predict_epred() failed; epred-based metrics will be NA.",
+            i = conditionMessage(e)
+          )
+          NULL
+        }
+      )
     }
   }
 
