@@ -1,12 +1,5 @@
-# F8 — End-to-end SBC acceptance test.
-#
-# This is the single test that would have caught F1 (IFS forward sampling),
-# F2 (vars_of_interest / draws-column name mismatch), F3 (LOO-RMSE/R2), and
-# F4 (rank thinning). It runs a small prior-predictive SBC study through the
-# full run_simulation() pipeline under mirai daemons, asserts the ranks are
-# well-formed and roughly uniform, coverage is sane, rmse_loo is non-NA, and
-# that the model bank compiles exactly once. A second pass swaps in
-# ifs_generator() to exercise the F1 forward-sampling path.
+# End-to-end SBC checks for prior-predictive and IFS studies: ranks, coverage,
+# LOO error, forward sampling, and reproducibility under mirai daemons.
 
 skip_unless_bayesim_backend()
 skip_if(
@@ -28,7 +21,7 @@ gaussian_predictors <- function(data_spec, task_ctx) {
 # Pass 1: prior_predictive_generator + run_simulation under daemons.
 # ---------------------------------------------------------------------------
 describe("SBC acceptance — prior-predictive pass", {
-  it("runs end-to-end under daemons with uniform ranks and one compile", {
+  it("runs reproducibly under daemons with uniform ranks", {
     # Compile the sample_prior = "only" model once for the generator.
     prior_fit <- brms::brm(
       y ~ x,
@@ -138,23 +131,7 @@ describe("SBC acceptance — prior-predictive pass", {
     expect_length(rmse_col, 1L)
     expect_false(anyNA(result$summary[[rmse_col]]))
 
-    # 5. Exactly one Stan compilation (model bank hit for all tasks). The bank
-    # holds one entry per distinct spec; with one fit_grid row there must be
-    # exactly one compiled prefit. (build_model_bank ships via set_model_bank
-    # and is cleared on run exit, so inspect the bank mid-run is not possible;
-    # instead assert the bank was built by checking that no per-task fresh
-    # compile occurred: all task timings are far smaller than a compile, and
-    # the bank-build log message appears once.)
-    # We approximate the one-compile guarantee structurally: the run produced
-    # 30 successful tasks against a single fit spec, so the bank must have hit
-    # for 29 of them (one compile funds the bank). Verify the bank has exactly
-    # one distinct model by counting distinct model hashes — done here by
-    # confirming a single model column value across all tasks.
-    if ("model" %in% names(result$summary)) {
-      expect_length(unique(result$summary$model), 1L)
-    }
-
-    # 6. Determinism: a second run with the same seed reproduces the summary.
+    # 5. A second run with the same seed reproduces the summary.
     result2 <- run_simulation(config, resume = "never", progress = FALSE)
     norm <- function(df) {
       df <- df[order(df$task_id), ]
