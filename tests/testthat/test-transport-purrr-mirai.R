@@ -41,6 +41,11 @@ describe("purrr/mirai transport", {
         data_grid = data.frame(fail = fail),
         fit_grid = data.frame(model = "baseline"),
         data_generator = gen,
+        daemon_setup = function() {
+          options(
+            bayesim.setup_count = getOption("bayesim.setup_count", 0L) + 1L
+          )
+        },
         fitter = MockFitter(),
         metrics = list(),
         n_replicates = 3L,
@@ -78,6 +83,10 @@ describe("purrr/mirai transport", {
         "bayesim.model_bank"
       )))$data
       expect_null(bank)
+      setup_count <- mirai::call_mirai(mirai::mirai(getOption(
+        "bayesim.setup_count"
+      )))$data
+      expect_identical(setup_count, if (fail) 2L else 1L)
     }
   })
 
@@ -102,6 +111,7 @@ describe("purrr/mirai transport", {
     result <- run_simulation(config, progress = FALSE, verbose = FALSE)
     expect_identical(result$summary$status, "success")
   })
+
   it("fatal conditions raised inside a task stop the run under daemons", {
     # A data generator that raises a fatal bayesim_config_error. Generators are
     # crated into the task transport (config_spec$data_generator), so any helper
