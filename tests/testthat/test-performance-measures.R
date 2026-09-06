@@ -1,4 +1,4 @@
-# E3: performance_measures() — Morris et al. (2019) estimator-performance layer.
+# performance_measures() — Morris et al. (2019) estimator-performance layer.
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n
   b <- data_spec$beta

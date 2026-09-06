@@ -12,7 +12,7 @@ plot_recovery(result, estimand = NULL, by = NULL, var = NULL)
 \item{estimand}{Parameter name (a \code{vars_of_interest} entry); the preferred
 terminology, matching \code{\link[=performance_measures]{performance_measures()}}.}
 
-\item{by}{Optional name of a condition column to facet by (E7).}
+\item{by}{Optional name of a condition column to facet by.}
 
 \item{var}{Legacy alias for \code{estimand}, kept for backward compatibility
 with earlier bayesim versions. It is a silent compatibility alias, not a
@@ -27,7 +27,7 @@ A ggplot object.
 Scatter of posterior-mean estimates against true parameter
 values, per task, with credible-interval segments. Faceted by a condition
 column when \code{by} is supplied. Requires \code{posterior_summary_metric} to have
-been computed and the truth recorded (E1).
+been computed and the truth recorded.
 }
 \examples{
 \dontrun{

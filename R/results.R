@@ -3,7 +3,7 @@
 #'   These S3 classes provide consistent interfaces for handling results from
 #'   Bayesian model fitting, task execution, and simulation runs.
 #' @name results
-#' @keywords internal
+#' @noRd
 NULL
 
 # =============================================================================
@@ -14,7 +14,7 @@ NULL
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_fit_result"`, `FALSE` otherwise
-#' @keywords internal
+#' @noRd
 is_bayesim_fit_result <- function(x) {
   inherits(x, "bayesim_fit_result")
 }
@@ -31,7 +31,7 @@ is_bayesim_fit_result <- function(x) {
 #' validation problem (e.g., class mismatch, success/error inconsistency,
 #' invalid timing, missing draws colnames, etc.).
 #'
-#' @keywords internal
+#' @noRd
 validate_bayesim_fit_result <- function(x) {
   if (!is_bayesim_fit_result(x)) {
     stop(bayesim_contract_error("Object must have class 'bayesim_fit_result'"))
@@ -186,7 +186,7 @@ new_fit_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_task_result"`, `FALSE` otherwise
-#' @keywords internal
+#' @noRd
 is_bayesim_task_result <- function(x) {
   inherits(x, "bayesim_task_result")
 }
@@ -203,7 +203,7 @@ is_bayesim_task_result <- function(x) {
 #' validation problem (e.g., class mismatch, invalid task_id or status,
 #' missing metrics for successful tasks, missing error for failed tasks, etc.).
 #'
-#' @keywords internal
+#' @noRd
 validate_bayesim_task_result <- function(x) {
   if (!is_bayesim_task_result(x)) {
     stop(bayesim_contract_error("Object must have class 'bayesim_task_result'"))
@@ -292,7 +292,7 @@ validate_bayesim_task_result <- function(x) {
 #' - If `status` is "failed", `error` must not be NULL
 #' - `timing$total` must be non-negative
 #'
-#' @keywords internal
+#' @noRd
 #' @examples
 #' \dontrun{
 #' # Successful task
@@ -345,7 +345,7 @@ new_task_result <- function(
       timing = timing,
       error = error,
       warnings = warnings,
-      # E1: data-generating truth (named numeric or NULL), always retained and
+      # data-generating truth (named numeric or NULL), always retained and
       # flattened to truth__<param> summary columns for recovery analysis.
       truth = truth,
       stop_reason = stop_reason
@@ -364,7 +364,7 @@ new_task_result <- function(
 #'
 #' @param x Object to check
 #' @return `TRUE` if `x` inherits from `"bayesim_simulation_result"`, `FALSE` otherwise
-#' @keywords internal
+#' @noRd
 is_bayesim_simulation_result <- function(x) {
   inherits(x, "bayesim_simulation_result")
 }
@@ -381,7 +381,7 @@ is_bayesim_simulation_result <- function(x) {
 #' validation problem (e.g., class mismatch, invalid config_fingerprint,
 #' invalid task_results elements, non-data.frame summary/errors, etc.).
 #'
-#' @keywords internal
+#' @noRd
 validate_bayesim_simulation_result <- function(x) {
   if (!is_bayesim_simulation_result(x)) {
     stop(bayesim_contract_error(
@@ -474,7 +474,7 @@ validate_bayesim_simulation_result <- function(x) {
 #' - `timing$total` must be non-negative
 #' - `checkpoint_path` must be NULL or a scalar character
 #'
-#' @keywords internal
+#' @noRd
 #' @examples
 #' \dontrun{
 #' # Create a simulation result
@@ -544,7 +544,7 @@ new_simulation_result <- function(
       timing = timing,
       errors = errors,
       checkpoint_path = checkpoint_path,
-      # E4: named list mapping metric name -> summary_type ("mean",
+      # named list mapping metric name -> summary_type ("mean",
       # "proportion", "none"); consumed by summarize_simulation().
       metric_summary_types = metric_summary_types,
       # Field-level schema is the preferred analysis contract. Keep the
@@ -633,7 +633,7 @@ print.bayesim_simulation_result <- function(x, ...) {
   cat("    - Failed:", unname(counts[["failed"]]), "\n")
   cat("    - Pending:", unname(counts[["pending"]]), "\n")
   cat("    - Skipped (policy-stopped):", unname(counts[["skipped"]]), "\n")
-  # F3: condition grid shape + metrics preview.
+  # condition grid shape + metrics preview.
   if (!is.null(x$summary) && is.data.frame(x$summary) && nrow(x$summary) > 0) {
     metric_preview <- grep("__", names(x$summary), value = TRUE)
     if (length(metric_preview)) {
@@ -662,7 +662,7 @@ print.bayesim_simulation_result <- function(x, ...) {
       mustWork = FALSE
     )
     cat("  Results:", checkpoint_path, "\n")
-    # F6: only advertise the configless resume command when the run manifest
+    # only advertise the configless resume command when the run manifest
     # can actually rehydrate every executable component; otherwise the
     # guidance asks for the original config (see resume_guidance_lines()).
     cat(resume_guidance_lines(checkpoint_path), sep = "\n")

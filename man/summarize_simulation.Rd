@@ -32,7 +32,7 @@ mean and median of each metric column, Monte Carlo standard errors
 (MCSE), replicate counts, and failure/convergence-failure rates. Returns a
 tidy tibble with one row per condition.
 
-Aggregation follows each metric's declared \code{summary_type} (E4; see
+Aggregation follows each metric's declared \code{summary_type} (see
 \link{Metric}): \code{"mean"} columns get a \code{sd / sqrt(n)} MCSE, \code{"proportion"}
 columns (e.g. coverage) get \code{sqrt(p(1-p) / n)}, and \code{"none"} columns
 (e.g. SBC ranks) are excluded from aggregation. Columns from unknown or

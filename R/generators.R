@@ -314,7 +314,7 @@ ifs_generator <- function(
 #' Extract the response variable name from a brmsfit.
 #' Falls back through formula forms since sample_prior="only" fits may strip
 #' the standard formula() variables.
-#' @keywords internal
+#' @noRd
 .fit_response_name <- function(fit) {
   # Try the stored brmsformula first (most reliable).
   resp <- tryCatch(
@@ -332,10 +332,9 @@ ifs_generator <- function(
 }
 
 #' Default vars_of_interest for a brmsfit: population-level effects, plus the
-#' residual scale `sigma` when present (E5: previously defaulted to population
-#' effects only, silently excluding sigma/auxiliary parameters from SBC).
+#' residual scale `sigma` when present.
 #' brms names effects "b_<coefname>"; strip the "b_" prefix for true_params names.
-#' @keywords internal
+#' @noRd
 .default_prior_vars <- function(fit) {
   vars <- brms::variables(fit)
   b_vars <- vars[grepl("^b_", vars)]
@@ -354,7 +353,7 @@ ifs_generator <- function(
 #' Extract a named parameter vector from a draws matrix at a given draw index.
 #' Errors if a requested variable cannot be found (neither as the cleaned name
 #' nor as "b_<name>"), since a silent NA would corrupt downstream SBC ranks.
-#' @keywords internal
+#' @noRd
 .extract_truth <- function(draws_mat, draw_id, vars_of_interest) {
   available <- colnames(draws_mat)
   candidates <- paste0("b_", vars_of_interest)
@@ -407,7 +406,7 @@ ifs_generator <- function(
 #' @return A data.frame (a copy of `newdata`) with the simulated response
 #'   column(s) filled in.
 #'
-#' @keywords internal
+#' @noRd
 brms_full_ppred <- function(fit, newdata = NULL, draw = 1L) {
   resp <- brms_response_sequence(fit)
   if (is.null(newdata)) {
@@ -436,7 +435,7 @@ brms_full_ppred <- function(fit, newdata = NULL, draw = 1L) {
 #' Topological sort of response variables by dependency depth (Kahn's
 #' algorithm). Nodes with no incoming edges (predictors that depend on no other
 #' response) come first.
-#' @keywords internal
+#' @noRd
 nodes_by_depth <- function(adj_matrix) {
   depth_list <- list()
   var_names <- rownames(adj_matrix)
@@ -471,7 +470,7 @@ nodes_by_depth <- function(adj_matrix) {
 #' construction (the 0.x `bform` logic), so dispatch works regardless of
 #' whether the `"bform"` class alias is registered.
 #'
-#' @keywords internal
+#' @noRd
 brms_response_sequence <- function(x) {
   UseMethod("brms_response_sequence")
 }
@@ -896,7 +895,7 @@ forward_sim_generator <- function(
 #' reproducible across tasks (the worker's ambient RNG stream is independent of
 #' the seed passed here, which only governs the MCMC/NIG draw generation for the
 #' pilot). Returns the bayesim_fit_result.
-#' @keywords internal
+#' @noRd
 .pilot_fit <- function(fitter, pilot_bundle, fit_spec) {
   seed <- pilot_bundle$.pilot_seed %||% 0L
   fit_model(
@@ -910,7 +909,7 @@ forward_sim_generator <- function(
 
 #' Resolve the response name from a fit_spec (LHS of fit_spec$formula).
 #' Returns NA_character_ if it cannot be resolved.
-#' @keywords internal
+#' @noRd
 .fit_spec_response_name <- function(fit_spec) {
   out <- tryCatch(
     {
@@ -928,7 +927,7 @@ forward_sim_generator <- function(
 #' "Intercept" and contributes a constant 1 (since predictor designs do not
 #' include it as a column). Remaining coef_names must match columns of newdata.
 #' Returns a length-nrow(newdata) numeric vector.
-#' @keywords internal
+#' @noRd
 .linear_predictor <- function(newdata, theta_vec, coef_names, resp) {
   n <- nrow(newdata)
   if (is.null(n) || n < 1L) {
@@ -967,7 +966,7 @@ forward_sim_generator <- function(
 #'   - Fallback: try predict_fit() with a sliced fit_result; error on failure.
 #'
 #' Returns a numeric vector of length nrow(newdata).
-#' @keywords internal
+#' @noRd
 .forward_sim_y <- function(
   fitter,
   fit_result,

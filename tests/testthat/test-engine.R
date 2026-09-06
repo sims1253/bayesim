@@ -2047,7 +2047,7 @@ describe("run_simulation()", {
       )
     })
 
-    it("ships the model bank once per run, not per batch (F6)", {
+    it("ships the model bank once per run, not per batch", {
       skip_if_not(
         run_sim_exists(),
         "run_simulation not available or is_simulation_config broken"

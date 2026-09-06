@@ -7,9 +7,9 @@
 #'   invalid.
 #'
 #'   These helpers exist to deduplicate the small S7 property validators that
-#'   are otherwise copy-pasted across class definitions (B5).
+#'   are otherwise copy-pasted across class definitions.
 #' @name s7-validators
-#' @keywords internal
+#' @noRd
 NULL
 
 # =============================================================================
@@ -28,7 +28,7 @@ NULL
 #'   property-name-prefixed string to preserve a previously established error
 #'   message verbatim.
 #' @return A `function(value)` suitable as an S7 property `validator`.
-#' @keywords internal
+#' @noRd
 validate_positive_integer <- function(message = "must be a positive integer") {
   force(message)
   function(value) {

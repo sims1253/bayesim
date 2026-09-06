@@ -24,9 +24,15 @@ A ggplot object.
 Plots the empirical CDF of SBC ranks against the uniform CDF
 (the diagonal), with a simultaneous confidence band following
 Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
-under correct calibration, the \emph{entire} ECDF stays within it with
-probability alpha; deviations anywhere along the band therefore indicate
-miscalibration at level 1 - alpha.
+for independent uniform ranks on a common support, the \emph{entire} ECDF
+stays within it with probability alpha. This level applies to each
+panel separately, not to all panels together.
+
+Prior-draw and IFS generators can reuse a truth draw across condition
+cells. Pooling these cells introduces dependence and can make the band
+too narrow. Use \code{by} to separate such cells; the band does not correct
+for dependence from shared draws. See
+\url{https://github.com/sims1253/bayesim/issues/59}.
 
 Ranks are normalized per task: each task's ranks are scaled by that
 task's own support, \code{(rank + 0.5) / n_ranks} with \code{n_ranks} = support +

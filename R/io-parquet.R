@@ -1,5 +1,5 @@
 # =============================================================================
-# Optional parquet summary output (Workstream I8)
+# Optional parquet summary output
 # =============================================================================
 #
 # The wide rds summary becomes a bottleneck for very large studies. This file
@@ -13,7 +13,7 @@
 #' Write a simulation summary to parquet
 #'
 #' Writes `results_df` (a data frame/tibble summary produced by
-#' [build_simulation_result()]) to `path` as a parquet file using
+#' `build_simulation_result()`) to `path` as a parquet file using
 #' `nanoparquet`. The data frame is coerced to a plain data.frame first so
 #' that tibble/vctrs columns parquet cannot represent are flattened.
 #'
@@ -23,7 +23,7 @@
 #' @param results_df A data.frame or tibble summary to write.
 #' @param path Character scalar. Destination parquet file path.
 #' @return Invisible `path` (invisibly), the path written to.
-#' @keywords internal
+#' @noRd
 write_results_parquet <- function(results_df, path) {
   rlang::check_installed("nanoparquet")
   nanoparquet::write_parquet(as.data.frame(results_df), path)
@@ -33,7 +33,7 @@ write_results_parquet <- function(results_df, path) {
 #' Read a simulation summary file
 #'
 #' Reads a simulation summary written by [run_simulation()] (or
-#' [write_results_parquet()]). Dispatches on file extension:
+#' `write_results_parquet()`). Dispatches on file extension:
 #' `.parquet` files are read with `nanoparquet::read_parquet` (requires the
 #' suggested `nanoparquet` package); `.rds` files are read with
 #' [base::readRDS()].

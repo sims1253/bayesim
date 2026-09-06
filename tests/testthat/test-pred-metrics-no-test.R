@@ -1,5 +1,5 @@
-# E2: prediction metrics refuse to silently fall back to the training set.
-describe("E2: prediction metrics require a test set", {
+# prediction metrics refuse to silently fall back to the training set.
+describe("prediction metrics require a test set", {
   it("pred_rmse_metric returns NA when no test set", {
     draws <- matrix(
       rnorm(200),

@@ -1,4 +1,4 @@
-# I5: n_replicates_for_target() — invert MCSE formulas for planning.
+# n_replicates_for_target() — invert MCSE formulas for planning.
 library(bayesim)
 
 describe("n_replicates_for_target", {

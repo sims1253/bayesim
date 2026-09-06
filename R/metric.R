@@ -120,7 +120,7 @@ Metric <- S7::new_class(
     name = S7::new_property(S7::class_character),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
-    # E4: how summarize_simulation aggregates this metric's flattened columns.
+    # how summarize_simulation aggregates this metric's flattened columns.
     # "mean" (default) — mean/sd/sqrt(n) MCSE; "proportion" — coverage-style
     # sqrt(p(1-p)/n) MCSE; "none" — do not aggregate (e.g. per-task ranks).
     summary_type = S7::new_property(

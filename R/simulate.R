@@ -2,7 +2,7 @@
 #' @description Main functions for running complete simulation studies with
 #'   deterministic reproducibility.
 #' @name simulate
-#' @keywords internal
+#' @noRd
 NULL
 
 #' Run a Simulation Study
@@ -67,7 +67,7 @@ run_simulation <- function(
   }
   validate_simulation_config(config)
 
-  # C2: `workers` convenience argument. When non-NULL, set up mirai daemons for
+  # `workers` convenience argument. When non-NULL, set up mirai daemons for
   # the run and tear them down on exit — but ONLY when no daemons were already
   # set (respect user-managed daemons). Error if both `workers` and existing
   # daemons are present. This happens before the model-bank everywhere() ship.
@@ -192,10 +192,10 @@ run_simulation <- function(
   # "already warned" flag.
   .reset_warn_once()
 
-  # F1: condensed prelight one-liner before the run starts. In condensed mode
-  # preflight also warns when metrics need capabilities the fitter lacks (R1).
+  # condensed prelight one-liner before the run starts. In condensed mode
+  # preflight also warns when metrics need capabilities the fitter lacks.
   # If the preflight path itself errors — e.g. a malformed grid list-column —
-  # surface it instead of starting the run in silence (R2).
+  # surface it instead of starting the run in silence.
   if (isTRUE(verbose)) {
     tryCatch(
       preflight(config, condensed = TRUE),
@@ -229,7 +229,7 @@ run_simulation <- function(
       result_path = run_policy$result_path
     )
     set_model_bank(model_bank)
-    # F6: clear the session bank after the run so it does not leak across runs
+    # clear the session bank after the run so it does not leak across runs
     # (a stale bank from a previous run could mismatch a new fit_grid).
     on.exit(set_model_bank(NULL), add = TRUE)
   } else {
@@ -307,9 +307,7 @@ run_simulation <- function(
     checkpoint_path = run_policy$result_path
   )
 
-  # F7 (issue #53): one end-of-run block — completion status, task counts,
-  # stop reason, results path, and the literal resume command when work
-  # remains. Subsumes the F2 failure detail. Gated by verbose only.
+  # Report completion, failures, and the resume command when work remains.
   if (isTRUE(verbose)) {
     print_run_summary(result)
   }
@@ -330,7 +328,7 @@ run_simulation <- function(
 #' @param result_path Character; path for checkpoint storage (optional)
 #' @param config_fingerprint Character; configuration fingerprint for validation
 #' @param checkpoint_every Integer; write checkpoint every N completed tasks.
-#'   B4: also bounds the number of task results held in memory at once.
+#'   also bounds the number of task results held in memory at once.
 #' @param keep_checkpoints Integer; number of checkpoint commit directories
 #'   retained. Pruning removes old commit directories only; immutable outcome
 #'   shards and ledger history are never pruned.
@@ -344,7 +342,7 @@ run_simulation <- function(
 #'
 #' @return A list with task_results and task_grid
 #'
-#' @keywords internal
+#' @noRd
 execute_tasks <- function(
   task_grid,
   config,
@@ -396,7 +394,7 @@ execute_tasks <- function(
       task_grid$fit_idx[pending_indices]
     )]
   }
-  # B4: one knob. batch_size = checkpoint_every (also bounds in-memory results).
+  # one knob. batch_size = checkpoint_every (also bounds in-memory results).
   batch_size <- as.integer(checkpoint_every)
 
   # For memory-bounded execution, we use a list that may contain NULLs
@@ -421,7 +419,7 @@ execute_tasks <- function(
     ((max_errors == 0 && error_count > 0) ||
       (max_errors > 0 && error_count >= max_errors))
 
-  # I3: optional adaptive stopping policy (NULL => run all tasks). The check
+  # optional adaptive stopping policy (NULL => run all tasks). The check
   # fires after each batch whose completed-task count reaches a check_every
   # boundary AND >= min_reps. bayesim_adaptive_evaluate never throws.
   if (!is.null(stop_on)) {
@@ -435,12 +433,12 @@ execute_tasks <- function(
   adaptive_stopped <- FALSE
   tasks_since_checkpoint <- 0L
 
-  # C1: exactly one progress system. purrr's .progress drives the per-task bar
+  # exactly one progress system. purrr's .progress drives the per-task bar
   # inside each batch (passed through run_batch); the outer loop only emits
   # per-batch checkpoint messages.
 
   if (n_pending > 0 && !error_budget_exhausted) {
-    # F6: ship the model bank and run the daemon_setup hook ONCE per
+    # ship the model bank and run the daemon_setup hook ONCE per
     # execute_tasks() invocation, BEFORE the batch loop. Previously this lived
     # in run_batch() and re-serialized the full bank to all daemons every batch
     # (e.g. 200x for a 10k-task run at batch 50). Note: daemons launched
@@ -512,7 +510,7 @@ execute_tasks <- function(
       error_count <- error_count + sum(batch_statuses == "failed")
       tasks_since_checkpoint <- tasks_since_checkpoint + length(batch_indices)
 
-      # C1: re-raise fatal conditions after collecting the batch. run_task_safe
+      # re-raise fatal conditions after collecting the batch. run_task_safe
       # captured them (rather than throwing across the daemon boundary) and
       # marked error$fatal with the full condition class chain. Before
       # re-raising, checkpoint the successful and recoverable outcomes this
@@ -576,7 +574,7 @@ execute_tasks <- function(
         ))
       }
 
-      # I3: adaptive stopping. Check whenever a scheduled threshold has been
+      # adaptive stopping. Check whenever a scheduled threshold has been
       # crossed, rather than relying on exact modulo equality (checkpoint and
       # adaptive intervals need not divide one another). The check runs before
       # lightening so per-task metrics are still in memory.
@@ -722,7 +720,7 @@ execute_tasks <- function(
   )
 }
 
-# C1: restore_mirai_condition() and the miraiError/errorValue inspection loop
+# restore_mirai_condition() and the miraiError/errorValue inspection loop
 # were deleted. run_task_safe() is now total (fatal conditions are captured into
 # failed task results with the full class chain), so transport carries only
 # bayesim_task_result objects; the controller re-raises fatal conditions after
@@ -732,14 +730,14 @@ execute_tasks <- function(
 #'
 #' Dispatches a batch of simulation tasks via purrr's mirai integration
 #' (`purrr::map()` + `purrr::in_parallel()`). With no daemons set, purrr falls
-#' back to sequential execution automatically, so there is a single code path
-#' (C1). mirai remains the daemon engine; daemons/model bank/`daemon_setup` are
-#' managed by [execute_tasks()].
+#' back to sequential execution automatically, so there is a single code path.
+#' mirai remains the daemon engine; daemons/model bank/`daemon_setup` are
+#' managed by `execute_tasks()`.
 #'
 #' `run_task_safe()` is total (never throws), so transport is pure transport:
 #' every returned element is a `bayesim_task_result`. Transport-level failures
 #' (e.g. daemon death) surface as errors from `purrr::map()` and propagate
-#' unchanged out of [execute_tasks()] and `run_simulation()`: they abort the
+#' unchanged out of `execute_tasks()` and `run_simulation()`: they abort the
 #' run, and outcomes from the interrupted batch are lost to that call (the last
 #' committed checkpoint still holds everything before it).
 #'
@@ -752,7 +750,7 @@ execute_tasks <- function(
 #'
 #' @return A list of bayesim_task_result objects
 #'
-#' @keywords internal
+#' @noRd
 run_batch <- function(
   batch_tasks,
   config_spec,
@@ -761,7 +759,7 @@ run_batch <- function(
   retain,
   progress = FALSE
 ) {
-  # C1: single dispatch path. in_parallel() crates via carrier::crate(), which
+  # single dispatch path. in_parallel() crates via carrier::crate(), which
   # strips the lambda's environment; the mapped element is the ONLY positional
   # argument, and every other dependency must be declared as a named constant
   # (purrr in_parallel convention). run_task_safe resolves on daemons because
@@ -840,7 +838,7 @@ materialize_task_results <- function(
 #'
 #' @return A bayesim_simulation_result S3 object
 #'
-#' @keywords internal
+#' @noRd
 build_simulation_result <- function(
   config,
   task_results,
@@ -910,7 +908,7 @@ build_simulation_result <- function(
     )
   }
 
-  # I8: optional parquet sidecar for the summary. The rds checkpoint remains
+  # optional parquet sidecar for the summary. The rds checkpoint remains
   # the canonical resume artifact; this parquet file is for downstream
   # consumption (pandas/arrow/polars). Best-effort: warn on failure.
   if (
@@ -929,7 +927,7 @@ build_simulation_result <- function(
     )
   }
 
-  # E4: record each metric's declared summary_type so summarize_simulation()
+  # record each metric's declared summary_type so summarize_simulation()
   # can pick the right aggregation/MCSE without name heuristics.
   metric_summary_types <- NULL
   metric_field_metadata <- NULL
@@ -980,7 +978,7 @@ build_simulation_result <- function(
 #'
 #' @return The summary tibble with additional columns
 #'
-#' @keywords internal
+#' @noRd
 enrich_summary_with_grid_columns <- function(
   summary,
   task_grid,
@@ -1124,21 +1122,21 @@ resume_simulation <- function(
   )
 }
 
-# Workstream I3: adaptive stopping -----------------------------------------
+# Adaptive stopping ---------------------------------------------------
 
-#' Build a quick summary tibble from in-memory task results (I3)
+#' Build a quick summary tibble from in-memory task results
 #'
 #' Internal helper for adaptive stopping: flattens the non-NULL entries of
 #' `task_results` to a summary data.frame via [results_to_dataframe()] and
 #' enriches it with data_grid/fit_grid/rep_idx columns (matching what
-#' [build_simulation_result()] produces). Used by the internal adaptive
+#' `build_simulation_result()` produces). Used by the internal adaptive
 #' evaluator so it can call [performance_measures()] mid-run.
 #'
 #' @param task_results List of `bayesim_task_result` (possibly with NULLs).
 #' @param task_grid The task grid tibble (with up-to-date statuses).
 #' @param config A SimulationConfig.
 #' @return A data.frame summary, or NULL if no non-NULL results.
-#' @keywords internal
+#' @noRd
 bayesim_adaptive_summary <- function(task_results, task_grid, config) {
   non_null <- which(!vapply(task_results, is.null, logical(1)))
   if (length(non_null) == 0L) {
@@ -1164,7 +1162,7 @@ bayesim_adaptive_summary <- function(task_results, task_grid, config) {
 #'
 #' @param task_grid Current task grid with up-to-date statuses.
 #' @return A non-negative integer replicate-round count.
-#' @keywords internal
+#' @noRd
 completed_replicate_rounds <- function(task_grid) {
   success <- task_grid[task_grid$status == "success", , drop = FALSE]
   if (nrow(success) == 0L) {
@@ -1187,7 +1185,7 @@ completed_replicate_rounds <- function(task_grid) {
 }
 
 #' Evaluate adaptive precision and return a persistable decision snapshot.
-#' @keywords internal
+#' @noRd
 bayesim_adaptive_evaluate <- function(
   task_results_so_far,
   task_grid,
@@ -1288,7 +1286,7 @@ bayesim_adaptive_evaluate <- function(
 #'
 #' @inheritParams bayesim_adaptive_evaluate
 #' @return `TRUE` when every condition cell meets the precision target.
-#' @keywords internal
+#' @noRd
 bayesim_adaptive_check <- function(
   task_results_so_far,
   task_grid,

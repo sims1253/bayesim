@@ -174,7 +174,7 @@ describe("Retention profiles", {
 })
 
 # =============================================================================
-# Tests for checkpoint_every parameter (B4: chunk_size merged into it)
+# Tests for checkpoint_every parameter (chunk_size merged into it)
 # =============================================================================
 
 describe("simulation_config() checkpoint_every parameter", {
@@ -218,7 +218,7 @@ describe("simulation_config() checkpoint_every parameter", {
     )
   })
 
-  it("B4: chunk_size and max_in_memory are no longer arguments", {
+  it("chunk_size and max_in_memory are no longer arguments", {
     # Pre-release API: the merged knobs were removed entirely (no shim).
     expect_error(
       simulation_config(

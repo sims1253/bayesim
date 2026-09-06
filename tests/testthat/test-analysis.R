@@ -348,7 +348,7 @@ describe("sbc_ranks", {
     expect_equal(nrow(ranks), 5L)
   })
 
-  it("surfaces n_ranks per variable when present (F4)", {
+  it("surfaces n_ranks per variable when present", {
     df <- make_summary(n_per = 4, n_cond = 1)
     # Add the F4 per-variable n_ranks column.
     df[["rank__n_ranks__b_x"]] <- 101L

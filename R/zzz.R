@@ -1,6 +1,6 @@
 .onLoad <- function(libname, pkgname) {
   # bayesim 2.0 uses constructors directly; no metric registry.
-  # F3: register as_tibble S3 method with tibble's namespace so
+  # register as_tibble S3 method with tibble's namespace so
   # tibble::as_tibble(result) dispatches to our method.
   s3 <- list(
     list(
