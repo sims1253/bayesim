@@ -102,6 +102,14 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   the new `log_lik` argument (S7 requires method formals to match the
   generic exactly) and may return `r_eff` alongside the summary fields;
   standalone `loo_fit(fitter, fit_result)` calls are unchanged.
+* Weighted LOO predictions reuse the PSIS object from `loo_fit()` instead
+  of smoothing the same tails twice (#76). The engine computes PSIS itself
+  when the fitter returns no usable object.
+  **Breaking for custom fitters**: `loo_fit()` methods must accept
+  `save_psis = FALSE`. Methods that call `loo::loo()` should pass this
+  argument through and return its `psis_object` (NULL when not saved).
+  Returning the object is optional. Standalone `loo_fit(fitter, fit_result)`
+  calls keep the same default behavior.
 
 ## Fitters and errors
 

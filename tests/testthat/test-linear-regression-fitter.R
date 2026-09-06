@@ -170,6 +170,40 @@ describe("LinearRegressionFitter contract", {
     expect_equal(out_passed, out)
   })
 
+  it("loo_fit retains a reusable psis_object when asked (#76)", {
+    withr::local_seed(3)
+    n <- 25L
+    data_bundle <- list(
+      train = data.frame(y = stats::rnorm(n), x = stats::rnorm(n)),
+      test = NULL,
+      response = "y"
+    )
+    fitter <- LinearRegressionFitter(n_draws = 100L)
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(formula = y ~ x),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
+    ll <- log_lik_matrix(fitter, res)
+
+    # Default: no PSIS object is retained (standalone callers have no use).
+    out_plain <- loo_fit(fitter, res, log_lik = ll)
+    expect_null(out_plain$psis_object)
+
+    # save_psis = TRUE: loo::loo()'s internal PSIS object is retained and is
+    # identical to what a separate loo::psis(-ll) run would produce, so
+    # build_loo_context() can reuse it without re-smoothing the tails.
+    out_saved <- loo_fit(fitter, res, log_lik = ll, save_psis = TRUE)
+    expect_true(inherits(out_saved$psis_object, "psis"))
+    direct <- suppressWarnings(loo::psis(-ll))
+    expect_identical(out_saved$psis_object, direct)
+    # The summary is unaffected by retention.
+    summary_fields <- c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+    expect_equal(out_saved[summary_fields], out_plain[summary_fields])
+  })
+
   it("loo_fit degrades to the NA structure on a degenerate log-lik (#73)", {
     withr::local_seed(3)
     data_bundle <- list(
@@ -193,11 +227,12 @@ describe("LinearRegressionFitter contract", {
     out <- loo_fit(fitter, res, log_lik = matrix(rnorm(10), nrow = 1))
     expect_setequal(
       names(out),
-      c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff")
+      c("elpd", "p_loo", "elpd_se", "pareto_k", "r_eff", "psis_object")
     )
     expect_true(all(is.na(out[c("elpd", "p_loo", "elpd_se")])))
     expect_length(out$pareto_k, 0)
     expect_null(out$r_eff)
+    expect_null(out$psis_object)
   })
 })
 

@@ -400,7 +400,8 @@ S7::method(predict_epred, CmdStanFitter_class) <- function(
 S7::method(loo_fit, CmdStanFitter_class) <- function(
   fitter,
   fit_result,
-  log_lik = NULL
+  log_lik = NULL,
+  save_psis = FALSE
 ) {
   if (is.null(fitter@log_lik_name)) {
     return(list(
@@ -408,7 +409,8 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
   # #73: reuse a caller-supplied train-set matrix; standalone callers pass
@@ -421,7 +423,8 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
 
@@ -444,6 +447,9 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(
   if (!is.null(r_eff)) {
     loo_args$r_eff <- r_eff
   }
+  # #76: save_psis keeps the PSIS object loo::loo() fits internally (NULL
+  # when FALSE), so the caller can reuse it instead of re-smoothing.
+  loo_args$save_psis <- save_psis
   loo_result <- tryCatch(
     suppressWarnings(do.call(loo::loo, loo_args)),
     error = function(e) NULL
@@ -454,7 +460,8 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
   list(
@@ -463,7 +470,8 @@ S7::method(loo_fit, CmdStanFitter_class) <- function(
     elpd_se = loo_result$estimates["elpd_loo", "SE"],
     pareto_k = loo::pareto_k_values(loo_result),
     # Returned so build_loo_context() can reuse it for the PSIS object (#73).
-    r_eff = r_eff
+    r_eff = r_eff,
+    psis_object = loo_result$psis_object
   )
 }
 

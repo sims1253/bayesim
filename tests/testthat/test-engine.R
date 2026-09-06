@@ -1189,10 +1189,12 @@ describe("Worker", {
       S7::method(loo_fit, SharingLooFitter) <- function(
         fitter,
         fit_result,
-        log_lik = NULL
+        log_lik = NULL,
+        save_psis = FALSE
       ) {
         ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
         calls$received_passed_ll <- !is.null(log_lik)
+        calls$received_save_psis <- save_psis
         list(
           elpd = -20,
           p_loo = 3,
@@ -1232,9 +1234,156 @@ describe("Worker", {
       expect_equal(calls$log_lik, 1L)
       # ...and loo_fit() received the matrix the context computed.
       expect_true(isTRUE(calls$received_passed_ll))
+      # The PSIS path asks loo_fit() to retain its PSIS object (#76); this
+      # fitter returns none, so the loo::psis() fallback built the context's
+      # object.
+      expect_true(isTRUE(calls$received_save_psis))
       expect_identical(context$loo_psis_ll, calls$last_ll)
       expect_false(is.null(context[["loo"]]))
       expect_true(inherits(context$loo_psis, "psis"))
+    })
+
+    it("reuses loo_fit()'s psis_object instead of re-smoothing the tails", {
+      PsisSavingLooFitter <- S7::new_class(
+        "PsisSavingLooFitter",
+        parent = MockFitter
+      )
+      calls <- new.env(parent = emptyenv())
+      S7::method(log_lik_matrix, PsisSavingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        # Deterministic matrix so the summary and the reused PSIS object are
+        # fitted from a known input.
+        matrix(seq_len(500) / 500, nrow = 50, ncol = 10)
+      }
+      S7::method(loo_fit, PsisSavingLooFitter) <- function(
+        fitter,
+        fit_result,
+        log_lik = NULL,
+        save_psis = FALSE
+      ) {
+        ll <- log_lik %||% log_lik_matrix(fitter, fit_result)
+        calls$received_save_psis <- save_psis
+        loo_result <- suppressWarnings(loo::loo(ll, save_psis = save_psis))
+        if (save_psis) {
+          attr(loo_result$psis_object, "reuse_marker") <- "from loo_fit"
+        }
+        calls$returned_psis <- loo_result$psis_object
+        calls$elpd <- loo_result$estimates["elpd_loo", "Estimate"]
+        list(
+          elpd = loo_result$estimates["elpd_loo", "Estimate"],
+          p_loo = loo_result$estimates["p_loo", "Estimate"],
+          elpd_se = loo_result$estimates["elpd_loo", "SE"],
+          pareto_k = loo::pareto_k_values(loo_result),
+          r_eff = NULL,
+          psis_object = loo_result$psis_object
+        )
+      }
+      S7::method(predict_epred, PsisSavingLooFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- PsisSavingLooFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      context <- expect_silent(build_metric_context(
+        fit_result,
+        fitter,
+        data_bundle,
+        list(rmse_loo_metric())
+      ))
+
+      expect_true(isTRUE(calls$received_save_psis))
+      # Recomputing PSIS gives equal weights but loses the marker.
+      expect_identical(context$loo_psis, calls$returned_psis)
+      expect_true(inherits(context$loo_psis, "psis"))
+      expect_false(is.null(context[["loo"]]))
+      expect_equal(context$loo$elpd, calls$elpd)
+
+      # Standalone calls keep the default and get no PSIS object back.
+      standalone <- loo_fit(fitter, fit_result)
+      expect_null(standalone$psis_object)
+      expect_false(isTRUE(calls$received_save_psis))
+    })
+
+    it("rebuilds invalid PSIS objects without losing the LOO summary", {
+      InvalidPsisFitter <- S7::new_class(
+        "InvalidPsisFitter",
+        parent = MockFitter
+      )
+      S7::method(log_lik_matrix, InvalidPsisFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(seq_len(500) / 500, nrow = 50, ncol = 10)
+      }
+      S7::method(loo_fit, InvalidPsisFitter) <- function(
+        fitter,
+        fit_result,
+        log_lik = NULL,
+        save_psis = FALSE
+      ) {
+        list(
+          elpd = -20,
+          p_loo = 3,
+          elpd_se = 1.5,
+          pareto_k = rep(0, 10),
+          r_eff = NULL,
+          psis_object = bad_psis
+        )
+      }
+      S7::method(predict_epred, InvalidPsisFitter) <- function(
+        fitter,
+        fit_result,
+        newdata = NULL
+      ) {
+        matrix(rnorm(500), nrow = 50, ncol = 10)
+      }
+      fitter <- InvalidPsisFitter()
+      fitter@supports_epred <- TRUE
+
+      data_bundle <- valid_data_bundle()
+      draws <- matrix(rnorm(100), ncol = 2, nrow = 50)
+      colnames(draws) <- c("alpha", "beta")
+      fit_result <- new_fit_result(
+        success = TRUE,
+        fit = list(data_bundle = data_bundle, seed = 42L, n_obs = 10),
+        draws = draws
+      )
+
+      # An atomic value, the wrong draw count, and the wrong observation count.
+      invalid <- list(
+        TRUE,
+        suppressWarnings(loo::psis(matrix(seq_len(400) / 400, nrow = 40))),
+        suppressWarnings(loo::psis(matrix(seq_len(450) / 450, nrow = 50)))
+      )
+      for (bad_psis in invalid) {
+        context <- expect_silent(build_metric_context(
+          fit_result,
+          fitter,
+          data_bundle,
+          list(rmse_loo_metric())
+        ))
+        expect_false(is.null(context[["loo"]]))
+        expect_equal(context$loo$elpd, -20)
+        expect_s3_class(context$loo_psis, "psis")
+        expect_identical(dim(context$loo_psis$log_weights), c(50L, 10L))
+      }
     })
 
     it("builds epred without LOO support when \"loo\" is also declared (#68)", {

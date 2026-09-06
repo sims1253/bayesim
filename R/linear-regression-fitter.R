@@ -327,7 +327,8 @@ S7::method(log_lik_matrix, LinearRegressionFitter) <- function(
 S7::method(loo_fit, LinearRegressionFitter) <- function(
   fitter,
   fit_result,
-  log_lik = NULL
+  log_lik = NULL,
+  save_psis = FALSE
 ) {
   # #73: reuse a caller-supplied train-set matrix; standalone callers pass
   # NULL and pay the single computation here.
@@ -338,12 +339,15 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
   # i.i.d. draws => no chains; relative_eff is degenerate. PSIS-LOO still valid.
+  # #76: save_psis keeps the PSIS object loo::loo() fits internally (NULL
+  # when FALSE), so the caller can reuse it instead of re-smoothing.
   loo_result <- tryCatch(
-    suppressWarnings(loo::loo(ll)),
+    suppressWarnings(loo::loo(ll, save_psis = save_psis)),
     error = function(e) NULL
   )
   if (is.null(loo_result)) {
@@ -352,7 +356,8 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
   list(
@@ -360,7 +365,8 @@ S7::method(loo_fit, LinearRegressionFitter) <- function(
     p_loo = loo_result$estimates["p_loo", "Estimate"],
     elpd_se = loo_result$estimates["elpd_loo", "SE"],
     pareto_k = loo::pareto_k_values(loo_result),
-    r_eff = NULL
+    r_eff = NULL,
+    psis_object = loo_result$psis_object
   )
 }
 

@@ -47,7 +47,7 @@ default to \code{NULL}.
 \item{\code{extract_draws(fitter, fit_result, variables = NULL)}}{Extract posterior draws}
 \item{\code{predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)}}{Generate predictions}
 \item{\code{log_lik_matrix(fitter, fit_result, newdata = NULL)}}{Pointwise log-likelihood}
-\item{\code{loo_fit(fitter, fit_result)}}{LOO-CV computation}
+\item{\code{loo_fit(fitter, fit_result, log_lik, save_psis)}}{LOO-CV computation}
 \item{\code{fit_diagnostics(fitter, fit_result)}}{Extract fit diagnostics}
 }
 }

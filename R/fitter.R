@@ -25,7 +25,7 @@
 #'   \item{`extract_draws(fitter, fit_result, variables = NULL)`}{Extract posterior draws}
 #'   \item{`predict_fit(fitter, fit_result, newdata = NULL, seed = NULL)`}{Generate predictions}
 #'   \item{`log_lik_matrix(fitter, fit_result, newdata = NULL)`}{Pointwise log-likelihood}
-#'   \item{`loo_fit(fitter, fit_result)`}{LOO-CV computation}
+#'   \item{`loo_fit(fitter, fit_result, log_lik, save_psis)`}{LOO-CV computation}
 #'   \item{`fit_diagnostics(fitter, fit_result)`}{Extract fit diagnostics}
 #' }
 #'
@@ -356,6 +356,12 @@ log_lik_matrix <- S7::new_generic(
 #'   weighted-prediction (PSIS) path pays for it once per task (#73). NULL
 #'   (the default, and for standalone calls) means the method computes its
 #'   own.
+#' @param save_psis Logical; when TRUE, methods that run the PSIS machinery
+#'   for the summary should keep the fitted PSIS object and return it as
+#'   `psis_object` (see below). `build_loo_context()` sets it on the
+#'   weighted-prediction path so the tail smoothing runs once per task
+#'   instead of twice (#76); the default FALSE discards it, as standalone
+#'   callers have no use for it.
 #'
 #' @return A list containing:
 #'   \itemize{
@@ -366,13 +372,21 @@ log_lik_matrix <- S7::new_generic(
 #'     \item `r_eff`: Chain-aware relative efficiencies used for the summary
 #'       (vector of length N), or NULL when none were computed (e.g. i.i.d.
 #'       draws). `build_loo_context()` reuses it for the PSIS object (#73).
+#'     \item `psis_object`: The fitted PSIS (importance-sampling) object the
+#'       summary was derived from, or NULL. Methods that compute the summary
+#'       via `loo::loo(ll, r_eff, save_psis = TRUE)` return its
+#'       `$psis_object`; it is identical to `loo::psis(-ll, r_eff)` on the
+#'       same matrix, so `build_loo_context()` reuses it for
+#'       `loo::E_loo()`-weighted predictions instead of smoothing the tails
+#'       a second time (#76). NULL when `save_psis = FALSE` or the fitter
+#'       does not fit a PSIS object at all.
 #'     \item Additional loo-specific diagnostics
 #'   }
 #' @export
 loo_fit <- S7::new_generic(
   "loo_fit",
   "fitter",
-  function(fitter, fit_result, log_lik = NULL) {
+  function(fitter, fit_result, log_lik = NULL, save_psis = FALSE) {
     S7::S7_dispatch()
   }
 )
@@ -426,7 +440,12 @@ S7::method(log_lik_matrix, Fitter) <- function(
   NULL
 }
 
-S7::method(loo_fit, Fitter) <- function(fitter, fit_result, log_lik = NULL) {
+S7::method(loo_fit, Fitter) <- function(
+  fitter,
+  fit_result,
+  log_lik = NULL,
+  save_psis = FALSE
+) {
   NULL
 }
 
@@ -761,7 +780,8 @@ S7::method(log_lik_matrix, MockFitter) <- function(
 S7::method(loo_fit, MockFitter) <- function(
   fitter,
   fit_result,
-  log_lik = NULL
+  log_lik = NULL,
+  save_psis = FALSE
 ) {
   if (is.null(fit_result) || is.null(fit_result$fit)) {
     return(list(
@@ -769,7 +789,8 @@ S7::method(loo_fit, MockFitter) <- function(
       p_loo = NA_real_,
       elpd_se = NA_real_,
       pareto_k = numeric(),
-      r_eff = NULL
+      r_eff = NULL,
+      psis_object = NULL
     ))
   }
 
@@ -783,7 +804,10 @@ S7::method(loo_fit, MockFitter) <- function(
       p_loo = 3,
       elpd_se = sqrt(n_obs) * 0.5,
       pareto_k = runif(n_obs, -0.5, 0.5),
-      r_eff = NULL
+      r_eff = NULL,
+      # The mock never runs the loo machinery, so no PSIS object exists to
+      # save (#76); the engine's fallback covers it.
+      psis_object = NULL
     )
   })
 }

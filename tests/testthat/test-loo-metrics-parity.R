@@ -157,3 +157,19 @@ describe("build_loo_context shares one log-lik and r_eff across summary and PSIS
     expect_equal(ctx$psis$diagnostics$pareto_k, psis_obj$diagnostics$pareto_k)
   })
 })
+
+describe("build_loo_context PSIS parity", {
+  it("matches the PSIS object retained by loo_fit", {
+    fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
+    retained <- loo_fit(
+      fitter,
+      fit_result,
+      log_lik = ll,
+      save_psis = TRUE
+    )$psis_object
+    expect_false(is.null(retained))
+    ctx <- build_loo_context(fitter, fit_result, need_psis = TRUE)
+    # This checks values; test-engine.R separately verifies reuse with a marker.
+    expect_identical(ctx$psis, retained)
+  })
+})

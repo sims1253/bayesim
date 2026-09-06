@@ -149,7 +149,8 @@ describe("log_lik S x N orientation convention", {
     S7::method(loo_fit, TransposedFitter) <- function(
       fitter,
       fit_result,
-      log_lik = NULL
+      log_lik = NULL,
+      save_psis = FALSE
     ) {
       list(
         elpd = -10,
@@ -358,7 +359,8 @@ describe("predict_fit S x N orientation convention", {
     S7::method(loo_fit, PredictTransposedFitter) <- function(
       fitter,
       fit_result,
-      log_lik = NULL
+      log_lik = NULL,
+      save_psis = FALSE
     ) {
       list(
         elpd = -10,
