@@ -1122,7 +1122,7 @@ resume_simulation <- function(
   )
 }
 
-# Workstream adaptive stopping -----------------------------------------
+# Adaptive stopping ---------------------------------------------------
 
 #' Build a quick summary tibble from in-memory task results
 #'
