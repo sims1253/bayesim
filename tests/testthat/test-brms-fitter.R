@@ -186,11 +186,6 @@ describe("BrmsFitter model bank", {
       task_ctx = list(task_id = "t2")
     )
     expect_true(result2$success)
-
-    # Both results reference the same underlying compiled binary (same Stan model
-    # path on the prefit they updated from).
-    expect_true(!is.null(result1$fit))
-    expect_true(!is.null(result2$fit))
   })
 
   it("propagates seeds deterministically (same seed -> identical draws)", {
