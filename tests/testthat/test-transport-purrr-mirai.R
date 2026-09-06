@@ -1,8 +1,8 @@
-# C1/C2 acceptance tests for the purrr + mirai transport.
-# - C1: run_task_safe is total; fatal conditions raised inside a task under
+# Acceptance tests for the purrr + mirai transport.
+# - run_task_safe is total; fatal conditions raised inside a task under
 #   daemons stop the run with the original condition class.
-# - C1: determinism (sequential == daemons(2)) still holds on the new transport.
-# - C2: workers = 2 matches the sequential summary and leaves daemons unset.
+# - determinism (sequential == daemons(2)) still holds on the new transport.
+# - workers = 2 matches the sequential summary and leaves daemons unset.
 
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 20L
@@ -16,7 +16,7 @@
   )
 }
 
-describe("C1: purrr/mirai transport", {
+describe("purrr/mirai transport", {
   it("releases model banks on reused daemons after success and fatal failure", {
     mirai::daemons(1)
     on.exit(mirai::daemons(0), add = TRUE)
@@ -102,7 +102,6 @@ describe("C1: purrr/mirai transport", {
     result <- run_simulation(config, progress = FALSE, verbose = FALSE)
     expect_identical(result$summary$status, "success")
   })
-
   it("fatal conditions raised inside a task stop the run under daemons", {
     # A data generator that raises a fatal bayesim_config_error. Generators are
     # crated into the task transport (config_spec$data_generator), so any helper
@@ -162,7 +161,7 @@ describe("C1: purrr/mirai transport", {
   })
 })
 
-describe("C2: workers convenience argument", {
+describe("workers convenience argument", {
   it("workers = 2 matches the sequential summary and tears down daemons", {
     config <- simulation_config(
       data_grid = data.frame(n = 30),

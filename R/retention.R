@@ -377,7 +377,7 @@ estimate_size <- function(x) {
 #'
 #' @keywords internal
 #'
-#' @seealso [write_rds_atomic()], [compute_hash()]
+#' @seealso `write_rds_atomic()`, `compute_hash()`
 externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
   dir.create(artifacts_dir, recursive = TRUE, showWarnings = FALSE)
 
@@ -427,7 +427,7 @@ externalize_artifact <- function(artifact, artifacts_dir, task_id, field_name) {
 #'
 #' @keywords internal
 #'
-#' @seealso [execute_tasks()], [write_checkpoint()]
+#' @seealso `execute_tasks()`, [write_checkpoint()]
 lighten_task_result <- function(task_result, retain) {
   if (is.null(task_result)) {
     return(NULL)

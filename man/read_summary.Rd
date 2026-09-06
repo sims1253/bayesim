@@ -14,7 +14,7 @@ A data frame of the summary.
 }
 \description{
 Reads a simulation summary written by \code{\link[=run_simulation]{run_simulation()}} (or
-\code{\link[=write_results_parquet]{write_results_parquet()}}). Dispatches on file extension:
+\code{write_results_parquet()}). Dispatches on file extension:
 \code{.parquet} files are read with \code{nanoparquet::read_parquet} (requires the
 suggested \code{nanoparquet} package); \code{.rds} files are read with
 \code{\link[base:readRDS]{base::readRDS()}}.

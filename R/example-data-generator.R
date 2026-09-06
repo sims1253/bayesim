@@ -16,7 +16,7 @@
 #' @param data_spec List with `n`, `beta`, `sigma`.
 #' @param task_ctx Task context (carries `seed` for backends that need one).
 #' @return A `data_bundle` list.
-#' @keywords internal
+#' @noRd
 bayesim_example_data_generator <- function(data_spec, task_ctx) {
   n <- as.integer(data_spec$n %||% 10L)
   beta <- as.numeric(data_spec$beta %||% 1)

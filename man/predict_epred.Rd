@@ -20,7 +20,7 @@ not supported by the fitter.
 \description{
 Compute posterior draws of the expected value of the response distribution
 (mu, without observation noise). This is the \code{epred} quantity used by brms'
-\code{loo_R2()} and bayesim's \code{r2_loo_metric()} (F3). It must NOT include
+\code{loo_R2()} and bayesim's \code{r2_loo_metric()}. It must NOT include
 observation-level noise — only the model's conditional mean.
 
 Fitters that cannot provide expectation predictions should return \code{NULL}; the

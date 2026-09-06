@@ -8,10 +8,10 @@
 #'   The bank is transported to mirai daemons via a session option
 #'   (`bayesim.model_bank`) rather than as an S7 fitter property, so it does not
 #'   corrupt the config fingerprint (`capture_fitter_spec()` hashes S7
-#'   properties only). See [set_model_bank()] / [get_model_bank()].
+#'   properties only). See `set_model_bank()` / `get_model_bank()`.
 #'
 #' @name model-bank
-#' @keywords internal
+#' @noRd
 NULL
 
 # ============================================================================
@@ -25,11 +25,11 @@ NULL
 #' `mirai::everywhere()`. Pass NULL to clear it.
 #'
 #' @param bank A named list of `brmsfit` prefit objects keyed by
-#'   [model_spec_hash()], or NULL.
+#'   `model_spec_hash()`, or NULL.
 #'
 #' @return Invisible NULL. Called for its side effect.
 #'
-#' @keywords internal
+#' @noRd
 set_model_bank <- function(bank) {
   options(bayesim.model_bank = bank)
   invisible(NULL)
@@ -37,12 +37,12 @@ set_model_bank <- function(bank) {
 
 #' Get the session model bank
 #'
-#' Retrieves the model bank set by [set_model_bank()]. Returns NULL when no bank
+#' Retrieves the model bank set by `set_model_bank()`. Returns NULL when no bank
 #' is active (e.g. `precompile = FALSE` or before [run_simulation()] builds it).
 #'
 #' @return A named list of `brmsfit` prefit objects, or NULL.
 #'
-#' @keywords internal
+#' @noRd
 get_model_bank <- function() {
   getOption("bayesim.model_bank")
 }
@@ -63,7 +63,7 @@ get_model_bank <- function() {
 #'
 #' @return A brms family object.
 #'
-#' @keywords internal
+#' @noRd
 resolve_family <- function(family) {
   if (is.null(family)) {
     return(brms::brmsfamily("gaussian"))
@@ -96,7 +96,7 @@ resolve_family <- function(family) {
 #'
 #' @return A brmsformula object.
 #'
-#' @keywords internal
+#' @noRd
 resolve_formula <- function(formula) {
   if (inherits(formula, "brmsformula")) {
     return(formula)
@@ -119,7 +119,7 @@ resolve_formula <- function(formula) {
 #'
 #' @return A length-1 character string hash.
 #'
-#' @keywords internal
+#' @noRd
 model_spec_hash <- function(formula, family, prior, stanvars, backend) {
   formula <- resolve_formula(formula)
   family <- resolve_family(family)
@@ -140,7 +140,7 @@ model_spec_hash <- function(formula, family, prior, stanvars, backend) {
 
 #' Recursively deparse a brmsformula to a stable character representation
 #'
-#' @keywords internal
+#' @noRd
 deparse_formula_recursive <- function(formula) {
   formula <- resolve_formula(formula)
   parts <- list(
@@ -161,7 +161,7 @@ deparse_formula_recursive <- function(formula) {
 
 #' Normalize a brms family to a hashable list
 #'
-#' @keywords internal
+#' @noRd
 normalize_family <- function(family) {
   family <- resolve_family(family)
   out <- list(
@@ -190,7 +190,7 @@ normalize_family <- function(family) {
 
 #' Normalize a brms prior object to a hashable data.frame representation
 #'
-#' @keywords internal
+#' @noRd
 normalize_prior <- function(prior) {
   if (is.null(prior)) {
     return(NULL)
@@ -204,7 +204,7 @@ normalize_prior <- function(prior) {
 
 #' Normalize a brms stanvars object to a hashable representation
 #'
-#' @keywords internal
+#' @noRd
 normalize_stanvars <- function(stanvars) {
   if (is.null(stanvars)) {
     return(NULL)
@@ -235,7 +235,7 @@ normalize_stanvars <- function(stanvars) {
 #'
 #' @return A data.frame suitable for `brms::brm(data =)`.
 #'
-#' @keywords internal
+#' @noRd
 generate_template_data <- function(
   data_generator,
   data_spec
@@ -277,7 +277,7 @@ generate_template_data <- function(
 #' @param fit_grid A model specification data frame.
 #' @param i Scalar row index.
 #' @return A named list with formula, family, prior, and stanvars.
-#' @keywords internal
+#' @noRd
 model_spec_from_grid_row <- function(fit_grid, i) {
   row <- as.list(fit_grid[i, , drop = FALSE])
   if (!"formula" %in% names(row) || is.null(row$formula)) {
@@ -343,7 +343,7 @@ model_spec_from_grid_row <- function(fit_grid, i) {
 
 #' Build the model bank for a BrmsFitter
 #'
-#' For each DISTINCT row of `fit_grid` (deduped by [model_spec_hash()]), compiles
+#' For each DISTINCT row of `fit_grid` (deduped by `model_spec_hash()`), compiles
 #' a prefit via `brms::brm(chains = 0)` against generator-supplied template
 #' data. Returns a named list of prefit objects keyed by spec hash.
 #'
@@ -373,9 +373,9 @@ model_spec_from_grid_row <- function(fit_grid, i) {
 #'   are shared across controller and local daemons.
 #'
 #' @return A named list of `brmsfit` prefit objects keyed by
-#'   [model_spec_hash()], or NULL when `precompile` is FALSE.
+#'   `model_spec_hash()`, or NULL when `precompile` is FALSE.
 #'
-#' @keywords internal
+#' @noRd
 build_model_bank <- function(
   fitter,
   fit_grid,
@@ -489,7 +489,7 @@ build_model_bank <- function(
       )))
     }
 
-    # F6: precompute the prefit-side Stan data STRUCTURE signature once here,
+    # precompute the prefit-side Stan data STRUCTURE signature once here,
     # so update_prefit() does not recompute brms::make_standata() per task
     # (200x for a 10k-task run). Same struct_sig definition as in update_prefit.
     prefit_struct <- tryCatch(
@@ -523,7 +523,7 @@ build_model_bank <- function(
 
 #' Extract the `threads` argument from stan_args, if present
 #'
-#' @keywords internal
+#' @noRd
 stan_threads_arg <- function(stan_args) {
   if (is.null(stan_args)) {
     return(NULL)
@@ -543,7 +543,7 @@ stan_threads_arg <- function(stan_args) {
 #' Computes the spec hash and returns the matching prefit object, or NULL if
 #' the spec is not in the bank (caller falls back to a fresh compile).
 #'
-#' @param model_bank A named list of prefit objects (from [build_model_bank()]),
+#' @param model_bank A named list of prefit objects (from `build_model_bank()`),
 #'   or NULL.
 #' @param formula A formula, brmsformula, or string.
 #' @param family A brms family object, string, or NULL.
@@ -553,7 +553,7 @@ stan_threads_arg <- function(stan_args) {
 #'
 #' @return A `brmsfit` prefit object, or NULL.
 #'
-#' @keywords internal
+#' @noRd
 lookup_prefit <- function(
   model_bank,
   formula,

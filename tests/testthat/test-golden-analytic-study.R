@@ -12,7 +12,7 @@ library(bayesim)
   x <- stats::rnorm(n)
   y <- 1.5 + 0.8 * x + stats::rnorm(n, sd = 0.7)
   # Held-out evaluation rows: the pred_* metrics compare against the test
-  # response and must never fall back to the training set (E2).
+  # response and must never fall back to the training set.
   x_test <- stats::rnorm(20)
   y_test <- 1.5 + 0.8 * x_test + stats::rnorm(20, sd = 0.7)
   list(

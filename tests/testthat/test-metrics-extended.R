@@ -205,7 +205,7 @@ describe("M5 extended metrics", {
     )
     expect_equal(out$by_param[["b_x"]], 0L)
     expect_equal(out$n_draws, 200)
-    # F4: n_ranks per variable present (post-thinning sample size + 1).
+    # n_ranks per variable present (post-thinning sample size + 1).
     expect_true("b_x" %in% names(out$n_ranks))
     expect_true(out$n_ranks[["b_x"]] >= 2L)
   })
@@ -364,7 +364,7 @@ describe("M5 extended metrics", {
     )
   })
 
-  it("rank_metric returns no ranks when true_params absent (E5: no mean field)", {
+  it("rank_metric returns no ranks when true_params absent (no mean field)", {
     # Build a fixture with explicitly NULL true_params (bypass make_fixture defaults).
     draws <- matrix(rnorm(200), ncol = 1, dimnames = list(NULL, "b_x"))
     fit_result <- list(draws = draws, diagnostics = NULL)
@@ -422,7 +422,7 @@ describe("M5 extended metrics", {
     expect_true(is.na(out$elpd))
   })
 
-  it("rmse_loo_metric degrades to NA without PSIS/epred context (F3)", {
+  it("rmse_loo_metric degrades to NA without PSIS/epred context", {
     # The legacy elpd-only proxy formula was removed in F3; rmse_loo now needs
     # the PSIS object + pointwise log_lik + a prediction matrix from the
     # metric context. With only the loo summary present, it must NA gracefully.
@@ -440,7 +440,7 @@ describe("M5 extended metrics", {
     expect_true(is.na(out$pareto_k_max))
   })
 
-  it("r2_loo_metric degrades to NA without PSIS/epred context (F3)", {
+  it("r2_loo_metric degrades to NA without PSIS/epred context", {
     fx <- make_fixture(
       loo = list(elpd = -10, pointwise = cbind(elpd_loo = rep(-1, 10)))
     )

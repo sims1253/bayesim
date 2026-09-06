@@ -1,6 +1,3 @@
-# Workstream I4: render_report() renders a Quarto HTML report; the legacy
-# report() alias still works and warns once per session.
-
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n %||% 50L
   beta <- data_spec$beta %||% 0.5
@@ -42,20 +39,6 @@ describe("render_report()", {
 
     out <- tempfile(fileext = ".html")
     res <- render_report(result, output_file = out, open = FALSE)
-    expect_true(file.exists(res))
-    expect_gt(file.info(res)$size, 0)
-  })
-
-  it("report() is a deprecated alias that still renders and warns", {
-    skip_if_not(.has_quarto(), "quarto CLI not available")
-
-    result <- .small_result()
-
-    out <- tempfile(fileext = ".html")
-    expect_warning(
-      res <- report(result, output_file = out, open = FALSE),
-      "deprecated"
-    )
     expect_true(file.exists(res))
     expect_gt(file.info(res)$size, 0)
   })

@@ -34,9 +34,7 @@ The input \code{metric}, invisibly, if validation passes.
 }
 \description{
 Validates that a metric object is an S7 instance of the Metric class with a
-valid \code{name} property. This is the canonical metric validator (B3 merges the
-former internal \code{validate_metric_interface} into this exported name). Method
-existence is not checked because S7 dispatches via generics and the base
+valid \code{name} property. Method existence is not checked because S7 dispatches via generics and the base
 class raises errors for unimplemented abstract methods.
 
 When representative values are supplied (\code{fit_result} plus \code{data_bundle}),

@@ -78,7 +78,7 @@ BrmsFitter <- S7::new_class(
 #'   extracted (e.g. the wall-clock elapsed time from a timer).
 #'
 #' @return Named list: `list(total, warmup, sample)`, all numeric scalars.
-#' @keywords internal
+#' @noRd
 extract_brms_timings <- function(fit, fallback_total) {
   tryCatch(
     {
@@ -147,7 +147,7 @@ extract_brms_timings <- function(fit, fallback_total) {
 #'
 #' @return A named list (possibly empty) of brms arguments.
 #'
-#' @keywords internal
+#' @noRd
 build_stan_args_call <- function(stan_args) {
   out <- list()
   if (is.null(stan_args) || length(stan_args) == 0L) {
@@ -178,7 +178,7 @@ build_stan_args_call <- function(stan_args) {
 #'
 #' Shared helper for the fallback path (`precompile = FALSE` or bank miss).
 #'
-#' @keywords internal
+#' @noRd
 run_fresh_brms <- function(
   fitter,
   data_bundle,
@@ -232,7 +232,7 @@ run_fresh_brms <- function(
 #' location = `mean(y)`) that vary across datasets without affecting whether the
 #' compiled binary is reusable.
 #'
-#' @keywords internal
+#' @noRd
 update_prefit <- function(
   prefit,
   fitter,
@@ -245,7 +245,7 @@ update_prefit <- function(
 ) {
   stan_call_args <- build_stan_args_call(fitter@stan_args)
 
-  # F6: bank entries are list(prefit, struct_sig). Unpack; the cached struct_sig
+  # bank entries are list(prefit, struct_sig). Unpack; the cached struct_sig
   # avoids recomputing brms::make_standata() on the prefit-side per task.
   cached_struct_sig <- NULL
   if (
@@ -552,7 +552,7 @@ S7::method(predict_epred, BrmsFitter) <- function(
   if (!fit_result$success || is.null(fit_result$fit)) {
     return(NULL)
   }
-  # F3: expectation predictions (mu, no observation noise) for r2_loo.
+  # expectation predictions (mu, no observation noise) for r2_loo.
   # brms::posterior_epred returns S x N (draws x observations), which is the
   # orientation loo::E_loo expects.
   data <- newdata %||% fit_result$data_bundle$train
@@ -574,7 +574,7 @@ S7::method(loo_fit, BrmsFitter) <- function(
   # (keeps rows dropped at fit time, re-samples me() latents) and errors for
   # some model classes, so it must not become the fallback.
   ll <- log_lik %||% brms::log_lik(fit_result$fit)
-  # Chain-aware relative efficiency (A4): consistent with build_loo_context()
+  # Chain-aware relative efficiency: consistent with build_loo_context()
   # and brms::loo(). ll is S x N (draws x observations).
   r_eff <- relative_eff_from_chains(fitter, fit_result, ll)
   loo_result <- loo::loo(ll, r_eff = r_eff)
@@ -602,7 +602,7 @@ S7::method(fit_diagnostics, BrmsFitter) <- function(fitter, fit_result) {
 #'
 #' Computes rhat/ESS extrema over **all** parameters (fixed, group-level,
 #' distributional, sigma) via `posterior::summarise_draws`, not just the fixed
-#' effects from `summary(fit)` (A3). Divergences and max-treedepth hits come
+#' effects from `summary(fit)`. Divergences and max-treedepth hits come
 #' from the sampler diagnostics. `lp__` is excluded as it is not a parameter of
 #' interest.
 #'
@@ -610,7 +610,7 @@ S7::method(fit_diagnostics, BrmsFitter) <- function(fitter, fit_result) {
 #'
 #' @return Named list of diagnostics with `rhat_max`, `ess_bulk_min`,
 #'   `ess_tail_min`, `divergent`, `max_treedepth`.
-#' @keywords internal
+#' @noRd
 extract_brms_diagnostics <- function(fit) {
   # rhat/ESS extrema over all parameters (excluding lp__).
   draw_summary <- tryCatch(
@@ -640,7 +640,7 @@ extract_brms_diagnostics <- function(fit) {
   divergent <- sum(sampler_diag$value[sampler_diag$Parameter == "divergent__"])
 
   # max_treedepth: read the control setting actually used for this fit via the
-  # stored stan_args, with a documented fallback of 10 (A3). The previous
+  # stored stan_args, with a documented fallback of 10. The previous
   # `get("control_args", asNamespace("brms"))` reach-in was brittle across
   # brms versions.
   max_treedepth_limit <- tryCatch(

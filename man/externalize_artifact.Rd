@@ -29,6 +29,6 @@ Moves a large artifact to an external RDS file and replaces the in-memory
 object with a pointer containing metadata about the externalized file.
 }
 \seealso{
-\code{\link[=write_rds_atomic]{write_rds_atomic()}}, \code{\link[=compute_hash]{compute_hash()}}
+\code{write_rds_atomic()}, \code{compute_hash()}
 }
 \keyword{internal}

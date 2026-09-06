@@ -7,7 +7,7 @@
 #'
 #' @return NULL (invisibly). Side effect: sets `.Random.seed` in global environment.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{

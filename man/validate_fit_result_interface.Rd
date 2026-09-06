@@ -14,7 +14,7 @@ The input \code{fit_result}, invisibly, if validation passes.
 }
 \description{
 Validates that a fit_result conforms to the bayesim_fit_result interface.
-This is a wrapper around \code{\link[=validate_bayesim_fit_result]{validate_bayesim_fit_result()}} that provides
+This is a wrapper around \code{validate_bayesim_fit_result()} that provides
 clear error messages for contract violations.
 }
 \details{
@@ -49,6 +49,6 @@ validate_fit_result_interface(result)
 }
 }
 \seealso{
-\code{\link[=validate_bayesim_fit_result]{validate_bayesim_fit_result()}}, \code{\link[=new_fit_result]{new_fit_result()}}
+\code{validate_bayesim_fit_result()}, \code{\link[=new_fit_result]{new_fit_result()}}
 }
 \keyword{internal}

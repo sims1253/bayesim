@@ -27,7 +27,7 @@ gaussian_predictors <- function(data_spec, task_ctx) {
 # ---------------------------------------------------------------------------
 # Pass 1: prior_predictive_generator + run_simulation under daemons.
 # ---------------------------------------------------------------------------
-describe("SBC acceptance — prior-predictive pass (F8)", {
+describe("SBC acceptance — prior-predictive pass", {
   it("runs end-to-end under daemons with uniform ranks and one compile", {
     # Compile the sample_prior = "only" model once for the generator.
     prior_fit <- brms::brm(
@@ -217,7 +217,7 @@ describe("SBC acceptance — IFS pass (F8, F1 regression)", {
     # Every task succeeded (IFS forward sampling produced valid data).
     expect_true(all(result$summary$status == "success"))
 
-    # Ranks present and non-NA (F1: the response was actually simulated).
+    # Ranks present and non-NA (the response was actually simulated).
     rank_col <- grep("^rank__by_param__", names(result$summary), value = TRUE)
     expect_length(rank_col, 1L)
     ranks <- as.integer(result$summary[[rank_col]])
