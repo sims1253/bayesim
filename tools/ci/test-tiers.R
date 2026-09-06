@@ -86,19 +86,9 @@ run_bayesim_test_tier <- function(
   )
 }
 
-# Locate tests/testthat relative to the package root. CI jobs and local use
-# source this file from the root; walk upward from the working directory as a
-# fallback so it also works from nested paths.
+# CI and documented local commands source this file from the package root.
 bayesim_test_files_on_disk <- function() {
-  root <- getwd()
-  while (
-    length(root) > 1L &&
-      !dir.exists(file.path(root, "tests", "testthat")) &&
-      !file.exists(file.path(root, "DESCRIPTION"))
-  ) {
-    root <- dirname(root)
-  }
-  tests_dir <- file.path(root, "tests", "testthat")
+  tests_dir <- file.path("tests", "testthat")
   if (!dir.exists(tests_dir)) {
     stop("Could not locate tests/testthat from ", getwd())
   }
