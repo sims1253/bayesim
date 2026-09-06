@@ -53,6 +53,10 @@
 <h2 class="pkg-version" data-toc-text="development version" id="bayesim-development-version">bayesim (development version)<a class="anchor" aria-label="anchor" href="#bayesim-development-version"></a></h2>
 <p>Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.</p>
 <ul><li>Removed the deprecated <code>report()</code> alias. Use <code><a href="../reference/render_report.html">render_report()</a></code>.</li>
+<li>Brms predictions and log-likelihoods now use the fitted model’s stored data when <code>newdata = NULL</code>, preserving fitted latent variables for LOO (<a href="https://github.com/sims1253/bayesim/issues/77" class="external-link">#77</a>). Fits that drop training rows fail with a data error; handle missing values or row filtering in the generator. Explicit <code>newdata</code> remains unchanged.</li>
+<li>
+<code><a href="../reference/predict_fit.html">predict_fit()</a></code> for brms now honors its <code>seed</code> argument.</li>
+<li>LOO prediction metrics reject mismatched response and prediction lengths instead of recycling values.</li>
 </ul><div class="section level3">
 <h3 id="runtime-ux-development-version">Runtime UX<a class="anchor" aria-label="anchor" href="#runtime-ux-development-version"></a></h3>
 <ul><li><p>Wait for worker model-bank cleanup before returning from a run, including fatal errors, so daemon shutdown does not overlap the cleanup request (<a href="https://github.com/sims1253/bayesim/issues/84" class="external-link">#84</a>).</p></li>

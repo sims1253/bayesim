@@ -3,6 +3,12 @@
 Fitter implementation for brms models. Extends the abstract Fitter class
 with brms-specific configuration properties.
 
+With `newdata = NULL`, prediction and log-likelihood methods use the
+fitted model's stored data. Explicit `newdata` requests brms' new-data
+behavior. Fits that drop training rows return a data error. Handle
+missing values or row filtering in the data generator so responses stay
+aligned with predictions.
+
 ## Usage
 
 ``` r
