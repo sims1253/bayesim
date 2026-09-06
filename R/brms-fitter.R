@@ -2,6 +2,11 @@
 #' @description Fitter implementation for brms models. Extends the abstract Fitter class
 #'   with brms-specific configuration properties.
 #'
+#' With `newdata = NULL`, prediction and log-likelihood methods use the fitted
+#' model's stored data. Explicit `newdata` requests brms' new-data behavior.
+#' Fits that drop training rows return a data error. Handle missing values or
+#' row filtering in the data generator so responses stay aligned with predictions.
+#'
 #' @param name Character string identifying the fitter (inherited from Fitter)
 #' @param supports_predictions Logical indicating if predictions are supported (inherited)
 #' @param supports_log_lik Logical indicating if log-likelihood is supported (inherited)
@@ -428,6 +433,15 @@ S7::method(fit_model, BrmsFitter) <- function(
             )
           }
 
+          fitted_rows <- stats::nobs(fit_obj)
+          if (fitted_rows != nrow(data_bundle$train)) {
+            stop(bayesim_data_error(sprintf(
+              "brms retained %d of %d training rows. Handle missing values or row filtering in the data generator before fitting.",
+              fitted_rows,
+              nrow(data_bundle$train)
+            )))
+          }
+
           # Extract diagnostics here, inside the handler, because brms' Rhat/
           # divergence convergence warning is emitted lazily by summary(fit_obj)
           # called within extract_brms_diagnostics().
@@ -513,12 +527,12 @@ S7::method(predict_fit, BrmsFitter) <- function(
     return(NULL)
   }
 
-  data <- newdata %||% fit_result$data_bundle$train
-
+  if (!is.null(seed)) {
+    withr::local_seed(seed)
+  }
   preds <- brms::posterior_predict(
     fit_result$fit,
-    newdata = data,
-    seed = seed
+    newdata = newdata
   )
 
   list(
@@ -538,9 +552,7 @@ S7::method(log_lik_matrix, BrmsFitter) <- function(
     return(NULL)
   }
 
-  data <- newdata %||% fit_result$data_bundle$train
-
-  brms::log_lik(fit_result$fit, newdata = data)
+  brms::log_lik(fit_result$fit, newdata = newdata)
 }
 
 #' @export
@@ -555,8 +567,7 @@ S7::method(predict_epred, BrmsFitter) <- function(
   # expectation predictions (mu, no observation noise) for r2_loo.
   # brms::posterior_epred returns S x N (draws x observations), which is the
   # orientation loo::E_loo expects.
-  data <- newdata %||% fit_result$data_bundle$train
-  brms::posterior_epred(fit_result$fit, newdata = data)
+  brms::posterior_epred(fit_result$fit, newdata = newdata)
 }
 
 S7::method(loo_fit, BrmsFitter) <- function(
@@ -569,11 +580,7 @@ S7::method(loo_fit, BrmsFitter) <- function(
     return(NULL)
   }
 
-  # #73: reuse a caller-supplied train-set matrix. Standalone callers keep
-  # brms' canonical in-sample route (the fit's stored model frame): the
-  # newdata route behind log_lik_matrix() is a behavioral switch in brms
-  # (keeps rows dropped at fit time, re-samples me() latents) and errors for
-  # some model classes, so it must not become the fallback.
+  # Reuse the caller's matrix, or evaluate the fitted model's stored data.
   ll <- log_lik %||% brms::log_lik(fit_result$fit)
   # Chain-aware relative efficiency: consistent with build_loo_context()
   # and brms::loo(). ll is S x N (draws x observations).

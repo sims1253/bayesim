@@ -728,6 +728,7 @@ S7::method(compute_metric, RmseLooMetric) <- function(
   }
   eloo <- loo::E_loo(ppred, psis_obj, log_ratios = -ll, type = "mean")
   yloo <- eloo$value
+  validate_prediction_vectors(y, yloo, metric@name)
   pareto_k_max <- suppressWarnings(
     as.numeric(max(eloo$pareto_k, na.rm = TRUE))
   )
@@ -825,6 +826,7 @@ S7::method(compute_metric, R2LooMetric) <- function(
   }
   # E_loo mean of the expectation draws = the LOO point prediction.
   yloo <- loo::E_loo(epred, psis_obj, log_ratios = -ll, type = "mean")$value
+  validate_prediction_vectors(y, yloo, metric@name)
   err_loo <- yloo - y
   S <- nrow(epred)
   N <- ncol(epred)
