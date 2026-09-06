@@ -443,7 +443,14 @@ execute_tasks <- function(
     # The daemon set must stay unchanged until execution finishes.
     if (isTRUE(mirai::daemons_set())) {
       model_bank <- get_model_bank()
-      on.exit(mirai::everywhere(options(bayesim.model_bank = NULL)), add = TRUE)
+      # Finish cleanup before callers can stop the pool. An outstanding
+      # everywhere() request can race daemon shutdown under coverage.
+      on.exit(
+        mirai::call_mirai(mirai::everywhere(options(
+          bayesim.model_bank = NULL
+        ))),
+        add = TRUE
+      )
       mirai::everywhere(
         options(bayesim.model_bank = mb),
         .args = list(mb = model_bank)

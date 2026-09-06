@@ -12,6 +12,7 @@ permissions: read-all
 jobs:
   test-coverage:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       # Coverage runs the core tier (fast + the rest of the analytic suite):
@@ -31,6 +32,7 @@ jobs:
           needs: coverage
 
       - name: Core-tier coverage
+        timeout-minutes: 15
         run: |
           # A daemon subprocess occasionally dies mid-way through writing its
           # covr trace file (observed: two byte-identical files truncated at

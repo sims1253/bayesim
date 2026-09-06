@@ -139,12 +139,18 @@ describe("purrr/mirai transport", {
       class = "bayesim_config_error"
     )
 
-    mirai::daemons(2)
     on.exit(mirai::daemons(0), add = TRUE)
-    expect_error(
-      run_simulation(config, resume = "never", progress = FALSE),
-      class = "bayesim_config_error"
-    )
+    # Smoke-test cleanup followed by shutdown and restart. This does not
+    # deterministically reproduce the intermittent covered race in #84.
+    for (i in seq_len(3L)) {
+      mirai::daemons(2)
+      expect_error(
+        run_simulation(config, resume = "never", progress = FALSE),
+        class = "bayesim_config_error"
+      )
+      mirai::daemons(0)
+      expect_false(mirai::daemons_set())
+    }
   })
 
   it("sequential == daemons(2) summaries match", {
