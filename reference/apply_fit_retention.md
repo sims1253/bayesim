@@ -6,7 +6,7 @@ memory footprint.
 ## Usage
 
 ``` r
-apply_fit_retention(fit_result, retain, data_bundle = NULL)
+apply_fit_retention(fit_result, retain)
 ```
 
 ## Arguments
@@ -18,10 +18,6 @@ apply_fit_retention(fit_result, retain, data_bundle = NULL)
 - retain:
 
   Character vector of retention options specifying what to keep
-
-- data_bundle:
-
-  Ignored. Retained for backward compatibility.
 
 ## Value
 
