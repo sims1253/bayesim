@@ -1,4 +1,4 @@
-# I3: adaptive stopping on MCSE targets.
+# adaptive stopping on MCSE targets.
 library(bayesim)
 
 # Conjugate linear regression generator (mirrors test-performance-measures.R).

@@ -60,7 +60,7 @@ CmdStanFitter_class <- S7::new_class(
 #' @description
 #' Run user-supplied Stan programs via cmdstanr without brms. Compilation is
 #' cached by cmdstanr (by file hash); each daemon compiles-or-cache-hits on
-#' first use, so there is no model-bank integration (D2).
+#' first use, so there is no model-bank integration.
 #'
 #' The Stan program may declare generated-quantities blocks for `log_lik` (a
 #' vector of pointwise log-likelihoods) and optionally `epred` (the expectation

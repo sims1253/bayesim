@@ -115,8 +115,8 @@ describe("rmse_loo / r2_loo degradation", {
   })
 })
 
-# A4: loo_fit(BrmsFitter) must use chain-aware r_eff, matching brms::loo().
-describe("loo_fit(BrmsFitter) parity with brms::loo (A4)", {
+# loo_fit(BrmsFitter) must use chain-aware r_eff, matching brms::loo().
+describe("loo_fit(BrmsFitter) parity with brms::loo", {
   it("matches brms::loo elpd_loo within 1e-6 (chain-aware r_eff)", {
     fitter <- BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, cores = 1L)
     out <- loo_fit(fitter, fit_result)

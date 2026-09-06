@@ -1,4 +1,4 @@
-# Workstream I1: fitter-agnostic generators (prior_draws_generator,
+# fitter-agnostic generators (prior_draws_generator,
 # forward_sim_generator). Tested with LinearRegressionFitter (no Stan).
 
 # A predictor generator that consumes the ambient RNG state.

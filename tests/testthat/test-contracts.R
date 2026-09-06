@@ -706,7 +706,7 @@ describe("SimulationConfig", {
       )
     })
 
-    it("B4: excludes runtime-only fields from study identity", {
+    it("excludes runtime-only fields from study identity", {
       base <- list(
         data_grid = data.frame(a = 1),
         fit_grid = data.frame(a = 1),

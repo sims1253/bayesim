@@ -20,7 +20,7 @@
   invisible(NULL)
 }
 
-# E2: prediction-error metrics refuse to silently fall back to the training
+# prediction-error metrics refuse to silently fall back to the training
 # set. Warn once per metric name per session, naming the fix (provide a test
 # set). In-sample prediction error presented as "rmse" is a trap.
 .warn_no_test <- function(metric_name) {
@@ -35,10 +35,9 @@
 #'
 #' Maps each name in `vars` to itself, then to `b_<name>`, in the set of
 #' `draws_colnames`, mirroring the both-directions lookup `.extract_truth()`
-#' already performs. This fixes the F2 mismatch where generators strip the
-#' `b_` prefix (so `vars_of_interest` holds cleaned names like `c("x",
-#' "Intercept")`) but brms draws matrices keep it (`c("b_x","b_Intercept",
-#' "sigma")`).
+#' already performs. Generators strip the `b_` prefix, so `vars_of_interest`
+#' holds names like `c("x", "Intercept")`, while brms draws matrices keep
+#' names like `c("b_x", "b_Intercept", "sigma")`.
 #'
 #' Errors with a `bayesim_config_error` (same condition class as
 #' `.extract_truth()`) when a requested var is genuinely absent. A silent NA
@@ -53,7 +52,7 @@
 #'   these for output field naming), values are the actual draws column to
 #'   read. Empty input returns `character(0)` (names preserved).
 #'
-#' @keywords internal
+#' @noRd
 resolve_draw_columns <- function(vars, draws_colnames) {
   if (length(vars) == 0L) {
     out <- character(0)
@@ -135,7 +134,7 @@ S7::method(compute_metric, RmseMetric) <- function(
   if (is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
   }
-  # E2: prediction-error metrics must NOT silently fall back to the training
+  # prediction-error metrics must NOT silently fall back to the training
   # set — in-sample error presented as "rmse" is a trap for this audience.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_rmse_metric")
@@ -202,7 +201,7 @@ S7::method(compute_metric, BiasMetric) <- function(
   if (is.null(context$predictions)) {
     return(list(value = NA_real_))
   }
-  # E2: no silent training-set fallback.
+  # no silent training-set fallback.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_bias_metric")
     return(list(value = NA_real_))
@@ -236,7 +235,7 @@ CoverageMetric <- S7::new_class(
     ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
-    # E4: coverage columns are proportions -> sqrt(p(1-p)/n) MCSE.
+    # coverage columns are proportions -> sqrt(p(1-p)/n) MCSE.
     summary_type = S7::new_property(
       S7::class_character,
       default = "proportion",

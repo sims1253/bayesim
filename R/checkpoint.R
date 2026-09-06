@@ -1443,7 +1443,7 @@ results_to_dataframe <- function(task_results) {
       row <- c(row, flatten_with_prefix(tr$metrics, ""))
     }
 
-    # E1: data-generating truth, flattened as truth__<param> columns (always
+    # data-generating truth, flattened as truth__<param> columns (always
     # retained — tiny, enables parameter-recovery analysis and plot_recovery()).
     if (!is.null(tr$truth) && length(tr$truth) > 0) {
       tp <- tr$truth

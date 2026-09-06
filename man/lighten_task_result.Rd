@@ -38,6 +38,6 @@ while users who explicitly retain heavy artifacts receive them in the final
 result even when checkpointing is enabled.
 }
 \seealso{
-\code{\link[=execute_tasks]{execute_tasks()}}, \code{\link[=write_checkpoint]{write_checkpoint()}}
+\code{execute_tasks()}, \code{\link[=write_checkpoint]{write_checkpoint()}}
 }
 \keyword{internal}

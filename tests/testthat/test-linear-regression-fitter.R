@@ -1,4 +1,4 @@
-# D1: LinearRegressionFitter — conjugate NIG Bayesian linear regression.
+# LinearRegressionFitter — conjugate NIG Bayesian linear regression.
 # Tests: analytic posterior mean/cov vs closed form; coverage ~0.95 over
 # replicates; validate_fitter smoke test; full contract orientation (S x N).
 
@@ -269,7 +269,7 @@ describe("LinearRegressionFitter coverage", {
   })
 })
 
-describe("E1: truth recorded in summary", {
+describe("truth recorded in summary", {
   it("summary contains truth__<param> columns from the generator", {
     config <- simulation_config(
       data_grid = data.frame(n = 50L, beta = 0.5),

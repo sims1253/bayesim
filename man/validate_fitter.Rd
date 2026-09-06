@@ -85,5 +85,5 @@ validate_fitter(my_fitter, smoke_test = TRUE, verbose = TRUE)
 }
 }
 \seealso{
-\link{Fitter}, \link{MockFitter}, \code{\link[=validate_metric]{validate_metric()}}
+\link{Fitter}, \code{MockFitter}, \code{\link[=validate_metric]{validate_metric()}}
 }

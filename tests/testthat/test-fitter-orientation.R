@@ -1,5 +1,5 @@
 # test-fitter-orientation.R
-# Tests for the S x N (draws x observations) log_lik matrix convention (step A1).
+# Tests for the S x N (draws x observations) log_lik matrix convention.
 #
 # The brms/loo convention is that log_lik_matrix() returns an S x N matrix: S rows
 # (one per posterior draw) and N columns (one per observation). These tests

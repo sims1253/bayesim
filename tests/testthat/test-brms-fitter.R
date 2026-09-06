@@ -285,7 +285,7 @@ describe("BrmsFitter model bank", {
     )
   })
 
-  it("computes diagnostics over all parameters incl. group-level (A3)", {
+  it("computes diagnostics over all parameters incl. group-level", {
     # A varying-intercept model fit with deliberately few iterations so the
     # group-level SD is poorly estimated. extract_brms_diagnostics must look
     # beyond summary()$fixed, else rhat_max would miss a bad group-level SD.
@@ -437,7 +437,7 @@ describe("BrmsFitter model bank", {
   })
 })
 
-describe("BrmsFitter warning capture (F5)", {
+describe("BrmsFitter warning capture", {
   # A fitter configured to reliably trigger a brms convergence warning via
   # tiny iter counts: Rhat > 1.05 causes summary(fit) to emit an R-level
   # warning, which the fit method must capture into result$warnings.
@@ -513,7 +513,7 @@ describe("BrmsFitter warning capture (F5)", {
 # B1 companion to test-api-no-masking.R: that fast-tier file proves bayesim
 # does not export the masked names; this backend-tier test exercises the brms
 # dispatch they used to clobber, in the tier where it actually runs.
-describe("B1: renamed generics do not mask foreign packages", {
+describe("renamed generics do not mask foreign packages", {
   it("log_lik(brmsfit) still resolves to brms after loading bayesim", {
     fit <- suppressWarnings(brms::brm(
       y ~ x,

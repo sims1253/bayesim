@@ -37,10 +37,6 @@ render.
 
 Requires the \code{quarto} R package AND the Quarto CLI. If the CLI is not
 available, an informative error is thrown pointing to \url{https://quarto.org}.
-
-\code{render_report()} was previously named \code{report()}; the old name collided
-with the generic of the easystats \emph{report} package and now lives on as a
-deprecated alias (see \code{\link[=report]{report()}}).
 }
 \examples{
 \dontrun{
