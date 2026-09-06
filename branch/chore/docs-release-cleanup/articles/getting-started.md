@@ -82,7 +82,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 8 tasks = 2 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 8 tasks
 #> 
-#> ✔ Simulation complete: 8/8 tasks succeeded in 0.2s
+#> ✔ Simulation complete: 8/8 tasks succeeded in 0.1s
 print(result)
 #> <bayesim_simulation_result>
 #>   Config fingerprint: 0443023694ffb037043507f14667a212f03a59b2d3913eb62fdbba651afdb417 
@@ -93,7 +93,7 @@ print(result)
 #>     - Skipped (policy-stopped): 0 
 #>   Metrics: posterior_summary__mean__Intercept, posterior_summary__mean__x, posterior_summary__mean__sigma, posterior_summary__median__Intercept, posterior_summary__median__x, posterior_summary__median__sigma  ... 
 #>   Task grid: 8 rows x 7 cols
-#>   Total time: 0.19 s
+#>   Total time: 0.13 s
 ```
 
 ### Inspect task results
