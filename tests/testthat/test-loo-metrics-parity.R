@@ -10,12 +10,13 @@ skip_if_not(requireNamespace("loo", quietly = TRUE))
 # One shared fixture fit for the whole file (chains = 1, iter = 100).
 fit <- suppressWarnings(brms::brm(
   y ~ x,
-  data = data.frame(y = rnorm(30), x = rnorm(30)),
+  data = withr::with_seed(77L, data.frame(y = rnorm(30), x = rnorm(30))),
   family = gaussian(),
   backend = "cmdstanr",
   chains = 1L,
   iter = 100L,
   warmup = 50L,
+  seed = 77L,
   silent = 2L,
   refresh = 0L
 ))
@@ -39,10 +40,13 @@ test_that("brms defaults use the fitted rows and explicit newdata stays explicit
   fitter <- BrmsFitter()
   expect_equal(log_lik_matrix(fitter, result), brms::log_lik(dropped))
   expect_equal(predict_epred(fitter, result), brms::posterior_epred(dropped))
+  withr::local_seed(99L)
+  rng <- .Random.seed
   expect_equal(
     predict_fit(fitter, result, seed = 11L)$predicted_samples,
     withr::with_seed(11L, brms::posterior_predict(dropped))
   )
+  expect_identical(.Random.seed, rng)
   newdata <- train[1:2, ]
   expect_equal(
     log_lik_matrix(fitter, result, newdata),
