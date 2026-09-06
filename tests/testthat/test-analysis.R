@@ -578,7 +578,7 @@ describe("plot_rank_ecdf per-task rank normalization", {
 describe("SBC simultaneous bands", {
   it("rejects non-probabilities and invalid dimensions", {
     expect_error(sbc_band(10, conf_level = 0), class = "bayesim_config_error")
-    expect_error(adjust_gamma(10, L = 1, K = 0), class = "bayesim_config_error")
+    expect_error(adjust_gamma(10, K = 0), class = "bayesim_config_error")
   })
   it("returns a valid envelope with fixed endpoints", {
     band <- sbc_band(N = 25L, K = 10L, conf_level = 0.95)
@@ -599,20 +599,9 @@ describe("SBC simultaneous bands", {
 
   it("matches the ported reference gamma for a fixed design", {
     expect_equal(
-      adjust_gamma(20L, L = 1L, K = 20L, conf_level = 0.95),
+      adjust_gamma(20L, K = 20L, conf_level = 0.95),
       0.0140491762611022,
       tolerance = 1e-12
     )
-  })
-
-  it("announces the conservative fallback for multiple chains", {
-    # warn_once(): the fallback is announced as a warning (once per run)
-    # rather than a message on every call.
-    expect_warning(
-      multi <- adjust_gamma(20L, L = 2L, K = 20L, conf_level = 0.95),
-      "single-sample SBC band"
-    )
-    single <- adjust_gamma(20L, L = 1L, K = 20L, conf_level = 0.95)
-    expect_equal(multi, single)
   })
 })
