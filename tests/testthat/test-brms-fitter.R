@@ -137,7 +137,7 @@ describe("BrmsFitter model bank", {
     expect_length(bank, 1L)
   })
 
-  it("reuses the prefit across tasks (no recompilation)", {
+  it("fits successive tasks using a model bank", {
     fitter <- tiny_fitter()
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
@@ -406,8 +406,7 @@ describe("BrmsFitter model bank", {
     )
   })
 
-  it("integrates with run_simulation (one compile, two tasks)", {
-    # Full run_simulation flow: model bank built once, reused across 2 tasks.
+  it("runs two tasks through run_simulation", {
     fit_grid <- data.frame(model = "gaussian", stringsAsFactors = FALSE)
     fit_grid$formula <- list(y ~ x)
     fit_grid$family <- list(gaussian())
@@ -427,7 +426,6 @@ describe("BrmsFitter model bank", {
 
     expect_s3_class(result, "bayesim_simulation_result")
     expect_equal(nrow(result$summary), 2L)
-    # Both tasks succeeded (model bank path reused the compiled binary).
     expect_true(all(result$summary$status == "success"))
   })
 })
