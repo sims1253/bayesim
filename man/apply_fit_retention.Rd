@@ -4,14 +4,12 @@
 \alias{apply_fit_retention}
 \title{Apply retention policy to fit result}
 \usage{
-apply_fit_retention(fit_result, retain, data_bundle = NULL)
+apply_fit_retention(fit_result, retain)
 }
 \arguments{
 \item{fit_result}{A bayesim_fit_result object}
 
 \item{retain}{Character vector of retention options specifying what to keep}
-
-\item{data_bundle}{Ignored. Retained for backward compatibility.}
 }
 \value{
 Modified bayesim_fit_result object with non-retained fields removed

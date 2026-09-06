@@ -376,11 +376,7 @@ run_task <- function(
     c(fit_result$warnings, metrics_result$warnings)
   )
 
-  fit_result <- apply_fit_retention(
-    fit_result,
-    task_retain,
-    data_bundle = data_bundle
-  )
+  fit_result <- apply_fit_retention(fit_result, task_retain)
 
   task_result <- new_task_result(
     task_id = task$task_id,
