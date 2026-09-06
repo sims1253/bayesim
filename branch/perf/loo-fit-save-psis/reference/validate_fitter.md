@@ -117,7 +117,7 @@ The validation performs the following checks:
 ## See also
 
 [Fitter](https://sims1253.github.io/bayesim/reference/Fitter.md),
-[MockFitter](https://sims1253.github.io/bayesim/reference/MockFitter.md),
+`MockFitter`,
 [`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
 
 ## Examples

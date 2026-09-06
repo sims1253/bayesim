@@ -3,8 +3,8 @@
 Compute posterior draws of the expected value of the response
 distribution (mu, without observation noise). This is the `epred`
 quantity used by brms' `loo_R2()` and bayesim's
-[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
-(F3). It must NOT include observation-level noise — only the model's
+[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md).
+It must NOT include observation-level noise — only the model's
 conditional mean.
 
 Fitters that cannot provide expectation predictions should return

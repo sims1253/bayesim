@@ -85,10 +85,10 @@
 via brms, with the compile-once model bank), and
 <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> (your own <code>.stan</code> programs via
 cmdstanr). To use a different backend, implement a custom fitter by
-extending the <code>Fitter</code> class. The core contract is
-deliberately small: implement <code><a href="../reference/fit_model.html">fit_model()</a></code> and
-<code><a href="../reference/extract_draws.html">extract_draws()</a></code>, then opt into optional capabilities by
-declaring the matching <code>supports_*</code> property and method.</p>
+extending the <code>Fitter</code> class. Implement
+<code><a href="../reference/fit_model.html">fit_model()</a></code> and <code><a href="../reference/extract_draws.html">extract_draws()</a></code>, then opt into
+optional capabilities by declaring the matching <code>supports_*</code>
+property and method.</p>
 <div class="section level3">
 <h3 id="the-fitter-contract">The Fitter contract<a class="anchor" aria-label="anchor" href="#the-fitter-contract"></a>
 </h3>
@@ -159,10 +159,9 @@ unsupported (<code>r2_loo</code> then degrades to NA)</td>
 <p><strong>All matrices are draws x observations (S x N)</strong> —
 <code>predicted_samples</code>, <code><a href="../reference/log_lik_matrix.html">log_lik_matrix()</a></code>, and
 <code><a href="../reference/predict_epred.html">predict_epred()</a></code> all put posterior draws in rows and
-observations in columns, matching the brms/loo convention. This is the
-single most common custom-fitter bug;
-<code>validate_fitter(smoke_test = TRUE)</code> rejects transposed
-matrices.</p>
+observations in columns, matching the brms/loo convention.
+<code>validate_fitter(smoke_test = TRUE)</code> checks these
+dimensions.</p>
 <p><code><a href="../reference/loo_fit.html">loo_fit()</a></code>’s <code>log_lik</code> argument is optional:
 when the engine builds the weighted-prediction (PSIS) context it passes
 the train-set log-lik matrix it already computed, and the method should
@@ -188,9 +187,11 @@ S7’s strict signature checking.</p>
 <div class="section level3">
 <h3 id="a-minimal-fitter-linearfitter">A minimal fitter: LinearFitter<a class="anchor" aria-label="anchor" href="#a-minimal-fitter-linearfitter"></a>
 </h3>
-<p>This fitter fits a linear model by OLS and synthesizes posterior
-draws by bootstrapping the residual variance. It is executable without
-Stan.</p>
+<p>This example fits a linear model by OLS and draws coefficients from a
+normal approximation using <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> and <code><a href="https://rdrr.io/r/stats/vcov.html" class="external-link">vcov()</a></code>.
+It holds the residual variance fixed. Use
+<code><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter()</a></code> for conjugate Bayesian
+inference.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
 <span></span>
@@ -216,8 +217,7 @@ Stan.</p>
 <span>  <span class="va">draws</span> <span class="op">&lt;-</span> <span class="fu">MASS</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/MASS/man/mvrnorm.html" class="external-link">mvrnorm</a></span><span class="op">(</span><span class="va">fitter</span><span class="op">@</span><span class="va">n_draws</span>, mu <span class="op">=</span> <span class="va">coefs</span>, Sigma <span class="op">=</span> <span class="va">vc</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/colnames.html" class="external-link">colnames</a></span><span class="op">(</span><span class="va">draws</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"intercept"</span>, <span class="st">"slope"</span><span class="op">)</span></span>
 <span></span>
-<span>  <span class="co"># Package into the supported public fit-result type. The engine validates</span></span>
-<span>  <span class="co"># and canonicalizes the draws at the task seam.</span></span>
+<span>  <span class="co"># The engine validates and normalizes these draws before computing metrics.</span></span>
 <span>  <span class="fu">bayesim</span><span class="fu">::</span><span class="fu"><a href="../reference/new_fit_result.html">new_fit_result</a></span><span class="op">(</span></span>
 <span>    fit <span class="op">=</span> <span class="va">fit</span>,</span>
 <span>    draws <span class="op">=</span> <span class="va">draws</span>,</span>
@@ -240,7 +240,7 @@ Stan.</p>
 <span></span>
 <span><span class="co"># predict_fit(): posterior-mean predictions</span></span>
 <span><span class="co"># Convention: predicted_samples is S x N (draws as rows, observations as cols),</span></span>
-<span><span class="co"># matching log_lik() and predict_epred().</span></span>
+<span><span class="co"># matching log_lik_matrix() and predict_epred().</span></span>
 <span><span class="fu">S7</span><span class="fu">::</span><span class="fu"><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">method</a></span><span class="op">(</span><span class="va">predict_fit</span>, <span class="va">LinearFitter</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">fitter</span>, <span class="va">fit_result</span>, <span class="va">newdata</span> <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">seed</span> <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">data</span> <span class="op">&lt;-</span> <span class="kw">if</span> <span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/NULL.html" class="external-link">is.null</a></span><span class="op">(</span><span class="va">newdata</span><span class="op">)</span><span class="op">)</span> <span class="va">fit_result</span><span class="op">$</span><span class="va">data_bundle</span><span class="op">$</span><span class="va">train</span> <span class="kw">else</span> <span class="va">newdata</span></span>
 <span>  <span class="co"># draws is S x P; design matrix X is N x P, so draws %*% t(X) is S x N.</span></span>
@@ -336,9 +336,6 @@ Stan.</p>
 <span>  data_generator <span class="op">=</span> <span class="va">my_generator</span>,</span>
 <span>  fitter <span class="op">=</span> <span class="va">fitter</span>,</span>
 <span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    <span class="co"># Metric is abstract, so constructing ContractMetric() directly honors</span></span>
-<span>    <span class="co"># the defaults declared above (name, needs = c("predictions",</span></span>
-<span>    <span class="co"># "log_lik"), required = TRUE).</span></span>
 <span>    <span class="fu">ContractMetric</span><span class="op">(</span><span class="op">)</span>,</span>
 <span>    <span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -381,10 +378,10 @@ Stan.</p>
 <span><span class="co">#&gt; 3                          2.259547            2        1          500</span></span>
 <span><span class="co">#&gt; 4                          2.337851            2        1          500</span></span>
 <span><span class="co">#&gt;   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test</span></span>
-<span><span class="co">#&gt; 1          500         0  0.009232521       1           50           8</span></span>
-<span><span class="co">#&gt; 2          500         0  0.011150837       2           50           8</span></span>
-<span><span class="co">#&gt; 3          500         0  0.001936197       3           50           8</span></span>
-<span><span class="co">#&gt; 4          500         0  0.001808405       4           50           8</span></span>
+<span><span class="co">#&gt; 1          500         0  0.020163774       1           50           8</span></span>
+<span><span class="co">#&gt; 2          500         0  0.015150785       2           50           8</span></span>
+<span><span class="co">#&gt; 3          500         0  0.003242254       3           50           8</span></span>
+<span><span class="co">#&gt; 4          500         0  0.002869606       4           50           8</span></span>
 <span><span class="co">#&gt;   data_slope fit_model</span></span>
 <span><span class="co">#&gt; 1          2    linear</span></span>
 <span><span class="co">#&gt; 2          2    linear</span></span>
@@ -394,13 +391,13 @@ Stan.</p>
 <h4 id="parallel-runs">Parallel runs<a class="anchor" aria-label="anchor" href="#parallel-runs"></a>
 </h4>
 <p><code>run_simulation(config, workers = N)</code> sets up mirai
-daemons for the run and tears them down afterwards.
-<code>workers = 1</code> is <em>genuinely sequential</em>: no daemons
-are launched and tasks run in-process. That matters for fitters and
-metrics defined in <em>your</em> package or script —
-<code><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">S7::method()</a></code> registrations live in the process that ran
-them and do not travel to daemon workers, so an external S7 fitter that
-passes <code>validate_fitter(smoke_test = TRUE)</code> will lose
+daemons for the run and tears them down afterwards. With
+<code>workers = 1</code>, no daemons are launched and tasks run
+in-process. That matters for fitters and metrics defined in
+<em>your</em> package or script — <code><a href="https://rconsortium.github.io/S7/reference/method.html" class="external-link">S7::method()</a></code>
+registrations live in the process that ran them and do not travel to
+daemon workers, so an external S7 fitter that passes
+<code>validate_fitter(smoke_test = TRUE)</code> will lose
 <code><a href="../reference/fit_model.html">fit_model()</a></code> dispatch on daemons. Use
 <code>workers = 1</code> (or omit <code>workers</code>) for externally
 defined fitters; parallel execution starts at
@@ -466,29 +463,6 @@ model-bank involvement.</p>
 <code><a href="../articles/custom-metrics.html">vignette("custom-metrics")</a></code> for the Metric contract, the
 output schema, <code>summary_type</code>, and externalization of large
 outputs.</p>
-</div>
-<div class="section level2">
-<h2 id="a-brms-based-fitter-sketch">A brms-based fitter (sketch)<a class="anchor" aria-label="anchor" href="#a-brms-based-fitter-sketch"></a>
-</h2>
-<p>For a real Stan fitter, <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> is the standard
-path and benefits from the model bank (one compile per distinct spec). A
-custom brms fitter would:</p>
-<ol style="list-style-type: decimal">
-<li>Call <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> (or reuse a prefit via the model bank)
-in <code><a href="../reference/fit_model.html">fit_model()</a></code>.</li>
-<li>Use <code><a href="https://mc-stan.org/posterior/reference/draws_matrix.html" class="external-link">brms::as_draws_matrix()</a></code> in
-<code><a href="../reference/extract_draws.html">extract_draws()</a></code>.</li>
-<li>Use <code><a href="https://mc-stan.org/rstantools/reference/posterior_predict.html" class="external-link">brms::posterior_predict()</a></code> /
-<code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik()</a></code> in the other generics.</li>
-</ol>
-<p>See <code><a href="../reference/BrmsFitter.html">?BrmsFitter</a></code> for the full method reference, and the
-<code>BrmsFitter</code> implementation in <code>R/brms-fitter.R</code>
-of the bayesim source tree for a complete worked example. Because the
-model bank keys on <code>fit_spec</code> columns (<code>formula</code>,
-<code>family</code>, <code>prior</code>, <code>stanvars</code>),
-supplying these as <code>fit_grid</code> columns lets the engine compile
-once and reuse the binary across all replicates of the same
-condition.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

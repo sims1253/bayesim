@@ -1,11 +1,9 @@
 # Validate a Metric Object
 
 Validates that a metric object is an S7 instance of the Metric class
-with a valid `name` property. This is the canonical metric validator (B3
-merges the former internal `validate_metric_interface` into this
-exported name). Method existence is not checked because S7 dispatches
-via generics and the base class raises errors for unimplemented abstract
-methods.
+with a valid `name` property. Method existence is not checked because S7
+dispatches via generics and the base class raises errors for
+unimplemented abstract methods.
 
 When representative values are supplied (`fit_result` plus
 `data_bundle`), validation additionally executes

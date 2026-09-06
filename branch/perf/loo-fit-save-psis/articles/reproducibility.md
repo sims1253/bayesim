@@ -2,27 +2,15 @@
 
 ## Reproducibility guarantees
 
-bayesim is designed so that simulation results are reproducible across
-sequential, parallel, interrupted-and-resumed, and re-run executions,
-given a fixed seed. Full result objects also record wall-clock timings,
-and those change between runs, so the guarantee covers scientific
-outputs and canonical task outcomes, not timing fields.
+With the same configuration, package and backend versions, and platform,
+bayesim reproduces scientific outputs across sequential, parallel, and
+resumed runs. Wall-clock timings differ. Custom generators, fitters, and
+metrics must use the supplied RNG state and avoid mutable external
+state.
 
-### What is guaranteed
-
-- **Same seed + same package/backend versions + same platform**:
-  scientific outputs and canonical task outcomes match across
-  sequential, parallel, re-run, and interrupted-and-resumed execution
-  once volatile timing fields are excluded. Timing fields record
-  wall-clock time, so they differ between runs.
-- **Across platforms** (or when the Stan/brms/cmdstanr version changes),
-  results are **statistically equivalent** but may differ in the least
-  significant bits due to floating-point ordering and backend
-  differences.
-
-Bit-identical reproducibility of the full result object is not promised
-on any platform: the object records wall-clock timings, and those change
-between runs.
+Changing platforms or backend versions can change numerical results.
+Check the results again after an upgrade; the seed alone cannot
+guarantee that different implementations produce equivalent inference.
 
 ### How determinism is achieved
 
@@ -106,10 +94,29 @@ uninterrupted run once volatile timing fields are excluded.
 
 ### The config fingerprint
 
-Each simulation configuration is hashed into a stable fingerprint that
-is written to the checkpoint manifest. On resume, bayesim verifies the
-fingerprint matches, so a resumed run cannot silently use a different
-config than the one that wrote the checkpoint.
+`config_fingerprint(config)` returns the SHA256 study identifier stored
+in the checkpoint manifest. Resume requires a matching fingerprint.
+
+The fingerprint includes the data, fit, and explicit task grids;
+replicate count; seed; generator signature; and fitter and metric
+classes, properties, and available package versions. A generator
+signature includes argument names and a body hash. For a package
+function it also records the package, function name, and version when an
+unambiguous reference is available. For a closure it hashes referenced
+values bound directly in its local environment.
+
+Editing a generator body or a captured local value therefore changes the
+fingerprint. Global variables, inherited environment bindings, and
+external file contents are not tracked by that signature. Keep study
+inputs in the grids or explicit local bindings, and preserve external
+inputs separately. The fingerprint is a compatibility check, not a
+complete dependency record.
+
+Runtime settings are excluded: output path, retention, checkpoint
+settings, error limits, adaptive stopping (`stop_on`), and daemon setup.
+You can adjust these without changing the study identifier. Resume still
+checks retention compatibility; it cannot recover artifacts that an
+earlier run discarded.
 
 ### Generators and determinism
 
@@ -131,5 +138,4 @@ resume is reproducible.
 - Renaming a stochastic metric, because its name is part of its
   deterministic metric-specific seed.
 - Reordering the data/fit grid (tasks are identified by grid position).
-- Upgrading Stan/brms/cmdstanr – results stay statistically equivalent
-  but not bit-identical.
+- Upgrading Stan/brms/cmdstanr, which can change numerical behavior.

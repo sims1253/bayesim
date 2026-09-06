@@ -15,12 +15,6 @@ Requires the `quarto` R package AND the Quarto CLI. If the CLI is not
 available, an informative error is thrown pointing to
 <https://quarto.org>.
 
-`render_report()` was previously named
-[`report()`](https://sims1253.github.io/bayesim/reference/report.md);
-the old name collided with the generic of the easystats *report* package
-and now lives on as a deprecated alias (see
-[`report()`](https://sims1253.github.io/bayesim/reference/report.md)).
-
 ## Usage
 
 ``` r

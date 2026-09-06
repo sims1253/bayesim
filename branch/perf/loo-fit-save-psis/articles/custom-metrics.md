@@ -5,7 +5,7 @@
 library(bayesim)
 ```
 
-A metric computes one row’s worth of values per task — a summary of a
+A metric computes one row’s worth of values per task: a summary of a
 single fit against a single generated dataset. Aggregation *across*
 tasks (bias, coverage, MCSEs) happens later, in
 [`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md)
@@ -46,26 +46,17 @@ S7::method(compute_metric, MADMetric) <- function(
 mad_metric <- function(name = "mad") MADMetric(name = name)
 ```
 
-### `Metric` is abstract
-
-`Metric` has no direct instances —
-[`Metric()`](https://sims1253.github.io/bayesim/reference/Metric.md)
-itself errors. Subclasses are instantiated directly
-(`MADMetric(name = "mad")`), and because the parent is abstract, S7
-honors the defaults your subclass declares for the inherited `name`,
-`needs`, `required`, `summary_type`, and `schema` properties:
-`MADMetric()` alone yields `name = "mad"` and `needs = "predictions"`.
-Explicit arguments (as in `mad_metric(name = ...)`) always win over the
-declared defaults.
+`Metric` is abstract. Create an instance of your subclass, such as
+`MADMetric()`. Explicit arguments override its property defaults.
 
 [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
 receives:
 
-- `fit_result` — the `bayesim_fit_result` (with `$draws`,
-  `$diagnostics`, and `$fit` if retained).
-- `data_bundle` — the generator’s output (`$train`, `$test`,
-  `$response`, `$true_params`, `$vars_of_interest`).
-- `context` — precomputed values, driven by your metric’s `needs`
+- `fit_result`: the `bayesim_fit_result` (with `$draws`, `$diagnostics`,
+  and `$fit` if retained).
+- `data_bundle`: the generator’s output (`$train`, `$test`, `$response`,
+  `$true_params`, `$vars_of_interest`).
+- `context`: precomputed values, driven by your metric’s `needs`
   property: `"predictions"` (a
   [`predict_fit()`](https://sims1253.github.io/bayesim/reference/predict_fit.md)
   result), `"log_lik"` (an S x N matrix), `"loo"` (the
@@ -76,7 +67,7 @@ receives:
   metrics, and skips the PSIS work entirely when no metric declares
   `"epred"`. Predictions and log-lik are evaluated on the **test set**
   when one exists, otherwise on the training data.
-- `task_ctx` — task identity (`task_id`, `data_idx`, `fit_idx`,
+- `task_ctx`: task identity (`task_id`, `data_idx`, `fit_idx`,
   `rep_idx`, `seed`).
 
 Degrade to `NA` when inputs are missing (as above) rather than erroring:
@@ -88,7 +79,7 @@ while `required = TRUE` metrics fail the whole task.
 [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
 must return a named list where every element is either a scalar atomic
 value or a **named** numeric vector. No matrices, data frames, or nested
-lists — task results must stay flat and cheap to store.
+lists. Task results must stay flat.
 
 The engine flattens the output into summary columns as
 `<metric_name>__<field>`, and named vectors expand per element:
@@ -102,10 +93,9 @@ list(by_param = c(Intercept = 1, x = 0))
 #> mad__by_param__Intercept, mad__by_param__x
 ```
 
-[`validate_metric_output()`](https://sims1253.github.io/bayesim/reference/validate_metric_output.md)
-enforces this schema. Even better, run
+Run
 [`validate_metric()`](https://sims1253.github.io/bayesim/reference/validate_metric.md)
-with representative values in your tests — it executes
+with representative values in your tests. It executes
 [`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
 once, checks the output schema, and verifies that every field your
 `schema` declares is actually produced:
@@ -138,10 +128,10 @@ validate_metric(
 needs to know how to aggregate each metric’s columns across replicates.
 Declare it with the `summary_type` property:
 
-- `"mean"` (default) — report mean/median/sd with an `sd/sqrt(n)` MCSE.
-- `"proportion"` — for 0/1 outcomes like coverage; MCSE is
+- `"mean"` (default): report mean/median/sd with an `sd/sqrt(n)` MCSE.
+- `"proportion"`: for 0/1 outcomes like coverage; MCSE is
   `sqrt(p(1-p)/n)`.
-- `"none"` — never aggregate (e.g. SBC ranks, which are analyzed as a
+- `"none"`: never aggregate (e.g. SBC ranks, which are analyzed as a
   distribution via
   [`sbc_ranks()`](https://sims1253.github.io/bayesim/reference/sbc_ranks.md),
   not averaged).
@@ -158,20 +148,26 @@ HitMetric <- S7::new_class(
 )
 ```
 
+Custom metrics work with
+[`summarize_simulation()`](https://sims1253.github.io/bayesim/reference/summarize_simulation.md).
+The estimator summaries in
+[`performance_measures()`](https://sims1253.github.io/bayesim/reference/performance_measures.md)
+still depend on built-in column names; declaring a custom schema does
+not connect a metric to those calculations. This limitation is tracked
+in [\#54](https://github.com/sims1253/bayesim/issues/54).
+
 ## Parallel safety
 
-Under `run_simulation(config, workers = N)`, metric objects are crated
-and shipped to daemon processes. Keep
-[`compute_metric()`](https://sims1253.github.io/bayesim/reference/compute_metric.md)
-methods self-contained: call package functions by namespace
-([`stats::median`](https://rdrr.io/r/stats/median.html), not a
-re-exported alias) and do not reference variables captured from your
-interactive session.
+Use `workers = 1` for the script-defined metric above. S7 method
+registrations belong to the process where they were created; sending a
+metric object to a daemon does not register its methods there. Custom
+methods must be available on each worker before parallel execution. See
+[`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md).
 
 ## Externalization of large outputs
 
 Named numeric vectors longer than 50 elements (or above 64 kB) are not
-inlined into the summary — with a `result_path` set, they are written to
+inlined into the summary. With a `result_path` set, they are written to
 `<result_path>/artifacts/metrics/` and the summary records a pointer
 (`<metric>__<field>__artifact_path`, `__artifact_hash`, `__n_values`).
 This keeps summaries navigable when a metric emits, say, per-observation
@@ -210,7 +206,7 @@ result <- run_simulation(config, progress = FALSE)
 #> 4 tasks = 1 data x 1 fit x 4 reps
 #> ℹ Starting simulation with 4 tasks
 #> 
-#> ✔ Simulation complete: 4/4 tasks succeeded in 0.1s
+#> ✔ Simulation complete: 4/4 tasks succeeded in 0.2s
 summarize_simulation(result, metrics = "mad__value")
 #> # A tibble: 1 × 11
 #>   data_n fit_model stop_reason n_reps n_failed failure_rate mad__value_n_used
@@ -223,8 +219,9 @@ summarize_simulation(result, metrics = "mad__value")
 ## Next steps
 
 - [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md)
-  — the other half of the extension surface.
-- [`?Metric`](https://sims1253.github.io/bayesim/reference/Metric.md) —
-  the canonical contract reference.
+  for writing a fitter.
+- [`?Metric`](https://sims1253.github.io/bayesim/reference/Metric.md)
+  for the metric contract.
 - [`vignette("design-of-simulation-studies")`](https://sims1253.github.io/bayesim/articles/design-of-simulation-studies.md)
-  — which performance measures to compute across tasks, and their MCSEs.
+  for which performance measures to compute across tasks, and their
+  MCSEs.

@@ -9,8 +9,7 @@ bayesim ships three fitters:
 (Stan via brms, with the compile-once model bank), and
 [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
 (your own `.stan` programs via cmdstanr). To use a different backend,
-implement a custom fitter by extending the `Fitter` class. The core
-contract is deliberately small: implement
+implement a custom fitter by extending the `Fitter` class. Implement
 [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md)
 and
 [`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md),
@@ -36,8 +35,8 @@ The public fitter contract is:
 and
 [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
 all put posterior draws in rows and observations in columns, matching
-the brms/loo convention. This is the single most common custom-fitter
-bug; `validate_fitter(smoke_test = TRUE)` rejects transposed matrices.
+the brms/loo convention. `validate_fitter(smoke_test = TRUE)` checks
+these dimensions.
 
 [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)’s
 `log_lik` argument is optional: when the engine builds the
@@ -65,8 +64,12 @@ The generics avoid masking common names: `loo_fit` (not
 
 ### A minimal fitter: LinearFitter
 
-This fitter fits a linear model by OLS and synthesizes posterior draws
-by bootstrapping the residual variance. It is executable without Stan.
+This example fits a linear model by OLS and draws coefficients from a
+normal approximation using [`coef()`](https://rdrr.io/r/stats/coef.html)
+and [`vcov()`](https://rdrr.io/r/stats/vcov.html). It holds the residual
+variance fixed. Use
+[`LinearRegressionFitter()`](https://sims1253.github.io/bayesim/reference/LinearRegressionFitter.md)
+for conjugate Bayesian inference.
 
 ``` r
 
@@ -94,8 +97,7 @@ S7::method(fit_model, LinearFitter) <- function(fitter, data_bundle, fit_spec, s
   draws <- MASS::mvrnorm(fitter@n_draws, mu = coefs, Sigma = vc)
   colnames(draws) <- c("intercept", "slope")
 
-  # Package into the supported public fit-result type. The engine validates
-  # and canonicalizes the draws at the task seam.
+  # The engine validates and normalizes these draws before computing metrics.
   bayesim::new_fit_result(
     fit = fit,
     draws = draws,
@@ -118,7 +120,7 @@ S7::method(extract_draws, LinearFitter) <- function(fitter, fit_result, variable
 
 # predict_fit(): posterior-mean predictions
 # Convention: predicted_samples is S x N (draws as rows, observations as cols),
-# matching log_lik() and predict_epred().
+# matching log_lik_matrix() and predict_epred().
 S7::method(predict_fit, LinearFitter) <- function(fitter, fit_result, newdata = NULL, seed = NULL) {
   data <- if (is.null(newdata)) fit_result$data_bundle$train else newdata
   # draws is S x P; design matrix X is N x P, so draws %*% t(X) is S x N.
@@ -215,9 +217,6 @@ config <- simulation_config(
   data_generator = my_generator,
   fitter = fitter,
   metrics = list(
-    # Metric is abstract, so constructing ContractMetric() directly honors
-    # the defaults declared above (name, needs = c("predictions",
-    # "log_lik"), required = TRUE).
     ContractMetric(),
     posterior_summary_metric()
   ),
@@ -260,10 +259,10 @@ head(result$summary)
 #> 3                          2.259547            2        1          500
 #> 4                          2.337851            2        1          500
 #>   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test
-#> 1          500         0  0.009232521       1           50           8
-#> 2          500         0  0.011150837       2           50           8
-#> 3          500         0  0.001936197       3           50           8
-#> 4          500         0  0.001808405       4           50           8
+#> 1          500         0  0.020163774       1           50           8
+#> 2          500         0  0.015150785       2           50           8
+#> 3          500         0  0.003242254       3           50           8
+#> 4          500         0  0.002869606       4           50           8
 #>   data_slope fit_model
 #> 1          2    linear
 #> 2          2    linear
@@ -274,9 +273,9 @@ head(result$summary)
 #### Parallel runs
 
 `run_simulation(config, workers = N)` sets up mirai daemons for the run
-and tears them down afterwards. `workers = 1` is *genuinely sequential*:
-no daemons are launched and tasks run in-process. That matters for
-fitters and metrics defined in *your* package or script —
+and tears them down afterwards. With `workers = 1`, no daemons are
+launched and tasks run in-process. That matters for fitters and metrics
+defined in *your* package or script —
 [`S7::method()`](https://rconsortium.github.io/S7/reference/method.html)
 registrations live in the process that ran them and do not travel to
 daemon workers, so an external S7 fitter that passes
@@ -348,33 +347,3 @@ Metrics are the other half of the extension surface — see
 [`vignette("custom-metrics")`](https://sims1253.github.io/bayesim/articles/custom-metrics.md)
 for the Metric contract, the output schema, `summary_type`, and
 externalization of large outputs.
-
-## A brms-based fitter (sketch)
-
-For a real Stan fitter,
-[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
-is the standard path and benefits from the model bank (one compile per
-distinct spec). A custom brms fitter would:
-
-1.  Call
-    [`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html)
-    (or reuse a prefit via the model bank) in
-    [`fit_model()`](https://sims1253.github.io/bayesim/reference/fit_model.md).
-2.  Use
-    [`brms::as_draws_matrix()`](https://mc-stan.org/posterior/reference/draws_matrix.html)
-    in
-    [`extract_draws()`](https://sims1253.github.io/bayesim/reference/extract_draws.md).
-3.  Use
-    [`brms::posterior_predict()`](https://mc-stan.org/rstantools/reference/posterior_predict.html)
-    /
-    [`brms::log_lik()`](https://mc-stan.org/rstantools/reference/log_lik.html)
-    in the other generics.
-
-See
-[`?BrmsFitter`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
-for the full method reference, and the `BrmsFitter` implementation in
-`R/brms-fitter.R` of the bayesim source tree for a complete worked
-example. Because the model bank keys on `fit_spec` columns (`formula`,
-`family`, `prior`, `stanvars`), supplying these as `fit_grid` columns
-lets the engine compile once and reuse the binary across all replicates
-of the same condition.

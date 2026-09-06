@@ -131,14 +131,12 @@ Generates data for a single replicate given a data specification row.
 
 <dt id="arg-checkpoint-format">checkpoint_format<a class="anchor" aria-label="anchor" href="#arg-checkpoint-format"></a></dt>
 <dd><p>Character scalar. Checkpoint storage format.
-Currently only <code>"rds"</code> is implemented for checkpoint persistence. (B4:
-excluded from the config fingerprint — it is runtime policy.)</p></dd>
+Currently only <code>"rds"</code> is implemented. Excluded from the config fingerprint.</p></dd>
 
 
 <dt id="arg-checkpoint-every">checkpoint_every<a class="anchor" aria-label="anchor" href="#arg-checkpoint-every"></a></dt>
 <dd><p>Positive integer. Save progress every N tasks. This
-single knob also bounds the number of task results held in memory at once
-(B4: the former separate <code>chunk_size</code> knob was merged into this).</p></dd>
+also bounds the number of task results held in memory at once.</p></dd>
 
 
 <dt id="arg-keep-checkpoints">keep_checkpoints<a class="anchor" aria-label="anchor" href="#arg-keep-checkpoints"></a></dt>
@@ -158,7 +156,7 @@ A single profile name is also accepted: <code>"minimal"</code> (metrics only),
 Alternatively, a named list with <code>success</code>, <code>warning</code>, and <code>error</code>
 entries to retain more for tasks that warn or fail. <code>"metrics"</code> is always
 retained.
-(B4: excluded from the config fingerprint, but exclusion does not make
+(excluded from the config fingerprint, but exclusion does not make
 every retention change legal on resume: a compatible resume may narrow
 retention, while widening is rejected once completed outcomes lack the
 requested artifacts — discarded artifacts cannot be recreated.)</p></dd>
@@ -166,7 +164,7 @@ requested artifacts — discarded artifacts cannot be recreated.)</p></dd>
 
 <dt id="arg-max-errors">max_errors<a class="anchor" aria-label="anchor" href="#arg-max-errors"></a></dt>
 <dd><p>Numeric. Maximum errors before stopping. Use <code>Inf</code> for no
-limit. (B4: excluded from the config fingerprint.)</p></dd>
+limit. (excluded from the config fingerprint.)</p></dd>
 
 
 <dt id="arg-daemon-setup">daemon_setup<a class="anchor" aria-label="anchor" href="#arg-daemon-setup"></a></dt>
@@ -183,7 +181,7 @@ paths or load a model bank. Ignored when no daemons are set. Default NULL.</p></
 <code>min_reps</code> (integer, default 50), <code>check_every</code> (integer, default 50).
 Once the MCSE of <code>measure</code> for <code>estimand</code> falls below <code>target_mcse</code> AND
 at least <code>min_reps</code> replicates have completed, remaining pending tasks
-are marked <code>"skipped"</code> and the run stops. (I3: excluded from the config
+are marked <code>"skipped"</code> and the run stops. (excluded from the config
 fingerprint — it is runtime policy.)</p></dd>
 
 
@@ -194,12 +192,17 @@ shards plus ledger) carries the results and remains the resume artifact.
 <code>"parquet"</code>
 additionally writes <code>&lt;result_path&gt;/summary.parquet</code> using the suggested
 <code>nanoparquet</code> package, for downstream consumption (pandas, arrow, polars).
-(I8: excluded from the config fingerprint – runtime policy.)</p></dd>
+(excluded from the config fingerprint – runtime policy.)</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An S7 SimulationConfig object.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="config_fingerprint.html">config_fingerprint()</a></code> and <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code> for
+fingerprint inputs and limits on resume compatibility.</p></div>
     </div>
 
     <div class="section level2">

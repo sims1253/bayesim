@@ -2,10 +2,16 @@
 
 Plots the empirical CDF of SBC ranks against the uniform CDF (the
 diagonal), with a simultaneous confidence band following Säilynoja,
-Bürkner, and Vehtari (2022). The band is calibrated so that, under
-correct calibration, the *entire* ECDF stays within it with probability
-alpha; deviations anywhere along the band therefore indicate
-miscalibration at level 1 - alpha.
+Bürkner, and Vehtari (2022). The band is calibrated so that, for
+independent uniform ranks on a common support, the *entire* ECDF stays
+within it with probability alpha. This level applies to each panel
+separately, not to all panels together.
+
+Prior-draw and IFS generators can reuse a truth draw across condition
+cells. Pooling these cells introduces dependence and can make the band
+too narrow. Use `by` to separate such cells; the band does not correct
+for dependence from shared draws. See
+<https://github.com/sims1253/bayesim/issues/59>.
 
 Ranks are normalized per task: each task's ranks are scaled by that
 task's own support, `(rank + 0.5) / n_ranks` with `n_ranks` = support +

@@ -76,14 +76,12 @@ simulation_config(
 - checkpoint_format:
 
   Character scalar. Checkpoint storage format. Currently only `"rds"` is
-  implemented for checkpoint persistence. (B4: excluded from the config
-  fingerprint — it is runtime policy.)
+  implemented. Excluded from the config fingerprint.
 
 - checkpoint_every:
 
-  Positive integer. Save progress every N tasks. This single knob also
-  bounds the number of task results held in memory at once (B4: the
-  former separate `chunk_size` knob was merged into this).
+  Positive integer. Save progress every N tasks. This also bounds the
+  number of task results held in memory at once.
 
 - keep_checkpoints:
 
@@ -102,16 +100,16 @@ simulation_config(
   `"standard"` (metrics, diagnostics, warnings), or `"debug"`
   (everything). Alternatively, a named list with `success`, `warning`,
   and `error` entries to retain more for tasks that warn or fail.
-  `"metrics"` is always retained. (B4: excluded from the config
-  fingerprint, but exclusion does not make every retention change legal
-  on resume: a compatible resume may narrow retention, while widening is
-  rejected once completed outcomes lack the requested artifacts —
-  discarded artifacts cannot be recreated.)
+  `"metrics"` is always retained. (excluded from the config fingerprint,
+  but exclusion does not make every retention change legal on resume: a
+  compatible resume may narrow retention, while widening is rejected
+  once completed outcomes lack the requested artifacts — discarded
+  artifacts cannot be recreated.)
 
 - max_errors:
 
-  Numeric. Maximum errors before stopping. Use `Inf` for no limit. (B4:
-  excluded from the config fingerprint.)
+  Numeric. Maximum errors before stopping. Use `Inf` for no limit.
+  (excluded from the config fingerprint.)
 
 - daemon_setup:
 
@@ -129,8 +127,8 @@ simulation_config(
   (integer, default 50), `check_every` (integer, default 50). Once the
   MCSE of `measure` for `estimand` falls below `target_mcse` AND at
   least `min_reps` replicates have completed, remaining pending tasks
-  are marked `"skipped"` and the run stops. (I3: excluded from the
-  config fingerprint — it is runtime policy.)
+  are marked `"skipped"` and the run stops. (excluded from the config
+  fingerprint — it is runtime policy.)
 
 - summary_format:
 
@@ -139,12 +137,19 @@ simulation_config(
   plus ledger) carries the results and remains the resume artifact.
   `"parquet"` additionally writes `<result_path>/summary.parquet` using
   the suggested `nanoparquet` package, for downstream consumption
-  (pandas, arrow, polars). (I8: excluded from the config fingerprint –
+  (pandas, arrow, polars). (excluded from the config fingerprint –
   runtime policy.)
 
 ## Value
 
 An S7 SimulationConfig object.
+
+## See also
+
+[`config_fingerprint()`](https://sims1253.github.io/bayesim/reference/config_fingerprint.md)
+and
+[`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)
+for fingerprint inputs and limits on resume compatibility.
 
 ## Examples
 

@@ -181,95 +181,10 @@ on the head node, the daemons on the compute nodes.</p>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, workers <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span></code></pre></div>
-<div class="section level3">
-<h3 id="a-slurm-submission-script">A SLURM submission script<a class="anchor" aria-label="anchor" href="#a-slurm-submission-script"></a>
-</h3>
-<p>A typical pattern is one SLURM job that launches <code>N</code>
-daemon workers across nodes, then runs the dispatcher R script on the
-head node:</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co">#!/bin/bash</span></span>
-<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#SBATCH --job-name=bayesim-sim</span></span>
-<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#SBATCH --nodes=4</span></span>
-<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="co">#SBATCH --tasks-per-node=4</span></span>
-<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="co">#SBATCH --cpus-per-task=1</span></span>
-<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a><span class="co">#SBATCH --time=12:00:00</span></span>
-<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a><span class="co">#SBATCH --output=sim-%j.out</span></span>
-<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a></span>
-<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a><span class="ex">module</span> load R</span>
-<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a><span class="ex">module</span> load gcc</span>
-<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a></span>
-<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="bu">export</span> <span class="va">BAYESIM_TLS</span><span class="op">=</span>/scratch/<span class="va">$USER</span>/bayesim-tls</span>
-<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a></span>
-<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a><span class="va">DISPATCHER_URL</span><span class="op">=</span><span class="st">"tls://</span><span class="va">$(</span><span class="fu">hostname</span> <span class="at">-I</span> <span class="kw">|</span> <span class="fu">awk</span> <span class="st">'{print $1}'</span><span class="va">)</span><span class="st">:5555"</span></span>
-<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a><span class="va">N_DAEMONS</span><span class="op">=</span><span class="va">$((SLURM_NTASKS</span> <span class="op">-</span> <span class="dv">1</span><span class="va">))</span>   <span class="co"># reserve one task for the dispatcher</span></span>
-<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a></span>
-<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a><span class="ex">srun</span> <span class="at">--ntasks</span><span class="op">=</span><span class="va">$N_DAEMONS</span> <span class="at">--overlap</span> Rscript <span class="at">-e</span> <span class="st">"</span></span>
-<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a><span class="st">  mirai::daemon('</span><span class="va">$DISPATCHER_URL</span><span class="st">',</span></span>
-<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a><span class="st">                tls = mirai::tls_config(</span></span>
-<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a><span class="st">                  ca = '</span><span class="va">$BAYESIM_TLS</span><span class="st">/ca.pem',</span></span>
-<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a><span class="st">                  key = '</span><span class="va">$BAYESIM_TLS</span><span class="st">/server-key.pem',</span></span>
-<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a><span class="st">                  cert = '</span><span class="va">$BAYESIM_TLS</span><span class="st">/server.pem'))</span></span>
-<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a><span class="st">"</span> <span class="kw">&amp;</span></span>
-<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a></span>
-<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a><span class="fu">sleep</span> 10  <span class="co"># give the daemons a moment to connect</span></span>
-<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a></span>
-<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="ex">Rscript</span> dispatcher.R <span class="st">"</span><span class="va">$DISPATCHER_URL</span><span class="st">"</span> <span class="st">"</span><span class="va">$N_DAEMONS</span><span class="st">"</span></span>
-<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a></span>
-<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="bu">wait</span></span></code></pre></div>
-<p>And the dispatcher R script:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Cluster-only: dispatcher script for the SLURM job above; references the</span></span>
-<span><span class="co"># cluster's data grids and generators.</span></span>
-<span><span class="co"># dispatcher.R</span></span>
-<span><span class="va">args</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/commandArgs.html" class="external-link">commandArgs</a></span><span class="op">(</span>trailingOnly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">url</span> <span class="op">&lt;-</span> <span class="va">args</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">args</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span>
-<span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span>
-<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span>url <span class="op">=</span> <span class="va">url</span>, n <span class="op">=</span> <span class="va">n</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
-<span>  data_grid <span class="op">=</span> <span class="va">my_data_grid</span>,</span>
-<span>  fit_grid <span class="op">=</span> <span class="va">my_fit_grid</span>,</span>
-<span>  data_generator <span class="op">=</span> <span class="va">my_data_generator</span>,</span>
-<span>  fitter <span class="op">=</span> <span class="fu"><a href="../reference/BrmsFitter.html">BrmsFitter</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  metrics <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="../reference/PosteriorSummaryMetric.html">posterior_summary_metric</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="../reference/CoverageMetric.html">coverage_metric</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>  n_replicates <span class="op">=</span> <span class="fl">500L</span>,</span>
-<span>  seed <span class="op">=</span> <span class="fl">42L</span>,</span>
-<span>  result_path <span class="op">=</span> <span class="st">"sim-checkpoints"</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span><span class="va">config</span>, workers <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">mirai</span><span class="fu">::</span><span class="fu"><a href="https://mirai.r-lib.org/reference/daemons.html" class="external-link">daemons</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span></code></pre></div>
-<p>The exact <code>srun</code>/socket plumbing depends on your cluster’s
-network topology; the load-bearing idea is the dispatcher/daemon
-split.</p>
-</div>
-<div class="section level3">
-<h3 id="tls-configuration">TLS configuration<a class="anchor" aria-label="anchor" href="#tls-configuration"></a>
-</h3>
-<p>Remote daemons should connect over TLS. mirai uses standard PEM
-material; see the <a href="https://mirai.r-lib.org/articles/v1-daemons.html#tls-secure-connections" class="external-link">mirai
-TLS documentation</a> for the full reference. A self-signed CA plus
-server certs is enough to get started:</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="co"># Run once, on a trusted host. Keep the private keys private.</span></span>
-<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-x509</span> <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="at">-days</span> 365 <span class="dt">\</span></span>
-<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>  <span class="at">-keyout</span> ca-key.pem <span class="at">-out</span> ca.pem <span class="dt">\</span></span>
-<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>  <span class="at">-subj</span> <span class="st">"/CN=bayesim-CA"</span></span>
-<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a><span class="ex">openssl</span> req <span class="at">-newkey</span> rsa:2048 <span class="at">-nodes</span> <span class="dt">\</span></span>
-<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>  <span class="at">-keyout</span> server-key.pem <span class="at">-out</span> server-csr.pem <span class="dt">\</span></span>
-<span id="cb6-8"><a href="#cb6-8" tabindex="-1"></a>  <span class="at">-subj</span> <span class="st">"/CN=</span><span class="va">$(</span><span class="fu">hostname</span><span class="va">)</span><span class="st">"</span></span>
-<span id="cb6-9"><a href="#cb6-9" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" tabindex="-1"></a><span class="ex">openssl</span> x509 <span class="at">-req</span> <span class="at">-in</span> server-csr.pem <span class="at">-CA</span> ca.pem <span class="at">-CAkey</span> ca-key.pem <span class="dt">\</span></span>
-<span id="cb6-11"><a href="#cb6-11" tabindex="-1"></a>  <span class="at">-CAcreateserial</span> <span class="at">-out</span> server.pem <span class="at">-days</span> 365</span>
-<span id="cb6-12"><a href="#cb6-12" tabindex="-1"></a></span>
-<span id="cb6-13"><a href="#cb6-13" tabindex="-1"></a><span class="co"># Distribute ca.pem, server.pem, and server-key.pem to every node</span></span>
-<span id="cb6-14"><a href="#cb6-14" tabindex="-1"></a><span class="co"># that runs a daemon or the dispatcher.</span></span></code></pre></div>
-<p>Then pass the material into both sides via
-<code>mirai::tls_config()</code> as in the SLURM script above.</p>
-</div>
+<p>Configure remote workers and TLS using the <a href="https://mirai.r-lib.org/articles/v1-daemons.html" class="external-link">mirai daemon
+documentation</a>. Scheduler launch commands and certificate handling
+depend on your cluster. Verify that the daemons connect before starting
+a study.</p>
 </div>
 <div class="section level2">
 <h2 id="the-daemon_setup-hook">The daemon_setup hook<a class="anchor" aria-label="anchor" href="#the-daemon_setup-hook"></a>
@@ -280,7 +195,7 @@ must be set up on each daemon before tasks start. The
 <code>daemon_setup</code> argument of <code><a href="../reference/simulation_config.html">simulation_config()</a></code>
 runs once per daemon via <code><a href="https://mirai.r-lib.org/reference/everywhere.html" class="external-link">mirai::everywhere()</a></code> before the
 task grid ships:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Cluster-only: configures the cluster's cmdstan install on every daemon.</span></span>
 <span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
 <span>  <span class="va">...</span>,</span>
@@ -360,7 +275,7 @@ artifacts only for tasks that emitted warnings — see
 processes tasks in batches of this size, writes a checkpoint after each
 batch (when <code>result_path</code> is set), and lightens completed
 results per the retention profile before starting the next batch.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># The same study, now checkpointed to disk in batches (tempdir keeps the</span></span>
 <span><span class="co"># vignette self-cleaning; use a real directory for an actual study).</span></span>
 <span><span class="va">run_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"big-study"</span><span class="op">)</span></span>
@@ -407,7 +322,7 @@ longer commit history for audits.</p>
 <p>Point <code>result_path</code> at a directory (on shared scratch, for
 clusters) and pass <code>resume = "auto"</code> so an interrupted run
 picks up where it left off:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Every task is already terminal, so this picks up the completed run at once.</span></span>
 <span><span class="va">result</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_simulation.html">run_simulation</a></span><span class="op">(</span></span>
 <span>  <span class="va">config</span>, resume <span class="op">=</span> <span class="st">"auto"</span>, workers <span class="op">=</span> <span class="cn">NULL</span>, progress <span class="op">=</span> <span class="cn">FALSE</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span></span>

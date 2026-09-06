@@ -5,7 +5,7 @@ median of each metric column, Monte Carlo standard errors (MCSE),
 replicate counts, and failure/convergence-failure rates. Returns a tidy
 tibble with one row per condition.
 
-Aggregation follows each metric's declared `summary_type` (E4; see
+Aggregation follows each metric's declared `summary_type` (see
 [Metric](https://sims1253.github.io/bayesim/reference/Metric.md)):
 `"mean"` columns get a `sd / sqrt(n)` MCSE, `"proportion"` columns (e.g.
 coverage) get `sqrt(p(1-p) / n)`, and `"none"` columns (e.g. SBC ranks)

@@ -80,32 +80,15 @@
 <div class="section level2">
 <h2 id="reproducibility-guarantees">Reproducibility guarantees<a class="anchor" aria-label="anchor" href="#reproducibility-guarantees"></a>
 </h2>
-<p>bayesim is designed so that simulation results are reproducible
-across sequential, parallel, interrupted-and-resumed, and re-run
-executions, given a fixed seed. Full result objects also record
-wall-clock timings, and those change between runs, so the guarantee
-covers scientific outputs and canonical task outcomes, not timing
-fields.</p>
-<div class="section level3">
-<h3 id="what-is-guaranteed">What is guaranteed<a class="anchor" aria-label="anchor" href="#what-is-guaranteed"></a>
-</h3>
-<ul>
-<li>
-<strong>Same seed + same package/backend versions + same
-platform</strong>: scientific outputs and canonical task outcomes match
-across sequential, parallel, re-run, and interrupted-and-resumed
-execution once volatile timing fields are excluded. Timing fields record
-wall-clock time, so they differ between runs.</li>
-<li>
-<strong>Across platforms</strong> (or when the Stan/brms/cmdstanr
-version changes), results are <strong>statistically equivalent</strong>
-but may differ in the least significant bits due to floating-point
-ordering and backend differences.</li>
-</ul>
-<p>Bit-identical reproducibility of the full result object is not
-promised on any platform: the object records wall-clock timings, and
-those change between runs.</p>
-</div>
+<p>With the same configuration, package and backend versions, and
+platform, bayesim reproduces scientific outputs across sequential,
+parallel, and resumed runs. Wall-clock timings differ. Custom
+generators, fitters, and metrics must use the supplied RNG state and
+avoid mutable external state.</p>
+<p>Changing platforms or backend versions can change numerical results.
+Check the results again after an upgrade; the seed alone cannot
+guarantee that different implementations produce equivalent
+inference.</p>
 <div class="section level3">
 <h3 id="how-determinism-is-achieved">How determinism is achieved<a class="anchor" aria-label="anchor" href="#how-determinism-is-achieved"></a>
 </h3>
@@ -187,10 +170,27 @@ uninterrupted run once volatile timing fields are excluded.</p>
 <div class="section level3">
 <h3 id="the-config-fingerprint">The config fingerprint<a class="anchor" aria-label="anchor" href="#the-config-fingerprint"></a>
 </h3>
-<p>Each simulation configuration is hashed into a stable fingerprint
-that is written to the checkpoint manifest. On resume, bayesim verifies
-the fingerprint matches, so a resumed run cannot silently use a
-different config than the one that wrote the checkpoint.</p>
+<p><code>config_fingerprint(config)</code> returns the SHA256 study
+identifier stored in the checkpoint manifest. Resume requires a matching
+fingerprint.</p>
+<p>The fingerprint includes the data, fit, and explicit task grids;
+replicate count; seed; generator signature; and fitter and metric
+classes, properties, and available package versions. A generator
+signature includes argument names and a body hash. For a package
+function it also records the package, function name, and version when an
+unambiguous reference is available. For a closure it hashes referenced
+values bound directly in its local environment.</p>
+<p>Editing a generator body or a captured local value therefore changes
+the fingerprint. Global variables, inherited environment bindings, and
+external file contents are not tracked by that signature. Keep study
+inputs in the grids or explicit local bindings, and preserve external
+inputs separately. The fingerprint is a compatibility check, not a
+complete dependency record.</p>
+<p>Runtime settings are excluded: output path, retention, checkpoint
+settings, error limits, adaptive stopping (<code>stop_on</code>), and
+daemon setup. You can adjust these without changing the study
+identifier. Resume still checks retention compatibility; it cannot
+recover artifacts that an earlier run discarded.</p>
 </div>
 <div class="section level3">
 <h3 id="generators-and-determinism">Generators and determinism<a class="anchor" aria-label="anchor" href="#generators-and-determinism"></a>
@@ -215,8 +215,8 @@ task.</li>
 deterministic metric-specific seed.</li>
 <li>Reordering the data/fit grid (tasks are identified by grid
 position).</li>
-<li>Upgrading Stan/brms/cmdstanr – results stay statistically equivalent
-but not bit-identical.</li>
+<li>Upgrading Stan/brms/cmdstanr, which can change numerical
+behavior.</li>
 </ul>
 </div>
 </div>

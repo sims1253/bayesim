@@ -78,7 +78,7 @@ sampling (PSIS-LOO). Named <code>loo_fit</code> to avoid clashing with <code><a 
 <dd><p>Optional pointwise log-likelihood matrix (S x N, draws x
 observations) for the training set, as returned by <code><a href="log_lik_matrix.html">log_lik_matrix()</a></code>.
 When supplied, methods should use it instead of recomputing their own;
-<code><a href="build_loo_context.html">build_loo_context()</a></code> passes the matrix it already computed so the
+<code>build_loo_context()</code> passes the matrix it already computed so the
 weighted-prediction (PSIS) path pays for it once per task (#73). NULL
 (the default, and for standalone calls) means the method computes its
 own.</p></dd>
@@ -87,7 +87,7 @@ own.</p></dd>
 <dt id="arg-save-psis">save_psis<a class="anchor" aria-label="anchor" href="#arg-save-psis"></a></dt>
 <dd><p>Logical; when TRUE, methods that run the PSIS machinery
 for the summary should keep the fitted PSIS object and return it as
-<code>psis_object</code> (see below). <code><a href="build_loo_context.html">build_loo_context()</a></code> sets it on the
+<code>psis_object</code> (see below). <code>build_loo_context()</code> sets it on the
 weighted-prediction path so the tail smoothing runs once per task
 instead of twice (#76); the default FALSE discards it, as standalone
 callers have no use for it.</p></dd>
@@ -101,12 +101,12 @@ callers have no use for it.</p></dd>
 <li><p><code>pareto_k</code>: Pareto k diagnostic values (vector of length N)</p></li>
 <li><p><code>r_eff</code>: Chain-aware relative efficiencies used for the summary
 (vector of length N), or NULL when none were computed (e.g. i.i.d.
-draws). <code><a href="build_loo_context.html">build_loo_context()</a></code> reuses it for the PSIS object (#73).</p></li>
+draws). <code>build_loo_context()</code> reuses it for the PSIS object (#73).</p></li>
 <li><p><code>psis_object</code>: The fitted PSIS (importance-sampling) object the
 summary was derived from, or NULL. Methods that compute the summary
 via <code>loo::loo(ll, r_eff, save_psis = TRUE)</code> return its
 <code>$psis_object</code>; it is identical to <code>loo::psis(-ll, r_eff)</code> on the
-same matrix, so <code><a href="build_loo_context.html">build_loo_context()</a></code> reuses it for
+same matrix, so <code>build_loo_context()</code> reuses it for
 <code><a href="https://mc-stan.org/loo/reference/E_loo.html" class="external-link">loo::E_loo()</a></code>-weighted predictions instead of smoothing the tails
 a second time (#76). NULL when <code>save_psis = FALSE</code> or the fitter
 does not fit a PSIS object at all.</p></li>
