@@ -140,7 +140,8 @@ describe("purrr/mirai transport", {
     )
 
     on.exit(mirai::daemons(0), add = TRUE)
-    # Exercise cleanup immediately followed by shutdown, then start a fresh pool.
+    # Smoke-test cleanup followed by shutdown and restart. This does not
+    # deterministically reproduce the intermittent covered race in #84.
     for (i in seq_len(3L)) {
       mirai::daemons(2)
       expect_error(
