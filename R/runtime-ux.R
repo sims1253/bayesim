@@ -1,5 +1,4 @@
-# Runtime UX helpers (Workstream F): preflight, failure surfacing,
-# print/as_tibble polish. These are additive, exported utilities.
+# Runtime helpers for preflight checks, failure reporting, and printing.
 
 # preflight -----------------------------------------------------------
 

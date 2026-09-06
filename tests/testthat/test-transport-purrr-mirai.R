@@ -1,4 +1,4 @@
-# C1/C2 acceptance tests for the purrr + mirai transport.
+# Acceptance tests for the purrr + mirai transport.
 # - run_task_safe is total; fatal conditions raised inside a task under
 #   daemons stop the run with the original condition class.
 # - determinism (sequential == daemons(2)) still holds on the new transport.

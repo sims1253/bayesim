@@ -730,8 +730,8 @@ execute_tasks <- function(
 #'
 #' Dispatches a batch of simulation tasks via purrr's mirai integration
 #' (`purrr::map()` + `purrr::in_parallel()`). With no daemons set, purrr falls
-#' back to sequential execution automatically, so there is a single code path
-#'. mirai remains the daemon engine; daemons/model bank/`daemon_setup` are
+#' back to sequential execution automatically, so there is a single code path.
+#' mirai remains the daemon engine; daemons/model bank/`daemon_setup` are
 #' managed by `execute_tasks()`.
 #'
 #' `run_task_safe()` is total (never throws), so transport is pure transport:

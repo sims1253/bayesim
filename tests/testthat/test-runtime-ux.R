@@ -1,4 +1,4 @@
-# F1-runtime UX helpers.
+# Runtime helpers.
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
