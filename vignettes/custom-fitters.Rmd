@@ -20,7 +20,7 @@ bayesim ships three fitters: `LinearRegressionFitter()` (exact conjugate
 inference, no Stan), `BrmsFitter()` (Stan via brms, with the compile-once
 model bank), and `CmdStanFitter()` (your own `.stan` programs via cmdstanr).
 To use a different backend, implement a custom fitter by extending the
-`Fitter` class. The core contract is deliberately small: implement
+`Fitter` class. Implement
 `fit_model()` and `extract_draws()`, then opt into optional capabilities by
 declaring the matching `supports_*` property and method.
 
@@ -40,9 +40,8 @@ The public fitter contract is:
 
 **All matrices are draws x observations (S x N)** — `predicted_samples`,
 `log_lik_matrix()`, and `predict_epred()` all put posterior draws in rows and
-observations in columns, matching the brms/loo convention. This is the single
-most common custom-fitter bug; `validate_fitter(smoke_test = TRUE)` rejects
-transposed matrices.
+observations in columns, matching the brms/loo convention.
+`validate_fitter(smoke_test = TRUE)` checks these dimensions.
 
 `loo_fit()`'s `log_lik` argument is optional: when the engine builds the
 weighted-prediction (PSIS) context it passes the train-set log-lik matrix it
@@ -58,8 +57,9 @@ The generics avoid masking common names: `loo_fit` (not `loo::loo`),
 
 ## A minimal fitter: LinearFitter
 
-This fitter fits a linear model by OLS and synthesizes posterior draws by
-bootstrapping the residual variance. It is executable without Stan.
+This example fits a linear model by OLS and draws coefficients from a normal
+approximation using `coef()` and `vcov()`. It holds the residual variance
+fixed. Use `LinearRegressionFitter()` for conjugate Bayesian inference.
 
 ```{r}
 library(bayesim)
@@ -86,8 +86,7 @@ S7::method(fit_model, LinearFitter) <- function(fitter, data_bundle, fit_spec, s
   draws <- MASS::mvrnorm(fitter@n_draws, mu = coefs, Sigma = vc)
   colnames(draws) <- c("intercept", "slope")
 
-  # Package into the supported public fit-result type. The engine validates
-  # and canonicalizes the draws at the task seam.
+  # The engine validates and normalizes these draws before computing metrics.
   bayesim::new_fit_result(
     fit = fit,
     draws = draws,
@@ -110,7 +109,7 @@ S7::method(extract_draws, LinearFitter) <- function(fitter, fit_result, variable
 
 # predict_fit(): posterior-mean predictions
 # Convention: predicted_samples is S x N (draws as rows, observations as cols),
-# matching log_lik() and predict_epred().
+# matching log_lik_matrix() and predict_epred().
 S7::method(predict_fit, LinearFitter) <- function(fitter, fit_result, newdata = NULL, seed = NULL) {
   data <- if (is.null(newdata)) fit_result$data_bundle$train else newdata
   # draws is S x P; design matrix X is N x P, so draws %*% t(X) is S x N.
@@ -206,9 +205,6 @@ config <- simulation_config(
   data_generator = my_generator,
   fitter = fitter,
   metrics = list(
-    # Metric is abstract, so constructing ContractMetric() directly honors
-    # the defaults declared above (name, needs = c("predictions",
-    # "log_lik"), required = TRUE).
     ContractMetric(),
     posterior_summary_metric()
   ),
@@ -230,7 +226,7 @@ head(result$summary)
 ### Parallel runs
 
 `run_simulation(config, workers = N)` sets up mirai daemons for the run and
-tears them down afterwards. `workers = 1` is *genuinely sequential*: no
+tears them down afterwards. With `workers = 1`, no
 daemons are launched and tasks run in-process. That matters for fitters and
 metrics defined in *your* package or script — `S7::method()` registrations
 live in the process that ran them and do not travel to daemon workers, so an
@@ -292,19 +288,3 @@ involvement.
 Metrics are the other half of the extension surface — see
 `vignette("custom-metrics")` for the Metric contract, the output schema,
 `summary_type`, and externalization of large outputs.
-
-# A brms-based fitter (sketch)
-
-For a real Stan fitter, `BrmsFitter()` is the standard path and benefits from
-the model bank (one compile per distinct spec). A custom brms fitter would:
-
-1. Call `brms::brm()` (or reuse a prefit via the model bank) in `fit_model()`.
-2. Use `brms::as_draws_matrix()` in `extract_draws()`.
-3. Use `brms::posterior_predict()` / `brms::log_lik()` in the other generics.
-
-See `?BrmsFitter` for the full method reference, and the `BrmsFitter`
-implementation in `R/brms-fitter.R` of the bayesim source tree for a complete
-worked example. Because the model bank keys on `fit_spec` columns (`formula`,
-`family`, `prior`, `stanvars`), supplying these as `fit_grid` columns lets the
-engine compile once and reuse the binary across all replicates of the same
-condition.

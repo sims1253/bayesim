@@ -2,6 +2,8 @@
 
 Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
+* Removed the deprecated `report()` alias. Use `render_report()`.
+
 ## Runtime UX
 
 * `run_simulation()` now prints a single end-of-run summary block when

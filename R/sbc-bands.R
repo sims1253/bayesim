@@ -27,7 +27,7 @@
 #'   the partition intervals). Defaults to N.
 #' @param conf_level Numeric in (0,1); confidence level. Default 0.95.
 #' @return Numeric gamma in (0, 1 - conf_level).
-#' @keywords internal
+#' @noRd
 adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
   if (
     !all(is.numeric(c(K, N, L))) ||
@@ -68,7 +68,7 @@ adjust_gamma <- function(N, L, K = N, conf_level = 0.95) {
 }
 
 #' Exact gamma for a single sample (L = 1) via dynamic programming.
-#' @keywords internal
+#' @noRd
 adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
   if (K == 1L) {
     # With a single partition interval [0, 1], every empirical CDF is exactly
@@ -110,7 +110,7 @@ adjust_gamma_optimize <- function(N, K, conf_level = 0.95) {
 }
 
 #' Interior-probability recursion helper.
-#' @keywords internal
+#' @noRd
 p_interior <- function(p_int, x1, x2, z1, z2, gamma, N) {
   z_tilde <- (z2 - z1) / (1 - z1)
 
@@ -133,7 +133,7 @@ p_interior <- function(p_int, x1, x2, z1, z2, gamma, N) {
 #' @param conf_level Numeric in (0,1); confidence level.
 #' @return A list with `x` (the grid 0:K / K) and `lower` and `upper` numeric
 #'   vectors of length K + 1 over that grid.
-#' @keywords internal
+#' @noRd
 sbc_band <- function(N, K = N, conf_level = 0.95) {
   gamma <- adjust_gamma(N, L = 1L, K = K, conf_level = conf_level)
   z <- (0:K) / K

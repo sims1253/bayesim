@@ -14,36 +14,23 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Introduction
+This vignette defines a data generator, runs a Bayesian linear regression
+study, and summarizes its results. It uses `LinearRegressionFitter()` for
+exact conjugate inference without Stan. For Stan models, use `BrmsFitter()`
+or `CmdStanFitter()`.
 
-bayesim is a simulation framework for Bayesian modeling studies. It provides:
-
-- **Reproducible execution** across sequential, parallel (mirai), and resumed runs
-- **A model bank** that compiles each distinct Stan model once and reuses it
-  across tasks, eliminating per-task recompilation
-- **Checkpoint/resume** capabilities for long-running simulations
-- **Memory-bounded execution** with configurable artifact retention
-- **Typed generators, metrics, and an analysis layer** -- no hand-rolled dplyr
-
-This vignette runs end-to-end with `LinearRegressionFitter()` -- exact
-conjugate Bayesian linear regression (real posteriors, no Stan, milliseconds
-per fit). For Stan/brms models, swap it for `BrmsFitter()` or
-`CmdStanFitter()`.
-
-# Basic Usage
-
-## Setup
+# Run a study
 
 ```{r setup}
 library(bayesim)
 ```
 
-## Define a Data Generator
+## Generate data
 
 A data generator is a function with the signature
-`(data_spec, task_ctx)` returning a named list. It must consume the
-**ambient** RNG state (the engine restores a per-task L'Ecuyer stream before
-each call), so do not re-seed inside.
+`(data_spec, task_ctx)` returning a named list. `data_spec` contains one row
+of `data_grid`; `task_ctx` identifies the task. Use R's random functions
+normally. Set the study seed in `simulation_config()`, not inside the generator.
 
 ```{r}
 my_data_generator <- function(data_spec, task_ctx) {
@@ -69,7 +56,7 @@ For common patterns (fixed truth, prior-predictive, inverse forward sampling)
 use the factory constructors `fixed_truth_generator()`,
 `prior_predictive_generator()`, `ifs_generator()`.
 
-## Create a Configuration
+## Choose conditions and metrics
 
 ```{r}
 config <- simulation_config(
@@ -91,140 +78,73 @@ config <- simulation_config(
 )
 ```
 
-## Run the Simulation
+## Run the simulation
 
 ```{r}
 result <- run_simulation(config, progress = FALSE)
 print(result)
 ```
 
-## Examine Results
+## Inspect task results
 
 ```{r}
-head(result$summary)
+result$summary[c("task_id", "data_n", "status", "posterior_summary__mean__x")]
 ```
 
 Each row is one task. Columns include `task_id`, `status`, `timing_total`,
 the grid columns, and one column per metric field
 (`posterior_summary__mean__x`, `truth__x`, ...). The `truth__*` columns record
-the data-generating truth (E1), enabling parameter-recovery analysis.
+the data-generating truth for parameter-recovery analysis.
 
-# Summarizing Results
+# Summarize results
 
-`summarize_simulation()` aggregates the per-task summary by condition, with
-Monte Carlo standard errors (MCSE):
-
-```{r}
-agg <- summarize_simulation(result, by = "data_n")
-agg
-```
-
-For each metric you get `<metric>_mean`, `<metric>_median`, `<metric>_sd`, and
-`<metric>_mcse`, plus `n_reps`, `n_failed`, and `failure_rate`.
-
-Studies with several metrics can produce wide summaries -- each metric
-contributes `_n_used`, `_mean`, `_median`, `_sd`, and `_mcse` columns, so the
-aggregate can easily exceed 100 columns. Nothing is dropped or truncated;
-narrow the aggregation with the `metrics` argument, and use `metric_cols()`
-to list the flattened columns of a single metric:
+Each sample size is a separate condition. Group by `data_n` to keep their
+results separate. Select the slope's posterior mean to keep the table small:
 
 ```{r}
-metric_cols(result, "posterior_summary")
-agg_post <- summarize_simulation(
+summarize_simulation(
   result,
   by = "data_n",
-  metrics = metric_cols(result, "posterior_summary", fields = "mean")
+  metrics = "posterior_summary__mean__x"
 )
 ```
 
+The output reports the mean, median, standard deviation, and Monte Carlo
+standard error (MCSE) across replicates, plus task and failure counts.
+Use `metric_cols(result, "posterior_summary")` to find other metric columns.
+
 # Performance measures
 
-For estimator-performance measures in the sense of Morris, White & Crowther
-(2019) -- bias, empirical SE, MSE, coverage, average model SE, each with its
-MCSE -- use `performance_measures()`:
+Use `performance_measures()` for bias, empirical SE, MSE, coverage, and
+average model SE, each with its MCSE (Morris, White & Crowther, 2019):
 
 ```{r}
-pm <- performance_measures(result, estimand = "x")
+pm <- performance_measures(result, estimand = "x", by = "data_n")
 pm
 ```
 
 This pairs `truth__x` with the per-task posterior summary to give, per
-condition cell, the bias and calibration of the estimator. It is the function a
-methods paper actually needs.
+condition cell, the bias and calibration of the estimator.
 
-# Parallel Execution (mirai)
+# Run a larger study
 
-Parallelism is owned by the engine and uses [mirai](https://mirai.r-lib.org/)
-via [purrr](https://purrr.tidyverse.org/)'s `in_parallel()` integration. The
-simple path is the `workers` argument:
+This example uses four replicates per condition to keep it quick. Choose
+more replicates for a precise estimate; the
+[study design guide](design-of-simulation-studies.html) explains how MCSE
+helps you decide.
 
-```{r, eval=FALSE}
-result <- run_simulation(config, progress = FALSE, workers = 4)
-# daemons are set up for the run and torn down on exit
-```
+Add `workers = 4` to `run_simulation()` to use four parallel workers.
+For long runs, set `result_path` and `checkpoint_every` when constructing
+the configuration. Resume interrupted work with
+`resume_simulation("my_simulation", config = config)`, using the original
+configuration. Script-defined generators require that configuration because
+the saved manifest cannot reconstruct their closures.
 
-For the advanced/HPC path (remote daemons, TLS), call `mirai::daemons()`
-yourself before `run_simulation()`. `SimulationConfig` accepts a `daemon_setup`
-function run once per daemon (e.g. to configure the cmdstan path when using
-`BrmsFitter` on a cluster).
+See [parallel runs and checkpoints](parallel-and-hpc.html) for a complete
+example, and [reproducibility](reproducibility.html) for seed and resume
+requirements.
 
-# Checkpointing and Resume
-
-For long-running simulations, write checkpoints to `result_path`:
-
-```{r, eval=FALSE}
-config <- simulation_config(
-  data_grid = data.frame(
-    n = c(50, 100),
-    intercept = 1,
-    slope = 2,
-    sigma = 1
-  ),
-  fit_grid = data.frame(model = "linear"),
-  data_generator = my_data_generator,
-  fitter = LinearRegressionFitter(n_draws = 200L),
-  metrics = list(posterior_summary_metric()),
-  n_replicates = 1000L,
-  seed = 42L,
-  result_path = "my_simulation",
-  checkpoint_every = 50L
-)
-result <- run_simulation(config, resume = "auto")
-```
-
-If interrupted, resume with the original config:
-
-```{r, eval=FALSE}
-result <- resume_simulation("my_simulation", config = config)
-```
-
-Passing the config is required here because `my_data_generator` is a closure
-defined in your script; the run manifest cannot rehydrate script-defined
-closures. The
-configless form `resume_simulation("my_simulation")` works only when every
-generator, fitter, and metric is a namespaced package function or class.
-
-# Metrics
-
-The built-in metric library covers the standard surface: `pred_bias_metric`,
-`pred_rmse_metric`, `pred_mae_metric`, `pred_mse_metric`, `coverage_metric`,
-`pos_prob_metric`, `posterior_summary_metric`, `sampler_diagnostics_metric`
-(convergence and sampler diagnostics), `rank_metric` (SBC ranks), and
-LOO/test-set variants (`elpd_loo_metric`, `rmse_loo_metric`, `r2_loo_metric`,
-`elpd_test_metric`, `r2_test_metric`).
-
-To write your own metric, extend the `Metric` class and implement
-`compute_metric()`; `vignette("custom-metrics")` covers the full contract,
-the output schema, and how large outputs are externalized.
-
-# Reproducibility
-
-Same seed + same package/backend versions + same platform produces identical
-results. Across platforms (or Stan version changes) results are statistically
-equivalent but may differ in the least significant bits due to floating-point
-and backend differences.
-
-# Next Steps
+# Next steps
 
 - `vignette("design-of-simulation-studies")` for aims, estimands, and choosing
   the number of replicates

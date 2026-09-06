@@ -20,10 +20,10 @@ A ggplot object.
 }
 \description{
 Point-range plot of credible-interval coverage with MCSE error
-bars (E7 redesign: was a bar plot of a continuous coverage_mean). Coverage
+bars. Coverage
 and its MCSE come from \code{\link[=performance_measures]{performance_measures()}}; each point is a
 condition x estimand cell, with a dashed reference line at the nominal
-rate. Requires \code{posterior_summary_metric()} (and recorded truths, E1).
+rate. Requires \code{posterior_summary_metric()} and recorded truths.
 }
 \examples{
 \dontrun{

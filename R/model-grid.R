@@ -1,5 +1,5 @@
 # brms_model() and model_grid() — ergonomics for building brms fit_grid rows.
-# D3: hand-building list-columns (fit_grid$formula <- list(...)) is the ugliest
+# hand-building list-columns (fit_grid$formula <- list(...)) is the ugliest
 # UX in the package; these helpers produce a tidy tibble of model specs.
 
 #' Construct a single brms model specification

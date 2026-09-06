@@ -1,10 +1,10 @@
-# B1: the renamed generics must not mask common foreign generics.
+# the renamed generics must not mask common foreign generics.
 # bayesim no longer exports fit / compute / log_lik / diagnostics, so loading it
 # alongside brms/dplyr must leave those names resolving to the foreign package.
 # This file is fast-tier analytic; the brms dispatch companion lives in
 # test-brms-fitter.R (backend tier) so it actually executes.
 
-describe("B1: renamed generics do not mask foreign packages", {
+describe("renamed generics do not mask foreign packages", {
   it("bayesim does not export fit / compute / log_lik / diagnostics", {
     ns <- asNamespace("bayesim")
     exports <- getNamespaceExports(ns)

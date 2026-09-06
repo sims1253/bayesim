@@ -1,4 +1,4 @@
-# F1-F4: runtime UX helpers.
+# F1-runtime UX helpers.
 .gen <- function(data_spec, task_ctx) {
   n <- data_spec$n
   x <- stats::rnorm(n)
@@ -13,7 +13,7 @@
   )
 }
 
-describe("F1 preflight", {
+describe("preflight", {
   it("reports task count, grid shape, and unmet needs", {
     config <- simulation_config(
       data_grid = data.frame(n = c(20, 40)),
@@ -99,7 +99,7 @@ describe("F1 preflight", {
   })
 })
 
-describe("F2 failed_tasks", {
+describe("failed_tasks", {
   it("returns an empty tibble when all tasks succeed", {
     config <- simulation_config(
       data_grid = data.frame(n = 20),
@@ -117,7 +117,7 @@ describe("F2 failed_tasks", {
   })
 })
 
-describe("F3 as_tibble", {
+describe("as_tibble", {
   it("returns the summary tibble", {
     config <- simulation_config(
       data_grid = data.frame(n = 20),
@@ -135,7 +135,7 @@ describe("F3 as_tibble", {
   })
 })
 
-describe("F4 seed error message", {
+describe("seed error message", {
   it("errors with a helpful message when seed is missing", {
     expect_error(
       simulation_config(
@@ -149,7 +149,7 @@ describe("F4 seed error message", {
   })
 })
 
-describe("F5 run reporting", {
+describe("run reporting", {
   it("separates verbosity from progress and prints resumable paths", {
     path <- withr::local_tempdir()
     config <- simulation_config(
@@ -181,7 +181,7 @@ describe("F5 run reporting", {
   })
 })
 
-describe("F7 end-of-run summary", {
+describe("end-of-run summary", {
   # All cli alerts (any visual level) signal cliMessage conditions, which
   # inherit from "message"; the warning handler additionally collects genuine
   # warnings the run may emit (e.g. cli_warn). Run verbosely, collect every
@@ -454,7 +454,7 @@ describe("F7 end-of-run summary", {
   })
 })
 
-describe("F6 truthful resume instructions", {
+describe("truthful resume instructions", {
   configless_line <- 'Resume with: resume_simulation\\("[^"]+"\\)$'
 
   it("keeps the configless command when the manifest is rehydratable", {

@@ -153,7 +153,7 @@ validate_data_bundle <- function(data_bundle) {
     )
   }
 
-  # E6: true_params and vars_of_interest are OPTIONAL (jointly NULL). Pure
+  # true_params and vars_of_interest are OPTIONAL (jointly NULL). Pure
   # model-comparison / predictive studies on truth-free data have no truths;
   # truth-dependent metrics already degrade to NA. Keep the integrity checks
   # when present.
@@ -296,7 +296,7 @@ validate_data_bundle <- function(data_bundle) {
 #' Validate Fit Result Interface
 #'
 #' Validates that a fit_result conforms to the bayesim_fit_result interface.
-#' This is a wrapper around [validate_bayesim_fit_result()] that provides
+#' This is a wrapper around `validate_bayesim_fit_result()` that provides
 #' clear error messages for contract violations.
 #'
 #' @param fit_result A bayesim_fit_result object to validate.
@@ -320,7 +320,7 @@ validate_data_bundle <- function(data_bundle) {
 #'
 #' @keywords internal
 #'
-#' @seealso [validate_bayesim_fit_result()], [new_fit_result()]
+#' @seealso `validate_bayesim_fit_result()`, [new_fit_result()]
 #'
 #' @examples
 #' \dontrun{
@@ -354,7 +354,7 @@ validate_fit_result_interface <- function(fit_result) {
 # =============================================================================
 # Fitter Interface Validation
 # =============================================================================
-# B3: the duplicate lightweight fitter class check (check_fitter_class /
+# the duplicate lightweight fitter class check (check_fitter_class /
 # validate_fitter_interface) was merged into the exported validate_fitter()
 # in R/fitter.R, which performs the class hierarchy + method checks. Internal
 # callers use validate_fitter() directly.
@@ -367,9 +367,7 @@ validate_fit_result_interface <- function(fit_result) {
 #'
 #' @description
 #' Validates that a metric object is an S7 instance of the Metric class with a
-#' valid `name` property. This is the canonical metric validator (B3 merges the
-#' former internal `validate_metric_interface` into this exported name). Method
-#' existence is not checked because S7 dispatches via generics and the base
+#' valid `name` property. Method existence is not checked because S7 dispatches via generics and the base
 #' class raises errors for unimplemented abstract methods.
 #'
 #' When representative values are supplied (`fit_result` plus `data_bundle`),

@@ -15,15 +15,13 @@ devtools::check()
 
 ## Test tiers
 
-Tests are split into three explicit tiers, declared in
-`tools/ci/test-tiers.R`. Every `tests/testthat/test-*.R` file belongs to
-exactly one tier; a `stopifnot` assertion in that script fails CI when a new
-file has not been classified, so nothing can silently drop out of every tier.
+`tools/ci/test-tiers.R` assigns each `tests/testthat/test-*.R` file to one
+tier. CI fails if a file has not been classified.
 
 - **fast** — the fail-fast PR gate. Stan-free analytic workflows (the golden
   complete-study and analytic SBC tests, lifecycle parity, checkpoint/resume,
   external extension contracts, metric schema conformance, statistical
-  formula parity) plus focused invariants. Runs in well under 90 seconds.
+  formula parity) plus focused invariants.
   CI: `test-fast` on every push and pull request.
 - **core** — fast plus the rest of the analytic suite: engine internals,
   analysis layer, model grid, parquet summaries, parallel transport, and
@@ -89,6 +87,9 @@ count) and warns if the checkpoint path starts dropping outcomes.
 Format R code with `air format .` and run `jarl check .` before submitting a
 pull request. Generated documentation (`man/`, `NAMESPACE`, and `README.md`)
 should be updated whenever their roxygen or `README.Rmd` sources change.
+Use `@noRd` for internal helpers. Keep internal help pages only when they
+document a contract such as checkpoint storage or retention, or share a
+topic with an exported function.
 
 ## Pull requests
 

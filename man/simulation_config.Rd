@@ -50,12 +50,10 @@ Generates data for a single replicate given a data specification row.
 \item{result_path}{NULL or character path. If provided, results are saved here.}
 
 \item{checkpoint_format}{Character scalar. Checkpoint storage format.
-Currently only \code{"rds"} is implemented for checkpoint persistence. (B4:
-excluded from the config fingerprint — it is runtime policy.)}
+Currently only \code{"rds"} is implemented. Excluded from the config fingerprint.}
 
 \item{checkpoint_every}{Positive integer. Save progress every N tasks. This
-single knob also bounds the number of task results held in memory at once
-(B4: the former separate \code{chunk_size} knob was merged into this).}
+also bounds the number of task results held in memory at once.}
 
 \item{keep_checkpoints}{Positive integer. Number of checkpoint commit
 directories to retain. Defaults to 2, preserving the newest commit plus
@@ -71,13 +69,13 @@ A single profile name is also accepted: \code{"minimal"} (metrics only),
 Alternatively, a named list with \code{success}, \code{warning}, and \code{error}
 entries to retain more for tasks that warn or fail. \code{"metrics"} is always
 retained.
-(B4: excluded from the config fingerprint, but exclusion does not make
+(excluded from the config fingerprint, but exclusion does not make
 every retention change legal on resume: a compatible resume may narrow
 retention, while widening is rejected once completed outcomes lack the
 requested artifacts — discarded artifacts cannot be recreated.)}
 
 \item{max_errors}{Numeric. Maximum errors before stopping. Use \code{Inf} for no
-limit. (B4: excluded from the config fingerprint.)}
+limit. (excluded from the config fingerprint.)}
 
 \item{daemon_setup}{Optional function run once per mirai daemon (via
 \code{mirai::everywhere()}) before tasks start, e.g. to configure cmdstan
@@ -90,7 +88,7 @@ paths or load a model bank. Ignored when no daemons are set. Default NULL.}
 \code{min_reps} (integer, default 50), \code{check_every} (integer, default 50).
 Once the MCSE of \code{measure} for \code{estimand} falls below \code{target_mcse} AND
 at least \code{min_reps} replicates have completed, remaining pending tasks
-are marked \code{"skipped"} and the run stops. (I3: excluded from the config
+are marked \code{"skipped"} and the run stops. (excluded from the config
 fingerprint — it is runtime policy.)}
 
 \item{summary_format}{Character scalar. Output format for the final summary.
@@ -99,7 +97,7 @@ shards plus ledger) carries the results and remains the resume artifact.
 \code{"parquet"}
 additionally writes \verb{<result_path>/summary.parquet} using the suggested
 \code{nanoparquet} package, for downstream consumption (pandas, arrow, polars).
-(I8: excluded from the config fingerprint -- runtime policy.)}
+(excluded from the config fingerprint -- runtime policy.)}
 }
 \value{
 An S7 SimulationConfig object.
@@ -122,4 +120,8 @@ config <- simulation_config(
   checkpoint_format = "rds"
 )
 }
+}
+\seealso{
+\code{\link[=config_fingerprint]{config_fingerprint()}} and \code{vignette("reproducibility")} for
+fingerprint inputs and limits on resume compatibility.
 }

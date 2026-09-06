@@ -1,11 +1,11 @@
-#' @keywords internal
+#' @noRd
 #' @importFrom S7 new_class new_property class_character class_function
 #' @importFrom S7 class_numeric class_logical
 NULL
 
 VALID_CHECKPOINT_FORMATS <- c("rds")
 
-# I8: valid formats for the optional summary sidecar. "rds" is the default and
+# valid formats for the optional summary sidecar. "rds" is the default and
 # writes nothing extra (the canonical rds checkpoint carries the summary). When
 # set to "parquet", the final summary is ALSO written to
 # `<result_path>/summary.parquet` for downstream (pandas/arrow/polars) use. The
@@ -137,7 +137,7 @@ SimulationConfig <- S7::new_class(
       class = S7::new_union(S7::class_function, NULL),
       default = NULL
     ),
-    # Workstream I3: optional adaptive stopping policy. NULL = run all tasks.
+    # optional adaptive stopping policy. NULL = run all tasks.
     # When non-NULL a list with: estimand (character), measure (one of
     # bias/coverage/emp_se/mse/model_se), target_mcse (numeric > 0),
     # min_reps (integer, default 50), check_every (integer, default 50).
@@ -145,7 +145,7 @@ SimulationConfig <- S7::new_class(
       class = S7::new_union(S7::class_any, NULL),
       default = NULL
     ),
-    # I8: optional parquet sidecar for the summary. Default "rds" writes nothing
+    # optional parquet sidecar for the summary. Default "rds" writes nothing
     # extra. "parquet" additionally writes `<result_path>/summary.parquet` for
     # downstream consumption. Runtime policy: excluded from the config fingerprint.
     summary_format = S7::new_property(
@@ -187,11 +187,9 @@ SimulationConfig <- S7::new_class(
 #' @param seed Integer. Base seed for reproducible random number generation.
 #' @param result_path NULL or character path. If provided, results are saved here.
 #' @param checkpoint_format Character scalar. Checkpoint storage format.
-#'   Currently only `"rds"` is implemented for checkpoint persistence. (B4:
-#'   excluded from the config fingerprint — it is runtime policy.)
+#'   Currently only `"rds"` is implemented. Excluded from the config fingerprint.
 #' @param checkpoint_every Positive integer. Save progress every N tasks. This
-#'   single knob also bounds the number of task results held in memory at once
-#'   (B4: the former separate `chunk_size` knob was merged into this).
+#'   also bounds the number of task results held in memory at once.
 #' @param keep_checkpoints Positive integer. Number of checkpoint commit
 #'   directories to retain. Defaults to 2, preserving the newest commit plus
 #'   one older fallback for corruption recovery. Pruning removes old commit
@@ -205,12 +203,12 @@ SimulationConfig <- S7::new_class(
 #'   Alternatively, a named list with `success`, `warning`, and `error`
 #'   entries to retain more for tasks that warn or fail. `"metrics"` is always
 #'   retained.
-#'   (B4: excluded from the config fingerprint, but exclusion does not make
+#'   (excluded from the config fingerprint, but exclusion does not make
 #'   every retention change legal on resume: a compatible resume may narrow
 #'   retention, while widening is rejected once completed outcomes lack the
 #'   requested artifacts — discarded artifacts cannot be recreated.)
 #' @param max_errors Numeric. Maximum errors before stopping. Use `Inf` for no
-#'   limit. (B4: excluded from the config fingerprint.)
+#'   limit. (excluded from the config fingerprint.)
 #' @param daemon_setup Optional function run once per mirai daemon (via
 #'   `mirai::everywhere()`) before tasks start, e.g. to configure cmdstan
 #'   paths or load a model bank. Ignored when no daemons are set. Default NULL.
@@ -221,7 +219,7 @@ SimulationConfig <- S7::new_class(
 #'   `min_reps` (integer, default 50), `check_every` (integer, default 50).
 #'   Once the MCSE of `measure` for `estimand` falls below `target_mcse` AND
 #'   at least `min_reps` replicates have completed, remaining pending tasks
-#'   are marked `"skipped"` and the run stops. (I3: excluded from the config
+#'   are marked `"skipped"` and the run stops. (excluded from the config
 #'   fingerprint — it is runtime policy.)
 #' @param summary_format Character scalar. Output format for the final summary.
 #'   `"rds"` (default) writes nothing extra -- the durable run store (outcome
@@ -229,9 +227,12 @@ SimulationConfig <- S7::new_class(
 #'   `"parquet"`
 #'   additionally writes `<result_path>/summary.parquet` using the suggested
 #'   `nanoparquet` package, for downstream consumption (pandas, arrow, polars).
-#'   (I8: excluded from the config fingerprint -- runtime policy.)
+#'   (excluded from the config fingerprint -- runtime policy.)
 #'
 #' @return An S7 SimulationConfig object.
+#'
+#' @seealso [config_fingerprint()] and `vignette("reproducibility")` for
+#'   fingerprint inputs and limits on resume compatibility.
 #'
 #' @export
 #'
@@ -395,10 +396,10 @@ simulation_config <- function(
     cli::cli_abort("max_errors must be Inf or a non-negative number")
   }
 
-  # I3: validate optional adaptive-stopping policy.
+  # validate optional adaptive-stopping policy.
   stop_on <- validate_stop_on(stop_on)
 
-  # I8: resolve summary_format.
+  # resolve summary_format.
   summary_format <- match.arg(summary_format, VALID_SUMMARY_FORMATS)
 
   # Create and return S7 object
@@ -433,7 +434,7 @@ simulation_config <- function(
 #'
 #' @return A list of Metric objects, or NULL if input was NULL.
 #'
-#' @keywords internal
+#' @noRd
 resolve_metrics <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -468,12 +469,12 @@ resolve_metrics <- function(metrics) {
   metrics
 }
 
-# I3: validate the optional adaptive-stopping policy ----------------------
+# validate the optional adaptive-stopping policy ----------------------
 
 # Valid performance measures (must match those produced by performance_measures).
 VALID_STOP_MEASURES <- c("bias", "coverage", "emp_se", "mse", "model_se")
 
-#' Validate the optional adaptive-stopping policy (I3)
+#' Validate the optional adaptive-stopping policy
 #'
 #' `NULL` is valid (no adaptive stopping). Otherwise the input must be a list
 #' with: `estimand` (character), `measure` (one of `VALID_STOP_MEASURES`),
@@ -482,7 +483,7 @@ VALID_STOP_MEASURES <- c("bias", "coverage", "emp_se", "mse", "model_se")
 #'
 #' @param stop_on NULL or a list.
 #' @return NULL or a normalized list.
-#' @keywords internal
+#' @noRd
 validate_stop_on <- function(stop_on) {
   if (is.null(stop_on)) {
     return(NULL)
@@ -564,7 +565,7 @@ validate_stop_on <- function(stop_on) {
 #'
 #' @return A named list containing the configuration specification.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -581,10 +582,10 @@ as_config_spec <- function(config) {
         "config must be a SimulationConfig object"
       )
     }
-    # Extract properties that define the simulation identity. B4: exclude
+    # Extract properties that define the simulation identity. exclude
     # runtime policy (result_path, checkpoint_every, checkpoint_format, retain,
     # max_errors) — changing retention or error tolerance must not invalidate
-    # resume. I3: stop_on (adaptive stopping) is also runtime policy and
+    # resume. stop_on (adaptive stopping) is also runtime policy and
     # excluded here.
     study <- new_study_spec(config)
   }
@@ -613,7 +614,7 @@ as_config_spec <- function(config) {
 #'
 #' @return A character string representing the function signature.
 #'
-#' @keywords internal
+#' @noRd
 capture_function_signature <- function(fn) {
   if (!is.function(fn)) {
     return(NA_character_)
@@ -726,7 +727,7 @@ capture_function_signature <- function(fn) {
 #'
 #' @return A list or NA if NULL.
 #'
-#' @keywords internal
+#' @noRd
 capture_fitter_spec <- function(fitter) {
   if (is.null(fitter)) {
     return(NA)
@@ -755,7 +756,7 @@ capture_fitter_spec <- function(fitter) {
 #'
 #' @return A list or NA if NULL.
 #'
-#' @keywords internal
+#' @noRd
 capture_metrics_spec <- function(metrics) {
   if (is.null(metrics)) {
     return(list())
@@ -786,7 +787,7 @@ capture_metrics_spec <- function(metrics) {
 #' The fingerprint uniquely identifies a simulation configuration
 #' for caching and deduplication purposes.
 #'
-#' The fingerprint excludes runtime policy settings (B4):
+#' The fingerprint excludes runtime policy settings:
 #' - `result_path`: Output location doesn't affect simulation identity
 #' - `checkpoint_every` / `checkpoint_format`: checkpoint cadence/format is runtime optimization
 #' - `retain`: retention is runtime policy; fingerprint exclusion does not
@@ -800,7 +801,7 @@ capture_metrics_spec <- function(metrics) {
 #'
 #' @return A character string containing the SHA256 hash of the study design.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -870,7 +871,7 @@ config_fingerprint <- function(config) {
 #'
 #' @return TRUE if x is a SimulationConfig, FALSE otherwise.
 #'
-#' @keywords internal
+#' @noRd
 is_simulation_config <- function(x) {
   S7::S7_inherits(x, SimulationConfig)
 }
@@ -885,7 +886,7 @@ is_simulation_config <- function(x) {
 #'
 #' @return Integer. Total number of tasks.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{

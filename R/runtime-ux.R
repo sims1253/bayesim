@@ -1,7 +1,7 @@
 # Runtime UX helpers (Workstream F): preflight, failure surfacing,
 # print/as_tibble polish. These are additive, exported utilities.
 
-# F1: preflight -----------------------------------------------------------
+# preflight -----------------------------------------------------------
 
 #' Preflight check for a simulation configuration
 #'
@@ -96,7 +96,7 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
     estimated_total_seconds = NA_real_
   )
 
-  # R4: opt-in pilot timing. Run the first grid cell once and extrapolate.
+  # opt-in pilot timing. Run the first grid cell once and extrapolate.
   if (pilot) {
     pilot_seconds <- run_pilot_task(config)
     if (!is.null(pilot_seconds)) {
@@ -124,7 +124,7 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
     cli::cli_inform(
       "{n_tasks} tasks = {n_data} data x {n_fit} fit x {n_rep} reps{compile_str}{workers_str}"
     )
-    # R1a: surface unmet metric needs in condensed mode too — this is the path
+    # surface unmet metric needs in condensed mode too — this is the path
     # run_simulation() uses by default, so an all-NA study is never a silent
     # surprise.
     if (length(unmet)) {
@@ -160,7 +160,7 @@ preflight <- function(config, pilot = FALSE, condensed = FALSE) {
   invisible(info)
 }
 
-# Print the pilot timing estimate (R4). Shared by the condensed and full
+# Print the pilot timing estimate. Shared by the condensed and full
 # preflight reports.
 print_pilot_estimate <- function(info) {
   if (is.finite(info$estimated_total_seconds)) {
@@ -173,7 +173,7 @@ print_pilot_estimate <- function(info) {
   invisible(NULL)
 }
 
-# R4: run a single representative task (the first grid cell) to measure
+# run a single representative task (the first grid cell) to measure
 # per-task wall-clock time. Returns seconds (numeric scalar) or NULL when the
 # pilot cannot execute for this configuration (e.g. a Stan fitter with no
 # CmdStan installed). Used by preflight(pilot = TRUE). Runs sequentially on the
@@ -265,7 +265,7 @@ run_pilot_task <- function(config) {
   result$timing$total
 }
 
-# F2: failure surfacing ---------------------------------------------------
+# failure surfacing ---------------------------------------------------
 
 #' Extract failed tasks from a simulation result
 #'
@@ -324,7 +324,7 @@ print_failure_summary <- function(result) {
   invisible(NULL)
 }
 
-# F7: end-of-run summary ----------------------------------------------------
+# end-of-run summary ----------------------------------------------------
 
 # Human phrasing for the stop_reason values execute_tasks() records on tasks
 # that were never executed (policy-stopped work is resumable by design).
@@ -413,7 +413,7 @@ print_run_summary <- function(result) {
   invisible(NULL)
 }
 
-# F3: as_tibble for simulation results ------------------------------------
+# as_tibble for simulation results ------------------------------------
 
 # Registered as an S3 method for tibble::as_tibble via registerS3method on load
 # (see zzz.R). Returns the per-task summary tibble so tidyverse users can pipe

@@ -1,4 +1,4 @@
-#' @keywords internal
+#' @noRd
 #' @importFrom parallel nextRNGStream
 NULL
 
@@ -14,7 +14,7 @@ NULL
 #' @return A list of length `n_tasks`, where each element is an integer vector
 #'   representing the `.Random.seed` state for that task.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @details The caller's RNG kind and seed are restored on exit, including when
 #'   `.Random.seed` did not exist before the call.
@@ -72,7 +72,7 @@ task_id_widths <- function(data_idx, fit_idx, rep_idx) {
 #' @param widths Optional list with data, fit, rep widths. Auto-computed if NULL.
 #'
 #' @return Character string task ID.
-#' @keywords internal
+#' @noRd
 make_task_id <- function(data_idx, fit_idx, rep_idx, widths = NULL) {
   if (is.null(widths)) {
     widths <- task_id_widths(data_idx, fit_idx, rep_idx)
@@ -182,7 +182,7 @@ canonicalize_task_grid <- function(task_grid, config) {
 #'   - `rng_seed`: List column containing precomputed RNG stream for each task
 #'   - `status`: Character status, initialized to "pending"
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -256,7 +256,7 @@ create_task_grid <- function(config) {
 #' @param config The SimulationConfig used to create the grid.
 #' @return A named task specification list containing the task and grid
 #'   indices, data and fit specifications, task context, and RNG seed.
-#' @keywords internal
+#' @noRd
 get_task_spec_at <- function(task_grid, row_idx, config) {
   row <- task_grid[row_idx, , drop = FALSE]
   task_id <- row$task_id[[1]]
@@ -296,7 +296,7 @@ get_task_spec_at <- function(task_grid, row_idx, config) {
 #'
 #' @return A filtered task grid tibble.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -315,7 +315,7 @@ filter_tasks_by_status <- function(task_grid, status) {
 #'
 #' @return A task grid tibble containing only tasks with status "pending".
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -334,7 +334,7 @@ get_pending_tasks <- function(task_grid) {
 #'
 #' @return Named integer vector with counts for each status.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{

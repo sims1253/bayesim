@@ -2,7 +2,7 @@
 #' @description Functions for executing individual simulation tasks with safe
 #'   error handling, metric computation, and retention policies.
 #' @name worker
-#' @keywords internal
+#' @noRd
 NULL
 
 MAX_INLINE_METRIC_VECTOR_LENGTH <- 50L
@@ -27,7 +27,7 @@ MAX_INLINE_METRIC_BYTES <- 64 * 1024
 #'   returns a failed task result with error information. Fatal errors are
 #'   re-thrown and will stop the simulation.
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -47,7 +47,7 @@ run_task_safe <- function(
   metrics,
   retain = c("metrics", "diagnostics")
 ) {
-  # C1: run_task_safe is TOTAL — it never throws. Fatal errors are captured
+  # run_task_safe is TOTAL — it never throws. Fatal errors are captured
   # into a failed task result carrying `error$fatal = TRUE` and the full
   # condition class chain; the controller (execute_tasks) re-raises a
   # reconstructed condition after collecting the batch. This removes the
@@ -55,7 +55,7 @@ run_task_safe <- function(
   rlang::try_fetch(
     run_task(task, config_spec, fitter, metrics, retain),
     error = function(e) {
-      # C1: the handler itself must stay total. On mirai daemons without an
+      # the handler itself must stay total. On mirai daemons without an
       # installed bayesim (source-loaded controller), namespace resolution of
       # package helpers can fail inside this handler, turning a recoverable
       # task error into a fatal transport error. Fall back to a base-R-only
@@ -193,7 +193,7 @@ run_task_safe <- function(
 #'   \item Fatal errors (config, contract) propagate and stop the simulation
 #' }
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -240,7 +240,7 @@ run_task <- function(
   # Step 1: Generate data
   data_result <- rlang::try_fetch(
     {
-      # B4: generator signature is (data_spec, task_ctx); task_ctx$seed carries
+      # generator signature is (data_spec, task_ctx); task_ctx$seed carries
       # the integer seed for backends that need one.
       data_bundle <- config_spec$data_generator(
         task$data_spec,
@@ -250,7 +250,7 @@ run_task <- function(
       list(success = TRUE, data_bundle = data_bundle)
     },
     error = function(e) {
-      # C1: fatal errors propagate so the controller can stop the run.
+      # fatal errors propagate so the controller can stop the run.
       if (is_fatal_error(e)) {
         stop(rlang::cnd_entrace(e))
       }
@@ -316,7 +316,7 @@ run_task <- function(
       fit_result
     },
     error = function(e) {
-      # C1: fatal errors (config/contract/checkpoint/internal) propagate so the
+      # fatal errors (config/contract/checkpoint/internal) propagate so the
       # controller can stop the run. Only recoverable fit errors are wrapped.
       if (is_fatal_error(e)) {
         stop(rlang::cnd_entrace(e))
@@ -447,7 +447,7 @@ run_task <- function(
 #' metrics need only the elpd summary (`needs = "loo"` alone, e.g.
 #' `elpd_loo_metric()`) pays for the `loo_fit()` summary alone (#69).
 #'
-#' @keywords internal
+#' @noRd
 build_metric_context <- function(
   fit_result,
   fitter,
@@ -473,7 +473,7 @@ build_metric_context <- function(
 
   # Warn if metrics need features the fitter doesn't support. Per-task runs
   # would otherwise re-warn thousands of times; .warn_once keeps it to one per
-  # run (R1b). The same mismatch is also surfaced once by preflight() before the
+  # run. The same mismatch is also surfaced once by preflight() before the
   # run, so sequential users see it before any task executes.
   if ("predictions" %in% all_needs && !fitter@supports_predictions) {
     .warn_once(
@@ -525,7 +525,7 @@ build_metric_context <- function(
         )
         predictions
       },
-      # R1c: a fitter that advertises prediction support but fails to predict is
+      # a fitter that advertises prediction support but fails to predict is
       # a real anomaly. Surface it once instead of silently degrading every
       # prediction metric to NA with no explanation.
       error = function(e) {
@@ -587,7 +587,7 @@ build_metric_context <- function(
       }
     )
     if (!is.null(loo_ctx)) {
-      # F3: PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
+      # PSIS-based prediction machinery for rmse_loo / r2_loo. Built once
       # here so both metrics share it. May be absent (NULL) if no metric
       # declared "epred" (#69), the fitter does not provide epred/log_lik, or
       # the build failed.
@@ -683,8 +683,8 @@ build_metric_context <- function(
 
 #' Build the LOO context (elpd summary + PSIS object + epred)
 #'
-#' Constructs the full LOO context for F3's rmse_loo / r2_loo metrics. Computes
-#' the elpd/p_loo/pareto_k summary (as the legacy `loo_fit()` did), the PSIS
+#' Constructs the LOO context for rmse_loo / r2_loo metrics. Computes
+#' the elpd/p_loo/pareto_k summary, the PSIS
 #' object (for `loo::E_loo()` weighted predictions), the pointwise log-likelihood
 #' matrix, and the posterior expectation predictions (epred) — all once, shared
 #' across metrics.
@@ -720,10 +720,10 @@ build_metric_context <- function(
 #' The train-set log-lik matrix is computed once and shared: `loo_fit()`
 #' receives it through its `log_lik` argument, and the PSIS object reuses the
 #' chain-aware relative efficiencies that `loo_fit()` derived from the same
-#' matrix (falling back to [relative_eff_from_chains()] when the fitter's
+#' matrix (falling back to `relative_eff_from_chains()` when the fitter's
 #' `loo_fit()` returns no `r_eff`). This keeps the summary and the PSIS
 #' weights consistent and avoids computing each twice per task (#73).
-#' @keywords internal
+#' @noRd
 build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
   # Compute the train-set log-lik matrix once, before loo_fit(): the summary
   # consumes it via the log_lik argument and the PSIS object below reads the
@@ -826,7 +826,7 @@ build_loo_context <- function(fitter, fit_result, need_psis = FALSE) {
 #' one r_eff per observation (length N). Returns NULL when chain information is
 #' unavailable (e.g. MockFitter or a fitter whose fit lacks a `.chain`
 #' variable), in which case the caller falls back to `r_eff = NULL`.
-#' @keywords internal
+#' @noRd
 relative_eff_from_chains <- function(fitter, fit_result, ll) {
   fit <- fit_result$fit
   if (is.null(fit)) {
@@ -870,7 +870,7 @@ relative_eff_from_chains <- function(fitter, fit_result, ll) {
 #'   \item All metric outputs are flattened using `flatten_metric_output()`
 #' }
 #'
-#' @keywords internal
+#' @noRd
 compute_all_metrics <- function(
   fit_result,
   data_bundle,
@@ -939,7 +939,7 @@ compute_all_metrics <- function(
 #' @param task_seed Scalar task seed.
 #' @param metric_name Character metric name.
 #' @return A positive scalar integer seed.
-#' @keywords internal
+#' @noRd
 derive_metric_seed <- function(task_seed, metric_name) {
   hash <- digest::digest2int(paste(task_seed, metric_name, sep = ":"))
   as.integer((abs(as.double(hash)) %% (.Machine$integer.max - 1)) + 1)
@@ -955,7 +955,7 @@ derive_metric_seed <- function(task_seed, metric_name) {
 #'
 #' @return Positive integer seed
 #'
-#' @keywords internal
+#' @noRd
 derive_task_seed <- function(rng_seed) {
   if (is.null(rng_seed) || length(rng_seed) < 2) {
     return(1L)

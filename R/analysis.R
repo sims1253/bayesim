@@ -41,7 +41,7 @@ validate_analysis_columns <- function(
 #'   (MCSE), replicate counts, and failure/convergence-failure rates. Returns a
 #'   tidy tibble with one row per condition.
 #'
-#'   Aggregation follows each metric's declared `summary_type` (E4; see
+#'   Aggregation follows each metric's declared `summary_type` (see
 #'   [Metric]): `"mean"` columns get a `sd / sqrt(n)` MCSE, `"proportion"`
 #'   columns (e.g. coverage) get `sqrt(p(1-p) / n)`, and `"none"` columns
 #'   (e.g. SBC ranks) are excluded from aggregation. Columns from unknown or
@@ -85,7 +85,7 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
     ))
   }
 
-  # E4: per-metric summary_type declared on the Metric objects (recorded in the
+  # per-metric summary_type declared on the Metric objects (recorded in the
   # result by run_simulation). Column prefix before the first "__" is the
   # metric name. Unknown/user columns default to "mean"; a "coverage"-prefixed
   # column defaults to "proportion" so bare data.frame input still gets the
@@ -262,7 +262,7 @@ summarize_simulation <- function(result, by = NULL, metrics = NULL) {
       }
       sd_v <- if (n > 1L) stats::sd(vals) else NA_real_
       out[[paste0(m, "_sd")]] <- sd_v
-      # E4: MCSE by declared summary_type. "proportion" (coverage-style)
+      # MCSE by declared summary_type. "proportion" (coverage-style)
       # columns use sqrt(p(1-p)/n); everything else (including pred-RMSE
       # means) uses the plain sd/sqrt(n) MCSE for what is reported (the mean
       # of per-task values).
@@ -497,7 +497,7 @@ sbc_ranks <- function(result) {
     if (param == "") {
       param <- "(single)"
     }
-    # Per-variable n_ranks when present (F4); fall back to n_draws + 1.
+    # Per-variable n_ranks when present; fall back to n_draws + 1.
     n_ranks_col <- paste0("rank__n_ranks__", param)
     n_ranks <- if (n_ranks_col %in% names(df)) {
       as.integer(df[[n_ranks_col]])
@@ -549,9 +549,15 @@ plot_rank_hist <- function(ranks) {
 #' @description Plots the empirical CDF of SBC ranks against the uniform CDF
 #'   (the diagonal), with a simultaneous confidence band following
 #'   Säilynoja, Bürkner, and Vehtari (2022). The band is calibrated so that,
-#'   under correct calibration, the *entire* ECDF stays within it with
-#'   probability alpha; deviations anywhere along the band therefore indicate
-#'   miscalibration at level 1 - alpha.
+#'   for independent uniform ranks on a common support, the *entire* ECDF
+#'   stays within it with probability alpha. This level applies to each
+#'   panel separately, not to all panels together.
+#'
+#'   Prior-draw and IFS generators can reuse a truth draw across condition
+#'   cells. Pooling these cells introduces dependence and can make the band
+#'   too narrow. Use `by` to separate such cells; the band does not correct
+#'   for dependence from shared draws. See
+#'   <https://github.com/sims1253/bayesim/issues/59>.
 #'
 #'   Ranks are normalized per task: each task's ranks are scaled by that
 #'   task's own support, `(rank + 0.5) / n_ranks` with `n_ranks` = support +
@@ -619,7 +625,7 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
       sub <- ranks[rank_groups[[group_idx]], , drop = FALSE]
       n <- nrow(sub)
       # Per-task support S_i (number of possible ranks minus one). Prefer the
-      # post-thinning n_ranks (F4); rows without a usable n_ranks fall back
+      # post-thinning n_ranks; rows without a usable n_ranks fall back
       # to their own n_draws (legacy results: with a historical thinning
       # stride > 1 the true support is unknown and n_draws only bounds it).
       # The panel max rank is the last resort when even n_draws is missing.
@@ -773,11 +779,11 @@ resolve_estimand_alias <- function(estimand, var, fn) {
 #' @description Scatter of posterior-mean estimates against true parameter
 #'   values, per task, with credible-interval segments. Faceted by a condition
 #'   column when `by` is supplied. Requires `posterior_summary_metric` to have
-#'   been computed and the truth recorded (E1).
+#'   been computed and the truth recorded.
 #' @param result A `bayesim_simulation_result`.
 #' @param estimand Parameter name (a `vars_of_interest` entry); the preferred
 #'   terminology, matching [performance_measures()].
-#' @param by Optional name of a condition column to facet by (E7).
+#' @param by Optional name of a condition column to facet by.
 #' @param var Legacy alias for `estimand`, kept for backward compatibility
 #'   with earlier bayesim versions. It is a silent compatibility alias, not a
 #'   deprecated argument, and emits no deprecation warning. When both
@@ -819,7 +825,7 @@ plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
         "compute posterior_summary_metric() first."
     ))
   }
-  # Truth column (E1): prefer truth__<var>, then a legacy true_params__<var>,
+  # Truth column: prefer truth__<var>, then a legacy true_params__<var>,
   # then a bare `truth` column.
   truth_candidates <- c(
     paste0("truth__", estimand),
@@ -838,7 +844,7 @@ plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
     upper = if (upper_col %in% names(df)) df[[upper_col]] else NA_real_,
     stringsAsFactors = FALSE
   )
-  # Attach the facet column when requested (E7).
+  # Attach the facet column when requested.
   if (!is.null(by) && by %in% names(df)) {
     plot_df$.facet <- df[[by]]
   }
@@ -856,7 +862,7 @@ plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
       title = paste0("Parameter recovery: ", estimand)
     ) +
     ggplot2::theme_minimal()
-  # Posterior-interval segments by default (E7).
+  # Posterior-interval segments by default.
   if (lower_col %in% names(df)) {
     p <- p +
       ggplot2::geom_errorbar(
@@ -873,10 +879,10 @@ plot_recovery <- function(result, estimand = NULL, by = NULL, var = NULL) {
 #' Plot coverage rates per condition/parameter
 #'
 #' @description Point-range plot of credible-interval coverage with MCSE error
-#'   bars (E7 redesign: was a bar plot of a continuous coverage_mean). Coverage
+#'   bars. Coverage
 #'   and its MCSE come from [performance_measures()]; each point is a
 #'   condition x estimand cell, with a dashed reference line at the nominal
-#'   rate. Requires `posterior_summary_metric()` (and recorded truths, E1).
+#'   rate. Requires `posterior_summary_metric()` and recorded truths.
 #' @param result A `bayesim_simulation_result`.
 #' @param nominal Nominal coverage rate. Defaults to the interval probability
 #'   recorded by the metric schema, or 0.95 for legacy results.
@@ -1322,7 +1328,7 @@ performance_measures <- function(
   ))
 }
 
-# n_replicates_for_target (Workstream I5) ----------------------------------
+# n_replicates_for_target ----------------------------------
 
 #' Required number of replicates for a target MCSE
 #'
@@ -1416,7 +1422,7 @@ n_replicates_for_target <- function(
   as.integer(ceiling(n))
 }
 
-# report (Workstream I4) ---------------------------------------------------
+# report ---------------------------------------------------
 
 #' Render a simulation-study report
 #'
@@ -1433,10 +1439,6 @@ n_replicates_for_target <- function(
 #'
 #' Requires the `quarto` R package AND the Quarto CLI. If the CLI is not
 #' available, an informative error is thrown pointing to <https://quarto.org>.
-#'
-#' `render_report()` was previously named `report()`; the old name collided
-#' with the generic of the easystats *report* package and now lives on as a
-#' deprecated alias (see [report()]).
 #'
 #' @param result A `bayesim_simulation_result` from [run_simulation()].
 #' @param output_file Path to the rendered HTML output file (default
@@ -1517,39 +1519,4 @@ render_report <- function(
   }
 
   invisible(out)
-}
-
-# Once-per-session flag for the report() deprecation warning. Unlike
-# .warn_once() in metrics-built-in.R (reset at every run_simulation()), a
-# deprecation warning should fire at most once per session, not once per run.
-.report_deprecated_env <- new.env(parent = emptyenv())
-
-#' Deprecated alias for render_report()
-#'
-#' @description
-#' `report()` was renamed to [render_report()] because the old name collided
-#' with the generic of the easystats *report* package. The alias forwards to
-#' `render_report()` and emits a deprecation warning once per session; it will
-#' be removed in a future release.
-#'
-#' @param estimands Ignored. The argument was accepted (and documented as
-#'   informational only) by `report()` but never used; it is kept in the
-#'   signature purely so existing calls do not error.
-#' @inheritParams render_report
-#' @export
-#' @keywords internal
-report <- function(
-  result,
-  output_file = "bayesim-report.html",
-  open = interactive(),
-  estimands = NULL
-) {
-  if (is.null(.report_deprecated_env$warned)) {
-    .report_deprecated_env$warned <- TRUE
-    cli::cli_warn(c(
-      "{.fn report} was renamed to {.fn render_report} and is deprecated.",
-      i = "The alias keeps working but will be removed in a future release."
-    ))
-  }
-  render_report(result, output_file = output_file, open = open)
 }

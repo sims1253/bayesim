@@ -122,7 +122,7 @@ describe("model bank prior guard (build_model_bank)", {
   })
 })
 
-# D3: brms_model() / model_grid() ergonomics.
+# brms_model() / model_grid() ergonomics.
 skip_if_not(requireNamespace("brms", quietly = TRUE), "brms not available")
 
 describe("brms_model", {

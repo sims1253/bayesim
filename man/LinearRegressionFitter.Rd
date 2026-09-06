@@ -49,12 +49,12 @@ An S7 \code{LinearRegressionFitter} object.
 Exact conjugate Normal-Inverse-Gamma (NIG) Bayesian linear regression. Fits
 \verb{y ~ N(X beta, sigma^2)} analytically and draws i.i.d. samples from the
 joint posterior \verb{(beta, sigma)}. No Stan, milliseconds per fit, \strong{real
-posteriors} — the package's teaching backbone (D1).
+posteriors} — the package's teaching backbone.
 
 The model formula is taken from \code{fit_spec$formula} (a base R formula,
 default \code{response ~ .}). Posterior draws use plain parameter names
 (\code{Intercept}, \verb{<coef>}, \code{sigma}) so they line up with
-\code{\link[=resolve_draw_columns]{resolve_draw_columns()}} and the generators' cleaned names out of the box.
+\code{resolve_draw_columns()} and the generators' cleaned names out of the box.
 }
 \examples{
 \dontrun{

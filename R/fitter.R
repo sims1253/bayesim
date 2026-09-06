@@ -284,7 +284,7 @@ predict_fit <- S7::new_generic(
 #' @description
 #' Compute posterior draws of the expected value of the response distribution
 #' (mu, without observation noise). This is the `epred` quantity used by brms'
-#' `loo_R2()` and bayesim's `r2_loo_metric()` (F3). It must NOT include
+#' `loo_R2()` and bayesim's `r2_loo_metric()`. It must NOT include
 #' observation-level noise — only the model's conditional mean.
 #'
 #' Fitters that cannot provide expectation predictions should return `NULL`; the
@@ -460,7 +460,7 @@ S7::method(fit_diagnostics, Fitter) <- function(fitter, fit_result) {
 #' @param n_chains Integer; number of chains to simulate
 #'
 #' @return An S7 class object representing a MockFitter
-#' @keywords internal
+#' @noRd
 #' @seealso [Fitter] for the abstract base class, [BrmsFitter] and
 #'   [LinearRegressionFitter] for real inference
 MockFitter <- S7::new_class(
@@ -851,7 +851,7 @@ S7::method(fit_diagnostics, MockFitter) <- function(fitter, fit_result) {
 #' - Calls `fit_diagnostics()` and verifies list output
 #'
 #' @export
-#' @seealso [Fitter], [MockFitter], [validate_metric()]
+#' @seealso [Fitter], `MockFitter`, [validate_metric()]
 #'
 #' @examples
 #' # Validate a built-in fitter (basic check only)

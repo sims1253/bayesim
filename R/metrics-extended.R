@@ -56,7 +56,7 @@ S7::method(compute_metric, MaeMetric) <- function(
   if (is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
   }
-  # E2: no silent training-set fallback.
+  # no silent training-set fallback.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_mae_metric")
     return(list(value = NA_real_, n_obs = NA_integer_))
@@ -117,7 +117,7 @@ S7::method(compute_metric, MseMetric) <- function(
   if (is.null(context$predictions)) {
     return(list(value = NA_real_, n_obs = NA_integer_))
   }
-  # E2: no silent training-set fallback.
+  # no silent training-set fallback.
   if (is.null(data_bundle$test)) {
     .warn_no_test("pred_mse_metric")
     return(list(value = NA_real_, n_obs = NA_integer_))
@@ -434,7 +434,7 @@ RankMetric <- S7::new_class(
     ),
     needs = S7::new_property(S7::class_character, default = character()),
     required = S7::new_property(S7::class_logical, default = FALSE),
-    # E4: per-task ranks are analyzed via sbc_ranks()/plot_rank_*, never by
+    # per-task ranks are analyzed via sbc_ranks()/plot_rank_*, never by
     # averaging across replicates.
     summary_type = S7::new_property(
       S7::class_character,
@@ -536,7 +536,7 @@ S7::method(compute_metric, RankMetric) <- function(
     ))
   }
 
-  # Determine the thinning stride (F4). auto -> toward min bulk-ESS; integer
+  # Determine the thinning stride. auto -> toward min bulk-ESS; integer
   # -> direct stride; FALSE -> no thinning (stride 1).
   thin <- metric@thin
   stride <- if (isFALSE(thin)) {
@@ -711,7 +711,7 @@ S7::method(compute_metric, RmseLooMetric) <- function(
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
   ppred <- context$loo_epred
-  # F3: PSIS-based LOO-RMSE. Requires the PSIS object + pointwise log-lik,
+  # PSIS-based LOO-RMSE. Requires the PSIS object + pointwise log-lik,
   # plus a posterior-prediction matrix to weight. We prefer epred (mu) for
   # consistency with brms loo_predict; posterior_predict (with noise) is also
   # a valid mean-type LOO prediction. The precomputed context ships epred; if
@@ -812,9 +812,9 @@ S7::method(compute_metric, R2LooMetric) <- function(
   psis_obj <- context$loo_psis
   ll <- context$loo_psis_ll
   epred <- context$loo_epred
-  # F3: PSIS-based LOO-R2 (brms loo_R2 construction). Requires epred (mu, no
+  # PSIS-based LOO-R2 (brms loo_R2 construction). Requires epred (mu, no
   # noise), the PSIS object, and the pointwise log-lik. r2_loo MUST use the
-  # expectation, not posterior_predict noise draws — see PLAN.md F3.
+  # expectation, not posterior_predict noise draws.
   if (is.null(loo) || is.null(psis_obj) || is.null(ll) || is.null(epred)) {
     return(list(value = NA_real_, elpd = NA_real_, undefined = NA))
   }

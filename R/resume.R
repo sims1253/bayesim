@@ -1,4 +1,4 @@
-#' @keywords internal
+#' @noRd
 NULL
 
 #' Check if Resumable Run Exists
@@ -12,13 +12,13 @@ NULL
 #' This is a cheap existence/validity probe: the checkpoint is validated
 #' (checksums, ledger, shard integrity) with `load_outcomes = FALSE`, so the
 #' full outcome history is never deserialized here. Callers that need the
-#' outcomes use [load_for_resume()] instead.
+#' outcomes use `load_for_resume()` instead.
 #'
 #' @param result_path Character; path to results directory containing checkpoints.
 #'
 #' @return TRUE if a valid run can be resumed, FALSE otherwise.
 #'
-#' @keywords internal
+#' @noRd
 can_resume <- function(result_path) {
   if (is.null(result_path)) {
     return(FALSE)
@@ -73,7 +73,7 @@ can_resume <- function(result_path) {
 #' 4. Finds the most recent valid checkpoint
 #' 5. Rebuilds task grid with status from checkpoint
 #'
-#' @keywords internal
+#' @noRd
 #'
 #' @examples
 #' \dontrun{
@@ -180,7 +180,7 @@ load_for_resume <- function(result_path, config, run_store = NULL) {
 #' widening it after terminal outcomes exist cannot recreate discarded draws,
 #' fits, predictions, data, diagnostics, or warnings. Reject that ambiguity at
 #' the resume seam before any pending task is executed.
-#' @keywords internal
+#' @noRd
 validate_resume_retention <- function(requested, persisted, checkpoint) {
   terminal <- is_terminal_task_status(checkpoint$task_grid$status)
   if (!any(terminal, na.rm = TRUE)) {
@@ -227,7 +227,7 @@ validate_resume_retention <- function(requested, persisted, checkpoint) {
 #' from a checkpoint. Pending tasks remain pending; only tasks that
 #' were completed (success/failed/skipped) in the checkpoint are updated.
 #'
-#' @param fresh_grid Task grid tibble from [create_task_grid()].
+#' @param fresh_grid Task grid tibble from `create_task_grid()`.
 #' @param checkpoint_grid Task grid tibble from checkpoint.
 #'
 #' @return Task grid tibble with status merged from checkpoint.
@@ -239,9 +239,9 @@ validate_resume_retention <- function(requested, persisted, checkpoint) {
 #' ensures resumed runs maintain identical reproducibility guarantees.
 #' Policy-stopped rows return to pending with no stop reason; a resumed
 #' run that stops before executing them re-marks them in
-#' [execute_tasks()].
+#' `execute_tasks()`.
 #'
-#' @keywords internal
+#' @noRd
 merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
   # Start with fresh grid (has all tasks with pending status and rng_seed)
   # Update status for tasks that were terminal in checkpoint
@@ -306,7 +306,7 @@ merge_task_grid_status <- function(fresh_grid, checkpoint_grid) {
 #' has data, returns that input. Otherwise, removes any task_ids from
 #' prior_results that appear in new_results, then combines.
 #'
-#' @keywords internal
+#' @noRd
 merge_results <- function(prior_results, new_results) {
   # Handle empty/NULL cases
   if (is.null(prior_results) || nrow(prior_results) == 0) {
@@ -508,7 +508,7 @@ rehydrate_config_from_manifest <- function(result_path) {
   )
 }
 
-# F6: Truthful resume guidance --------------------------------------------
+# Truthful resume guidance --------------------------------------------
 #
 # print.bayesim_simulation_result() used to advertise the configless
 # `resume_simulation("<path>")` command unconditionally, but that command only
