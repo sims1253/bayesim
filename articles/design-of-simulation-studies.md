@@ -194,10 +194,9 @@ n_replicates_for_target(
 #> [1] 100
 ```
 
-Use these numbers to size the study up front: a coverage claim with 50
-replicates and MCSE 0.07 is barely more precise than a coin flip, while
-1,000+ replicates give MCSEs near 0.015 — the difference between a
-defensible simulation and an anecdotal one.
+Choose the target MCSE based on the differences the study needs to
+detect. At worst-case coverage variance, 50 replicates give an MCSE of
+about 0.07; 1,000 replicates reduce it to about 0.016.
 
 ## Varying conditions
 
@@ -230,7 +229,7 @@ design_result <- run_simulation(design_config, progress = FALSE)
 #> 240 tasks = 4 data x 1 fit x 60 reps
 #> ℹ Starting simulation with 240 tasks
 #> 
-#> ✔ Simulation complete: 240/240 tasks succeeded in 1s
+#> ✔ Simulation complete: 240/240 tasks succeeded in 1.2s
 ```
 
 Group the performance measures by both conditions with the `by`

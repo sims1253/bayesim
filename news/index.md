@@ -4,6 +4,9 @@
 
 Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
+- Removed the deprecated `report()` alias. Use
+  [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md).
+
 ### Runtime UX
 
 - [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
@@ -17,6 +20,9 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ### Engine and resume
 
+- Reused mirai daemons now clear the model bank after successful and
+  failed runs, and before studies without a bank
+  ([\#57](https://github.com/sims1253/bayesim/issues/57)).
 - Checkpoint `meta.json` diagnostics no longer conflate policy-stopped
   work with genuinely pending work: `n_pending` now counts only rows
   labeled `pending`, so it no longer double-counts the policy-stopped
@@ -31,16 +37,13 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   the end-of-run summary report the specific reason rather than the
   generic fallback
   ([\#64](https://github.com/sims1253/bayesim/issues/64)).
-  [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
-  also carries a recorded `stop_reason` for terminal rows instead of
-  dropping the column’s values.
-- Fixed a
-  [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
-  crash on resume-to-completion: when the resumed execution re-covered
-  every prior task and the new rows carried columns the prior rows
-  lacked (e.g. diagnostics after a failed-only prior run), the
-  schema-alignment step assigned a length-1 `NA` into a 0-row frame
-  ([\#63](https://github.com/sims1253/bayesim/issues/63)).
+  `merge_task_grid_status()` also carries a recorded `stop_reason` for
+  terminal rows instead of dropping the column’s values.
+- Fixed a `merge_results()` crash on resume-to-completion: when the
+  resumed execution re-covered every prior task and the new rows carried
+  columns the prior rows lacked (e.g. diagnostics after a failed-only
+  prior run), the schema-alignment step assigned a length-1 `NA` into a
+  0-row frame ([\#63](https://github.com/sims1253/bayesim/issues/63)).
 - Fixed the legacy-resume truth/diagnostics round-trip: resumed runs no
   longer lose or mangle recorded truths and fit diagnostics when prior
   task results are reloaded from a checkpoint.
@@ -59,7 +62,7 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 - Removed the unvalidated mori shared-memory model-bank integration;
   model banks travel to daemons by ordinary serialization.
-- Removed `rstar_metric()` (and with it the caret/randomForest
+- Removed `rstar_metric()` (and with it the caret/randomForest/ranger
   dependencies) and the `rmse_test_metric()` alias, and merged
   `convergence_metric()` into an extended
   [`sampler_diagnostics_metric()`](https://sims1253.github.io/bayesim/reference/SamplerDiagnosticsMetric.md)
@@ -80,8 +83,7 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   includes `epred` in its capability vocabulary (surfacing it in
   `unmet_needs` before a run), the worker warns once when an
   epred-needing metric runs on an epred-incapable fitter, and
-  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
-  only calls
+  `build_loo_context()` only calls
   [`predict_epred()`](https://sims1253.github.io/bayesim/reference/predict_epred.md)
   for fitters that declare support. A
   `supports_loo = TRUE, supports_epred = FALSE` fitter (e.g. a
@@ -126,9 +128,8 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   already do).
 - On the weighted-prediction (PSIS) path the train-set log-lik matrix
   and the chain-aware relative efficiencies are now computed once per
-  task instead of twice:
-  [`build_loo_context()`](https://sims1253.github.io/bayesim/reference/build_loo_context.md)
-  passes the matrix it computed to
+  task instead of twice: `build_loo_context()` passes the matrix it
+  computed to
   [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
   through a new optional `log_lik` argument, and reuses the `r_eff` that
   [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
@@ -163,12 +164,10 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ### Analysis and reporting
 
-- [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
-  was renamed to
+- `report()` was renamed to
   [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
   to stop colliding with the generic of the easystats *report* package.
-  [`report()`](https://sims1253.github.io/bayesim/reference/report.md)
-  remains as a deprecated alias that forwards to
+  `report()` remains as a deprecated alias that forwards to
   [`render_report()`](https://sims1253.github.io/bayesim/reference/render_report.md)
   and warns once per session.
 - [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
@@ -288,10 +287,9 @@ and
 - Dispatch is now a single
   [`purrr::map()`](https://purrr.tidyverse.org/reference/map.html) +
   [`purrr::in_parallel()`](https://purrr.tidyverse.org/reference/in_parallel.html)
-  code path; mirai remains the daemon engine.
-  [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
-  is total (fatal conditions are captured and re-raised after the batch
-  with their full class chain), removing the cross-boundary
+  code path; mirai remains the daemon engine. `run_task_safe()` is total
+  (fatal conditions are captured and re-raised after the batch with
+  their full class chain), removing the cross-boundary
   condition-restoration machinery.
 - `run_simulation(config, workers = N)` sets up and tears down mirai
   daemons for the run (the simple path);
@@ -468,29 +466,27 @@ green.
   response-dependency topological sort (`brms_response_sequence` →
   adjacency matrix → `nodes_by_depth`) is restored so the response
   column is actually simulated for univariate and multivariate models;
-  [`brms_full_ppred()`](https://sims1253.github.io/bayesim/reference/brms_full_ppred.md)
-  now takes a single draw and returns a single data.frame, eliminating
-  the draw-index/list-index mismatch that produced `NULL` for
-  `rep_idx > 1`.
+  `brms_full_ppred()` now takes a single draw and returns a single
+  data.frame, eliminating the draw-index/list-index mismatch that
+  produced `NULL` for `rep_idx > 1`.
 - **vars_of_interest / draws-column mismatch (critical):** generators
   strip the `b_` prefix (`vars_of_interest = c("x","Intercept")`) but
   brms draws keep it (`c("b_x","b_Intercept","sigma")`), so every
   truth-comparing metric silently returned NA on real brms fits. A new
-  [`resolve_draw_columns()`](https://sims1253.github.io/bayesim/reference/resolve_draw_columns.md)
-  helper maps cleaned names to actual columns (or errors) and is used by
-  `coverage_metric`, `posterior_summary_metric`, `pos_prob_metric`,
+  `resolve_draw_columns()` helper maps cleaned names to actual columns
+  (or errors) and is used by `coverage_metric`,
+  `posterior_summary_metric`, `pos_prob_metric`,
   `posterior_summary_metric`, and `rank_metric`. Output field names stay
   on the cleaned names.
 - **LOO-RMSE and LOO-R² (critical):** the invented formulas
   (`sqrt(-2*mean(elpd))`, `1-exp(2*elpd/n)`) are replaced with
   PSIS-based constructions on
   [`loo::E_loo()`](https://mc-stan.org/loo/reference/E_loo.html).
-  [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
-  computes the PSIS object once (with chain-derived `r_eff`, falling
-  back to `r_eff = NULL`); `rmse_loo` uses `E_loo(ppred, type="mean")`
-  and reports max Pareto-k̂; `r2_loo` reproduces brms’ `loo_R2()`
-  variance construction verbatim and uses `posterior_epred` (a new
-  `predict_epred` Fitter generic). Parity with
+  `build_metric_context()` computes the PSIS object once (with
+  chain-derived `r_eff`, falling back to `r_eff = NULL`); `rmse_loo`
+  uses `E_loo(ppred, type="mean")` and reports max Pareto-k̂; `r2_loo`
+  reproduces brms’ `loo_R2()` variance construction verbatim and uses
+  `posterior_epred` (a new `predict_epred` Fitter generic). Parity with
   [`brms::loo_R2()`](https://mc-stan.org/rstantools/reference/bayes_R2.html)
   verified on a fixture fit.
 - **SBC rank metric (critical for SBC validity):**
@@ -513,10 +509,8 @@ green.
   hook are shipped to daemons once per
   [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
   instead of per batch; the prefit-side Stan data-structure signature is
-  computed once in
-  [`build_model_bank()`](https://sims1253.github.io/bayesim/reference/build_model_bank.md)
-  and cached (not recomputed per task); the session bank is cleared on
-  run exit.
+  computed once in `build_model_bank()` and cached (not recomputed per
+  task); the session bank is cleared on run exit.
 - **Cleanup:**
   [`plot_rank_ecdf()`](https://sims1253.github.io/bayesim/reference/plot_rank_ecdf.md)
   now uses true simultaneous ECDF bands (`adjust_gamma` ported from 0.x
@@ -524,8 +518,7 @@ green.
   `posterior` moved from Suggests to Imports; the `dplyr` dependency was
   dropped (base-R row-binding replaces `bind_rows`); internal error
   constructors remain intentionally unexported; dead `hash_to_row`
-  removed and a missing-`formula` guard added to
-  [`build_model_bank()`](https://sims1253.github.io/bayesim/reference/build_model_bank.md);
+  removed and a missing-`formula` guard added to `build_model_bank()`;
   the IFS bounds `resample` docstring now honestly describes the NA-out
   / truncate behavior and its rank-bias implication.
 - **Metric flatten:** single-parameter named-vector metric outputs
@@ -629,16 +622,11 @@ capabilities, and memory-bounded execution.
 
 #### Utilities
 
-- Atomic file operations:
-  [`write_json_atomic()`](https://sims1253.github.io/bayesim/reference/write_json_atomic.md),
-  [`write_rds_atomic()`](https://sims1253.github.io/bayesim/reference/write_rds_atomic.md)
-- Config fingerprinting:
-  [`compute_config_fingerprint()`](https://sims1253.github.io/bayesim/reference/compute_config_fingerprint.md)
+- Atomic file operations: `write_json_atomic()`, `write_rds_atomic()`
+- Config fingerprinting: `compute_config_fingerprint()`
 - Task ID formatting: `format_task_id()`, `parse_task_id()`
-- Timing utilities:
-  [`make_timer()`](https://sims1253.github.io/bayesim/reference/make_timer.md)
-- Error capture:
-  [`capture_error_info()`](https://sims1253.github.io/bayesim/reference/capture_error_info.md)
+- Timing utilities: `make_timer()`
+- Error capture: `capture_error_info()`
 
 ### Dependencies
 
@@ -654,29 +642,25 @@ capabilities, and memory-bounded execution.
 
 - [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
   main entry point for simulation runs
-- [`create_task_grid()`](https://sims1253.github.io/bayesim/reference/create_task_grid.md)
-  generates deterministic task table with precomputed RNG streams
+- `create_task_grid()` generates deterministic task table with
+  precomputed RNG streams
 - Task IDs in format `dXXX_fXXX_rXXXXX` for lexicographic ordering
-- [`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md)
-  iterates through tasks with progress bar and error tracking
+- `execute_tasks()` iterates through tasks with progress bar and error
+  tracking
 
 #### RNG Management
 
 - `setup_global_rng()` initializes L’Ecuyer-CMRG RNG
-- [`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)
-  restores per-task RNG state deterministically
+- `set_task_rng()` restores per-task RNG state deterministically
 - Each task gets independent, precomputed RNG stream
 
 #### Worker Execution
 
-- [`run_task()`](https://sims1253.github.io/bayesim/reference/run_task.md)
-  executes single task: data generation, fitting, metrics
-- [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
-  wrapper with fatal error propagation
-- [`build_metric_context()`](https://sims1253.github.io/bayesim/reference/build_metric_context.md)
-  precomputes context (predictions, log_lik, loo)
-- [`compute_all_metrics()`](https://sims1253.github.io/bayesim/reference/compute_all_metrics.md)
-  with required vs optional metric handling
+- `run_task()` executes single task: data generation, fitting, metrics
+- `run_task_safe()` wrapper with fatal error propagation
+- `build_metric_context()` precomputes context (predictions, log_lik,
+  loo)
+- `compute_all_metrics()` with required vs optional metric handling
 - `apply_retention()` removes large objects based on retention policy
 
 #### Metric Registry
@@ -689,18 +673,10 @@ capabilities, and memory-bounded execution.
 
 #### Bug Fixes
 
-- Fixed
-  [`set_task_rng()`](https://sims1253.github.io/bayesim/reference/set_task_rng.md)
-  to use explicit environment assignment
-- Fixed
-  [`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md)
-  to pass proper S7 config object
-- Fixed
-  [`run_task_safe()`](https://sims1253.github.io/bayesim/reference/run_task_safe.md)
-  to propagate fatal errors
-- Removed duplicate
-  [`create_task_rng_streams()`](https://sims1253.github.io/bayesim/reference/create_task_rng_streams.md)
-  function
+- Fixed `set_task_rng()` to use explicit environment assignment
+- Fixed `execute_tasks()` to pass proper S7 config object
+- Fixed `run_task_safe()` to propagate fatal errors
+- Removed duplicate `create_task_rng_streams()` function
 
 ### Phase 3: Checkpoint/Resume
 
@@ -721,15 +697,11 @@ capabilities, and memory-bounded execution.
 
 #### Resume Logic
 
-- [`can_resume()`](https://sims1253.github.io/bayesim/reference/can_resume.md)
-  checks for valid resumable run
-- [`load_for_resume()`](https://sims1253.github.io/bayesim/reference/load_for_resume.md)
-  loads previous state with validation
+- `can_resume()` checks for valid resumable run
+- `load_for_resume()` loads previous state with validation
 - `get_resume_summary()` shows resumption summary
-- [`merge_task_grid_status()`](https://sims1253.github.io/bayesim/reference/merge_task_grid_status.md)
-  merges task status from checkpoint
-- [`merge_results()`](https://sims1253.github.io/bayesim/reference/merge_results.md)
-  deduplicates results by task_id
+- `merge_task_grid_status()` merges task status from checkpoint
+- `merge_results()` deduplicates results by task_id
 
 #### Integration
 

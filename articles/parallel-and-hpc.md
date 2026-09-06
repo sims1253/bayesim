@@ -115,103 +115,10 @@ result <- run_simulation(config, workers = NULL)
 daemons(0)
 ```
 
-### A SLURM submission script
-
-A typical pattern is one SLURM job that launches `N` daemon workers
-across nodes, then runs the dispatcher R script on the head node:
-
-``` bash
-#!/bin/bash
-#SBATCH --job-name=bayesim-sim
-#SBATCH --nodes=4
-#SBATCH --tasks-per-node=4
-#SBATCH --cpus-per-task=1
-#SBATCH --time=12:00:00
-#SBATCH --output=sim-%j.out
-
-module load R
-module load gcc
-
-export BAYESIM_TLS=/scratch/$USER/bayesim-tls
-
-DISPATCHER_URL="tls://$(hostname -I | awk '{print $1}'):5555"
-N_DAEMONS=$((SLURM_NTASKS - 1))   # reserve one task for the dispatcher
-
-srun --ntasks=$N_DAEMONS --overlap Rscript -e "
-  mirai::daemon('$DISPATCHER_URL',
-                tls = mirai::tls_config(
-                  ca = '$BAYESIM_TLS/ca.pem',
-                  key = '$BAYESIM_TLS/server-key.pem',
-                  cert = '$BAYESIM_TLS/server.pem'))
-" &
-
-sleep 10  # give the daemons a moment to connect
-
-Rscript dispatcher.R "$DISPATCHER_URL" "$N_DAEMONS"
-
-wait
-```
-
-And the dispatcher R script:
-
-``` r
-
-# Cluster-only: dispatcher script for the SLURM job above; references the
-# cluster's data grids and generators.
-# dispatcher.R
-args <- commandArgs(trailingOnly = TRUE)
-url <- args[1]
-n <- as.integer(args[2])
-
-library(bayesim)
-mirai::daemons(url = url, n = n)
-
-config <- simulation_config(
-  data_grid = my_data_grid,
-  fit_grid = my_fit_grid,
-  data_generator = my_data_generator,
-  fitter = BrmsFitter(),
-  metrics = list(posterior_summary_metric(), coverage_metric()),
-  n_replicates = 500L,
-  seed = 42L,
-  result_path = "sim-checkpoints"
-)
-
-result <- run_simulation(config, workers = NULL)
-
-mirai::daemons(0)
-```
-
-The exact `srun`/socket plumbing depends on your cluster’s network
-topology; the load-bearing idea is the dispatcher/daemon split.
-
-### TLS configuration
-
-Remote daemons should connect over TLS. mirai uses standard PEM
-material; see the [mirai TLS
-documentation](https://mirai.r-lib.org/articles/v1-daemons.html#tls-secure-connections)
-for the full reference. A self-signed CA plus server certs is enough to
-get started:
-
-``` bash
-# Run once, on a trusted host. Keep the private keys private.
-openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
-  -keyout ca-key.pem -out ca.pem \
-  -subj "/CN=bayesim-CA"
-
-openssl req -newkey rsa:2048 -nodes \
-  -keyout server-key.pem -out server-csr.pem \
-  -subj "/CN=$(hostname)"
-
-openssl x509 -req -in server-csr.pem -CA ca.pem -CAkey ca-key.pem \
-  -CAcreateserial -out server.pem -days 365
-
-# Distribute ca.pem, server.pem, and server-key.pem to every node
-# that runs a daemon or the dispatcher.
-```
-
-Then pass the material into both sides via `mirai::tls_config()` as in
-the SLURM script above.
+Configure remote workers and TLS using the [mirai daemon
+documentation](https://mirai.r-lib.org/articles/v1-daemons.html).
+Scheduler launch commands and certificate handling depend on your
+cluster. Verify that the daemons connect before starting a study.
 
 ## The daemon_setup hook
 

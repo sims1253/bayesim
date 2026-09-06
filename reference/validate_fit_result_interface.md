@@ -1,9 +1,8 @@
 # Validate Fit Result Interface
 
 Validates that a fit_result conforms to the bayesim_fit_result
-interface. This is a wrapper around
-[`validate_bayesim_fit_result()`](https://sims1253.github.io/bayesim/reference/validate_bayesim_fit_result.md)
-that provides clear error messages for contract violations.
+interface. This is a wrapper around `validate_bayesim_fit_result()` that
+provides clear error messages for contract violations.
 
 ## Usage
 
@@ -45,7 +44,7 @@ Throws a `bayesim_contract_error` condition if validation fails.
 
 ## See also
 
-[`validate_bayesim_fit_result()`](https://sims1253.github.io/bayesim/reference/validate_bayesim_fit_result.md),
+`validate_bayesim_fit_result()`,
 [`new_fit_result()`](https://sims1253.github.io/bayesim/reference/new_fit_result.md)
 
 ## Examples

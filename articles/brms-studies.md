@@ -5,45 +5,30 @@
 library(bayesim)
 ```
 
-This vignette covers running brms-backed simulation studies: how the
-model bank eliminates per-task compilation, how to declare
-model-comparison grids with
-[`model_grid()`](https://sims1253.github.io/bayesim/reference/model_grid.md)
-/
-[`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md),
-how to pass sampler arguments, and how to keep memory flat on long runs.
-All chunks require brms and a working CmdStan install, so they are shown
-but not evaluated here.
+Use
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+to run a study with brms models. The examples require brms and a working
+CmdStan installation; they are shown without running during the
+documentation build.
 
 ## The model bank: compile once, fit thousands of times
 
-A naive brms simulation study recompiles the Stan model for every task —
-minutes of C++ compilation per seconds of sampling.
+With `precompile = TRUE` (the default),
 [`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
-avoids this with a *model bank*: at the start of
-[`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md),
-each distinct model spec in the `fit_grid` is compiled once (via
-`brms::brm(chains = 0)`), and every task reuses the compiled binary
-through `stats::update(recompile = FALSE)`.
-
-Two properties control this:
-
-- `precompile` (default `TRUE`): build the bank at run start. Set to
-  `FALSE` to fall back to a fresh
-  [`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html) per
-  task (only sensible for tiny studies or debugging).
-- The bank is shipped to mirai daemons once per run, so parallel workers
-  reuse the same binaries.
+compiles each distinct model specification at the start of a run. Tasks
+reuse these compiled models, including on parallel workers. Set
+`precompile = FALSE` to fit each task with a fresh
+[`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html) call.
 
 brms does **not** warn when `recompile = FALSE` is used against
-structurally incompatible data — it would silently reuse the binary
-against the wrong model frame. bayesim therefore compares the Stan data
-*structure* (via
+structurally incompatible data. It can reuse the binary against the
+wrong model frame. bayesim therefore compares the Stan data *structure*
+(via
 [`brms::make_standata()`](https://paulbuerkner.com/brms/reference/standata.html))
-between the compiled template and each task’s data, and aborts the run
-loudly on a mismatch. If your `data_grid` rows produce data with
-different shapes (e.g. varying factor levels), either make them
-structurally identical or set `precompile = FALSE`.
+between the compiled template and each task’s data, and stops the run on
+a mismatch. If your `data_grid` rows produce data with different shapes
+(e.g. varying factor levels), either make them structurally identical or
+set `precompile = FALSE`.
 
 Some brms default priors are data-dependent (for example, the intercept
 prior can be centered using the response in the template dataset). Those
@@ -94,7 +79,7 @@ per-model aggregation is `summarize_simulation(result)` or
 
 ## Case study: comparing likelihoods for skewed data
 
-Which likelihood best describes right-skewed data — Gaussian, Student-t,
+Which likelihood best describes right-skewed data: Gaussian, Student-t,
 or lognormal? Generate skewed data, fit all three models, and compare
 expected log predictive density (ELPD):
 
@@ -144,6 +129,16 @@ summarize_simulation(result, metrics = "elpd_loo__elpd")
 
 Three models compile exactly once each; all 150 fits reuse the binaries.
 
+The LOO prediction metrics
+[`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
+and
+[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
+have a known limitation with brms models that drop missing training rows
+or use `me()`/`mi()` terms. Their prediction data can differ from the
+fitted model frame, making results unreliable. Some CAR and ARMA models
+can fail on this path. Avoid these metrics for affected models until
+[\#77](https://github.com/sims1253/bayesim/issues/77) is resolved.
+
 ## Sampler arguments: `stan_args`
 
 `BrmsFitter(stan_args = ...)` passes sampler controls through to
@@ -160,10 +155,8 @@ fitter <- BrmsFitter(
 
 ## Warning-conditional retention
 
-Diagnosing occasional divergent transitions across thousands of tasks
-needs the fit object — but only for the tasks that misbehaved. Retention
-specs can be conditional on warnings, keeping heavy artifacts only where
-something went wrong:
+Keep fit objects for tasks that emit warnings by setting a conditional
+retention policy:
 
 ``` r
 
@@ -186,18 +179,18 @@ For calibration checking of brms models,
 draws the truth from the model prior (a `sample_prior = "only"` fit) and
 [`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
 draws it from a preconditioning posterior. Both forward-simulate the
-response — including dependency-ordered simulation for multivariate
+response, including dependency-ordered simulation for multivariate
 models. See
 [`vignette("sbc-and-calibration")`](https://sims1253.github.io/bayesim/articles/sbc-and-calibration.md)
 for the full workflow.
 
 ## Next steps
 
-- [`vignette("parallel-and-hpc")`](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md)
-  — daemons, checkpoint/resume, memory.
-- [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md)
-  — raw Stan via
+- [`vignette("parallel-and-hpc")`](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md):
+  daemons, checkpoint/resume, memory.
+- [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md):
+  raw Stan via
   [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
   when brms cannot express your model.
-- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md)
-  — what the config fingerprint covers.
+- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md):
+  what the config fingerprint covers.

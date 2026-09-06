@@ -47,5 +47,5 @@ them in the final result even when checkpointing is enabled.
 
 ## See also
 
-[`execute_tasks()`](https://sims1253.github.io/bayesim/reference/execute_tasks.md),
+`execute_tasks()`,
 [`write_checkpoint()`](https://sims1253.github.io/bayesim/reference/write_checkpoint.md)

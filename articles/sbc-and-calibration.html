@@ -82,42 +82,37 @@
 <div class="section level2">
 <h2 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h2>
-<p>Simulation-Based Calibration (SBC) is the standard self-consistency
-check for Bayesian inference engines. The idea, due to Talts et
-al. (2018), is sharp:</p>
+<p>Simulation-based calibration (SBC) checks Bayesian inference against
+data generated from the model (Talts et al., 2018):</p>
 <blockquote>
 <p>If we draw a parameter <code>theta</code> from the model prior,
 simulate data <code>y</code> from the likelihood given
 <code>theta</code>, and then fit the model to <code>y</code>, the
-resulting posterior should treat <code>theta</code> as a single uniform
-draw.</p>
+resulting rank of <code>theta</code> among independent posterior draws
+should be uniform across repeated simulations.</p>
 </blockquote>
 <p>Equivalently, the <strong>posterior rank</strong> of the true
 <code>theta</code> among the posterior draws should be uniformly
-distributed on <code>{0, 1, ..., S}</code>. If it is not, the inference
-engine is miscalibrated: the posterior is either too confident (ranks
-pile up at the ends) or biased (ranks drift to one side).</p>
-<p>This matters because a Bayesian posterior is only useful insofar as
-its uncertainty statements are honest. <strong>Calibration</strong> is
-the property that empirical coverage matches the nominal rate: a 95%
-credible interval should contain the truth about 95% of the time. SBC is
-the simulation analogue of this guarantee, applied to the <em>whole</em>
-posterior rather than to a single interval, and it is sensitive to
-biases that single-interval coverage can miss.</p>
-<p>This vignette runs end-to-end with
-<code><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter()</a></code> — exact conjugate
-Normal-Inverse-Gamma Bayesian linear regression (real posteriors, no
-Stan, milliseconds per fit). For Stan/brms models, swap the fitter for
-<code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> or <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> and use
+distributed on <code>{0, 1, ..., S}</code>. Departures can indicate
+errors in inference or in the simulation setup.</p>
+<p>The coverage guarantee averages over parameters drawn from the prior
+and data drawn from the likelihood. It does not guarantee nominal
+coverage at each fixed parameter value. Rank checks can detect errors
+that a check of one credible interval misses, but passing SBC does not
+establish that an inference algorithm is correct.</p>
+<p>This vignette uses <code><a href="../reference/LinearRegressionFitter.html">LinearRegressionFitter()</a></code> for exact
+conjugate Normal-Inverse-Gamma Bayesian linear regression without Stan.
+For Stan/brms models, swap the fitter for <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> or
+<code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> and use
 <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code> /
 <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code>; the SBC workflow below is identical. One
 caveat: <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code> draws theta from the
 model prior (valid SBC by construction when the fitting prior matches),
 but <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> draws theta from a preconditioning
 posterior, so its ranks are only uniform if the fitting prior is set to
-match that preconditioning distribution — with a diffuse/unmatched
-fitting prior, cap-shaped ranks are expected and do not indicate sampler
-error (see <code><a href="../reference/ifs_generator.html">?ifs_generator</a></code>).</p>
+match that preconditioning distribution. An unmatched fitting prior can
+produce nonuniform ranks without a sampler error (see
+<code><a href="../reference/ifs_generator.html">?ifs_generator</a></code>).</p>
 </div>
 <div class="section level2">
 <h2 id="running-sbc">Running SBC<a class="anchor" aria-label="anchor" href="#running-sbc"></a>
@@ -160,9 +155,9 @@ this same prior, SBC should pass by construction.</p>
 <span>    vars_of_interest <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Intercept"</span>, <span class="st">"x"</span>, <span class="st">"sigma"</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>The data generator consumes the <strong>ambient</strong> RNG state —
-bayesim restores a per-task L’Ecuyer stream before each call, so do not
-call <code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> inside (see
+<p>The data generator uses the current RNG state. bayesim restores a
+per-task L’Ecuyer stream before each call, so do not call
+<code><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed()</a></code> inside (see
 <code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code>).</p>
 <p>Now configure and run the study. We use 150 replicates and 1000
 posterior draws per fit, with <code>rank_metric(thin = "auto")</code> so
@@ -193,7 +188,7 @@ for MCMC-based fitters).</p>
 <span><span class="co">#&gt; 150 tasks = 1 data x 1 fit x 150 reps</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Starting simulation with 150 tasks</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Simulation complete: 150/150 tasks succeeded in 1.5s</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Simulation complete: 150/150 tasks succeeded in 1.8s</span></span></code></pre></div>
 <p>Each task records one rank per parameter (here
 <code>Intercept</code>, <code>x</code>, <code>sigma</code>), plus the
 posterior summaries needed for the coverage check below.</p>
@@ -219,49 +214,54 @@ simultaneous uniformity band of Säilynoja, Bürkner, and Vehtari
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_rank_ecdf.html">plot_rank_ecdf</a></span><span class="op">(</span><span class="va">ranks</span>, alpha <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span></span></code></pre></div>
 <p><img src="sbc-and-calibration_files/figure-html/sbc-ecdf-1.png" class="r-plt" alt="" width="576"></p>
-<p><strong>How to read the band.</strong> The grey ribbon is a 95%
-<em>simultaneous</em> confidence envelope for the whole ECDF, calibrated
-with the discrete-uniform method of Säilynoja et al. (2022). Under
-correct calibration, the entire black ECDF stays inside the ribbon with
-probability 0.95. Consequently, a crossing anywhere is evidence against
-uniformity at the 5% global level; it is not the routine pointwise
-excursion expected from a collection of separate 95% intervals. The
-dashed red line is the theoretical uniform CDF.</p>
-<p>Because <code>LinearRegressionFitter</code> is the <em>exact</em>
-conjugate updater, the ECDF hugs the diagonal and stays inside the band
-— this is what a calibrated inference engine looks like. With an
-approximate engine (e.g. a variational fitter, or a mis-specified MCMC
-sampler), the ECDF would systematically depart from the diagonal.</p>
+<p>The red diagonal is the uniform CDF. The grey ribbon is a 95%
+simultaneous band: for independent uniform ranks on a common support,
+the whole ECDF stays inside it in about 95% of repetitions. This level
+applies to each panel separately. A crossing can occur by chance even
+with exact inference.</p>
+<p>If condition cells share truth draws, their ranks are dependent.
+Pooling them can make the band too narrow. Use <code>by</code> to
+separate the conditions, for example
+<code>plot_rank_ecdf(result, by = c("data_n", "fit_model"))</code> when
+those columns identify the cells. The band does not correct for
+dependence from shared draws (<a href="https://github.com/sims1253/bayesim/issues/59" class="external-link">#59</a>). It is
+also approximate when ranks within a panel have different supports.</p>
 </div>
 <div class="section level2">
-<h2 id="interpreting-failures">Interpreting failures<a class="anchor" aria-label="anchor" href="#interpreting-failures"></a>
+<h2 id="interpreting-departures">Interpreting departures<a class="anchor" aria-label="anchor" href="#interpreting-departures"></a>
 </h2>
-<p>When the ECDF <em>systematically</em> leaves the band, the shape of
-the departure tells you what is wrong:</p>
-<ul>
-<li>
-<strong>S-shape (ECDF above the diagonal on the left, below on the
-right):</strong> the posterior is <em>over-confident</em> — the draws
-are too tightly clustered around their centre, so the true
-<code>theta</code> too often falls outside the bulk. This is the classic
-signature of underestimated posterior uncertainty (undercoverage).</li>
-<li>
-<strong>Reflected S-shape (below on the left, above on the
-right):</strong> the posterior is <em>under-confident</em> — wider than
-the likelihood justifies (overcoverage).</li>
-<li>
-<strong>One-sided drift:</strong> the posterior is <em>biased</em> —
-it systematically over- or under-estimates <code>theta</code>.</li>
-</ul>
-<p>Because this is a simultaneous band, even one crossing rejects
-uniformity at the displayed global level. The shape and persistence of a
-departure remain useful for diagnosis, but they are not required for the
-graphical test to flag a problem. A 95% procedure still has a 5%
-false-positive probability under perfect calibration, so use a broader
-band (<code>alpha = 0.99</code>) or an independent rerun when the
-practical decision is consequential. Increasing
-<code>n_replicates</code> increases power — SBC is a Monte Carlo
-procedure with its own sampling noise.</p>
+<p>The shape can suggest a cause, but does not identify it uniquely:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>ECDF relative to the diagonal</th>
+<th>Possible explanation</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>Above on the left, below on the right</td>
+<td>Posterior uncertainty is too small.</td>
+</tr>
+<tr class="even">
+<td>Below on the left, above on the right</td>
+<td>Posterior uncertainty is too large.</td>
+</tr>
+<tr class="odd">
+<td>Mostly above</td>
+<td>Posterior estimates tend to exceed the truth.</td>
+</tr>
+<tr class="even">
+<td>Mostly below</td>
+<td>Posterior estimates tend to fall below the truth.</td>
+</tr>
+</tbody>
+</table>
+<p>Check the generator, model, and sampler diagnostics before
+attributing a departure to the inference method. More replicates improve
+the ability to detect small departures.</p>
 </div>
 <div class="section level2">
 <h2 id="coverage-as-a-complementary-check">Coverage as a complementary check<a class="anchor" aria-label="anchor" href="#coverage-as-a-complementary-check"></a>
@@ -303,18 +303,12 @@ replicate-level errors; <code>error_sd</code> describes the spread of
 that error distribution. These are useful calibration summaries, but
 they are not the empirical sampling SE or bias of an estimator at one
 fixed truth.</p>
-<p><strong>Coverage vs SBC.</strong> Coverage and SBC agree when the
-model is well-behaved, but they probe different things. Coverage is a
-single-number summary of one interval and can miss miscalibration that
-SBC catches: two posteriors can have identical 95% coverage while one
-has correct tail behaviour and the other is systematically
-over-dispersed in the tails and under-dispersed in the middle. SBC, by
-contrast, checks the full posterior shape through rank uniformity. In
-practice, run both: SBC as the global self-consistency test, and
-<code><a href="../reference/performance_measures.html">performance_measures()</a></code> coverage as the interval-level
-summary a methods paper reports. Use a fixed-truth data generator when
-the scientific target is the Morris estimator-performance measures
-<code>bias</code>, <code>emp_se</code>, and <code>mse</code>.</p>
+<p>Coverage checks one interval level. Rank uniformity checks
+calibration over a range of posterior quantiles for the quantities
+supplied to <code><a href="../reference/RankMetric.html">rank_metric()</a></code>. Neither check proves that every
+aspect of the joint posterior is correct. Use a fixed-truth generator
+when you want the estimator-performance measures <code>bias</code>,
+<code>emp_se</code>, and <code>mse</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="further-reading">Further reading<a class="anchor" aria-label="anchor" href="#further-reading"></a>

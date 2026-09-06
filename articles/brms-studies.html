@@ -79,38 +79,23 @@
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://sims1253.github.io/bayesim/">bayesim</a></span><span class="op">)</span></span></code></pre></div>
-<p>This vignette covers running brms-backed simulation studies: how the
-model bank eliminates per-task compilation, how to declare
-model-comparison grids with <code><a href="../reference/model_grid.html">model_grid()</a></code> /
-<code><a href="../reference/brms_model.html">brms_model()</a></code>, how to pass sampler arguments, and how to
-keep memory flat on long runs. All chunks require brms and a working
-CmdStan install, so they are shown but not evaluated here.</p>
+<p>Use <code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> to run a study with brms models. The
+examples require brms and a working CmdStan installation; they are shown
+without running during the documentation build.</p>
 <div class="section level2">
 <h2 id="the-model-bank-compile-once-fit-thousands-of-times">The model bank: compile once, fit thousands of times<a class="anchor" aria-label="anchor" href="#the-model-bank-compile-once-fit-thousands-of-times"></a>
 </h2>
-<p>A naive brms simulation study recompiles the Stan model for every
-task — minutes of C++ compilation per seconds of sampling.
-<code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> avoids this with a <em>model bank</em>: at the
-start of <code><a href="../reference/run_simulation.html">run_simulation()</a></code>, each distinct model spec in the
-<code>fit_grid</code> is compiled once (via
-<code>brms::brm(chains = 0)</code>), and every task reuses the compiled
-binary through <code>stats::update(recompile = FALSE)</code>.</p>
-<p>Two properties control this:</p>
-<ul>
-<li>
-<code>precompile</code> (default <code>TRUE</code>): build the bank
-at run start. Set to <code>FALSE</code> to fall back to a fresh
-<code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> per task (only sensible for tiny studies or
-debugging).</li>
-<li>The bank is shipped to mirai daemons once per run, so parallel
-workers reuse the same binaries.</li>
-</ul>
+<p>With <code>precompile = TRUE</code> (the default),
+<code><a href="../reference/BrmsFitter.html">BrmsFitter()</a></code> compiles each distinct model specification at
+the start of a run. Tasks reuse these compiled models, including on
+parallel workers. Set <code>precompile = FALSE</code> to fit each task
+with a fresh <code><a href="https://paulbuerkner.com/brms/reference/brm.html" class="external-link">brms::brm()</a></code> call.</p>
 <p>brms does <strong>not</strong> warn when
 <code>recompile = FALSE</code> is used against structurally incompatible
-data — it would silently reuse the binary against the wrong model frame.
-bayesim therefore compares the Stan data <em>structure</em> (via
+data. It can reuse the binary against the wrong model frame. bayesim
+therefore compares the Stan data <em>structure</em> (via
 <code><a href="https://paulbuerkner.com/brms/reference/standata.html" class="external-link">brms::make_standata()</a></code>) between the compiled template and
-each task’s data, and aborts the run loudly on a mismatch. If your
+each task’s data, and stops the run on a mismatch. If your
 <code>data_grid</code> rows produce data with different shapes
 (e.g. varying factor levels), either make them structurally identical or
 set <code>precompile = FALSE</code>.</p>
@@ -160,7 +145,7 @@ so mistakes surface before any compilation:</p>
 <div class="section level2">
 <h2 id="case-study-comparing-likelihoods-for-skewed-data">Case study: comparing likelihoods for skewed data<a class="anchor" aria-label="anchor" href="#case-study-comparing-likelihoods-for-skewed-data"></a>
 </h2>
-<p>Which likelihood best describes right-skewed data — Gaussian,
+<p>Which likelihood best describes right-skewed data: Gaussian,
 Student-t, or lognormal? Generate skewed data, fit all three models, and
 compare expected log predictive density (ELPD):</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -206,6 +191,14 @@ compare expected log predictive density (ELPD):</p>
 <span><span class="fu"><a href="../reference/summarize_simulation.html">summarize_simulation</a></span><span class="op">(</span><span class="va">result</span>, metrics <span class="op">=</span> <span class="st">"elpd_loo__elpd"</span><span class="op">)</span></span></code></pre></div>
 <p>Three models compile exactly once each; all 150 fits reuse the
 binaries.</p>
+<p>The LOO prediction metrics <code><a href="../reference/RmseLooMetric.html">rmse_loo_metric()</a></code> and
+<code><a href="../reference/R2LooMetric.html">r2_loo_metric()</a></code> have a known limitation with brms models
+that drop missing training rows or use
+<code>me()</code>/<code>mi()</code> terms. Their prediction data can
+differ from the fitted model frame, making results unreliable. Some CAR
+and ARMA models can fail on this path. Avoid these metrics for affected
+models until <a href="https://github.com/sims1253/bayesim/issues/77" class="external-link">#77</a> is
+resolved.</p>
 </div>
 <div class="section level2">
 <h2 id="sampler-arguments-stan_args">Sampler arguments: <code>stan_args</code><a class="anchor" aria-label="anchor" href="#sampler-arguments-stan_args"></a>
@@ -224,10 +217,8 @@ directly:</p>
 <div class="section level2">
 <h2 id="warning-conditional-retention">Warning-conditional retention<a class="anchor" aria-label="anchor" href="#warning-conditional-retention"></a>
 </h2>
-<p>Diagnosing occasional divergent transitions across thousands of tasks
-needs the fit object — but only for the tasks that misbehaved. Retention
-specs can be conditional on warnings, keeping heavy artifacts only where
-something went wrong:</p>
+<p>Keep fit objects for tasks that emit warnings by setting a
+conditional retention policy:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">config</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulation_config.html">simulation_config</a></span><span class="op">(</span></span>
 <span>  <span class="va">...</span>,</span>
@@ -246,7 +237,7 @@ their full fit for post-hoc inspection.</p>
 <code><a href="../reference/prior_predictive_generator.html">prior_predictive_generator()</a></code> draws the truth from the model
 prior (a <code>sample_prior = "only"</code> fit) and
 <code><a href="../reference/ifs_generator.html">ifs_generator()</a></code> draws it from a preconditioning posterior.
-Both forward-simulate the response — including dependency-ordered
+Both forward-simulate the response, including dependency-ordered
 simulation for multivariate models. See
 <code><a href="../articles/sbc-and-calibration.html">vignette("sbc-and-calibration")</a></code> for the full workflow.</p>
 </div>
@@ -255,13 +246,13 @@ simulation for multivariate models. See
 </h2>
 <ul>
 <li>
-<code><a href="../articles/parallel-and-hpc.html">vignette("parallel-and-hpc")</a></code> — daemons,
+<code><a href="../articles/parallel-and-hpc.html">vignette("parallel-and-hpc")</a></code>: daemons,
 checkpoint/resume, memory.</li>
 <li>
-<code><a href="../articles/custom-fitters.html">vignette("custom-fitters")</a></code> — raw Stan via
+<code><a href="../articles/custom-fitters.html">vignette("custom-fitters")</a></code>: raw Stan via
 <code><a href="../reference/CmdStanFitter.html">CmdStanFitter()</a></code> when brms cannot express your model.</li>
 <li>
-<code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code> — what the config
+<code><a href="../articles/reproducibility.html">vignette("reproducibility")</a></code>: what the config
 fingerprint covers.</li>
 </ul>
 </div>

@@ -42,5 +42,4 @@ A list with pointer information containing:
 
 ## See also
 
-[`write_rds_atomic()`](https://sims1253.github.io/bayesim/reference/write_rds_atomic.md),
-[`compute_hash()`](https://sims1253.github.io/bayesim/reference/compute_hash.md)
+`write_rds_atomic()`, `compute_hash()`

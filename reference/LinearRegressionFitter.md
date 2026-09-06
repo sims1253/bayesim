@@ -3,13 +3,13 @@
 Exact conjugate Normal-Inverse-Gamma (NIG) Bayesian linear regression.
 Fits `y ~ N(X beta, sigma^2)` analytically and draws i.i.d. samples from
 the joint posterior `(beta, sigma)`. No Stan, milliseconds per fit,
-**real posteriors** — the package's teaching backbone (D1).
+**real posteriors** — the package's teaching backbone.
 
 The model formula is taken from `fit_spec$formula` (a base R formula,
 default `response ~ .`). Posterior draws use plain parameter names
 (`Intercept`, `<coef>`, `sigma`) so they line up with
-[`resolve_draw_columns()`](https://sims1253.github.io/bayesim/reference/resolve_draw_columns.md)
-and the generators' cleaned names out of the box.
+`resolve_draw_columns()` and the generators' cleaned names out of the
+box.
 
 ## Usage
 

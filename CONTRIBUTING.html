@@ -62,9 +62,9 @@
 </div>
 <div class="section level2">
 <h2 id="test-tiers">Test tiers<a class="anchor" aria-label="anchor" href="#test-tiers"></a></h2>
-<p>Tests are split into three explicit tiers, declared in <code>tools/ci/test-tiers.R</code>. Every <code>tests/testthat/test-*.R</code> file belongs to exactly one tier; a <code>stopifnot</code> assertion in that script fails CI when a new file has not been classified, so nothing can silently drop out of every tier.</p>
+<p><code>tools/ci/test-tiers.R</code> assigns each <code>tests/testthat/test-*.R</code> file to one tier. CI fails if a file has not been classified.</p>
 <ul><li>
-<strong>fast</strong> — the fail-fast PR gate. Stan-free analytic workflows (the golden complete-study and analytic SBC tests, lifecycle parity, checkpoint/resume, external extension contracts, metric schema conformance, statistical formula parity) plus focused invariants. Runs in well under 90 seconds. CI: <code>test-fast</code> on every push and pull request.</li>
+<strong>fast</strong> — the fail-fast PR gate. Stan-free analytic workflows (the golden complete-study and analytic SBC tests, lifecycle parity, checkpoint/resume, external extension contracts, metric schema conformance, statistical formula parity) plus focused invariants. CI: <code>test-fast</code> on every push and pull request.</li>
 <li>
 <strong>core</strong> — fast plus the rest of the analytic suite: engine internals, analysis layer, model grid, parquet summaries, parallel transport, and report rendering. This is what <code>R CMD check</code> and a plain <code>devtools::test()</code> run. CI: <code>test-coverage</code>.</li>
 <li>
@@ -85,11 +85,11 @@
 </div>
 <div class="section level2">
 <h2 id="benchmarks">Benchmarks<a class="anchor" aria-label="anchor" href="#benchmarks"></a></h2>
-<p><code>inst/benchmarks/checkpoint-scaling.R</code> measures the controller-side checkpoint write/read path: it pushes outcomes built with <code><a href="reference/new_task_result.html">new_task_result()</a></code> through the sharded RunStore in replicate batches and reports wall time, outcome shard count, persisted outcome count, checkpoint size, and peak memory. Run it (from the package root) when you touch <code>R/checkpoint.R</code>, <code>R/run-store.R</code>, <code>R/resume.R</code>, or the batching logic in <code>R/simulate.R</code>, and compare before/after output; it is the quickest signal for accidental full-history rewrites or dropped outcomes:</p>
+<p><code>inst/benchmarks/checkpoint-scaling.R</code> measures the controller-side checkpoint write/read path: it pushes outcomes built with <code>new_task_result()</code> through the sharded RunStore in replicate batches and reports wall time, outcome shard count, persisted outcome count, checkpoint size, and peak memory. Run it (from the package root) when you touch <code>R/checkpoint.R</code>, <code>R/run-store.R</code>, <code>R/resume.R</code>, or the batching logic in <code>R/simulate.R</code>, and compare before/after output; it is the quickest signal for accidental full-history rewrites or dropped outcomes:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="ex">Rscript</span> inst/benchmarks/checkpoint-scaling.R 1000 10000</span>
 <span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a><span class="va">BAYESIM_BENCH_BATCH</span><span class="op">=</span>50 <span class="ex">Rscript</span> inst/benchmarks/checkpoint-scaling.R 1000</span></code></pre></div>
 <p>The script verifies its own integrity (persisted outcomes must equal the task count) and warns if the checkpoint path starts dropping outcomes.</p>
-<p>Format R code with <code>air format .</code> and run <code>jarl check .</code> before submitting a pull request. Generated documentation (<code>man/</code>, <code>NAMESPACE</code>, and <code>README.md</code>) should be updated whenever their roxygen or <code>README.Rmd</code> sources change.</p>
+<p>Format R code with <code>air format .</code> and run <code>jarl check .</code> before submitting a pull request. Generated documentation (<code>man/</code>, <code>NAMESPACE</code>, and <code>README.md</code>) should be updated whenever their roxygen or <code>README.Rmd</code> sources change. Use <code>@noRd</code> for internal helpers. Keep internal help pages only when they document a contract such as checkpoint storage or retention, or share a topic with an exported function.</p>
 </div>
 <div class="section level2">
 <h2 id="pull-requests">Pull requests<a class="anchor" aria-label="anchor" href="#pull-requests"></a></h2>

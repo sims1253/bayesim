@@ -3,7 +3,7 @@
 Scatter of posterior-mean estimates against true parameter values, per
 task, with credible-interval segments. Faceted by a condition column
 when `by` is supplied. Requires `posterior_summary_metric` to have been
-computed and the truth recorded (E1).
+computed and the truth recorded.
 
 ## Usage
 
@@ -25,7 +25,7 @@ plot_recovery(result, estimand = NULL, by = NULL, var = NULL)
 
 - by:
 
-  Optional name of a condition column to facet by (E7).
+  Optional name of a condition column to facet by.
 
 - var:
 
