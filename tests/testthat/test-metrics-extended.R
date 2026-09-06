@@ -555,3 +555,26 @@ describe("M5 extended metrics", {
     expect_equal(out$n_obs, 3L)
   })
 })
+test_that("LOO prediction metrics reject mismatched response lengths", {
+  ll <- matrix(-seq_len(100) / 100, ncol = 5)
+  context <- list(
+    loo = list(elpd = -1),
+    loo_psis = suppressWarnings(loo::psis(-ll)),
+    loo_psis_ll = ll,
+    loo_epred = matrix(seq_len(100) / 100, ncol = 5)
+  )
+  data_bundle <- list(train = data.frame(y = 1:10), response = "y")
+  for (metric in list(rmse_loo_metric(), r2_loo_metric())) {
+    expect_error(
+      suppressWarnings(compute_metric(
+        metric,
+        NULL,
+        data_bundle,
+        context,
+        list()
+      )),
+      "10 responses but 5 predictions",
+      class = "bayesim_metric_error"
+    )
+  }
+})

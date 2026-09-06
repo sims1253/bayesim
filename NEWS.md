@@ -3,6 +3,13 @@
 Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 * Removed the deprecated `report()` alias. Use `render_report()`.
+* Brms predictions and log-likelihoods now use the fitted model's stored data
+  when `newdata = NULL`, preserving fitted latent variables for LOO (#77).
+  Fits that drop training rows fail with a data error; handle missing values
+  or row filtering in the generator. Explicit `newdata` remains unchanged.
+* `predict_fit()` for brms now honors its `seed` argument.
+* LOO prediction metrics reject mismatched response and prediction lengths
+  instead of recycling values.
 
 ## Runtime UX
 

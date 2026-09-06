@@ -10,20 +10,101 @@ skip_if_not(requireNamespace("loo", quietly = TRUE))
 # One shared fixture fit for the whole file (chains = 1, iter = 100).
 fit <- suppressWarnings(brms::brm(
   y ~ x,
-  data = data.frame(y = rnorm(30), x = rnorm(30)),
+  data = withr::with_seed(77L, data.frame(y = rnorm(30), x = rnorm(30))),
   family = gaussian(),
   backend = "cmdstanr",
   chains = 1L,
   iter = 100L,
   warmup = 50L,
+  seed = 77L,
   silent = 2L,
   refresh = 0L
 ))
 
+test_that("brms defaults use the fitted rows and explicit newdata stays explicit", {
+  train <- fit$data
+  train$x[5] <- NA_real_
+  dropped <- suppressWarnings(stats::update(
+    fit,
+    newdata = train,
+    recompile = FALSE,
+    seed = 77L,
+    silent = 2L,
+    refresh = 0L
+  ))
+  result <- list(
+    success = TRUE,
+    fit = dropped,
+    data_bundle = list(train = train)
+  )
+  fitter <- BrmsFitter()
+  expect_equal(log_lik_matrix(fitter, result), brms::log_lik(dropped))
+  expect_equal(predict_epred(fitter, result), brms::posterior_epred(dropped))
+  withr::local_seed(99L)
+  rng <- .Random.seed
+  expect_equal(
+    predict_fit(fitter, result, seed = 11L)$predicted_samples,
+    withr::with_seed(11L, brms::posterior_predict(dropped))
+  )
+  expect_identical(.Random.seed, rng)
+  newdata <- train[1:2, ]
+  expect_equal(
+    log_lik_matrix(fitter, result, newdata),
+    brms::log_lik(dropped, newdata = newdata)
+  )
+  expect_equal(
+    predict_epred(fitter, result, newdata),
+    brms::posterior_epred(dropped, newdata = newdata)
+  )
+})
+
+test_that("brms defaults preserve fitted measurement-error latents", {
+  withr::local_package("brms")
+  train <- fit$data
+  train$x_se <- rep(0.2, nrow(train))
+  latent <- suppressWarnings(brms::brm(
+    y ~ me(x, x_se),
+    data = train,
+    backend = "cmdstanr",
+    chains = 1L,
+    iter = 100L,
+    warmup = 50L,
+    seed = 77L,
+    save_pars = brms::save_pars(latent = TRUE),
+    silent = 2L,
+    refresh = 0L
+  ))
+  result <- list(
+    success = TRUE,
+    fit = latent,
+    data_bundle = list(train = train)
+  )
+  expect_equal(log_lik_matrix(BrmsFitter(), result), brms::log_lik(latent))
+  expect_equal(
+    predict_epred(BrmsFitter(), result),
+    brms::posterior_epred(latent)
+  )
+})
+
+test_that("brms fit results reject silently dropped training rows", {
+  train <- fit$data
+  train$x[5] <- NA_real_
+  result <- fit_model(
+    BrmsFitter(chains = 1L, iter = 100L, warmup = 50L, precompile = FALSE),
+    list(train = train, response = "y"),
+    list(formula = y ~ x, family = gaussian()),
+    seed = 77L,
+    task_ctx = list(task_id = "missing-row")
+  )
+  expect_false(result$success)
+  expect_s3_class(result$error, "bayesim_data_error")
+  expect_match(conditionMessage(result$error), "training rows")
+})
+
 # Build the bayesim context by hand from the fit, mirroring build_loo_context().
 ll <- brms::log_lik(fit) # S x N
 epred <- brms::posterior_epred(fit) # S x N
-y <- brms:::get_y(fit) # observed response (sorted within brms)
+y <- as.numeric(brms:::get_y(fit)) # observed response (sorted within brms)
 chain_id <- posterior::as_draws_df(fit)$.chain
 r_eff <- loo::relative_eff(exp(ll), chain_id = chain_id)
 psis_obj <- suppressWarnings(loo::psis(-ll, r_eff = r_eff))
