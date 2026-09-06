@@ -46,7 +46,7 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 * Removed the unvalidated mori shared-memory model-bank integration; model
   banks travel to daemons by ordinary serialization.
-* Removed `rstar_metric()` (and with it the caret/randomForest
+* Removed `rstar_metric()` (and with it the caret/randomForest/ranger
   dependencies) and the `rmse_test_metric()` alias, and merged
   `convergence_metric()` into an extended `sampler_diagnostics_metric()`
   (now emitting `rhat_max`, `ess_bulk_min`, `ess_tail_min`, `divergent`,
