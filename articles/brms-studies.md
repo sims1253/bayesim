@@ -129,15 +129,17 @@ summarize_simulation(result, metrics = "elpd_loo__elpd")
 
 Three models compile exactly once each; all 150 fits reuse the binaries.
 
-The LOO prediction metrics
-[`rmse_loo_metric()`](https://sims1253.github.io/bayesim/reference/RmseLooMetric.md)
-and
-[`r2_loo_metric()`](https://sims1253.github.io/bayesim/reference/R2LooMetric.md)
-have a known limitation with brms models that drop missing training rows
-or use `me()`/`mi()` terms. Their prediction data can differ from the
-fitted model frame, making results unreliable. Some CAR and ARMA models
-can fail on this path. Avoid these metrics for affected models until
-[\#77](https://github.com/sims1253/bayesim/issues/77) is resolved.
+With `newdata = NULL`, brms predictions and log-likelihoods use the
+fitted model’s stored data. This preserves fitted latent variables for
+LOO metrics; passing a data frame explicitly requests brms’ new-data
+prediction behavior.
+
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+rejects fits that silently drop training rows. Handle missing values or
+row filtering in the data generator, or specify a brms missing-data
+model that retains the rows. The training response must align with the
+fitted observations. The usual brms requirements for each model still
+apply, including saving latent parameters when needed for prediction.
 
 ## Sampler arguments: `stan_args`
 
