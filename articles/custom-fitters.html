@@ -140,11 +140,12 @@ colnames)</td>
 unsupported (<code>r2_loo</code> then degrades to NA)</td>
 </tr>
 <tr class="even">
-<td><code>loo_fit(fitter, fit_result, log_lik)</code></td>
+<td><code>loo_fit(fitter, fit_result, log_lik, save_psis)</code></td>
 <td>optional; <code>supports_loo = TRUE</code>
 </td>
 <td>list with <code>elpd</code>, <code>p_loo</code>,
-<code>elpd_se</code>, <code>pareto_k</code>, <code>r_eff</code>
+<code>elpd_se</code>, <code>pareto_k</code>, <code>r_eff</code>,
+<code>psis_object</code>
 </td>
 </tr>
 <tr class="odd">
@@ -168,9 +169,16 @@ reuse it instead of recomputing; standalone calls pass <code>NULL</code>
 and the method computes its own. Returning <code>r_eff</code> (the
 chain-aware relative efficiencies used for the summary, or
 <code>NULL</code>) likewise lets the engine reuse them for the PSIS
-object. A <code><a href="../reference/loo_fit.html">loo_fit()</a></code> method registered without the
-<code>log_lik</code> argument is rejected by S7’s strict signature
-checking.</p>
+object. When the engine calls with <code>save_psis = TRUE</code>, a
+method that computes its summary via
+<code>loo::loo(ll, r_eff, save_psis = TRUE)</code> should return the
+retained <code>$psis_object</code> as <code>psis_object</code>; the
+engine reuses it for the weighted predictions instead of smoothing the
+tails a second time (<code>NULL</code> is fine for methods that don’t
+use the loo machinery — the engine falls back to building the PSIS
+object itself). A <code><a href="../reference/loo_fit.html">loo_fit()</a></code> method registered without the
+<code>log_lik</code>/<code>save_psis</code> arguments is rejected by
+S7’s strict signature checking.</p>
 <p>The generics avoid masking common names: <code>loo_fit</code> (not
 <code><a href="https://mc-stan.org/loo/reference/loo.html" class="external-link">loo::loo</a></code>), <code>log_lik_matrix</code> (not
 <code><a href="https://mc-stan.org/rstantools/reference/log_lik.html" class="external-link">brms::log_lik</a></code>), <code>fit_model</code> (not
@@ -370,10 +378,10 @@ inference.</p>
 <span><span class="co">#&gt; 3                          2.259547            2        1          500</span></span>
 <span><span class="co">#&gt; 4                          2.337851            2        1          500</span></span>
 <span><span class="co">#&gt;   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test</span></span>
-<span><span class="co">#&gt; 1          500         0  0.018681526       1           50           8</span></span>
-<span><span class="co">#&gt; 2          500         0  0.015090466       2           50           8</span></span>
-<span><span class="co">#&gt; 3          500         0  0.002903461       3           50           8</span></span>
-<span><span class="co">#&gt; 4          500         0  0.002908230       4           50           8</span></span>
+<span><span class="co">#&gt; 1          500         0  0.017776251       1           50           8</span></span>
+<span><span class="co">#&gt; 2          500         0  0.014562845       2           50           8</span></span>
+<span><span class="co">#&gt; 3          500         0  0.002955914       3           50           8</span></span>
+<span><span class="co">#&gt; 4          500         0  0.002772093       4           50           8</span></span>
 <span><span class="co">#&gt;   data_slope fit_model</span></span>
 <span><span class="co">#&gt; 1          2    linear</span></span>
 <span><span class="co">#&gt; 2          2    linear</span></span>

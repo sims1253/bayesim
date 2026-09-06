@@ -74,7 +74,7 @@ capabilities default to `NULL`.
 
   Pointwise log-likelihood
 
-- `loo_fit(fitter, fit_result)`:
+- `loo_fit(fitter, fit_result, log_lik, save_psis)`:
 
   LOO-CV computation
 

@@ -27,7 +27,7 @@ The public fitter contract is:
 | `predict_fit(fitter, fit_result, newdata, seed)` | optional; `supports_predictions = TRUE` | list with `predicted_mean` (length N), `predicted_samples` (S x N), `predicted_sd` (length N) |
 | `log_lik_matrix(fitter, fit_result, newdata)` | optional; `supports_log_lik = TRUE` | numeric log-likelihood matrix (S x N) |
 | `predict_epred(fitter, fit_result, newdata)` | optional; `supports_epred = TRUE` | numeric expectation matrix (S x N), or `NULL` when unsupported (`r2_loo` then degrades to NA) |
-| `loo_fit(fitter, fit_result, log_lik)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k`, `r_eff` |
+| `loo_fit(fitter, fit_result, log_lik, save_psis)` | optional; `supports_loo = TRUE` | list with `elpd`, `p_loo`, `elpd_se`, `pareto_k`, `r_eff`, `psis_object` |
 | `fit_diagnostics(fitter, fit_result)` | optional | named diagnostic list; the default is [`list()`](https://rdrr.io/r/base/list.html) |
 
 **All matrices are draws x observations (S x N)** — `predicted_samples`,
@@ -45,10 +45,15 @@ matrix it already computed, and the method should reuse it instead of
 recomputing; standalone calls pass `NULL` and the method computes its
 own. Returning `r_eff` (the chain-aware relative efficiencies used for
 the summary, or `NULL`) likewise lets the engine reuse them for the PSIS
-object. A
+object. When the engine calls with `save_psis = TRUE`, a method that
+computes its summary via `loo::loo(ll, r_eff, save_psis = TRUE)` should
+return the retained `$psis_object` as `psis_object`; the engine reuses
+it for the weighted predictions instead of smoothing the tails a second
+time (`NULL` is fine for methods that don’t use the loo machinery — the
+engine falls back to building the PSIS object itself). A
 [`loo_fit()`](https://sims1253.github.io/bayesim/reference/loo_fit.md)
-method registered without the `log_lik` argument is rejected by S7’s
-strict signature checking.
+method registered without the `log_lik`/`save_psis` arguments is
+rejected by S7’s strict signature checking.
 
 The generics avoid masking common names: `loo_fit` (not
 [`loo::loo`](https://mc-stan.org/loo/reference/loo.html)),
@@ -254,10 +259,10 @@ head(result$summary)
 #> 3                          2.259547            2        1          500
 #> 4                          2.337851            2        1          500
 #>   ess_tail_min divergent timing_total rep_idx data_n_train data_n_test
-#> 1          500         0  0.018681526       1           50           8
-#> 2          500         0  0.015090466       2           50           8
-#> 3          500         0  0.002903461       3           50           8
-#> 4          500         0  0.002908230       4           50           8
+#> 1          500         0  0.017776251       1           50           8
+#> 2          500         0  0.014562845       2           50           8
+#> 3          500         0  0.002955914       3           50           8
+#> 4          500         0  0.002772093       4           50           8
 #>   data_slope fit_model
 #> 1          2    linear
 #> 2          2    linear
