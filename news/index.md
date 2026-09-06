@@ -18,6 +18,11 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ### Runtime UX
 
+- Wait for worker model-bank cleanup before returning from a run,
+  including fatal errors, so daemon shutdown does not overlap the
+  cleanup request
+  ([\#84](https://github.com/sims1253/bayesim/issues/84)).
+
 - [`run_simulation()`](https://sims1253.github.io/bayesim/reference/run_simulation.md)
   now prints a single end-of-run summary block when `verbose = TRUE`:
   completion status, task counts (succeeded, failed, not run), the stop

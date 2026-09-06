@@ -59,8 +59,8 @@
 <li>LOO prediction metrics reject mismatched response and prediction lengths instead of recycling values.</li>
 </ul><div class="section level3">
 <h3 id="runtime-ux-development-version">Runtime UX<a class="anchor" aria-label="anchor" href="#runtime-ux-development-version"></a></h3>
-<ul><li>
-<code><a href="../reference/run_simulation.html">run_simulation()</a></code> now prints a single end-of-run summary block when <code>verbose = TRUE</code>: completion status, task counts (succeeded, failed, not run), the stop reason for early stops (<code>max_errors</code> or adaptive stopping), the results path, and — when unexecuted work remains — the literal <code><a href="../reference/resume_simulation.html">resume_simulation()</a></code> command for that run. The block subsumes the former standalone failure summary.</li>
+<ul><li><p>Wait for worker model-bank cleanup before returning from a run, including fatal errors, so daemon shutdown does not overlap the cleanup request (<a href="https://github.com/sims1253/bayesim/issues/84" class="external-link">#84</a>).</p></li>
+<li><p><code><a href="../reference/run_simulation.html">run_simulation()</a></code> now prints a single end-of-run summary block when <code>verbose = TRUE</code>: completion status, task counts (succeeded, failed, not run), the stop reason for early stops (<code>max_errors</code> or adaptive stopping), the results path, and — when unexecuted work remains — the literal <code><a href="../reference/resume_simulation.html">resume_simulation()</a></code> command for that run. The block subsumes the former standalone failure summary.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="engine-and-resume-development-version">Engine and resume<a class="anchor" aria-label="anchor" href="#engine-and-resume-development-version"></a></h3>
