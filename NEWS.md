@@ -15,6 +15,8 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
 
 ## Engine and resume
 
+* Reused mirai daemons now clear the model bank after successful and failed
+  runs, and before studies without a bank (#57).
 * Checkpoint `meta.json` diagnostics no longer conflate policy-stopped work
   with genuinely pending work: `n_pending` now counts only rows labeled
   `pending`, so it no longer double-counts the policy-stopped tasks that

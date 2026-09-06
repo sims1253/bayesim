@@ -438,20 +438,16 @@ execute_tasks <- function(
   # per-batch checkpoint messages.
 
   if (n_pending > 0 && !error_budget_exhausted) {
-    # ship the model bank and run the daemon_setup hook ONCE per
-    # execute_tasks() invocation, BEFORE the batch loop. Previously this lived
-    # in run_batch() and re-serialized the full bank to all daemons every batch
-    # (e.g. 200x for a 10k-task run at batch 50). Note: daemons launched
-    # mid-run by the user will not have the bank — daemons must be set before
-    # run_simulation().
+    # Set the bank once before dispatch and clear it on every exit, including
+    # fatal errors. Sending NULL also clears stale state on reused daemons.
+    # The daemon set must stay unchanged until execution finishes.
     if (isTRUE(mirai::daemons_set())) {
       model_bank <- get_model_bank()
-      if (!is.null(model_bank)) {
-        mirai::everywhere(
-          options(bayesim.model_bank = mb),
-          .args = list(mb = model_bank)
-        )
-      }
+      on.exit(mirai::everywhere(options(bayesim.model_bank = NULL)), add = TRUE)
+      mirai::everywhere(
+        options(bayesim.model_bank = mb),
+        .args = list(mb = model_bank)
+      )
       daemon_setup <- config@daemon_setup
       if (is.function(daemon_setup)) {
         mirai::everywhere(
