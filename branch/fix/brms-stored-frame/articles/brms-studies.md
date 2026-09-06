@@ -1,0 +1,198 @@
+# brms studies: the model bank and model_grid()
+
+``` r
+
+library(bayesim)
+```
+
+Use
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+to run a study with brms models. The examples require brms and a working
+CmdStan installation; they are shown without running during the
+documentation build.
+
+## The model bank: compile once, fit thousands of times
+
+With `precompile = TRUE` (the default),
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+compiles each distinct model specification at the start of a run. Tasks
+reuse these compiled models, including on parallel workers. Set
+`precompile = FALSE` to fit each task with a fresh
+[`brms::brm()`](https://paulbuerkner.com/brms/reference/brm.html) call.
+
+brms does **not** warn when `recompile = FALSE` is used against
+structurally incompatible data. It can reuse the binary against the
+wrong model frame. bayesim therefore compares the Stan data *structure*
+(via
+[`brms::make_standata()`](https://paulbuerkner.com/brms/reference/standata.html))
+between the compiled template and each task’s data, and stops the run on
+a mismatch. If your `data_grid` rows produce data with different shapes
+(e.g. varying factor levels), either make them structurally identical or
+set `precompile = FALSE`.
+
+Some brms default priors are data-dependent (for example, the intercept
+prior can be centered using the response in the template dataset). Those
+constants are embedded in the compiled model and cannot be refreshed by
+`update(recompile = FALSE)`. Therefore, always supply explicit priors in
+every
+[`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
+when `precompile = TRUE`; bayesim raises a fatal configuration error
+when a model-bank row omits them (opt in with
+`BrmsFitter(allow_default_priors = TRUE)` if you deliberately want
+template-derived priors). Use `precompile = FALSE` if task-specific
+default priors are part of the study design.
+
+## Declaring models: `brms_model()` and `model_grid()`
+
+Hand-building list-columns (`fit_grid$formula <- list(...)`) works but
+is error-prone.
+[`model_grid()`](https://sims1253.github.io/bayesim/reference/model_grid.md)
+assembles a tidy fit grid from named
+[`brms_model()`](https://sims1253.github.io/bayesim/reference/brms_model.md)
+specs, validating each at construction so mistakes surface before any
+compilation:
+
+``` r
+
+explicit_priors <- c(
+  brms::prior(normal(0, 2), class = "b"),
+  brms::prior(normal(0, 5), class = "Intercept"),
+  brms::prior(exponential(1), class = "sigma")
+)
+fit_grid <- model_grid(
+  gaussian  = brms_model(y ~ x, brms::brmsfamily("gaussian"), explicit_priors),
+  student   = brms_model(y ~ x, brms::brmsfamily("student"), explicit_priors),
+  lognormal = brms_model(y ~ x, brms::brmsfamily("lognormal"), explicit_priors)
+)
+fit_grid
+#> # A tibble: 3 x 5
+#>   model     formula   family   prior  stanvars
+#>   <chr>     <list>    <list>   <list> <list>
+#> 1 gaussian  <formula> <family> <prior> <NULL>
+#> 2 student   <formula> <family> <prior> <NULL>
+#> 3 lognormal <formula> <family> <prior> <NULL>
+```
+
+The `model` name column lands in the result summary as `fit_model`, so
+per-model aggregation is `summarize_simulation(result)` or
+`performance_measures(result)` with no extra arguments.
+
+## Case study: comparing likelihoods for skewed data
+
+Which likelihood best describes right-skewed data: Gaussian, Student-t,
+or lognormal? Generate skewed data, fit all three models, and compare
+expected log predictive density (ELPD):
+
+``` r
+
+skew_generator <- function(data_spec, task_ctx) {
+  n <- data_spec$n
+  x <- stats::rnorm(n)
+  mu <- data_spec$beta * x
+  y <- exp(mu + stats::rnorm(n, sd = 0.5))
+  list(
+    train = data.frame(y = y, x = x),
+    test = NULL,
+    response = "y",
+    true_params = c(beta = data_spec$beta),
+    vars_of_interest = "beta"
+  )
+}
+
+config <- simulation_config(
+  data_grid = data.frame(n = 200, beta = 1),
+  fit_grid = model_grid(
+    gaussian = brms_model(
+      y ~ x, brms::brmsfamily("gaussian"), explicit_priors
+    ),
+    student = brms_model(
+      y ~ x, brms::brmsfamily("student"), explicit_priors
+    ),
+    lognormal = brms_model(
+      y ~ x, brms::brmsfamily("lognormal"), explicit_priors
+    )
+  ),
+  data_generator = skew_generator,
+  fitter = BrmsFitter(chains = 2L, iter = 1000L, warmup = 500L),
+  metrics = list(
+    elpd_loo_metric(),
+    posterior_summary_metric(),
+    sampler_diagnostics_metric()
+  ),
+  n_replicates = 50L,
+  seed = 42L
+)
+
+result <- run_simulation(config, workers = 4)
+summarize_simulation(result, metrics = "elpd_loo__elpd")
+```
+
+Three models compile exactly once each; all 150 fits reuse the binaries.
+
+With `newdata = NULL`, brms predictions and log-likelihoods use the
+fitted model’s stored data. This preserves fitted latent variables for
+LOO metrics; passing a data frame explicitly requests brms’ new-data
+prediction behavior.
+
+[`BrmsFitter()`](https://sims1253.github.io/bayesim/reference/BrmsFitter.md)
+rejects fits that silently drop training rows. Handle missing values or
+row filtering in the data generator, or specify a brms missing-data
+model that retains the rows. The training response must align with the
+fitted observations. The usual brms requirements for each model still
+apply, including saving latent parameters when needed for prediction.
+
+## Sampler arguments: `stan_args`
+
+`BrmsFitter(stan_args = ...)` passes sampler controls through to
+brms/Stan. `adapt_delta` and `max_treedepth` are mapped into the
+`control` list; `init` and `threads` pass through directly:
+
+``` r
+
+fitter <- BrmsFitter(
+  chains = 4L,
+  stan_args = list(adapt_delta = 0.95, max_treedepth = 12, init = 0.1)
+)
+```
+
+## Warning-conditional retention
+
+Keep fit objects for tasks that emit warnings by setting a conditional
+retention policy:
+
+``` r
+
+config <- simulation_config(
+  ...,
+  retain = list(
+    success = c("metrics", "diagnostics"),
+    warning = c("metrics", "diagnostics", "fit", "draws")
+  )
+)
+```
+
+Clean tasks stay light; tasks that emitted sampler warnings keep their
+full fit for post-hoc inspection.
+
+## SBC with brms generators
+
+For calibration checking of brms models,
+[`prior_predictive_generator()`](https://sims1253.github.io/bayesim/reference/prior_predictive_generator.md)
+draws the truth from the model prior (a `sample_prior = "only"` fit) and
+[`ifs_generator()`](https://sims1253.github.io/bayesim/reference/ifs_generator.md)
+draws it from a preconditioning posterior. Both forward-simulate the
+response, including dependency-ordered simulation for multivariate
+models. See
+[`vignette("sbc-and-calibration")`](https://sims1253.github.io/bayesim/articles/sbc-and-calibration.md)
+for the full workflow.
+
+## Next steps
+
+- [`vignette("parallel-and-hpc")`](https://sims1253.github.io/bayesim/articles/parallel-and-hpc.md):
+  daemons, checkpoint/resume, memory.
+- [`vignette("custom-fitters")`](https://sims1253.github.io/bayesim/articles/custom-fitters.md):
+  raw Stan via
+  [`CmdStanFitter()`](https://sims1253.github.io/bayesim/reference/CmdStanFitter.md)
+  when brms cannot express your model.
+- [`vignette("reproducibility")`](https://sims1253.github.io/bayesim/articles/reproducibility.md):
+  what the config fingerprint covers.
