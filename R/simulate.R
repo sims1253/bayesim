@@ -283,7 +283,7 @@ run_simulation <- function(
   )
 
   # Write final checkpoint with merged results
-  if (!is.null(config_fingerprint)) {
+  if (!is.null(run_store) && !is.null(config_fingerprint)) {
     run_store$write(
       task_grid = results$task_grid,
       task_results = final_task_results,
@@ -542,7 +542,7 @@ execute_tasks <- function(
         }
         task_results[fatal_positions] <- list(NULL)
 
-        if (!is.null(config_fingerprint)) {
+        if (!is.null(run_store) && !is.null(config_fingerprint)) {
           tryCatch(
             {
               non_null_indices <- which(
@@ -644,14 +644,16 @@ execute_tasks <- function(
         non_null_indices <- which(!vapply(task_results, is.null, logical(1)))
         results_to_checkpoint <- task_results[non_null_indices]
 
-        run_store$write(
-          task_grid = task_grid,
-          task_results = results_to_checkpoint,
-          prior_results_df = prior_results_df,
-          prior_task_results = prior_task_results,
-          adaptive_next_check = adaptive_next_check,
-          adaptive_state = adaptive_state
-        )
+        if (!is.null(run_store)) {
+          run_store$write(
+            task_grid = task_grid,
+            task_results = results_to_checkpoint,
+            prior_results_df = prior_results_df,
+            prior_task_results = prior_task_results,
+            adaptive_next_check = adaptive_next_check,
+            adaptive_state = adaptive_state
+          )
+        }
         tasks_since_checkpoint <- 0L
 
         for (j in non_null_indices) {
