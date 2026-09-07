@@ -1,0 +1,201 @@
+---
+title: "Experimental grammar: a likelihood comparison study"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Experimental grammar: a likelihood comparison study}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+source(system.file("experimental", "likelihood-case.R", package = "bayesim"))
+```
+
+How do likelihood, link and predictor choices affect prediction and coefficient
+recovery? The [choice-of-likelihood study](https://github.com/sims1253/choice-of-likelihood-paper/blob/2a96b0d6ac668739363f98f1211c4b0cbc6b9069/README.md#L97-L131)
+compares these choices on positive and unit-interval responses. This vignette
+expresses its configured designs with an experimental study grammar. Knitting
+builds plans and exercises a comparison on invented scores; it fits no models.
+
+The design tables follow the study's pinned source. The executable generator
+and brms adapter below cover a smaller, explicitly defined example. They are
+not an exact reproduction of the historical simulations. The source scripts
+rely on historical helpers and custom families that this example does not
+restore. These declarations are separate from the supported
+`simulation_config()` engine.
+
+The helper file is installed with the package and contains ordinary R functions:
+
+```{r helper-path}
+system.file("experimental", "likelihood-case.R", package = "bayesim")
+```
+
+## Conditions and candidates
+
+The full positive-response design contains eight generating families, three
+response shapes, and null or nonzero effects. Its filters constrain the allowed
+links. The unit-interval design contains six generating families and its own
+shape-specific coefficient tables. Each candidate combines a fitting family,
+a link and one of five predictor formulas. The helper retains all source
+coefficient and dispersion values, including the altered structural coefficients
+for the unit-interval bathtub shape. [Positive source](https://github.com/sims1253/choice-of-likelihood-paper/blob/2a96b0d6ac668739363f98f1211c4b0cbc6b9069/simulation_study/cont_positive/continuous_positive_simulation.R#L5-L112),
+[unit-interval source](https://github.com/sims1253/choice-of-likelihood-paper/blob/2a96b0d6ac668739363f98f1211c4b0cbc6b9069/simulation_study/unit_interval/unit_interval_simulation.R#L5-L198).
+
+```{r designs}
+positive <- likelihood_design("positive")
+unit <- likelihood_design("unit")
+stopifnot(
+  nrow(positive$conditions) == 84L, nrow(positive$candidates) == 85L,
+  nrow(unit$conditions) == 72L, nrow(unit$candidates) == 80L
+)
+positive$conditions[1:3, c("condition_id", "data_N", "dataset_N",
+                          "x_y_coef", "sigma_y", "y_intercept")]
+unique(positive$candidates$formula)
+```
+
+`data_N = 100` specifies observations; `dataset_N = 200` specifies dataset
+replicates. The historical runner [generated one dataset before looping over
+candidate fits](https://github.com/sims1253/bayesim/blob/1617348fd6b60c0862ea90539a9b4b83a251a46f/R/simulation.R#L90-L119).
+The experimental grammar also puts methods under a shared dataset identity.
+The cited historical commit establishes that structure; it does not establish
+which version produced the study's saved results.
+
+The source leaves some link helpers implicit. Here the inverse-softplus link
+is `log(expm1(mu))`, logit is `qlogis(mu)`, cauchit is `qcauchy(mu)`, and
+complementary log-log is `log(-log1p(-mu))`. These are explicit interpretations
+used to resolve the coefficient tables, not verified copies of those helpers.
+
+## Literal links and coefficient meaning
+
+A lognormal candidate has literal link `identity` in the source, but its
+coefficient acts on a logarithmic scale. The postprocessing [records effective
+links separately](https://github.com/sims1253/choice-of-likelihood-paper/blob/2a96b0d6ac668739363f98f1211c4b0cbc6b9069/simulation_study/cont_positive/models/postprocess_sims_positive.R#L18-L46).
+Both fields belong in the declaration:
+
+```{r effective-links}
+unique(positive$candidates[c("fit_family", "fit_link", "effective_link")])
+```
+
+For the illustrative generator, recovery of the generating `x` coefficient is
+reported only when the candidate's effective link matches the generating
+link. This is an explicit estimand convention for this example. Matching names
+or links alone does not establish coefficient comparability for another study.
+Predictive scores can still enter a comparison when recovery is unavailable.
+
+## Scientific functions and artifact needs
+
+`likelihood_generate_subset(condition, context)` implements an illustrative
+structural model. It generates independent normal `z1`, `z2` and `z3`, then
+sets `x` from `z1`, `z3` and normal noise. Its response predictor is
+`y_intercept + x_y_coef*x + z1_y_coef*z1 + z2_y_coef*z2`. Gamma/log conditions
+use mean `exp(eta)` and shape `sigma_y`; Beta/logit conditions use mean
+`plogis(eta)` and precision `sigma_y`. Finally, `z4` depends on `x`, `y` and
+normal noise. Training and testing data use separate draws of this model.
+
+This generator supports Gamma/log and Beta/logit only. It omits the source's
+response-bound rejection/resampling settings. It stops on other conditions.
+The full grids therefore document planning coverage; the subset below
+identifies execution coverage. A replacement generator must state its own
+parameterization and handling of response bounds.
+
+`likelihood_fit(data, context)` calls `brms::brm()` using the method's formula,
+family, link and seed. It uses CmdStan, four chains and 2,000 iterations. These
+are example settings, not recovered historical settings. It requires brms and
+CmdStan when executed; unsupported custom families report an error. Namespace
+calls sit inside functions, so planning loads neither backend nor models.
+
+The extractors produce chain-preserving slope draws, sampler diagnostics and
+pointwise LOO scores. `likelihood_measure()` computes bias, posterior root mean
+squared error against truth, sign probability, interval exclusion of zero and
+summed LOO ELPD. The posterior error quantity is explicitly
+`sqrt(mean((draws - truth)^2))`; its `rmse_s` name supports the example policy
+but does not certify equivalence to an unavailable historical metric helper.
+These choices are ordinary functions, rather than inferred metric names.
+
+```{r declarations}
+positive_study <- likelihood_declaration(positive, "positive-likelihoods")
+unit_study <- likelihood_declaration(unit, "unit-likelihoods")
+
+positive_plan <- plan_study(positive_study, replicates = 200L, seed = 1235813L)
+unit_plan <- plan_study(unit_study, replicates = 200L, seed = 1235813L)
+
+configured_counts <- data.frame(
+  domain = c("positive", "unit interval"),
+  conditions = c(nrow(positive$conditions), nrow(unit$conditions)),
+  replicates = 200L,
+  candidates = c(nrow(positive$candidates), nrow(unit$candidates))
+)
+configured_counts$fits <- with(configured_counts, conditions * replicates * candidates)
+configured_counts
+```
+
+These are configured combinations, not observed completed fits or promises
+that all historical family/link combinations are supported. The counts include
+Gaussian with every listed link because that is what the source filters allow.
+`plan_study()` validates declarations and artifact dependencies. It does not
+call the generator, validate a backend family, prepare a model or sample a prior.
+
+A smaller declaration has a fully specified generator and built-in candidate
+families. It keeps all five source formulas and both null and nonzero effects:
+
+```{r executable-subsets}
+gamma_example <- list(
+  conditions = subset(positive$conditions, data_family == "gamma" & data_link == "log"),
+  candidates = subset(positive$candidates, fit_family == "gamma" & fit_link == "log")
+)
+beta_example <- list(
+  conditions = subset(unit$conditions, data_family == "beta" & data_link == "logit"),
+  candidates = subset(unit$candidates, fit_family == "beta" & fit_link == "logit")
+)
+gamma_study <- likelihood_declaration(gamma_example, "illustrative-gamma")
+beta_study <- likelihood_declaration(beta_example, "illustrative-beta")
+gamma_plan <- plan_study(gamma_study, replicates = 2L, seed = 42L)
+beta_plan <- plan_study(beta_study, replicates = 2L, seed = 42L)
+stopifnot(nrow(gamma_example$conditions) == 6L,
+          nrow(beta_example$conditions) == 6L,
+          nrow(gamma_example$candidates) == 5L,
+          nrow(beta_example$candidates) == 5L)
+```
+
+## A comparison is a grouped calculation
+
+The declaration uses `by = c("dataset_id", "method_formula")`. Within each
+group, `likelihood_elpd_gap()` subtracts the best finite ELPD from each score.
+It returns the size of the reference set alongside each gap. This is a
+measurement-row comparison; it needs no retained native fit.
+
+The source [filters diagnostics, missing values and extreme errors before
+computing its maxima](https://github.com/sims1253/choice-of-likelihood-paper/blob/2a96b0d6ac668739363f98f1211c4b0cbc6b9069/simulation_study/cont_positive/models/postprocess_sims_positive.R#L49-L98).
+Changing that policy can change the reference model. This cheap example uses
+invented scores, where the best predictor has an unacceptable R-hat:
+
+```{r selection-example}
+example_rows <- data.frame(
+  method_id = c("A", "B", "C"), measurement = "performance",
+  value = c(0.1, 0.2, 0.3), rmse_s = 0.5, comparable = TRUE,
+  elpd_loo = c(-102, -100, -99), rhat = c(1, 1, 1.1),
+  ess_bulk = 800, ess_tail = 800, divergents = 0
+)
+raw_gaps <- likelihood_elpd_gap(example_rows, list(), list())
+selected <- likelihood_selection(example_rows, data.frame())
+selected_gaps <- likelihood_elpd_gap(selected, list(), list())
+raw_gaps
+selected_gaps
+stopifnot(identical(raw_gaps$value, c(-3, -1, 0)),
+          identical(selected_gaps$value, c(-2, 0)))
+```
+
+`likelihood_selection(measurements, attempts)` states a recovery-analysis
+policy: comparable coefficients, finite scores and recovery measures, at most
+10 divergences, R-hat at most 1.01, both ESS measures above 400, absolute bias
+below 10 and posterior error below 10. This example does not reproduce every
+historical filter: it omits predictive RMSE, new-data ELPD and later Pareto-k
+filters. Keep those choices explicit when extending it.
+
+After an authorized run, `assess_study(run, policy = likelihood_selection)`
+keeps raw rows and exclusions, then reruns this comparison on selected rows.
+Failed attempts remain in the run's attempt records. Downstream brms, lmer or
+custom plotting code can use the resulting tables and dataset identities.
+No downstream analysis is needed to construct these plans.
