@@ -60,3 +60,33 @@ The small analytic example exercises the reference runner.
 settings, prepared output and a stage-specific integer seed. The ambient RNG
 also follows that seed. Measurement and comparison streams are independent of
 fitting and generation streams.
+
+## Reuse and limits
+
+The reference runner saves compressed artifacts and measurements after each fit.
+It keeps transient comparison inputs until the dataset's comparisons finish,
+then removes inputs that retention did not request. Completed comparisons can
+be reused after those inputs are gone. New calculations that need discarded
+inputs stop with an error; use a new run path to refit them.
+
+Cache identity includes function bodies and arguments, explicit versions,
+conditions and method settings. It does **not** detect changes to captured
+values, global helpers, package versions, Stan files or other external files.
+Increment the corresponding study, method, measurement or comparison `version`
+when these dependencies change. Changing extractors requires a method version
+change. Keep the software environment fixed for reproducible runs.
+
+Fit errors are recorded and reused. Generation, extraction and measurement
+errors stop execution; earlier committed fit records remain available. To retry
+a recorded failed fit, change its method version or use a new path. Corrupt
+records stop execution rather than silently substituting results.
+
+Workers require self-contained callback closures or namespace-qualified
+functions; the runner does not export arbitrary global helpers. Preparation
+runs on the controller and its result must be serializable.
+
+This is an interface experiment, not the storage implementation for two million
+fits. It writes individual RDS records and collects scalar results in memory.
+Concurrent processes must not write the same run directory. Storage throughput,
+large result tables and scheduler coordination need separate validation before
+this runner can support a full-scale study.

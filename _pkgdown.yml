@@ -178,6 +178,13 @@ articles:
       - reproducibility
       - targets
 
+  - title: Experimental study grammar
+    contents:
+      - experimental-study-grammar
+      - experimental-likelihood-study
+      - experimental-primed-priors
+      - experimental-method-comparison
+
 # News configuration
 news:
   cran_dates: false

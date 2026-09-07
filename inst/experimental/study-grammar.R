@@ -319,6 +319,18 @@ print.bayesim_study_plan <- function(x, ...) {
     return(data.frame())
   }
   columns <- unique(unlist(lapply(rows, names), use.names = FALSE))
+  identities <- c(
+    "condition_id",
+    "dataset_id",
+    "replicate",
+    "method_id",
+    "measurement",
+    "comparison"
+  )
+  columns <- c(
+    intersect(identities, columns),
+    sort(setdiff(columns, identities))
+  )
   list_columns <- columns[vapply(
     columns,
     function(nm) {
@@ -566,6 +578,20 @@ print.bayesim_study_plan <- function(x, ...) {
   path = NULL
 ) {
   output <- list()
+  attempts <- attempts[
+    order(attempts$dataset_id, attempts$method_id),
+    ,
+    drop = FALSE
+  ]
+  rownames(attempts) <- NULL
+  if (nrow(results)) {
+    results <- results[
+      order(results$dataset_id, results$method_id, results$measurement),
+      ,
+      drop = FALSE
+    ]
+    rownames(results) <- NULL
+  }
   for (name in names(study$comparisons)) {
     spec <- study$comparisons[[name]]
     if ((length(spec$needs) > 0L) != raw) {
@@ -580,17 +606,12 @@ print.bayesim_study_plan <- function(x, ...) {
     }
     for (group in unique(groups)) {
       members <- attempts[groups == group, , drop = FALSE]
+      # Match full dataset/method pairs; separate membership sets can cross pairs.
       selected <- if (nrow(results)) {
-        results$dataset_id %in%
-          members$dataset_id &
-          results$method_id %in% members$method_id
+        paste(results$dataset_id, results$method_id, sep = "/") %in%
+          paste(members$dataset_id, members$method_id, sep = "/")
       } else {
         logical()
-      }
-      # Match full dataset/method pairs; separate membership sets can cross pairs.
-      if (nrow(results)) {
-        selected <- paste(results$dataset_id, results$method_id, sep = "/") %in%
-          paste(members$dataset_id, members$method_id, sep = "/")
       }
       rows <- results[selected, , drop = FALSE]
       context <- list(
@@ -674,6 +695,8 @@ evaluate_replicate <- function(
   .prepared = NULL
 ) {
   plan_study(study, replicate, seed)
+  replicate <- as.integer(replicate)
+  seed <- as.integer(seed)
   path <- .sg_open(study, seed, path)
   condition <- .sg_condition(study, condition_id)
   prepared <- if (is.null(.prepared)) {
@@ -883,6 +906,8 @@ evaluate_replicate <- function(
 
 run_study <- function(study, replicates, seed = 1L, path = NULL, workers = 1L) {
   plan <- plan_study(study, replicates, seed)
+  replicates <- as.integer(replicates)
+  seed <- as.integer(seed)
   .sg_count(workers, "workers")
   path <- .sg_open(study, seed, path)
   prepared <- lapply(study$conditions$condition_id, function(id) {
