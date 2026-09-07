@@ -946,6 +946,8 @@ run_study <- function(study, replicates, seed = 1L, path = NULL, workers = 1L) {
       .prepared = prepared[[job$condition_id]]
     )
   }
+  # Do not serialize this run frame, its cluster connections or collected output.
+  environment(worker) <- environment(evaluate_replicate)
   for (start in seq.int(1L, nrow(jobs), by = workers)) {
     indices <- seq.int(start, min(nrow(jobs), start + workers - 1L))
     batch <- lapply(indices, function(i) as.list(jobs[i, , drop = FALSE]))
