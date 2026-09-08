@@ -1,0 +1,109 @@
+# Experimental study grammar
+
+This directory contains an executable interface experiment. Load it with:
+
+```r
+source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+```
+
+It is separate from the supported `simulation_config()` engine. Its purpose is
+to test whether real studies can express their design, artifact needs and
+comparison rules without writing an execution loop.
+
+The case-study vignettes build plans; they do not run the original simulations.
+The small analytic example exercises the reference runner.
+
+## Function contracts
+
+- `study(name, conditions, generate, prepare = NULL, version = "1")` starts a
+  declaration. `conditions` has a unique character `condition_id` column.
+  `generate(condition, context)` returns any R object. Optional
+  `prepare(condition, context)` runs once per condition; its output is available
+  as `context$prepared`. Increment `version` when external generation or
+  preparation dependencies change.
+- `study_method(fit, extract = list(), settings = list(), version = "1")`
+  describes a method. `fit(data, context)` returns its native result. Each named
+  extractor is `function(fit, data, context)` and returns an artifact, such as
+  chain-preserving draws, diagnostics or pointwise predictive scores. Method
+  settings are in `context$settings`. Use namespace-qualified calls on workers.
+- `with_methods(study, ...)` adds named methods. Names are persistent IDs.
+  `do.call(with_methods, c(list(study), named_methods))` adds a programmatically
+  constructed collection.
+- `with_measure(study, name, compute, needs = character(), version = "1")`
+  declares a per-fit measurement. `compute(artifacts, context)` returns a data
+  frame, usually with `target` and `value`. List columns are allowed. `needs`
+  names extractors, or the built-in artifacts `data` and `fit`.
+- `with_comparison(study, name, compute, by = "dataset_id", needs = character(),
+  version = "1")` declares a grouped calculation. `compute(results, artifacts,
+  context)` gets the group's measurement rows and a list of artifact bundles
+  named by method ID. Artifact-consuming groups must stay within one dataset;
+  wider groups can consume saved measurement rows. All method attempts remain
+  in `context$attempts`, including failures. Return a data frame.
+- `with_retention(study, artifacts = character(), compress = "gzip")` selects
+  artifact names to save. Measurements, errors and identity metadata are always
+  saved. Retaining `fit` is explicit. Extractors select parameters and preserve
+  chain information; retention does not convert draw types.
+- `plan_study(study, replicates, seed = 1L)` validates declarations and describes
+  counts, required artifacts, computation stages and retention. It does not
+  generate data, prepare models, inspect an existing cache or estimate sizes
+  without data.
+- `run_study(study, replicates, seed = 1L, path = NULL, workers = 1L)` executes
+  the plan. `evaluate_replicate(study, condition_id, replicate, seed = 1L,
+  path = NULL)` is the same dataset-level evaluator for external schedulers.
+- `assess_study(run, policy = NULL)` applies an optional
+  `function(measurements, attempts)` policy to select measurement rows, then
+  reruns comparisons that depend only on those rows. It retains raw rows and
+  an exclusion table. Artifact-consuming comparisons are computed during
+  execution and are not silently reinterpreted under a later selection policy.
+
+`context` contains study name, condition, dataset ID, replicate, method ID,
+settings, prepared output and a stage-specific integer seed. The ambient RNG
+also follows that seed. Measurement and comparison streams are independent of
+fitting and generation streams.
+
+## Reuse and limits
+
+The reference runner saves compressed artifacts and measurements after each fit.
+It keeps transient comparison inputs until the dataset's comparisons finish,
+then removes inputs that retention did not request. Completed comparisons can
+be reused after those inputs are gone. New calculations that need discarded
+inputs stop with an error; use a new run path to refit them.
+
+Cache identity includes function bodies and arguments, explicit versions,
+conditions and method settings. It does **not** detect changes to captured
+values, global helpers, package versions, Stan files or other external files.
+Increment the corresponding study, method, measurement or comparison `version`
+when these dependencies change. Changing extractors requires a method version
+change. Keep the software environment fixed for reproducible runs.
+
+Fit errors are recorded and reused. Generation, extraction and measurement
+errors stop execution; earlier committed fit records remain available. To retry
+a recorded failed fit, change its method version or use a new path. Corrupt
+records stop execution rather than silently substituting results.
+
+Workers require self-contained callback closures or namespace-qualified
+functions; the runner does not export arbitrary global helpers. Preparation
+runs on the controller and its result must be serializable.
+
+This is an interface experiment, not the storage implementation for two million
+fits. It writes individual RDS records and collects scalar results in memory.
+Concurrent processes must not write the same run directory. Storage throughput,
+large result tables and scheduler coordination need separate validation before
+this runner can support a full-scale study.
+
+Comparison cache keys include all measurement rows supplied to the callback.
+Adding a measurement therefore invalidates artifact-consuming comparisons, even
+if the callback ignores those new rows. Retain their inputs if you expect to
+extend the analysis. A narrower declared measurement scope remains a possible
+interface extension; the current runner does not infer dependencies from code.
+
+Conditions describe the design selected for execution. Filter unsupported
+conditions before declaring a run. The full historical likelihood grids in the
+vignette document the source design; their plans do not certify backend or
+generator support. A generation error stops the run, preserving completed work.
+
+Cache format 2 checks serialized bytes before restoring objects. Earlier
+experimental caches require a new run path. Byte integrity does not restore
+external pointers or missing CmdStan files: retained artifacts and preparation
+outputs must be usable after R serialization. Prefer extracted arrays and tables
+when a native fit depends on session state or external files.

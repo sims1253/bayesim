@@ -1,0 +1,108 @@
+---
+title: "Experimental grammar: declare, run, reuse"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Experimental grammar: declare, run, reuse}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+```
+
+Describe the experiment with ordinary R functions. The runner supplies shared
+data, deterministic random streams, saved results and comparison groups.
+This experimental interface is sourced explicitly; the supported package API
+still starts with `simulation_config()`.
+
+```text
+condition × replicate → one dataset → each method
+                                       ↓
+                              extract → measure → compare
+                                       ↓             ↓
+                              retained artifacts + results
+                                       ↓
+                              new measures and assessment
+```
+
+This example runs a small normal-mean study. Observations have known unit
+variance. Two methods differ only in their normal prior's scale. Their
+posteriors are analytic, so this vignette needs no sampler.
+
+```{r declaration}
+normal_method <- function(prior_sd) {
+  study_method(
+    fit = function(data, context) {
+      precision <- length(data) + 1 / context$settings$prior_sd^2
+      list(mean = sum(data) / precision, sd = sqrt(1 / precision))
+    },
+    extract = list(draws = function(fit, data, context) {
+      rnorm(400, fit$mean, fit$sd)
+    }),
+    settings = list(prior_sd = prior_sd)
+  )
+}
+
+experiment <- study(
+  "normal-mean",
+  conditions = data.frame(condition_id = c("small", "large"), n = c(10L, 50L)),
+  generate = function(condition, context) rnorm(condition$n, mean = 1)
+) |>
+  with_methods(regularized = normal_method(1), diffuse = normal_method(10)) |>
+  with_measure("estimate", function(artifacts, context) {
+    data.frame(target = "mean", value = mean(artifacts$draws))
+  }, needs = "draws") |>
+  with_retention("draws")
+
+plan_study(experiment, replicates = 3)
+```
+
+The draws here are independent posterior samples. An MCMC extractor should
+preserve chains and retain any diagnostics needed for later selection.
+
+```{r run}
+run_path <- tempfile("normal-mean-")
+first <- run_study(experiment, replicates = 3, path = run_path)
+first$measurements[, c("condition_id", "replicate", "method_id", "value")]
+```
+
+Add a 90% interval and two replicates. The original fits stay cached; the new
+measurement uses their saved draws. New replicates get new datasets and fits.
+
+```{r reuse}
+extended <- experiment |>
+  with_measure("interval90", function(artifacts, context) {
+    interval <- quantile(artifacts$draws, c(0.05, 0.95))
+    data.frame(target = "mean", lower = interval[[1]], upper = interval[[2]])
+  }, needs = "draws")
+
+later <- run_study(extended, replicates = 5, path = run_path)
+stopifnot(identical(first$attempts, later$attempts[later$attempts$replicate <= 3, ]))
+table(later$measurements$measurement)
+```
+
+This reuse requires unchanged scientific dependencies. Cache keys track function
+bodies, settings and explicit versions, but cannot detect changed global helpers,
+package versions or external files. Increment the relevant declaration's
+`version` when those dependencies change.
+
+The case studies test the boundaries of this interface:
+
+| Study | What the declaration must express |
+|---|---|
+| [Choice of likelihood](experimental-likelihood-study.html) | Full candidate grids, shared datasets, predictive comparisons and changing eligibility |
+| [Primed priors](experimental-primed-priors.html) | Preparation shared across inner replicates and data reused in refits |
+| [Method comparison](experimental-method-comparison.html) | Direct CmdStan methods, sampler settings and pointwise comparison inputs |
+
+Those vignettes build plans without running their expensive fits. This runner
+is a reference implementation: individual RDS records and in-memory result tables
+still need replacement or validation for a study with millions of fits. It also
+requires exclusive access to a run directory. Its purpose is to test whether the
+study declaration captures the scientific decisions before committing to a
+production execution and storage design.
+
+```{r cleanup, include=FALSE}
+unlink(run_path, recursive = TRUE)
+```
