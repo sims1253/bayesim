@@ -28,3 +28,14 @@
 - [Reproducibility](https://sims1253.github.io/bayesim/articles/reproducibility.md):
 - [Running bayesim with
   targets](https://sims1253.github.io/bayesim/articles/targets.md):
+
+### Experimental study grammar
+
+- [Experimental grammar: declare, run,
+  reuse](https://sims1253.github.io/bayesim/articles/experimental-study-grammar.md):
+- [Experimental grammar: a likelihood comparison
+  study](https://sims1253.github.io/bayesim/articles/experimental-likelihood-study.md):
+- [Experimental grammar: primed-prior
+  calibration](https://sims1253.github.io/bayesim/articles/experimental-primed-priors.md):
+- [Experimental study grammar: compare prior
+  specifications](https://sims1253.github.io/bayesim/articles/experimental-method-comparison.md):

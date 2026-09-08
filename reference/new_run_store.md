@@ -1,6 +1,6 @@
-# Create a run store backed by memory or the filesystem.
+# Create a filesystem run store.
 
-Create a run store backed by memory or the filesystem.
+Create a filesystem run store.
 
 ## Usage
 
@@ -20,7 +20,7 @@ new_run_store(
 
 - result_path:
 
-  NULL for memory, otherwise a filesystem directory.
+  Filesystem directory, or NULL to disable checkpoint storage.
 
 - config_fingerprint:
 
@@ -43,4 +43,5 @@ new_run_store(
 
 ## Value
 
-An internal run-store object with initialize/read/write methods.
+An internal run-store object with initialize/read/write methods, or NULL
+when result_path is NULL.
