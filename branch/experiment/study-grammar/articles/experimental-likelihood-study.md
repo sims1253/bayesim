@@ -110,10 +110,16 @@ unique(positive$candidates[c("fit_family", "fit_link", "effective_link")])
 
 For the illustrative generator, recovery of the generating `x`
 coefficient is reported only when the candidate’s effective link matches
-the generating link. This is an explicit estimand convention for this
-example. Matching names or links alone does not establish coefficient
-comparability for another study. Predictive scores can still enter a
-comparison when recovery is unavailable.
+the generating link. Here `comparable` means that the coefficient is
+evaluated on the chosen link scale, not that the candidate identifies
+the generating effect. The formulas that omit `z1` or condition on the
+post-outcome variable `z4` are deliberately misspecified. Their errors
+against `x_y_coef` remain in the recovery analysis to show the
+consequences of those choices. Restricting analysis to correctly
+adjusted formulas would answer a different question. Matching names or
+links alone does not establish coefficient comparability for another
+study. Predictive scores can still enter a comparison when recovery is
+unavailable.
 
 ## Scientific functions and artifact needs
 
@@ -225,7 +231,7 @@ example_rows <- data.frame(
   ess_bulk = 800, ess_tail = 800, divergents = 0
 )
 raw_gaps <- likelihood_elpd_gap(example_rows, list(), list())
-selected <- likelihood_selection(example_rows, data.frame())
+selected <- example_rows[likelihood_selection(example_rows, data.frame()), , drop = FALSE]
 selected_gaps <- likelihood_elpd_gap(selected, list(), list())
 raw_gaps
 #>   candidate value n_reference

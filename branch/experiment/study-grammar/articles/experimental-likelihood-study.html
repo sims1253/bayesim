@@ -171,10 +171,17 @@ declaration:</p>
 <span><span class="co">#&gt; 27         gaussian identity       identity</span></span></code></pre></div>
 <p>For the illustrative generator, recovery of the generating
 <code>x</code> coefficient is reported only when the candidate’s
-effective link matches the generating link. This is an explicit estimand
-convention for this example. Matching names or links alone does not
-establish coefficient comparability for another study. Predictive scores
-can still enter a comparison when recovery is unavailable.</p>
+effective link matches the generating link. Here <code>comparable</code>
+means that the coefficient is evaluated on the chosen link scale, not
+that the candidate identifies the generating effect. The formulas that
+omit <code>z1</code> or condition on the post-outcome variable
+<code>z4</code> are deliberately misspecified. Their errors against
+<code>x_y_coef</code> remain in the recovery analysis to show the
+consequences of those choices. Restricting analysis to correctly
+adjusted formulas would answer a different question. Matching names or
+links alone does not establish coefficient comparability for another
+study. Predictive scores can still enter a comparison when recovery is
+unavailable.</p>
 </div>
 <div class="section level2">
 <h2 id="scientific-functions-and-artifact-needs">Scientific functions and artifact needs<a class="anchor" aria-label="anchor" href="#scientific-functions-and-artifact-needs"></a>
@@ -278,7 +285,7 @@ unacceptable R-hat:</p>
 <span>  ess_bulk <span class="op">=</span> <span class="fl">800</span>, ess_tail <span class="op">=</span> <span class="fl">800</span>, divergents <span class="op">=</span> <span class="fl">0</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">raw_gaps</span> <span class="op">&lt;-</span> <span class="fu">likelihood_elpd_gap</span><span class="op">(</span><span class="va">example_rows</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">selected</span> <span class="op">&lt;-</span> <span class="fu">likelihood_selection</span><span class="op">(</span><span class="va">example_rows</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">selected</span> <span class="op">&lt;-</span> <span class="va">example_rows</span><span class="op">[</span><span class="fu">likelihood_selection</span><span class="op">(</span><span class="va">example_rows</span>, <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span>, , drop <span class="op">=</span> <span class="cn">FALSE</span><span class="op">]</span></span>
 <span><span class="va">selected_gaps</span> <span class="op">&lt;-</span> <span class="fu">likelihood_elpd_gap</span><span class="op">(</span><span class="va">selected</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">raw_gaps</span></span>
 <span><span class="co">#&gt;   candidate value n_reference</span></span>
