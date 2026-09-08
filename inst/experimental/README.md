@@ -90,3 +90,20 @@ fits. It writes individual RDS records and collects scalar results in memory.
 Concurrent processes must not write the same run directory. Storage throughput,
 large result tables and scheduler coordination need separate validation before
 this runner can support a full-scale study.
+
+Comparison cache keys include all measurement rows supplied to the callback.
+Adding a measurement therefore invalidates artifact-consuming comparisons, even
+if the callback ignores those new rows. Retain their inputs if you expect to
+extend the analysis. A narrower declared measurement scope remains a possible
+interface extension; the current runner does not infer dependencies from code.
+
+Conditions describe the design selected for execution. Filter unsupported
+conditions before declaring a run. The full historical likelihood grids in the
+vignette document the source design; their plans do not certify backend or
+generator support. A generation error stops the run, preserving completed work.
+
+Cache format 2 checks serialized bytes before restoring objects. Earlier
+experimental caches require a new run path. Byte integrity does not restore
+external pointers or missing CmdStan files: retained artifacts and preparation
+outputs must be usable after R serialization. Prefer extracted arrays and tables
+when a native fit depends on session state or external files.

@@ -152,10 +152,18 @@ plan_study <- function(study, replicates, seed = 1L) {
     "dataset_id",
     "replicate",
     "method_id",
-    paste0("condition_", setdiff(names(study$conditions), "condition_id")),
+    paste0(
+      "condition_",
+      setdiff(
+        names(.sg_scalar_fields(as.list(study$conditions[1L, , drop = FALSE]))),
+        "condition_id"
+      )
+    ),
     paste0(
       "method_",
-      unique(unlist(lapply(study$methods, function(x) names(x$settings))))
+      unique(unlist(lapply(study$methods, function(x) {
+        names(.sg_scalar_fields(x$settings))
+      })))
     )
   )
   if (length(setdiff(by, columns))) {
@@ -263,6 +271,7 @@ print.bayesim_study_plan <- function(x, ...) {
   if (is.null(fn)) {
     return(NULL)
   }
+  fn <- utils::removeSource(fn)
   list(formals = formals(fn), body = body(fn), version = version)
 }
 .sg_name <- function(x) {
@@ -387,10 +396,20 @@ print.bayesim_study_plan <- function(x, ...) {
   record <- tryCatch(readRDS(path), error = function(e) {
     stop("Unreadable experimental cache record: ", path)
   })
-  if (!is.list(record) || !identical(record$checksum, .sg_hash(record$value))) {
+  if (is.list(record) && !is.null(record$value) && is.null(record$payload)) {
+    stop("Unsupported experimental cache format; use a new run path: ", path)
+  }
+  if (
+    !is.list(record) ||
+      !is.raw(record$payload) ||
+      !identical(
+        record$checksum,
+        digest::digest(record$payload, algo = "sha256", serialize = FALSE)
+      )
+  ) {
     stop("Checksum mismatch: ", path)
   }
-  record$value
+  unserialize(record$payload)
 }
 .sg_write <- function(value, path, compress) {
   if (is.null(path)) {
@@ -399,8 +418,12 @@ print.bayesim_study_plan <- function(x, ...) {
   dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
   tmp <- tempfile(".pending-", tmpdir = dirname(path))
   on.exit(unlink(tmp), add = TRUE)
+  payload <- serialize(value, NULL)
   saveRDS(
-    list(value = value, checksum = .sg_hash(value)),
+    list(
+      payload = payload,
+      checksum = digest::digest(payload, algo = "sha256", serialize = FALSE)
+    ),
     tmp,
     compress = compress
   )
@@ -419,7 +442,7 @@ print.bayesim_study_plan <- function(x, ...) {
     stop("path must be NULL or a directory")
   }
   manifest <- file.path(path, "experimental-study.rds")
-  expected <- list(format = 1L, study = study$name, seed = as.integer(seed))
+  expected <- list(format = 2L, study = study$name, seed = as.integer(seed))
   if (file.exists(manifest)) {
     if (!identical(.sg_read(manifest), expected)) {
       stop("Study name, seed or experimental format differs at this path")
@@ -480,6 +503,9 @@ print.bayesim_study_plan <- function(x, ...) {
     key
   )
 }
+.sg_scalar_fields <- function(values) {
+  Filter(function(x) is.atomic(x) && length(x) == 1L, values)
+}
 .sg_metadata <- function(context) {
   x <- list(
     condition_id = context$condition$condition_id,
@@ -489,10 +515,9 @@ print.bayesim_study_plan <- function(x, ...) {
   )
   for (prefix in c("condition", "method")) {
     values <- if (prefix == "condition") context$condition else context$settings
+    values <- .sg_scalar_fields(values)
     for (nm in setdiff(names(values), "condition_id")) {
-      if (is.atomic(values[[nm]]) && length(values[[nm]]) == 1L) {
-        x[[paste0(prefix, "_", nm)]] <- values[[nm]]
-      }
+      x[[paste0(prefix, "_", nm)]] <- values[[nm]]
     }
   }
   as.data.frame(x, stringsAsFactors = FALSE)

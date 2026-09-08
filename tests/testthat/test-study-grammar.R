@@ -291,3 +291,121 @@ test_that("a failed comparison resumes from committed fits and transient inputs"
   expect_equal(nrow(resumed$comparisons), 2)
   unlink(c(marker, paste0(marker, ".ready")))
 })
+
+test_that("planning rejects grouping fields the runtime cannot emit", {
+  s <- make_grammar_study()
+  s$generate <- function(condition, context) stop("must not generate")
+  s$conditions$payload <- I(list(1:2, 3:4))
+  s$conditions$matrix <- I(matrix(1:4, nrow = 2))
+  for (id in names(s$methods)) {
+    s$methods[[id]]$settings$vector <- 1:2
+    s$methods[[id]]$settings$nested <- list(1)
+    s$methods[[id]]$settings$scalar <- "ok"
+  }
+  for (by in c(
+    "condition_payload",
+    "condition_matrix",
+    "method_vector",
+    "method_nested"
+  )) {
+    invalid <- grammar$with_comparison(
+      s,
+      "invalid",
+      function(results, artifacts, context) {
+        data.frame()
+      },
+      by = by
+    )
+    expect_error(
+      grammar$run_study(invalid, 1),
+      "Unknown comparison grouping columns"
+    )
+  }
+  valid <- grammar$with_comparison(
+    s,
+    "valid",
+    function(results, artifacts, context) {
+      data.frame()
+    },
+    by = c("condition_n", "method_scalar")
+  )
+  expect_equal(grammar$plan_study(valid, 1)$fits, 4)
+})
+
+test_that("retained reference artifacts are verified as bytes and corruption is rejected", {
+  s <- make_grammar_study()
+  s$methods <- s$methods["first"]
+  s$methods$first$extract$reference <- function(fit, data, context) {
+    shared <- new.env(parent = emptyenv())
+    shared$draws <- fit$draws
+    list(first = shared, second = shared)
+  }
+  s <- grammar$with_retention(s, c("draws", "truth", "reference"))
+  path <- file.path(withr::local_tempdir(), "reference")
+  first <- grammar$run_study(s, 1, path = path)
+  s <- grammar$with_measure(
+    s,
+    "reference",
+    function(artifacts, context) {
+      stopifnot(identical(
+        artifacts$reference$first,
+        artifacts$reference$second
+      ))
+      data.frame(value = mean(artifacts$reference$first$draws))
+    },
+    needs = "reference"
+  )
+  reused <- grammar$run_study(s, 1, path = path)
+  expect_identical(first$attempts, reused$attempts)
+  expect_equal(nrow(reused$measurements), 4)
+  file <- list.files(
+    file.path(path, "fits"),
+    recursive = TRUE,
+    full.names = TRUE
+  )[[1]]
+  record <- readRDS(file)
+  expect_type(record$payload, "raw")
+  record$payload[[1]] <- as.raw(bitwXor(as.integer(record$payload[[1]]), 1L))
+  saveRDS(record, file)
+  expect_error(grammar$run_study(s, 1, path = path), "Checksum mismatch")
+})
+
+test_that("callback errors restore the caller's RNG state", {
+  s <- make_grammar_study()
+  s$generate <- function(condition, context) {
+    runif(1)
+    stop("generation interrupted")
+  }
+  withr::local_seed(492L)
+  before <- .Random.seed
+  kind <- RNGkind()
+  expect_error(grammar$run_study(s, 1), "generation interrupted")
+  expect_identical(.Random.seed, before)
+  expect_identical(RNGkind(), kind)
+})
+
+test_that("the likelihood case selection implements the assessment policy contract", {
+  example <- new.env(parent = grammar)
+  sys.source(
+    system.file("experimental", "likelihood-case.R", package = "bayesim"),
+    example
+  )
+  s <- make_grammar_study()
+  s <- grammar$with_measure(s, "performance", function(artifacts, context) {
+    data.frame(
+      value = 0.1,
+      rmse_s = 0.5,
+      comparable = TRUE,
+      elpd_loo = -10,
+      rhat = 1,
+      ess_bulk = 1000,
+      ess_tail = 1000,
+      divergents = 0
+    )
+  })
+  run <- grammar$run_study(s, 1)
+  assessed <- grammar$assess_study(run, policy = example$likelihood_selection)
+  expect_equal(nrow(assessed$measurements), 4)
+  expect_true(all(assessed$measurements$measurement == "performance"))
+  expect_equal(nrow(assessed$excluded), 4)
+})

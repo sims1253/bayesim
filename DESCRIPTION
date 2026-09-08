@@ -73,7 +73,7 @@ Imports:
     stats,
     tibble (>= 3.2.0),
     utils,
-    withr (>= 2.5.0)
+    withr (>= 3.0.3)
 Suggests:
     brms (>= 2.22.0),
     cmdstanr (>= 0.7.0),

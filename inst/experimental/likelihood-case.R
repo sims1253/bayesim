@@ -595,7 +595,7 @@ likelihood_selection <- function(measurements, attempts) {
     x$ess_tail > 400 &
     abs(x$value) < 10 &
     x$rmse_s < 10
-  x[!is.na(eligible) & eligible, , drop = FALSE]
+  !is.na(eligible) & eligible
 }
 
 likelihood_declaration <- function(design, name) {
@@ -606,7 +606,11 @@ likelihood_declaration <- function(design, name) {
     version = "illustrative-sem-1"
   )
   methods <- lapply(seq_len(nrow(design$candidates)), function(i) {
-    settings <- as.list(design$candidates[i, , drop = FALSE])
+    settings <- as.list(design$candidates[
+      i,
+      setdiff(names(design$candidates), "method_id"),
+      drop = FALSE
+    ])
     study_method(
       likelihood_fit,
       extract = list(
