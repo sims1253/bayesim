@@ -51,8 +51,8 @@ Post-review hardening of the 2.0.0 engine, metrics, and analysis layer.
   outcomes before re-raising, so a crash no longer discards finished work.
 * Resume no longer double-loads the full run history (prior results were
   loaded once to resume and again during the run).
-* In-memory (`result_path = NULL`) run-store writes are now linear in the
-  number of completed tasks instead of repeatedly rewriting the full state.
+* Runs with `result_path = NULL` no longer copy completed outcomes into an
+  unused in-memory checkpoint store.
 * Adaptive stopping now warns when its evaluation step fails instead of
   passing silently.
 

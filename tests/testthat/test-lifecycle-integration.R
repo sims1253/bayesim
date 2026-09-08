@@ -91,7 +91,7 @@ test_that("zero error budget stops at the first error and resume runs placeholde
   expect_equal(sum(continued_result$summary$status == "failed"), 1L)
 })
 
-test_that("uninterrupted, resumed, and two-worker runs have lifecycle parity", {
+test_that("memory, disk, resumed, and two-worker runs have lifecycle parity", {
   gen <- function(data_spec, task_ctx) {
     if (task_ctx$rep_idx == 2L) {
       stop("intentional parity failure")
@@ -165,6 +165,8 @@ test_that("uninterrupted, resumed, and two-worker runs have lifecycle parity", {
     workers = 2L
   )
 
+  memory <- run_quietly(make_config(NULL), resume = "never", workers = 1L)
+  expect_equal(canonical_summary(memory), canonical_summary(uninterrupted))
   expect_equal(canonical_summary(resumed), canonical_summary(uninterrupted))
   expect_equal(canonical_summary(parallel), canonical_summary(uninterrupted))
 })
@@ -198,12 +200,7 @@ test_that("checkpoint round-trip retains canonical task truth", {
   expect_false("truth" %in% names(checkpoint$task_outcomes[[1]]$metrics))
 })
 
-test_that("memory and filesystem run stores round-trip across several batches", {
-  # Three writes of five outcomes each: the second and third writes append a
-  # batch to an existing store, matching how execute_tasks() checkpoints
-  # successive batches. The in-memory adapter must accumulate (not re-flatten
-  # from scratch) and read() must return the same outcomes and the same flat
-  # results_df as the filesystem adapter.
+test_that("filesystem run stores preserve outcomes across several batches", {
   make_outcome <- function(i) {
     new_task_result(
       task_id = sprintf("d001_f001_r%05d", i),
@@ -231,8 +228,6 @@ test_that("memory and filesystem run stores round-trip across several batches", 
   }
   path <- file.path(withr::local_tempdir(), "run")
 
-  memory <- new_run_store()
-  memory$initialize()
   filesystem <- new_run_store(
     result_path = path,
     config_fingerprint = "store-test",
@@ -242,33 +237,26 @@ test_that("memory and filesystem run stores round-trip across several batches", 
 
   completed <- c(5L, 10L, 15L)
   for (b in seq_along(batches)) {
-    memory$write(make_grid(completed[[b]]), batches[[b]])
     filesystem$write(make_grid(completed[[b]]), batches[[b]])
   }
 
-  memory_checkpoint <- memory$read()
-  filesystem_checkpoint <- filesystem$read()
-
-  expect_length(memory_checkpoint$task_outcomes, 15L)
-  expect_length(filesystem_checkpoint$task_outcomes, 15L)
-
-  # The adapters agree on the accumulated outcomes and the derived flat view.
-  expect_equal(
-    lapply(memory_checkpoint$task_outcomes, `[[`, "task_id"),
-    lapply(filesystem_checkpoint$task_outcomes, `[[`, "task_id")
-  )
-  for (field in c("status", "metrics", "diagnostics", "warnings", "truth")) {
+  checkpoint <- filesystem$read()
+  expected <- unlist(batches, recursive = FALSE)
+  expect_length(checkpoint$task_outcomes, 15L)
+  for (field in c(
+    "task_id",
+    "status",
+    "metrics",
+    "diagnostics",
+    "warnings",
+    "truth"
+  )) {
     expect_equal(
-      lapply(memory_checkpoint$task_outcomes, `[[`, field),
-      lapply(filesystem_checkpoint$task_outcomes, `[[`, field)
+      lapply(checkpoint$task_outcomes, `[[`, field),
+      lapply(expected, `[[`, field)
     )
   }
-  expect_equal(memory_checkpoint$results_df, filesystem_checkpoint$results_df)
-  # The flat view matches a direct flattening of the accumulated outcomes.
-  expect_equal(
-    memory_checkpoint$results_df,
-    results_to_dataframe(filesystem_checkpoint$task_outcomes)
-  )
+  expect_equal(checkpoint$results_df, results_to_dataframe(expected))
 })
 
 test_that("resume rejects retention widening for completed outcomes", {

@@ -2,7 +2,7 @@
 % Please edit documentation in R/run-store.R
 \name{new_run_store}
 \alias{new_run_store}
-\title{Create a run store backed by memory or the filesystem.}
+\title{Create a filesystem run store.}
 \usage{
 new_run_store(
   result_path = NULL,
@@ -15,7 +15,7 @@ new_run_store(
 )
 }
 \arguments{
-\item{result_path}{NULL for memory, otherwise a filesystem directory.}
+\item{result_path}{Filesystem directory, or NULL to disable checkpoint storage.}
 
 \item{config_fingerprint}{Study fingerprint.}
 
@@ -29,9 +29,10 @@ ledger history are never pruned, so durable storage grows roughly
 linearly with completed tasks.}
 }
 \value{
-An internal run-store object with initialize/read/write methods.
+An internal run-store object with initialize/read/write methods,
+or NULL when result_path is NULL.
 }
 \description{
-Create a run store backed by memory or the filesystem.
+Create a filesystem run store.
 }
 \keyword{internal}
