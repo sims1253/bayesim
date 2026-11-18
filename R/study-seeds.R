@@ -29,7 +29,7 @@
 # with column order, types and attributes. 1L and 1 are different conditions,
 # because a function can tell them apart.
 .condition_keys <- function(rows) {
-  vapply(rows, .digest, character(1), USE.NAMES = FALSE)
+  vapply(rows, .value_id, character(1), USE.NAMES = FALSE)
 }
 
 # The L'Ecuyer-CMRG state for a stream name. Each of the six seed words takes

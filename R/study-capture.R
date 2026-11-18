@@ -10,10 +10,10 @@
 # reference; they serialise as a namespace reference and resolve on the worker
 # when the package is installed there.
 #
-# The same walk yields the function's identity: a digest of its formals, its
-# body (without source references or comments), and the identities of every
-# captured value. Package functions are identified by package and name only,
-# so changes inside installed packages do not change identities.
+# The identity of a function is a digest of .stable(): its formals and body
+# (without source references or comments), and everything it can reach
+# through its free variables, nested closures, environments and formulas
+# included. Package functions count by package, version and name.
 
 .capture_limit <- function() {
   getOption("bayesim.capture_limit", 10 * 1024^2)
@@ -23,7 +23,8 @@
 .capture_function <- function(f, label) {
   state <- new.env(parent = emptyenv())
   state$seen <- list()
-  .capture_rec(f, label, label, state)
+  fn <- .capture_rec(f, label, label, state)$fn
+  list(fn = fn, id = .value_id(f))
 }
 
 .capture_rec <- function(f, label, path, state) {
@@ -31,29 +32,28 @@
     cli::cli_abort("{label} must be a function.", call = NULL)
   }
   if (is.primitive(f)) {
-    return(list(fn = f, id = .digest(list("primitive", deparse(f)))))
+    return(list(fn = f))
   }
   env <- environment(f)
   if (.is_shared_env(env)) {
     # Package function passed directly: it travels as a namespace reference.
-    return(list(fn = f, id = .digest(list("package", .fn_shape(f)))))
+    return(list(fn = f))
   }
   for (s in state$seen) {
     if (identical(s$original, f)) {
-      return(list(fn = s$fn, id = s$id %||% .digest(list("cycle", path))))
+      return(list(fn = s$fn))
     }
   }
   crate_env <- new.env(parent = baseenv())
   crated <- utils::removeSource(f)
   environment(crated) <- crate_env
   slot <- length(state$seen) + 1L
-  state$seen[[slot]] <- list(original = f, fn = crated, id = NULL)
+  state$seen[[slot]] <- list(original = f, fn = crated)
 
   names <- sort(unique(unlist(
     codetools::findGlobals(f, merge = FALSE),
     use.names = FALSE
   )))
-  ids <- list()
   for (name in names) {
     home <- .find_binding(name, env)
     if (is.null(home) || .is_base_env(home)) {
@@ -64,23 +64,18 @@
     value <- get(name, envir = home, inherits = FALSE)
     if (.is_shared_env(home)) {
       assign(name, value, envir = crate_env)
-      ids[[name]] <- list("package", .env_label(home), name)
       next
     }
     where <- paste0(path, "$", name)
     if (is.function(value)) {
       inner <- .capture_rec(value, label, where, state)
       assign(name, inner$fn, envir = crate_env)
-      ids[[name]] <- inner$id
     } else {
       .check_capturable(value, label, name)
       assign(name, value, envir = crate_env)
-      ids[[name]] <- .value_id(value)
     }
   }
-  id <- .digest(list("closure", .fn_shape(crated), ids))
-  state$seen[[slot]]$id <- id
-  list(fn = crated, id = id)
+  list(fn = crated)
 }
 
 .fn_shape <- function(f) {
@@ -116,23 +111,249 @@
   if (isNamespace(env)) getNamespaceName(env) else environmentName(env)
 }
 
-# Identity of a captured value. Formulas count by their text, because their
-# environment changes from session to session.
+# Identity of a captured value: a digest of everything a function can reach
+# through it. See .stable().
 .value_id <- function(value) {
-  .digest(list("value", .stable_value(value)))
+  .digest(list("value", .stable(value)))
 }
 
-.stable_value <- function(value) {
-  if (inherits(value, "formula")) {
-    return(list("formula", deparse(value)))
+# A form of `x` that digests the same in every session and changes when
+# anything reachable from `x` changes:
+#
+# * Atomic values and lists carry their attributes, classed lists included.
+# * A closure counts by its formals and body, the packages its body names
+#   with `::`, and the values of its free variables, looked up the way R
+#   looks them up. Values in other bindings of its environment do not count.
+# * A package function counts by package, version and name. Its body does
+#   not count, because the version names it.
+# * A primitive counts by name.
+# * A formula counts by its text and the values that its environment gives
+#   to the names in it.
+# * An environment counts by all its bindings and its parents. Namespaces,
+#   package environments and the global environment count by name only.
+# * Closures and environments that the walk has already entered count by
+#   their place in the walk, so cycles end.
+.stable <- function(x, state = .stable_state()) {
+  if (is.null(x)) {
+    return(NULL)
   }
-  if (is.function(value)) {
-    return(list("function", .fn_shape(value)))
+  if (is.function(x)) {
+    return(.stable_function(x, state))
   }
-  if (is.list(value) && !is.data.frame(value) && is.null(attr(value, "class"))) {
-    return(lapply(value, .stable_value))
+  if (is.environment(x)) {
+    return(.stable_env(x, state))
   }
-  value
+  if (inherits(x, "formula")) {
+    return(.stable_formula(x, state))
+  }
+  attrs <- .stable_attrs(attributes(x), state)
+  if (isS4(x)) {
+    return(list("S4", typeof(x), attrs))
+  }
+  if (is.list(x)) {
+    y <- unclass(x)
+    items <- lapply(seq_along(y), function(i) .stable(y[[i]], state))
+    return(list("list", typeof(x), items, attrs))
+  }
+  if (is.null(attrs)) {
+    return(x)
+  }
+  attributes(x) <- NULL
+  list("attributes", x, attrs)
+}
+
+.stable_state <- function() {
+  state <- new.env(parent = emptyenv())
+  state$seen <- list()
+  state
+}
+
+.stable_attrs <- function(attrs, state) {
+  attrs$srcref <- NULL
+  attrs$srcfile <- NULL
+  attrs$wholeSrcref <- NULL
+  if (!length(attrs)) {
+    return(NULL)
+  }
+  attrs <- attrs[order(names(attrs))]
+  lapply(attrs, .stable, state = state)
+}
+
+# The place of `x` in the walk if the walk has entered it, or NULL after
+# entering it now.
+.stable_enter <- function(x, state) {
+  for (i in seq_along(state$seen)) {
+    if (identical(state$seen[[i]], x)) {
+      return(list("seen", i))
+    }
+  }
+  state$seen[[length(state$seen) + 1L]] <- x
+  NULL
+}
+
+.stable_function <- function(f, state) {
+  if (is.primitive(f)) {
+    return(list("primitive", .primitive_name(f)))
+  }
+  env <- environment(f)
+  if (.is_shared_env(env)) {
+    return(.stable_package_function(f, env))
+  }
+  seen <- .stable_enter(f, state)
+  if (!is.null(seen)) {
+    return(seen)
+  }
+  names <- sort(unique(unlist(
+    codetools::findGlobals(f, merge = FALSE),
+    use.names = FALSE
+  )))
+  free <- list()
+  for (name in names) {
+    home <- .find_binding(name, env)
+    if (is.null(home) || .is_base_env(home)) {
+      next
+    }
+    free[[name]] <- if (.is_shared_env(home)) {
+      # An import environment holds other packages' functions; such a
+      # function counts with the package that defines it.
+      value <- .get_binding(name, home)
+      owner <- if (is.function(value) && !is.primitive(value)) environment(value)
+      pkg <- .env_package(if (!is.null(owner) && .is_shared_env(owner)) owner else home)
+      list("package", pkg, .package_version(pkg), name)
+    } else {
+      .stable(.get_binding(name, home), state)
+    }
+  }
+  pkgs <- sort(unique(.qualified_packages(body(f))))
+  list(
+    "closure",
+    .fn_shape(f),
+    free,
+    lapply(stats::setNames(nm = pkgs), .package_version),
+    .stable_attrs(attributes(f), state)
+  )
+}
+
+.stable_package_function <- function(f, env) {
+  pkg <- .env_package(env)
+  name <- .namespace_name(f, env)
+  list(
+    "package",
+    pkg,
+    .package_version(pkg),
+    name %||% .fn_shape(f)
+  )
+}
+
+.stable_env <- function(e, state) {
+  if (identical(e, globalenv())) {
+    return(list("environment", "global"))
+  }
+  if (.is_shared_env(e)) {
+    return(list("environment", .env_label(e)))
+  }
+  seen <- .stable_enter(e, state)
+  if (!is.null(seen)) {
+    return(seen)
+  }
+  names <- sort(ls(e, all.names = TRUE))
+  values <- lapply(names, function(name) {
+    if (bindingIsActive(name, e)) "active binding" else .stable(.get_binding(name, e), state)
+  })
+  list(
+    "environment",
+    names,
+    values,
+    .stable_env(parent.env(e), state),
+    .stable_attrs(attributes(e), state)
+  )
+}
+
+.stable_formula <- function(x, state) {
+  env <- environment(x)
+  values <- list()
+  if (is.environment(env)) {
+    for (name in sort(unique(all.names(x)))) {
+      home <- .find_binding(name, env)
+      if (is.null(home) || .is_shared_env(home)) {
+        next
+      }
+      values[[name]] <- .stable(.get_binding(name, home), state)
+    }
+  }
+  attrs <- attributes(x)
+  attrs$.Environment <- NULL
+  text <- x
+  attributes(text) <- NULL
+  list("formula", deparse(text), values, .stable_attrs(attrs, state))
+}
+
+# A binding's value. A binding can hold the missing argument, which get()
+# cannot return.
+.get_binding <- function(name, env) {
+  tryCatch(
+    get(name, envir = env, inherits = FALSE),
+    error = function(e) list("unreadable binding", conditionMessage(e))
+  )
+}
+
+.primitive_name <- function(f) {
+  sub('^\\.Primitive\\("(.*)"\\)$', "\\1", deparse(f)[[1L]])
+}
+
+.env_package <- function(env) {
+  if (.is_base_env(env)) {
+    return("base")
+  }
+  sub("^(package|imports):", "", .env_label(env))
+}
+
+# The name under which a namespace holds `f`, or NULL.
+.namespace_name <- function(f, env) {
+  if (!isNamespace(env)) {
+    return(NULL)
+  }
+  for (name in sort(ls(env, all.names = TRUE))) {
+    if (!bindingIsActive(name, env) &&
+        identical(get(name, envir = env, inherits = FALSE), f)) {
+      return(name)
+    }
+  }
+  NULL
+}
+
+# Package names that an expression uses with `::` or `:::`.
+.qualified_packages <- function(expr) {
+  if (!is.call(expr) && !is.pairlist(expr)) {
+    return(character())
+  }
+  out <- character()
+  if (is.call(expr) && length(expr) == 3L &&
+      (identical(expr[[1L]], quote(`::`)) || identical(expr[[1L]], quote(`:::`)))) {
+    out <- as.character(expr[[2L]])
+  }
+  # Index the parts: a part can be the empty symbol of a missing argument,
+  # which cannot be bound to a loop variable and used.
+  parts <- as.list(expr)
+  for (i in seq_along(parts)) {
+    if (is.call(parts[[i]]) || (is.pairlist(parts[[i]]) && length(parts[[i]]))) {
+      out <- c(out, .qualified_packages(parts[[i]]))
+    }
+  }
+  out
+}
+
+# The installed version of a package, or "" when it is not installed. The
+# result is kept for the life of the process.
+.package_versions <- new.env(parent = emptyenv())
+.package_version <- function(pkg) {
+  if (is.null(.package_versions[[pkg]])) {
+    .package_versions[[pkg]] <- tryCatch(
+      as.character(utils::packageVersion(pkg)),
+      error = function(e) ""
+    )
+  }
+  .package_versions[[pkg]]
 }
 
 .check_capturable <- function(value, label, name) {

@@ -114,3 +114,121 @@ test_that("comparisons with one callback and different names have their own rows
     run$comparisons$value[run$comparisons$comparison == "two"]
   ))
 })
+
+# S8 -------------------------------------------------------------------------------
+#
+# For each shape a factory builds a function from a value that the function
+# reaches and a value that it does not. Changing the first must change the
+# identity; changing the second must not.
+
+identity_of <- function(f) bayesim:::.capture_function(f, "f")$id
+
+expect_identity_tracks <- function(factory) {
+  base <- identity_of(factory(1, 1))
+  expect_identical(identity_of(factory(1, 1)), base)
+  expect_false(identical(identity_of(factory(2, 1)), base))
+  expect_identical(identity_of(factory(1, 2)), base)
+}
+
+test_that("a closure in a list counts with what it reaches", {
+  expect_identity_tracks(function(a, b) {
+    g <- local({
+      a <- a
+      b <- b
+      function() a
+    })
+    lst <- list(g = g)
+    function() lst$g()
+  })
+})
+
+test_that("a closure in an environment counts with what it reaches", {
+  expect_identity_tracks(function(a, b) {
+    e <- new.env(parent = emptyenv())
+    e$h <- local({
+      a <- a
+      b <- b
+      function() a
+    })
+    function() e$h()
+  })
+})
+
+test_that("a closure in an attribute counts with what it reaches", {
+  expect_identity_tracks(function(a, b) {
+    x <- structure(1, fn = local({
+      a <- a
+      b <- b
+      function() a
+    }))
+    function() attr(x, "fn")()
+  })
+})
+
+test_that("an object with methods in its own environment counts with its fields", {
+  expect_identity_tracks(function(a, b) {
+    unused <- b
+    self <- new.env(parent = emptyenv())
+    self$a <- a
+    self$get <- function() self$a
+    class(self) <- "counter"
+    function() self$get()
+  })
+})
+
+test_that("a list keeps its attributes in the identity", {
+  expect_identity_tracks(function(a, b) {
+    unused <- b
+    x <- structure(list(1), meta = a)
+    function() attr(x, "meta")
+  })
+})
+
+test_that("a formula counts with the variables its environment gives it", {
+  expect_identity_tracks(function(a, b) {
+    fo <- local({
+      k <- a
+      z <- b
+      y ~ x + k
+    })
+    function(data) stats::model.frame(fo, data)
+  })
+})
+
+test_that("a package function counts by package and version, not by body", {
+  versions <- c(stats = "1.0")
+  local_mocked_bindings(.package_version = function(pkg) {
+    if (pkg %in% names(versions)) versions[[pkg]] else "0"
+  })
+  direct <- identity_of(stats::median)
+  free <- identity_of(function(x) median(x))
+  qualified <- identity_of(function(x) stats::median(x))
+  expect_identical(identity_of(stats::median), direct)
+  versions[["stats"]] <- "2.0"
+  expect_false(identical(identity_of(stats::median), direct))
+  expect_false(identical(identity_of(function(x) median(x)), free))
+  expect_false(identical(identity_of(function(x) stats::median(x)), qualified))
+  # Two functions of one package with equal bodies are still two functions.
+  expect_false(identical(identity_of(stats::median), identity_of(stats::quantile)))
+})
+
+test_that("primitives count by name", {
+  make <- function(p) {
+    ops <- list(p = p)
+    function(x) ops$p(x)
+  }
+  expect_identical(identity_of(make(sum)), identity_of(make(sum)))
+  expect_false(identical(identity_of(make(sum)), identity_of(make(prod))))
+})
+
+test_that("cycles end the walk and still count what they reach", {
+  expect_identity_tracks(function(a, b) {
+    unused <- b
+    e <- new.env(parent = emptyenv())
+    e$self <- e
+    e$a <- a
+    f <- function() e$self$a
+    e$f <- f
+    f
+  })
+})
