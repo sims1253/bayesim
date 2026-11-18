@@ -30,3 +30,5 @@ This directory keeps one file:
 - `prepare()` runs as a job, on a worker, and its value is stored.
 - A failed fit is fitted again with `run_study(retry = TRUE)`.
 - A condition field or method setting named `id` is an error (issue #110).
+  The likelihood case called its source row number `id`; it is now
+  `source_row`.

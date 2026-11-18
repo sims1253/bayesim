@@ -413,3 +413,36 @@ test_that("the likelihood case selection implements the assessment policy contra
   expect_true(all(assessed$measurements$measurement == "performance"))
   expect_equal(nrow(assessed$excluded), 4)
 })
+
+# Deliberate change (#110): a field named `id` would overwrite an identity
+# column, so planning refuses it.
+test_that("a condition field or method setting named id is an error (#110)", {
+  s <- study(
+    "ids",
+    data.frame(condition_id = "a", id = 7L),
+    function(condition, context) rnorm(3)
+  )
+  s <- with_methods(s, m = study_method(function(data, context) mean(data)))
+  expect_error(plan_study(s, 1), "condition_id")
+
+  s <- study("ids", data.frame(condition_id = "a"), function(condition, context) rnorm(3))
+  s <- with_methods(
+    s,
+    m = study_method(function(data, context) mean(data), settings = list(id = 3))
+  )
+  expect_error(plan_study(s, 1), "method_id")
+
+  s <- study("ids", data.frame(condition_id = "a", n = 3L), function(condition, context) rnorm(3))
+  s <- with_methods(
+    s,
+    m = study_method(function(data, context) list(m = mean(data)),
+                     settings = list(scale = 2)),
+    n = study_method(function(data, context) list(m = mean(data)))
+  )
+  s <- with_measure(s, "m", function(artifacts, context) {
+    data.frame(value = artifacts$fit$m)
+  }, needs = "fit")
+  run <- run_study(s, 1)
+  expect_setequal(run$measurements$condition_id, "a")
+  expect_setequal(run$measurements$method_id, c("m", "n"))
+})
