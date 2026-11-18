@@ -83,6 +83,17 @@ noted <- function(calls, what) {
   if (file.exists(calls)) sum(readLines(calls) == what) else 0L
 }
 
+# S29 ------------------------------------------------------------------------------
+
+test_that("two artifact names whose digests share a prefix have two files", {
+  st <- local_store()
+  # The first eight characters of these names' digests are the same.
+  files <- vapply(c("artifact24291", "artifact79363"), function(name) {
+    bayesim:::.artifact_file(st, "artifacts", fit_name(), "1", name)
+  }, character(1))
+  expect_false(files[[1]] == files[[2]])
+})
+
 # S1, S2 ---------------------------------------------------------------------------
 
 claimed <- function(x) !is.null(x) && !isFALSE(x)

@@ -46,8 +46,8 @@
 #   comparisons/<xx>/<key>.rds             one comparison result
 #   claims/<key>/<token>                   a job that some process runs now
 #
-# <xx> is the first two characters of the key, and <h> the first eight of
-# the artifact name's digest. Each record holds a serialised payload and its
+# <xx> is the first two characters of the key, and <h> the digest of the
+# artifact's name. Each record holds a serialised payload and its
 # checksum. There is no index or manifest: the finished work is the set of
 # file names, and a key changes when anything that determines the result
 # changes.
@@ -95,7 +95,7 @@
   )
 }
 
-.store_marker <- "bayesim study store, format 2"
+.store_marker <- "bayesim study store, format 3"
 
 .store_open <- function(path) {
   if (
@@ -191,7 +191,7 @@
   .store_file(
     st,
     kind,
-    paste(fit_key, attempt_id, substr(.hash_text("artifact", name), 1L, 8L), sep = ".")
+    paste(fit_key, attempt_id, .hash_text("artifact", name), sep = ".")
   )
 }
 
