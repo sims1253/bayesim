@@ -33,6 +33,47 @@ test_that("editing a Stan file invalidates the session model cache", {
   expect_match(second$code, "normal(10, 1)", fixed = TRUE)
 })
 
+test_that("restoring an earlier Stan file compiles it again (A -> B -> A)", {
+  withr::local_options(list(bayesim.cmdstan_models = NULL))
+  path <- withr::local_tempfile(fileext = ".stan")
+  code_a <- "parameters { real theta; } model { theta ~ normal(0, 1); }"
+  code_b <- "parameters { real theta; } model { theta ~ normal(10, 1); }"
+  calls <- list()
+  local_mocked_bindings(
+    cmdstan_model = function(stan_file = NULL, ...) {
+      calls[[length(calls) + 1L]] <<- list(
+        code = paste(readLines(stan_file), collapse = "\n"),
+        force_recompile = isTRUE(list(...)$force_recompile)
+      )
+      list(id = length(calls), code = calls[[length(calls)]]$code)
+    },
+    .package = "cmdstanr"
+  )
+  fitter <- CmdStanFitter(
+    stan_file = path,
+    stan_data = function(data_bundle, fit_spec) list()
+  )
+
+  writeLines(code_a, path)
+  bayesim:::.cmdstan_model(fitter)
+  writeLines(code_b, path)
+  bayesim:::.cmdstan_model(fitter)
+  writeLines(code_a, path)
+  third <- bayesim:::.cmdstan_model(fitter)
+
+  expect_length(calls, 3L)
+  expect_identical(third$id, 3L)
+  expect_identical(third$code, code_a)
+  # Each recompile of a changed file must rebuild the shared executable.
+  expect_identical(
+    vapply(calls, `[[`, logical(1), "force_recompile"),
+    c(FALSE, TRUE, TRUE)
+  )
+  # Unchanged contents stay a cache hit.
+  expect_identical(bayesim:::.cmdstan_model(fitter)$id, 3L)
+  expect_length(calls, 3L)
+})
+
 test_that("inline stan_code is compiled from a written Stan file", {
   withr::local_options(list(bayesim.cmdstan_models = NULL))
   code <- "parameters { real theta; } model { theta ~ normal(0, 1); }"
