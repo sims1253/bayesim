@@ -46,12 +46,25 @@ measurements on kept artifacts.
 \details{
 Results do not depend on the backend, the number of workers or the order
 in which jobs finish. Several R processes can run the same study on one
-store at the same time; each job runs once.
+store at the same time. A process claims each job before it runs it, so
+that the others do other work, and usually each job runs once. When a
+claim is older than \code{getOption("bayesim.claim_timeout")} seconds (default
+one day), another process takes the job over. Taking over a job that is
+still running costs only duplicate work: the first record written wins,
+and every run uses it.
 
 An error in a method's \code{fit} is recorded as a failed attempt and the study
-continues. A failed attempt is not tried again unless \code{retry = TRUE}. An
-error in any other function stops the run. Records that finished before the
-error stay in the store.
+continues. A failed attempt is fitted again only by a run with
+\code{retry = TRUE}; a run without it uses the latest failed attempt. A
+successful attempt replaces failed ones for every later run. A run decides
+at its start which record each fit uses, and reports those records, also
+when another process retries a failed fit meanwhile. An error in any other
+function stops the run. Records that finished before the error stay in the
+store.
+
+A new measurement or comparison of an existing fit needs its artifacts.
+When the store did not keep them, the fit runs again on its own stream;
+this gives the same fit when the fit depends only on its seed.
 }
 \seealso{
 \code{\link[=summarise_study]{summarise_study()}}, \code{\link[=assess_study]{assess_study()}}

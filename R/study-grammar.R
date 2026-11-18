@@ -267,6 +267,11 @@ with_comparison <- function(
 #' dataset once instead of generating it again. Artifacts that are not kept
 #' are deleted when no measurement or comparison needs them any more.
 #'
+#' Retention changes only what a later run must compute again, not its
+#' results. A later run that needs an artifact that was not kept fits again
+#' on the same stream, which gives the same fit when the fit depends only on
+#' its seed.
+#'
 #' @param study A [study()] declaration.
 #' @param artifacts Names of artifacts to keep.
 #' @param compress Compression for stored artifacts: `"gzip"`, `"bzip2"`

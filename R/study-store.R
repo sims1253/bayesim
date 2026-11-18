@@ -1,30 +1,67 @@
 # Content-addressed study store ---------------------------------------------
 #
+# Invariants. The store, the jobs and the runs keep these. A change that
+# breaks one is a bug, also when no test catches it.
+#
+# 1. The store is correct without claims. Claims save duplicate work; they
+#    guard nothing. Two processes that run the same job at once must leave a
+#    consistent store: every record complete, and every reference pointing to
+#    the output of one and the same attempt.
+# 2. A key names one result. Everything a callback can observe is in the
+#    key, and nothing else is.
+# 3. A run reports what it used. It decides once, per job, which record it
+#    uses, collects exactly those records, and does not list the store again
+#    at the end.
+# 4. Retention trades space for time, never for correctness. An input that
+#    was discarded and is needed again is computed again.
+# 5. A job sees the same inputs on every backend and in every order. No job
+#    can observe what another job did to a shared object.
+#
+# How the store keeps invariant 1:
+#
+# * Every file is written once. A writer writes a temporary file and links
+#   it to its final name. The link fails when the name exists, so of two
+#   writers exactly one wins, and the other uses the file that won.
+# * Every fit attempt has an ID. The artifacts of an attempt are files named
+#   by that ID, and the record of the attempt holds it. A comparison key
+#   names the attempts that the comparison read. A record therefore never
+#   points to the artifacts of another attempt, and the loser of a race
+#   deletes only its own files.
+# * A record is published after everything it promises: its retained
+#   artifacts and, when the data are retained, its dataset.
+#
 # Layout under the store directory:
 #
-#   bayesim-store                       marker, written once
-#   fits/<xx>/<fit>-<measures>.rds      a fit and its measurements
-#   fits/<xx>/<fit>.failed.rds          a fit that failed
-#   artifacts/<xx>/<fit>.rds            artifacts kept after the fit
-#   datasets/<xx>/<dataset>.rds         generated data, when retained
-#   prepared/<xx>/<prepare>.rds         the value of prepare() for a condition
-#   comparisons/<xx>/<key>.rds          one artifact-consuming comparison
-#   claims/<key>/                       a job that some process runs now
+#   bayesim-store                          marker, written once
+#   fits/<xx>/<fit>-<measures>.rds         a successful attempt and its
+#                                          measurements
+#   fits/<xx>/<fit>.failed.<attempt>.rds   a failed attempt; never deleted
+#   artifacts/<xx>/<fit>.<attempt>.<h>.rds one retained artifact of an attempt
+#   transient/<xx>/<fit>.<attempt>.<h>.rds one artifact that only
+#                                          comparisons need; the comparison
+#                                          job deletes it
+#   datasets/<xx>/<dataset>.rds            generated data, when retained
+#   prepared/<xx>/<prepare>.rds            the value of prepare() for a
+#                                          condition
+#   comparisons/<xx>/<key>.rds             one comparison result
+#   claims/<key>/<token>                   a job that some process runs now
 #
-# <xx> is the first two characters of the key. Each record holds a serialised
-# payload and its checksum. Every file is written to a temporary name in its
-# final directory and then renamed, so a reader sees the whole file or none of
-# it. There is no index or manifest: the finished work is the set of file
-# names, and a key changes when anything that determines the result changes.
+# <xx> is the first two characters of the key, and <h> the first eight of
+# the artifact name's digest. Each record holds a serialised payload and its
+# checksum. There is no index or manifest: the finished work is the set of
+# file names, and a key changes when anything that determines the result
+# changes.
 
-.store_kinds <- c("fits", "artifacts", "datasets", "prepared", "comparisons")
+.store_kinds <- c(
+  "fits", "artifacts", "transient", "datasets", "prepared", "comparisons"
+)
 
 # Store trace ----------------------------------------------------------------
 #
-# Every read, write, directory walk and claim goes through one of four
-# functions, and each reports itself to .trace_op(). The tests count these
-# operations to check how much work a run does without timing it. When no
-# trace is on, the cost is one test of a logical.
+# Every read, write, deletion, directory walk, probe, claim and release goes
+# through a function that reports itself to .trace_op(). The tests count
+# these operations to check how much work a run does without timing it. When
+# no trace is on, the cost is one test of a logical.
 
 .store_trace <- new.env(parent = emptyenv())
 .store_trace$on <- FALSE
@@ -57,7 +94,8 @@
     )
   )
 }
-.store_marker <- "bayesim study store, format 1"
+
+.store_marker <- "bayesim study store, format 2"
 
 .store_open <- function(path) {
   if (
@@ -123,6 +161,60 @@
   out
 }
 
+# Fit records -------------------------------------------------------------------
+#
+# A fit key has 40 characters. The record of a successful attempt is
+# `<fit>-<measures>`, and that of a failed attempt `<fit>.failed.<attempt>`.
+
+.fit_key_of <- function(names) substr(names, 1L, 40L)
+.is_success_record <- function(names) substr(names, 41L, 41L) == "-"
+.is_failure_record <- function(names) substr(names, 41L, 48L) == ".failed."
+
+.failure_record <- function(fit_key, attempt_id) {
+  paste0(fit_key, ".failed.", attempt_id)
+}
+
+# The failure records of one fit, from one listing of its shard.
+.fit_failures <- function(st, fit_key) {
+  dir <- file.path(st$fits, substr(fit_key, 1L, 2L))
+  .trace_op("probe", dir)
+  files <- list.files(
+    dir,
+    pattern = paste0("^", fit_key, "\\.failed\\..*\\.rds$")
+  )
+  sub("\\.rds$", "", files)
+}
+
+# The file of one artifact of one attempt, in `kind` "artifacts" or
+# "transient".
+.artifact_file <- function(st, kind, fit_key, attempt_id, name) {
+  .store_file(
+    st,
+    kind,
+    paste(fit_key, attempt_id, substr(.hash_text("artifact", name), 1L, 8L), sep = ".")
+  )
+}
+
+# Attempt IDs sort by the time they were made: milliseconds since the epoch,
+# then the process nonce and a counter. The smallest ID of a fit is its
+# canonical attempt.
+.attempt_id <- function() {
+  paste0(
+    sprintf("%013.0f", floor(as.numeric(Sys.time()) * 1000)),
+    .process_nonce(),
+    sprintf("%09d", as.integer(.next_tmp_id()))
+  )
+}
+
+# Writing ----------------------------------------------------------------------
+
+# Write `x` to `path` once. The writer writes a temporary file in the final
+# directory, then links it to `path`. A link fails when `path` exists, so of
+# several processes that write one path, exactly one wins. Returns TRUE when
+# this call put the file in place and FALSE when the file was already there.
+#
+# On a file system without hard links, the temporary file is renamed
+# instead. A rename replaces an existing file, so there the last writer wins.
 .write_atomic <- function(x, path, writer) {
   dir <- dirname(path)
   if (!dir.exists(dir)) {
@@ -132,10 +224,22 @@
   on.exit(if (file.exists(tmp)) unlink(tmp), add = TRUE)
   .trace_op("write", path)
   writer(x, tmp)
+  if (suppressWarnings(file.link(tmp, path))) {
+    return(invisible(TRUE))
+  }
+  if (file.exists(path)) {
+    return(invisible(FALSE))
+  }
   if (!file.rename(tmp, path)) {
     cli::cli_abort("Could not write {.path {path}}.")
   }
-  invisible(path)
+  invisible(TRUE)
+}
+
+# Delete store files that this process wrote and no longer uses.
+.store_delete <- function(paths) {
+  for (p in paths) .trace_op("delete", p)
+  unlink(paths)
 }
 
 # A temporary name is unique across hosts and processes: it holds the host,
@@ -183,11 +287,11 @@
 
 .checksum <- function(payload) .vdigest("xxhash64")(payload)
 
-# A record is an RDS file. Without compression its bytes are those of
-# serialize(), so both sides skip the connection that saveRDS() and readRDS()
-# open.
-.write_payload <- function(value, path, compress = FALSE) {
-  payload <- serialize(value, NULL, xdr = FALSE)
+# A record is an RDS file of a list that holds the serialised payload and
+# its checksum. Without compression its bytes are those of serialize(), so
+# both sides skip the connection that saveRDS() and readRDS() open.
+# Returns TRUE when this call wrote the record and FALSE when it existed.
+.write_raw <- function(payload, path, compress = FALSE) {
   record <- list(payload = payload, checksum = .checksum(payload))
   .write_atomic(
     record,
@@ -198,6 +302,10 @@
       function(x, f) saveRDS(x, f, compress = compress)
     }
   )
+}
+
+.write_payload <- function(value, path, compress = FALSE) {
+  .write_raw(serialize(value, NULL, xdr = FALSE), path, compress)
 }
 
 .read_record <- function(path, size = NULL) {
@@ -211,13 +319,15 @@
   }
 }
 
-# `size` lets a caller that reads many records stat them in one call. A
-# size taken before the file changed reads too few or too many bytes; the
-# record then fails its check, and the file is read again with a fresh size.
-.read_payload <- function(path, size = NULL) {
+# The checked payload bytes of a record. `size` lets a caller that reads
+# many records stat them in one call. A size that does not match the file
+# makes the record fail its check; the file is then read again with a fresh
+# size. Records are written once, so this happens only when a user replaced
+# a file.
+.read_raw <- function(path, size = NULL) {
   record <- tryCatch(.read_record(path, size), error = function(e) e)
   if (!is.null(size) && !.record_ok(record)) {
-    return(.read_payload(path))
+    return(.read_raw(path))
   }
   if (inherits(record, "error")) {
     cli::cli_abort("Unreadable study record {.path {path}}.", parent = record)
@@ -228,7 +338,11 @@
       i = "Delete the file to compute it again."
     ))
   }
-  unserialize(record$payload)
+  record$payload
+}
+
+.read_payload <- function(path, size = NULL) {
+  unserialize(.read_raw(path, size))
 }
 
 .record_ok <- function(record) {
@@ -249,13 +363,33 @@
   if (.store_has(path)) .read_payload(path) else NULL
 }
 
+# Publish `value` at `path` unless a record is there. Returns the payload
+# bytes of the record that is in the store afterwards: this call's, or the
+# one that another process wrote first.
+.publish_raw <- function(payload, path, compress = FALSE) {
+  if (.write_raw(payload, path, compress)) payload else .read_raw(path)
+}
+
 # Claims ---------------------------------------------------------------------
 #
-# A claim is a directory, because creating a directory is atomic and fails if
-# it exists. The name of the one empty file in it holds the owner's host,
-# process ID and start time. A claim is stale when its owner is a dead process
-# on this host, or when it is older than
-# `getOption("bayesim.claim_timeout")` seconds (default one day).
+# A claim says that some process runs a job now, so that other processes
+# can do other work. By invariant 1, a claim guards nothing: a job that two
+# processes run at once costs only duplicate work.
+#
+# A claim is a directory `claims/<key>` that holds one empty file, the
+# token. The token names its owner: `<host>_<pid>_<ms>_<nonce>`. To claim,
+# a process makes a directory with its token under a temporary name and
+# renames it to the claim's name. The rename fails when the claim exists
+# and holds a token. To take over a stale claim, a process renames the old
+# token to its own. A rename of one file succeeds once, so of several
+# processes that take over one claim, exactly one wins.
+#
+# A claim is stale when this process made it and no longer holds it, when
+# its owner is a dead process on this host, or when it is older than
+# `getOption("bayesim.claim_timeout")` seconds (default one day). A process
+# releases only a claim that holds its own token.
+
+.claims_held <- new.env(parent = emptyenv())
 
 .host <- function() {
   .tmp_counter$host <- .tmp_counter$host %||%
@@ -263,53 +397,92 @@
   .tmp_counter$host
 }
 
+.claim_token <- function() {
+  paste(
+    .host(),
+    Sys.getpid(),
+    sprintf("%.0f", floor(as.numeric(Sys.time()) * 1000)),
+    paste0(.process_nonce(), "-", .next_tmp_id()),
+    sep = "_"
+  )
+}
+
+# Claim the job `key`. Returns the token, or NULL when another process holds
+# the claim.
 .claim <- function(st, key) {
   dir <- file.path(st$claims, key)
-  if (.claim_once(dir)) {
-    return(TRUE)
+  token <- .claim_token()
+  stage <- file.path(st$claims, paste0(".tmp-", token))
+  dir.create(stage, showWarnings = FALSE)
+  on.exit(unlink(stage, recursive = TRUE), add = TRUE)
+  file.create(file.path(stage, token))
+  won <- function() {
+    .claims_held[[token]] <- key
+    .trace_op("claim", dir)
+    token
   }
-  if (.claim_stale(dir)) {
-    unlink(dir, recursive = TRUE)
-    return(.claim_once(dir))
-  }
-  FALSE
-}
-
-.claim_once <- function(dir) {
-  if (!dir.create(dir, showWarnings = FALSE)) {
-    return(FALSE)
-  }
-  .trace_op("claim", dir)
-  file.create(file.path(
-    dir,
-    paste(.host(), Sys.getpid(), sprintf("%.3f", unclass(Sys.time())), sep = "_")
-  ))
-  TRUE
-}
-
-.claim_stale <- function(dir) {
-  owner <- strsplit(list.files(dir)[1L], "_", fixed = TRUE)[[1L]]
-  if (length(owner) < 3L) {
-    # The owner may still be writing its details. Trust it for a minute.
-    age <- as.numeric(Sys.time()) - as.numeric(file.mtime(dir))
-    return(is.finite(age) && age > 60)
-  }
-  started <- as.numeric(owner[3])
-  timeout <- getOption("bayesim.claim_timeout", 24 * 3600)
-  if (is.finite(started) && as.numeric(Sys.time()) - started > timeout) {
-    return(TRUE)
-  }
-  if (identical(owner[1], .host()) && .Platform$OS.type == "unix") {
-    pid <- as.integer(owner[2])
-    if (identical(pid, Sys.getpid())) {
-      # Left by an earlier, interrupted call in this process.
-      return(TRUE)
+  for (try in 1:5) {
+    # A rename onto a missing or empty directory succeeds.
+    if (suppressWarnings(file.rename(stage, dir))) {
+      return(won())
     }
+    owners <- list.files(dir)
+    if (!length(owners)) {
+      # Released meanwhile.
+      next
+    }
+    old <- owners[[1L]]
+    if (!.claim_stale(old)) {
+      return(NULL)
+    }
+    if (suppressWarnings(file.rename(file.path(dir, old), file.path(dir, token)))) {
+      return(won())
+    }
+  }
+  NULL
+}
+
+.claim_stale <- function(token) {
+  owner <- strsplit(token, "_", fixed = TRUE)[[1L]]
+  if (length(owner) != 4L) {
+    # Not a token of this format. Its owner cannot be known.
+    return(TRUE)
+  }
+  pid <- suppressWarnings(as.integer(owner[[2L]]))
+  here <- identical(owner[[1L]], .host())
+  if (here && identical(pid, Sys.getpid())) {
+    return(is.null(.claims_held[[token]]))
+  }
+  started <- as.numeric(owner[[3L]]) / 1000
+  timeout <- getOption("bayesim.claim_timeout", 24 * 3600)
+  if (!is.finite(started) || as.numeric(Sys.time()) - started > timeout) {
+    return(TRUE)
+  }
+  if (here && .Platform$OS.type == "unix" && !is.na(pid)) {
     return(!isTRUE(tools::pskill(pid, signal = 0L)))
   }
   FALSE
 }
 
-.release <- function(st, key) {
-  unlink(file.path(st$claims, key), recursive = TRUE)
+# Whether a live claim on `key` exists.
+.claim_busy <- function(st, key) {
+  owners <- list.files(file.path(st$claims, key))
+  length(owners) > 0L && !.claim_stale(owners[[1L]])
+}
+
+.release <- function(st, key, token) {
+  if (is.null(token)) {
+    return(invisible(FALSE))
+  }
+  if (!is.null(.claims_held[[token]])) {
+    rm(list = token, envir = .claims_held)
+  }
+  dir <- file.path(st$claims, key)
+  .trace_op("release", dir)
+  mine <- suppressWarnings(file.remove(file.path(dir, token)))
+  if (mine) {
+    # Fails when another process has claimed the job meanwhile.
+    suppressWarnings(file.remove(dir))
+  }
+  invisible(mine)
 }

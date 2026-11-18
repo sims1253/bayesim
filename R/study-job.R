@@ -3,16 +3,25 @@
 # A job is one unit of work that a backend runs: prepare a condition, fit one
 # method to one dataset (or measure an existing fit again), or run the
 # artifact comparisons of one dataset. Workers read inputs from the store and
-# write their records to it. They return only a short status, so the
-# controller never receives fits, artifacts or measurement rows.
+# write their records to it. They return only a short status and the name of
+# the record they used, so the controller never receives fits or artifacts.
 #
-# The worker is a closure over the run specification. A backend sends it to
+# The worker that runs a job holds its claim, from before it starts until
+# after it has published, and only that worker releases it. The controller
+# holds no claims. A worker that finds the claim held returns "busy"; one
+# that finds the job done after it has claimed it returns the record and
+# `ran = FALSE`.
+#
+# The worker holds the run specification serialised. A backend sends it to
 # each process once; each job is then a short list of indices and keys.
+# Each job unserialises its own copy, so that no job can see what another
+# did to an environment that the study's functions capture (invariant 5).
 
 .make_worker <- function(spec) {
-  force(spec)
+  payload <- serialize(spec, NULL)
+  rm(spec)
   cache <- new.env(parent = emptyenv())
-  function(job) .run_job(job, spec, cache)
+  function(job) .run_job(job, unserialize(payload), cache)
 }
 
 # Run one job. An error in `fit` becomes a failed record. Any other error is
@@ -23,6 +32,19 @@
   # The caller's state is restored by run_study().
   if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
     stats::runif(1L)
+  }
+  st <- .job_store(spec)
+  token <- NULL
+  on.exit(.release(st, job$key, token), add = TRUE)
+  token <- .claim(st, job$key)
+  if (is.null(token)) {
+    return(list(kind = job$kind, status = "busy", ran = FALSE))
+  }
+  done <- .job_done(job, spec, st)
+  if (!is.null(done)) {
+    done$kind <- job$kind
+    done$ran <- FALSE
+    return(done)
   }
   cache$stage <- job$kind
   cache$warnings <- character()
@@ -53,12 +75,46 @@
     }
   )
   out$kind <- job$kind
+  out$ran <- TRUE
   out$seconds <- proc.time()[["elapsed"]] - started
   out$warnings <- length(cache$warnings)
   out
 }
 
+# The output of a job that another process finished, or NULL. A failed
+# attempt counts only for a new fit and only without `retry`.
+.job_done <- function(job, spec, st) {
+  if (job$kind == "prepare") {
+    if (.store_has(.store_file(st, "prepared", job$key))) {
+      return(list(status = "success"))
+    }
+  } else if (job$kind == "fit") {
+    record <- paste0(job$fit_key, "-", job$mhash)
+    if (.store_has(.store_file(st, "fits", record))) {
+      return(list(status = "success", record = record))
+    }
+    if (job$mode == "fit" && !isTRUE(spec$retry)) {
+      failures <- .fit_failures(st, job$fit_key)
+      if (length(failures)) {
+        return(list(status = "failed", record = .latest(failures)))
+      }
+    }
+  } else if (all(.store_has(.store_file(st, "comparisons", job$keys)))) {
+    return(list(status = "success"))
+  }
+  NULL
+}
+
+# Attempt IDs sort by time, so the last name is the latest attempt.
+.latest <- function(names) {
+  sort(names, method = "radix")[[length(names)]]
+}
+
 # Inputs ----------------------------------------------------------------------
+#
+# The caches of a worker hold serialised values. Every job, the first
+# included, gets its own copy, so that a job that changes a dataset or a
+# prepared value in place does not change what the next job sees.
 
 .job_store <- function(spec) .store_handle(spec$root)
 
@@ -68,19 +124,22 @@
   }
   key <- spec$prepare_keys[[cidx]]
   cache$prepared <- cache$prepared %||% list()
-  if (!is.null(cache$prepared[[key]])) {
-    return(cache$prepared[[key]]$value)
-  }
-  file <- .store_file(.job_store(spec), "prepared", key)
-  if (!.store_has(file)) {
-    cli::cli_abort(
-      "The prepared value for condition {.val {spec$condition_ids[[cidx]]}} is missing from the store."
+  raw <- cache$prepared[[key]]
+  if (is.null(raw)) {
+    file <- .store_file(.job_store(spec), "prepared", key)
+    if (!.store_has(file)) {
+      cli::cli_abort(
+        "The prepared value for condition {.val {spec$condition_ids[[cidx]]}} is missing from the store."
+      )
+    }
+    raw <- .read_raw(file)
+    # Keep the last few conditions; a worker usually sees one at a time.
+    cache$prepared <- utils::tail(
+      c(cache$prepared, stats::setNames(list(raw), key)),
+      8L
     )
   }
-  value <- .read_payload(file)
-  # Keep the last few conditions; a worker usually sees one at a time.
-  cache$prepared <- utils::tail(c(cache$prepared, stats::setNames(list(value), key)), 8L)
-  value$value
+  unserialize(raw)
 }
 
 .job_context <- function(job, spec, cache) {
@@ -99,31 +158,36 @@
 }
 
 # The dataset: from this process's cache, from the store when it is retained,
-# or generated again on its own stream.
+# or generated again on its own stream. When the data are retained, a
+# generated dataset is published at once, and a process that loses the race
+# uses the dataset that won. Every fit on one dataset thus sees the stored
+# dataset.
 .job_data <- function(job, context, spec, cache) {
-  if (identical(cache$data_id, job$dataset_id)) {
-    return(cache$data)
-  }
-  st <- .job_store(spec)
-  file <- .store_file(st, "datasets", job$dataset_id)
-  data <- if (.store_has(file)) {
-    .read_payload(file)$data
-  } else {
-    cache$stage <- "generate"
-    value <- .invoke(
-      c("data", job$dataset_id),
-      spec$cap$generate,
-      condition = context$condition,
-      context = context
-    )
-    if ("data" %in% spec$retention) {
-      .write_payload(list(data = value), file, compress = spec$compress)
+  if (!identical(cache$data_id, job$dataset_id)) {
+    cache$data_id <- NULL
+    st <- .job_store(spec)
+    file <- .store_file(st, "datasets", job$dataset_id)
+    raw <- if (.store_has(file)) {
+      .read_raw(file)
+    } else {
+      cache$stage <- "generate"
+      value <- .invoke(
+        c("data", job$dataset_id),
+        spec$cap$generate,
+        condition = context$condition,
+        context = context
+      )
+      raw <- serialize(value, NULL, xdr = FALSE)
+      rm(value)
+      if ("data" %in% spec$retention) {
+        raw <- .publish_raw(raw, file, spec$compress)
+      }
+      raw
     }
-    value
+    cache$data_raw <- raw
+    cache$data_id <- job$dataset_id
   }
-  cache$data_id <- job$dataset_id
-  cache$data <- data
-  data
+  unserialize(cache$data_raw)
 }
 
 # Prepare ----------------------------------------------------------------------
@@ -138,7 +202,7 @@
     context = list(condition = condition)
   )
   .write_payload(
-    list(value = value),
+    value,
     .store_file(.job_store(spec), "prepared", key),
     compress = spec$compress
   )
@@ -160,120 +224,137 @@
     }
     data[[1L]]
   }
+  record <- paste0(job$fit_key, "-", job$mhash)
 
   if (identical(job$mode, "remeasure")) {
-    old <- .read_payload(.store_file(st, "fits", job$old))
-    if (!identical(old$extract_id, method$extract_id)) {
-      cli::cli_abort(c(
-        "Extractor recipe changed for cached method {.val {method_id}}.",
-        i = "Change the method version to fit again."
-      ))
-    }
-    attempt <- old$attempt
-    cached <- old$measurements
-    artifacts <- .read_if(.store_file(st, "artifacts", job$fit_key)) %||%
-      list()
-    missing <- setdiff(spec$retention, c("data", names(artifacts)))
-    if (length(missing)) {
-      cli::cli_abort(c(
-        "Requested retention needs discarded artifacts: {paste(missing, collapse = ', ')}.",
-        i = "Use a new store path to fit again with these artifacts kept."
-      ))
-    }
-    kept <- NULL
-  } else {
-    get_data()
-    cache$stage <- "fit"
-    fit_started <- proc.time()[["elapsed"]]
-    fit <- tryCatch(
-      list(
-        value = .invoke(
-          c("fit", job$dataset_id, method_id),
-          method$fit,
-          data = data[[1L]],
-          context = context
-        )
-      ),
-      error = function(e) list(error = conditionMessage(e))
-    )
-    attempt <- list(
-      status = if (is.null(fit$error)) "success" else "failed",
-      error = fit$error %||% NA_character_,
-      elapsed = proc.time()[["elapsed"]] - fit_started,
-      warnings = .job_warnings(cache)
-    )
-    failed_file <- .store_file(st, "fits", job$fit_key, ".failed.rds")
-    if (!is.null(fit$error)) {
-      .write_payload(
-        list(attempt = attempt, extract_id = method$extract_id),
-        failed_file
-      )
-      return(list(status = "failed", record = paste0(job$fit_key, ".failed")))
-    }
-    artifacts <- list()
-    cache$stage <- "extract"
-    for (name in spec$required[spec$required != "data"]) {
-      artifacts[name] <- list(
-        if (name == "fit") {
-          fit$value
-        } else {
-          .invoke(
-            c("extract", job$dataset_id, method_id, name),
-            method$extract[[name]],
-            fit = fit$value,
-            data = data[[1L]],
-            context = context
-          )
-        }
-      )
-    }
-    rm(fit)
-    cached <- list()
-    kept <- unique(c(spec$retention, spec$comparison_needs))
-    kept <- kept[kept %in% names(artifacts)]
+    return(.job_remeasure(job, spec, cache, st, method, context, get_data, record))
   }
 
-  measurements <- list()
-  for (name in names(spec$cap$measures)) {
-    measure <- spec$cap$measures[[name]]
-    old <- cached[[name]]
-    if (!is.null(old) && identical(old$id, measure$id)) {
-      measurements[[name]] <- old
-      next
-    }
-    cache$stage <- "measure"
-    if ("data" %in% measure$needs) {
-      artifacts["data"] <- list(get_data())
-    }
-    missing <- measure$needs[!measure$needs %in% names(artifacts)]
-    if (length(missing)) {
-      cli::cli_abort(c(
-        "Measurement {.val {name}} needs discarded artifacts: {paste(missing, collapse = ', ')}.",
-        i = "Use a new store path to fit again with these artifacts kept."
-      ))
-    }
-    rows <- .invoke(
-      c("measure", job$dataset_id, method_id, name),
-      measure$compute,
-      artifacts = artifacts[measure$needs],
-      context = context
+  attempt_id <- .attempt_id()
+  get_data()
+  fit <- .job_run_fit(job, spec, cache, method, context, data[[1L]])
+  attempt <- list(
+    id = attempt_id,
+    status = if (is.null(fit$error)) "success" else "failed",
+    error = fit$error %||% NA_character_,
+    elapsed = fit$elapsed,
+    warnings = .job_warnings(cache)
+  )
+  if (!is.null(fit$error)) {
+    failed <- .failure_record(job$fit_key, attempt_id)
+    .write_payload(
+      list(attempt = attempt, extract_id = method$extract_id),
+      .store_file(st, "fits", failed)
     )
-    measurements[[name]] <- list(
-      id = measure$id,
-      rows = .job_check_rows(rows, name, spec)
-    )
+    return(list(status = "failed", record = failed))
   }
-  if (!is.null(kept)) {
-    if (length(kept)) {
-      .write_payload(
-        artifacts[kept],
-        .store_file(st, "artifacts", job$fit_key),
-        compress = spec$compress
-      )
+  artifacts <- .job_extract(
+    job, spec, cache, method, context, fit$value, data[[1L]],
+    spec$required[spec$required != "data"]
+  )
+  rm(fit)
+  measurements <- .job_measure(
+    job, spec, cache, context, list(),
+    function(names) {
+      if ("data" %in% names) artifacts["data"] <<- list(get_data())
+      artifacts[names]
     }
+  )
+  # The data are a dataset, not an artifact of the attempt.
+  kept <- setdiff(
+    intersect(names(artifacts), c(spec$retention, spec$comparison_needs)),
+    "data"
+  )
+  files <- .job_publish_artifacts(st, spec, job$fit_key, attempt_id, artifacts[kept])$files
+  attempt$warnings <- .job_warnings(cache, attempt$warnings)
+  won <- .write_payload(
+    list(
+      attempt = attempt,
+      measurements = measurements,
+      extract_id = method$extract_id
+    ),
+    .store_file(st, "fits", record)
+  )
+  if (!won) {
+    # Another process published this record first. No record refers to the
+    # artifacts of this attempt.
+    .store_delete(files)
+  }
+  list(status = "success", record = record)
+}
+
+# Measure an existing attempt again. The run planned the success records of
+# this fit; their canonical attempt is the one with the smallest ID. Every
+# measurement of that attempt is reused, whichever record holds it. An
+# artifact that is not in the store is computed again: the fit runs again on
+# its own stream, which gives the same fit when the fit depends only on its
+# seed.
+.job_remeasure <- function(job, spec, cache, st, method, context, get_data, record) {
+  olds <- lapply(job$old, function(r) .read_payload(.store_file(st, "fits", r)))
+  olds <- Filter(function(o) identical(o$extract_id, method$extract_id), olds)
+  if (!length(olds)) {
+    cli::cli_abort(c(
+      "Extractor recipe changed for cached method {.val {context$method_id}}.",
+      i = "Change the method version to fit again."
+    ))
+  }
+  ids <- vapply(olds, function(o) o$attempt$id %||% "", character(1))
+  canonical <- sort(unique(ids), method = "radix")[[1L]]
+  olds <- olds[ids == canonical]
+  attempt <- olds[[1L]]$attempt
+  cached <- list()
+  for (o in olds) {
+    for (name in names(o$measurements)) {
+      current <- spec$cap$measures[[name]]
+      if (!is.null(current) && identical(o$measurements[[name]]$id, current$id)) {
+        cached[[name]] <- o$measurements[[name]]
+      }
+    }
+  }
+  keep <- c(spec$retention, spec$comparison_needs)
+  artifacts <- list()
+  # Load or compute again the artifacts `names`.
+  supply <- function(names) {
+    names <- setdiff(names, names(artifacts))
+    if ("data" %in% names) {
+      artifacts["data"] <<- list(get_data())
+    }
+    names <- setdiff(names, "data")
+    if (length(names)) {
+      got <- .job_load_artifacts(st, job$fit_key, canonical, names)
+      missing <- setdiff(names, names(got))
+      if (length(missing)) {
+        fresh <- .job_regenerate(job, spec, cache, method, context, get_data(), missing)
+        publish <- intersect(missing, keep)
+        fresh[publish] <- .job_publish_artifacts(
+          st, spec, job$fit_key, canonical, fresh[publish]
+        )$artifacts
+        got[missing] <- fresh[missing]
+      }
+      artifacts[names(got)] <<- got
+    }
+    artifacts
+  }
+  measurements <- .job_measure(
+    job, spec, cache, context, cached,
+    function(names) supply(names)[names]
+  )
+  # The record promises the retained artifacts and data. Put them in the
+  # store first.
+  retained <- setdiff(spec$retention, names(artifacts))
+  stored <- .store_has(vapply(
+    setdiff(retained, "data"),
+    function(n) .artifact_file(st, "artifacts", job$fit_key, canonical, n),
+    character(1)
+  ))
+  absent <- setdiff(retained, "data")[!stored]
+  if (length(absent)) {
+    supply(absent)
+  }
+  if ("data" %in% retained) {
+    supply("data")
   }
   attempt$warnings <- .job_warnings(cache, attempt$warnings)
-  record <- paste0(job$fit_key, "-", job$mhash)
   .write_payload(
     list(
       attempt = attempt,
@@ -282,8 +363,128 @@
     ),
     .store_file(st, "fits", record)
   )
-  unlink(.store_file(st, "fits", job$fit_key, ".failed.rds"))
   list(status = "success", record = record)
+}
+
+# Run the method's fit on `data`. Returns list(value, elapsed) or
+# list(error, elapsed).
+.job_run_fit <- function(job, spec, cache, method, context, data) {
+  cache$stage <- "fit"
+  started <- proc.time()[["elapsed"]]
+  fit <- tryCatch(
+    list(
+      value = .invoke(
+        c("fit", job$dataset_id, context$method_id),
+        method$fit,
+        data = data,
+        context = context
+      )
+    ),
+    error = function(e) list(error = conditionMessage(e))
+  )
+  fit$elapsed <- proc.time()[["elapsed"]] - started
+  fit
+}
+
+.job_extract <- function(job, spec, cache, method, context, fit, data, names) {
+  cache$stage <- "extract"
+  artifacts <- list()
+  for (name in names) {
+    artifacts[name] <- list(
+      if (name == "fit") {
+        fit
+      } else {
+        .invoke(
+          c("extract", job$dataset_id, context$method_id, name),
+          method$extract[[name]],
+          fit = fit,
+          data = data,
+          context = context
+        )
+      }
+    )
+  }
+  artifacts
+}
+
+# Compute again the artifacts `names` of a fit that succeeded before.
+.job_regenerate <- function(job, spec, cache, method, context, data, names) {
+  fit <- .job_run_fit(job, spec, cache, method, context, data)
+  if (!is.null(fit$error)) {
+    cli::cli_abort(c(
+      "The fit failed when it ran again to compute discarded artifacts: {fit$error}",
+      i = "The fit succeeded before on the same seed, so it does not depend on its seed alone."
+    ))
+  }
+  .job_extract(job, spec, cache, method, context, fit$value, data, names)
+}
+
+# The artifacts `names` of one attempt that the store holds.
+.job_load_artifacts <- function(st, fit_key, attempt_id, names) {
+  out <- list()
+  for (name in names) {
+    for (kind in c("artifacts", "transient")) {
+      file <- .artifact_file(st, kind, fit_key, attempt_id, name)
+      if (!.store_has(file)) {
+        next
+      }
+      # A comparison job may delete a transient artifact meanwhile.
+      raw <- tryCatch(.read_raw(file), error = function(e) {
+        if (file.exists(file)) stop(e)
+        NULL
+      })
+      if (!is.null(raw)) {
+        out[name] <- list(unserialize(raw))
+        break
+      }
+    }
+  }
+  out
+}
+
+# Publish artifacts of one attempt: retained ones to `artifacts`, the ones
+# that only comparisons need to `transient`. When another process published
+# an artifact of the same attempt first, its value replaces this one.
+.job_publish_artifacts <- function(st, spec, fit_key, attempt_id, artifacts) {
+  files <- character()
+  for (name in names(artifacts)) {
+    kind <- if (name %in% spec$retention) "artifacts" else "transient"
+    file <- .artifact_file(st, kind, fit_key, attempt_id, name)
+    raw <- serialize(artifacts[[name]], NULL, xdr = FALSE)
+    if (.write_raw(raw, file, spec$compress)) {
+      files <- c(files, file)
+    } else {
+      artifacts[name] <- list(.read_payload(file))
+    }
+  }
+  list(artifacts = artifacts, files = files)
+}
+
+# Compute the measurements that `cached` does not hold. `supply(names)`
+# returns the artifacts `names`.
+.job_measure <- function(job, spec, cache, context, cached, supply) {
+  measurements <- list()
+  for (name in names(spec$cap$measures)) {
+    measure <- spec$cap$measures[[name]]
+    old <- cached[[name]]
+    if (!is.null(old) && identical(old$id, measure$id)) {
+      measurements[[name]] <- old
+      next
+    }
+    artifacts <- supply(measure$needs)
+    cache$stage <- "measure"
+    rows <- .invoke(
+      c("measure", job$dataset_id, context$method_id, name),
+      measure$compute,
+      artifacts = artifacts,
+      context = context
+    )
+    measurements[[name]] <- list(
+      id = measure$id,
+      rows = .job_check_rows(rows, name, spec)
+    )
+  }
+  measurements
 }
 
 .job_warnings <- function(cache, old = NA_character_) {
@@ -310,13 +511,18 @@
 # Artifact comparisons ------------------------------------------------------------
 
 # Run the artifact comparisons of one dataset after all its methods are
-# fitted, store each result, then delete artifacts that only comparisons
-# needed.
+# fitted, store each result, then delete the transient artifacts. The
+# controller passes the records it uses and their attempt IDs; the artifacts
+# are those of these attempts, computed again when they are gone.
 .job_compare <- function(job, spec, cache) {
   st <- .job_store(spec)
   records <- lapply(job$records, function(r) {
     .read_payload(.store_file(st, "fits", r))
   })
+  ids <- vapply(records, function(r) r$attempt$id %||% "", character(1))
+  if (!identical(ids, job$attempts)) {
+    cli::cli_abort("A record of dataset {.val {job$dataset_id}} changed while the run used it.")
+  }
   n <- length(job$records)
   status <- vapply(records, function(r) r$attempt$status, character(1))
   ix <- list(
@@ -334,13 +540,30 @@
     lapply(records, function(r) r$measurements %||% list())
   )
   context <- .job_context(job, spec, cache)
+  needs <- setdiff(spec$comparison_needs, "data")
   bundles <- list()
   for (i in which(status == "success")) {
-    a <- .read_if(.store_file(st, "artifacts", job$fit_keys[[i]])) %||% list()
+    midx <- job$midx[[i]]
+    a <- .job_load_artifacts(st, job$fit_keys[[i]], ids[[i]], needs)
+    missing <- setdiff(needs, names(a))
+    if (length(missing)) {
+      method <- spec$cap$methods[[midx]]
+      mctx <- .job_method_context(context, spec, midx)
+      fresh <- .job_regenerate(
+        job, spec, cache, method, mctx,
+        .job_data(job, context, spec, cache), missing
+      )
+      # Retained artifacts go back to the store; the others are not kept.
+      publish <- intersect(missing, spec$retention)
+      fresh[publish] <- .job_publish_artifacts(
+        st, spec, job$fit_keys[[i]], ids[[i]], fresh[publish]
+      )$artifacts
+      a[missing] <- fresh[missing]
+    }
     if ("data" %in% spec$comparison_needs) {
       a["data"] <- list(.job_data(job, context, spec, cache))
     }
-    bundles[[spec$method_ids[[job$midx[[i]]]]]] <- a
+    bundles[[spec$method_ids[[midx]]]] <- a
   }
   cache$stage <- "compare"
   for (name in names(job$keys)) {
@@ -357,19 +580,13 @@
     )
     .write_payload(list(value = value[[name]]), file)
   }
-  # Evict artifacts that no later step needs.
-  for (i in which(status == "success")) {
-    file <- .store_file(st, "artifacts", job$fit_keys[[i]])
-    if (!.store_has(file)) {
-      next
-    }
-    a <- .read_payload(file)
-    keep <- intersect(names(a), spec$retention)
-    if (!length(keep)) {
-      unlink(file)
-    } else if (length(keep) < length(a)) {
-      .write_payload(a[keep], file, compress = spec$compress)
-    }
+  transient <- setdiff(needs, spec$retention)
+  if (length(transient)) {
+    .store_delete(unlist(lapply(which(status == "success"), function(i) {
+      vapply(transient, function(name) {
+        .artifact_file(st, "transient", job$fit_keys[[i]], ids[[i]], name)
+      }, character(1))
+    })))
   }
   list(status = "success")
 }

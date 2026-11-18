@@ -148,10 +148,14 @@ test_that("saved draws support additional measurements without refitting", {
   dropped_path <- file.path(withr::local_tempdir(), "discarded")
   run_study(no_draws, 1, path = dropped_path)
   s$retention <- character()
-  expect_error(
-    run_study(s, 1, path = dropped_path),
-    "discarded artifacts: draws"
-  )
+  # Changed: discarded draws are computed again on the same stream, so the
+  # new measurement equals the one on the store that kept the draws.
+  again <- run_study(s, 1, path = dropped_path)
+  interval <- function(run) {
+    m <- run$measurements
+    m[m$measurement == "interval90" & m$replicate == 1, c("method_id", "lower", "upper")]
+  }
+  expect_equal(interval(again), interval(later), ignore_attr = TRUE)
 })
 
 test_that("preparation is shared and independently addressable from an external scheduler", {

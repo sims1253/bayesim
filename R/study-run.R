@@ -15,12 +15,25 @@
 #'
 #' Results do not depend on the backend, the number of workers or the order
 #' in which jobs finish. Several R processes can run the same study on one
-#' store at the same time; each job runs once.
+#' store at the same time. A process claims each job before it runs it, so
+#' that the others do other work, and usually each job runs once. When a
+#' claim is older than `getOption("bayesim.claim_timeout")` seconds (default
+#' one day), another process takes the job over. Taking over a job that is
+#' still running costs only duplicate work: the first record written wins,
+#' and every run uses it.
 #'
 #' An error in a method's `fit` is recorded as a failed attempt and the study
-#' continues. A failed attempt is not tried again unless `retry = TRUE`. An
-#' error in any other function stops the run. Records that finished before the
-#' error stay in the store.
+#' continues. A failed attempt is fitted again only by a run with
+#' `retry = TRUE`; a run without it uses the latest failed attempt. A
+#' successful attempt replaces failed ones for every later run. A run decides
+#' at its start which record each fit uses, and reports those records, also
+#' when another process retries a failed fit meanwhile. An error in any other
+#' function stops the run. Records that finished before the error stay in the
+#' store.
+#'
+#' A new measurement or comparison of an existing fit needs its artifacts.
+#' When the store did not keep them, the fit runs again on its own stream;
+#' this gives the same fit when the fit depends only on its seed.
 #'
 #' @inheritParams plan_study
 #' @param path Store directory. With `NULL`, the run uses a temporary store
@@ -58,10 +71,10 @@ run_study <- function(
   }
   st <- .store_open(root)
   setup$spec$root <- st$root
-  executed <- .sg_execute(setup, st, backend, retry, isTRUE(progress))
-  run <- .sg_collect(setup, st, seq_len(nrow(setup$datasets)), study)
+  exec <- .sg_execute(setup, st, backend, retry, isTRUE(progress))
+  run <- .sg_collect(setup, st, exec, study)
   run$path <- path
-  run$executed <- executed
+  run$executed <- exec$executed
   run
 }
 
@@ -107,8 +120,8 @@ evaluate_replicate <- function(
   }
   st <- .store_open(root)
   setup$spec$root <- st$root
-  .sg_execute(setup, st, sequential_backend(), retry = FALSE, progress = FALSE)
-  run <- .sg_collect(setup, st, 1L, study, saved = FALSE)
+  exec <- .sg_execute(setup, st, sequential_backend(), retry = FALSE, progress = FALSE)
+  run <- .sg_collect(setup, st, exec, study, saved = FALSE)
   run[c("attempts", "measurements", "comparisons")]
 }
 
@@ -275,59 +288,110 @@ assess_study <- function(run, policy = NULL) {
 }
 
 # The state of each fit, from the store's file names: "done" (a record with
-# the current measurements), "failed", "measure" (a successful record with
-# other measurements) or "fit".
+# the current measurements), "failed" (only failed attempts, and no
+# `retry`), "measure" (a successful record with other measurements) or
+# "fit". `used` is the record that a done or failed fit uses: the current
+# record, or the latest failed attempt. `old` lists, for each fit, its
+# successful records.
 .sg_fit_states <- function(setup, names, retry = FALSE) {
   fits <- setup$fits
-  ok <- names[!endsWith(names, ".failed")]
-  ok_keys <- substr(ok, 1L, 40L)
-  failed_keys <- substr(names[endsWith(names, ".failed")], 1L, 40L)
+  keys <- .fit_key_of(names)
+  ok <- .is_success_record(names)
+  ok_names <- names[ok]
+  ok_keys <- keys[ok]
+  failed <- sort(names[.is_failure_record(names)], decreasing = TRUE, method = "radix")
+  latest_failure <- failed[match(fits$fit_key, .fit_key_of(failed))]
   state <- rep("fit", nrow(fits))
-  hit <- match(fits$fit_key, ok_keys)
-  state[!is.na(hit)] <- "measure"
+  state[fits$fit_key %in% ok_keys] <- "measure"
   if (!retry) {
-    state[state == "fit" & fits$fit_key %in% failed_keys] <- "failed"
+    state[state == "fit" & !is.na(latest_failure)] <- "failed"
   }
-  state[fits$record %in% ok] <- "done"
+  state[fits$record %in% ok_names] <- "done"
   fits$state <- state
-  fits$old <- ok[hit]
+  used <- rep(NA_character_, nrow(fits))
+  used[state == "done"] <- fits$record[state == "done"]
+  used[state == "failed"] <- latest_failure[state == "failed"]
+  fits$used <- used
+  old <- vector("list", nrow(fits))
+  remeasure <- which(state == "measure")
+  if (length(remeasure)) {
+    by_key <- split(ok_names, ok_keys)
+    old[remeasure] <- by_key[fits$fit_key[remeasure]]
+  }
+  fits$old <- old
   fits
 }
 
-# The key of each artifact comparison of one dataset. It depends on the
-# records of every method, so a new fit, a retried failure or a new
-# measurement gives a new key.
-.sg_compare_keys <- function(setup, dataset_id, records) {
+# The members of a comparison: each record it reads with the attempt in it.
+.sg_members <- function(records, attempts) {
+  paste(sort(paste(records, attempts, sep = "@"), method = "radix"), collapse = ",")
+}
+
+# The key of each artifact comparison of one dataset. It names the records of
+# every method and their attempts, so a new fit, a retried failure or a new
+# measurement gives a new key. The name is in the key because it is in the
+# comparison's seed and in its rows.
+.sg_compare_keys <- function(setup, dataset_id, records, attempts) {
   spec <- setup$spec
-  members <- paste(sort(records), collapse = ",")
-  # The name is in the key because it is in the comparison's seed and in
-  # its rows.
   keys <- .hash_text(
     "comparison",
     spec$raw_comparisons,
     spec$raw_ids,
     dataset_id,
-    members
+    .sg_members(records, attempts)
   )
   names(keys) <- spec$raw_comparisons
   keys
 }
 
+# The key of each comparison of saved measurements. It reads every record of
+# the run.
+.sg_saved_keys <- function(setup, comparisons, records, attempts) {
+  keys <- .hash_text(
+    "saved",
+    names(comparisons),
+    vapply(comparisons, `[[`, "", "id"),
+    setup$spec$seed,
+    .sg_members(records, attempts)
+  )
+  names(keys) <- names(comparisons)
+  keys
+}
+
 # Execution -----------------------------------------------------------------------------
+#
+# The controller lists the store once, reads every record that it uses once,
+# and keeps the payloads. A job that finishes reports the record it used; the
+# controller reads that record once. Collection uses these payloads and does
+# not list the store again (invariant 3).
 
 .sg_execute <- function(setup, st, backend, retry, progress) {
   # Backends may draw random numbers, for example mirai for its socket
   # names. The caller's stream must not move.
   withr::local_preserve_seed()
   spec <- setup$spec
+  spec$retry <- retry
   datasets <- setup$datasets
-  index <- .store_index(st, c("fits", "prepared", "comparisons"))
+  kinds <- c(
+    "fits",
+    if (!is.null(spec$cap$prepare)) "prepared",
+    if (length(spec$cap$comparisons)) "comparisons"
+  )
+  index <- .store_index(st, kinds)
   fits <- .sg_fit_states(setup, index$fits, retry = retry)
-  n_fit <- nrow(fits)
-  status <- ifelse(fits$state == "failed", "failed", "success")
-  status[fits$state %in% c("fit", "measure")] <- NA
-  records <- fits$record
-  records[fits$state == "failed"] <- paste0(fits$fit_key[fits$state == "failed"], ".failed")
+  records <- fits$used
+  payloads <- vector("list", nrow(fits))
+  known <- which(!is.na(records))
+  if (length(known)) {
+    files <- .store_file(st, "fits", records[known])
+    sizes <- file.size(files)
+    payloads[known] <- lapply(seq_along(files), function(k) {
+      .read_payload(files[[k]], sizes[[k]])
+    })
+  }
+  attempt_ids <- function(rows) {
+    vapply(payloads[rows], function(p) p$attempt$id %||% "", character(1))
+  }
   todo <- which(fits$state %in% c("fit", "measure"))
   pending <- tabulate(fits$didx[todo], nrow(datasets))
   has_raw <- length(spec$raw_comparisons) > 0L
@@ -335,12 +399,8 @@ assess_study <- function(run, policy = NULL) {
 
   log <- list(kind = character(), id = character())
   n_log <- 0L
-  held <- character()
   handle <- NULL
-  on.exit({
-    if (!is.null(handle)) handle$close()
-    for (key in held) .release(st, key)
-  }, add = TRUE)
+  on.exit(if (!is.null(handle)) handle$close(), add = TRUE)
 
   # Queues: `front` holds prepare and compare jobs, which run first; `queue`
   # holds fit indices in study order.
@@ -365,7 +425,8 @@ assess_study <- function(run, policy = NULL) {
 
   compare_job <- function(d) {
     rows <- which(fits$didx == d)
-    keys <- .sg_compare_keys(setup, datasets$dataset_id[[d]], records[rows])
+    attempts <- attempt_ids(rows)
+    keys <- .sg_compare_keys(setup, datasets$dataset_id[[d]], records[rows], attempts)
     keys <- keys[!keys %in% done_comparisons]
     if (!length(keys)) {
       return(NULL)
@@ -380,6 +441,7 @@ assess_study <- function(run, policy = NULL) {
       midx = fits$midx[rows],
       fit_keys = fits$fit_key[rows],
       records = records[rows],
+      attempts = attempts,
       keys = keys
     )
   }
@@ -426,7 +488,8 @@ assess_study <- function(run, policy = NULL) {
     NULL
   }
 
-  # What a finished job, or one that another process finished, changes.
+  # What a finished job changes. A fit reports the record it used, and the
+  # controller reads that record here, once.
   complete <- function(job, result) {
     if (job$kind == "prepare") {
       blocked[[job$cidx]] <<- FALSE
@@ -436,8 +499,8 @@ assess_study <- function(run, policy = NULL) {
         waiting[job$cidx] <<- list(NULL)
       }
     } else if (job$kind == "fit") {
-      status[[job$i]] <<- result$status
       records[[job$i]] <<- result$record
+      payloads[[job$i]] <<- .read_payload(.store_file(st, "fits", result$record))
       d <- fits$didx[[job$i]]
       pending[[d]] <<- pending[[d]] - 1L
       if (has_raw && pending[[d]] == 0L) {
@@ -450,82 +513,45 @@ assess_study <- function(run, policy = NULL) {
     if (!is.null(pb)) cli::cli_progress_update(id = pb)
   }
 
-  # The output of a job, if it exists: list(status, record) or NULL.
-  finished <- function(job) {
-    if (job$kind == "prepare") {
-      if (.store_has(.store_file(st, "prepared", job$key))) {
-        return(list(status = "success"))
-      }
-    } else if (job$kind == "fit") {
-      record <- fits$record[[job$i]]
-      if (.store_has(.store_file(st, "fits", record))) {
-        return(list(status = "success", record = record))
-      }
-      failed <- paste0(job$fit_key, ".failed")
-      if (!retry && .store_has(.store_file(st, "fits", failed))) {
-        return(list(status = "failed", record = failed))
-      }
-    } else if (all(.store_has(.store_file(st, "comparisons", job$keys)))) {
-      return(list(status = "success"))
-    }
-    NULL
-  }
-
   total <- length(front) + length(todo)
   pb <- NULL
   if (progress && total) {
     pb <- cli::cli_progress_bar("Running study", total = total, clear = FALSE)
   }
 
-  handle <- backend$open(.make_worker(spec))
-  capacity <- handle$capacity
   inflight <- list()
   deferred <- list()
+  submitted <- 0L
   warned <- 0L
 
   repeat {
-    while (length(inflight) < capacity) {
-      job <- next_job()
-      if (is.null(job)) {
-        break
+    # The backend opens with the first job, so that a run with nothing to do
+    # needs no backend.
+    job <- if (is.null(handle) || length(inflight) < handle$capacity) next_job()
+    if (!is.null(job)) {
+      if (is.null(handle)) {
+        handle <- backend$open(.make_worker(spec))
       }
-      if (!.claim(st, job$key)) {
-        deferred[[length(deferred) + 1L]] <- job
-        next
-      }
-      held <- c(held, job$key)
-      done <- finished(job)
-      if (!is.null(done)) {
-        .release(st, job$key)
-        held <- held[held != job$key]
-        complete(job, done)
-        next
-      }
-      n_log <- n_log + 1L
-      id <- as.character(n_log)
-      log$kind[[n_log]] <- job$kind
-      log$id[[n_log]] <- job$key
+      submitted <- submitted + 1L
+      id <- as.character(submitted)
       inflight[[id]] <- job
-      handle$submit(id, job[!names(job) %in% c("key", "i", "d")])
+      handle$submit(id, job[!names(job) %in% c("i", "d")])
+      next
     }
     if (!length(inflight)) {
       if (!length(deferred)) {
         break
       }
-      # Another process holds the remaining jobs. Wait for it.
+      # Other processes hold the remaining jobs. Wait until their claims are
+      # gone or stale, then submit the jobs again; the worker then finds
+      # them done or runs them.
       Sys.sleep(0.05)
       still <- list()
       for (job in deferred) {
-        if (dir.exists(file.path(st$claims, job$key)) &&
-            !.claim_stale(file.path(st$claims, job$key))) {
+        if (.claim_busy(st, job$key)) {
           still[[length(still) + 1L]] <- job
-          next
-        }
-        done <- finished(job)
-        if (is.null(done)) {
-          front <- c(front, list(job))
         } else {
-          complete(job, done)
+          front <- c(front, list(job))
         }
       }
       deferred <- still
@@ -547,8 +573,15 @@ assess_study <- function(run, policy = NULL) {
       if (!is.null(value$error)) {
         .sg_stage_error(value$error)
       }
-      .release(st, job$key)
-      held <- held[held != job$key]
+      if (identical(value$status, "busy")) {
+        deferred[[length(deferred) + 1L]] <- job
+        next
+      }
+      if (isTRUE(value$ran)) {
+        n_log <- n_log + 1L
+        log$kind[[n_log]] <- job$kind
+        log$id[[n_log]] <- job$key
+      }
       complete(job, value)
       if (isTRUE(value$warnings > 0L)) {
         warned <- warned + 1L
@@ -561,7 +594,12 @@ assess_study <- function(run, policy = NULL) {
       "{warned} job{?s} raised warnings. See the {.field warnings} column of {.code attempts}."
     )
   }
-  .sg_frame(log, length(log$kind))
+  list(
+    executed = .sg_frame(log, length(log$kind)),
+    records = records,
+    payloads = payloads,
+    comparisons = done_comparisons
+  )
 }
 
 .sg_stage_error <- function(e) {
@@ -579,18 +617,18 @@ assess_study <- function(run, policy = NULL) {
 }
 
 # Collection -------------------------------------------------------------------------------
+#
+# Build the results from the records that .sg_execute() used. Comparisons of
+# saved measurements are stored under a key of the records they read; a run
+# on the same records reads them.
 
-.sg_collect <- function(setup, st, d, study, saved = TRUE) {
+.sg_collect <- function(setup, st, exec, study, saved = TRUE) {
   spec <- setup$spec
   datasets <- setup$datasets
-  fits <- setup$fits[setup$fits$didx %in% d, , drop = FALSE]
-  names <- .store_index(st, "fits")$fits
-  record <- fits$record
-  missing <- !record %in% names
-  record[missing] <- paste0(fits$fit_key[missing], ".failed")
-  files <- .store_file(st, "fits", record)
-  sizes <- file.size(files)
-  payloads <- lapply(seq_along(files), function(i) .read_payload(files[[i]], sizes[[i]]))
+  fits <- setup$fits
+  payloads <- exec$payloads
+  records <- exec$records
+  attempt_ids <- vapply(payloads, function(p) p$attempt$id %||% "", character(1))
   ix <- list(
     dataset_id = datasets$dataset_id[fits$didx],
     cidx = datasets$cidx[fits$didx],
@@ -609,9 +647,11 @@ assess_study <- function(run, policy = NULL) {
   }
   comparisons <- list()
   if (length(spec$raw_comparisons)) {
-    for (dd in d) {
-      rows <- which(fits$didx == dd)
-      keys <- .sg_compare_keys(setup, datasets$dataset_id[[dd]], record[rows])
+    for (d in seq_len(nrow(datasets))) {
+      rows <- which(fits$didx == d)
+      keys <- .sg_compare_keys(
+        setup, datasets$dataset_id[[d]], records[rows], attempt_ids[rows]
+      )
       for (k in keys) {
         comparisons[[length(comparisons) + 1L]] <- .read_payload(
           .store_file(st, "comparisons", k)
@@ -620,16 +660,24 @@ assess_study <- function(run, policy = NULL) {
     }
   }
   if (saved) {
-    plain <- Filter(function(x) !length(x$needs), study$comparisons)
-    comparisons <- c(
-      comparisons,
-      .sg_compare(
-        plain,
-        measurements,
-        attempts,
-        stream = c("compare", spec$seed)
-      )
-    )
+    plain <- Filter(function(x) !length(x$needs), spec$cap$comparisons)
+    keys <- .sg_saved_keys(setup, plain, records, attempt_ids)
+    for (name in names(plain)) {
+      file <- .store_file(st, "comparisons", keys[[name]])
+      value <- if (keys[[name]] %in% exec$comparisons) {
+        .read_payload(file)$value
+      } else {
+        computed <- .sg_compare(
+          study$comparisons[name],
+          measurements,
+          attempts,
+          stream = c("compare", spec$seed)
+        )[[name]]
+        payload <- serialize(list(value = computed), NULL, xdr = FALSE)
+        unserialize(.publish_raw(payload, file))$value
+      }
+      comparisons[[length(comparisons) + 1L]] <- value
+    }
   }
   structure(
     list(

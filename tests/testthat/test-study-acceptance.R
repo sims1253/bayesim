@@ -180,7 +180,7 @@ timing_study <- function(calls = NULL) {
 
 store_ops <- function(expr) bayesim:::.with_store_trace(expr)
 
-test_that("a run with nothing left to do reads each record once and runs nothing", {
+test_that("a run with nothing left to do walks the fits once, reads each record once and runs nothing", {
   n <- 500
   path <- withr::local_tempfile()
   calls <- withr::local_tempfile()
@@ -196,10 +196,11 @@ test_that("a run with nothing left to do reads each record once and runs nothing
   expect_equal(nrow(run$measurements), n)
   # No user function ran: none of them wrote to the log.
   expect_false(file.exists(calls))
-  # The only store work is one walk per kind of record the run needs and one
-  # read per record. Nothing is claimed, probed or written.
+  # The only store work is one walk of the fits, the only kind of record
+  # this study needs, and one read per record. Nothing is claimed, probed,
+  # written or deleted, and collection lists nothing again.
   expect_setequal(unique(ops$op), c("walk", "read"))
-  expect_equal(sum(ops$op == "walk"), 4)
+  expect_equal(sum(ops$op == "walk"), 1)
   reads <- ops$path[ops$op == "read"]
   records <- list.files(file.path(path, "fits"), recursive = TRUE, full.names = TRUE)
   expect_length(records, n)
@@ -209,24 +210,27 @@ test_that("a run with nothing left to do reads each record once and runs nothing
 
 # 6. Work per job ----------------------------------------------------------------------
 #
-# Store operations are counted exactly. For n jobs on a new store, each job
-# claims once and probes three times: the controller looks for its record and
-# for a failed record, and the worker looks for a stored dataset. It writes
-# its record, and the run reads that record once when it collects results. The run as
-# a whole writes the store marker and walks the store four times: three kinds
-# when it plans, one when it collects. Any operation that grows faster than n
-# breaks these equalities at one of the sizes.
+# Store operations are counted exactly. For n jobs on a new store, the
+# worker of each job claims it once and releases it once. It probes three
+# times: for the job's record, for failed attempts (one listing of the
+# record's directory), and for a stored dataset. It writes its record, and
+# the controller reads that record once. The run as a whole writes the store
+# marker and walks the fits once, when it plans; it deletes nothing. Any
+# operation that grows faster than n breaks these equalities at one of the
+# sizes.
 
-test_that("store work per job does not depend on the number of jobs", {
+test_that("each job claims, releases, probes three times, writes and reads once", {
+  ops_of <- c("claim", "release", "probe", "write", "read", "walk", "delete")
   counts <- function(n) {
     path <- withr::local_tempfile()
     ops <- store_ops(run_study(timing_study(), n, path = path))$ops
-    vapply(c("claim", "probe", "write", "read", "walk"), function(op) sum(ops$op == op), numeric(1))
+    expect_true(all(ops$op %in% ops_of))
+    vapply(ops_of, function(op) sum(ops$op == op), numeric(1))
   }
   for (n in c(50, 500)) {
     expect_equal(
       counts(n),
-      c(claim = n, probe = 3 * n, write = n + 1, read = n, walk = 4),
+      c(claim = n, release = n, probe = 3 * n, write = n + 1, read = n, walk = 1, delete = 0),
       label = paste(n, "jobs")
     )
   }
@@ -348,9 +352,12 @@ test_that("an interrupted run leaves a consistent store and resumes", {
     expect_gt(length(done), 0)
     expect_lt(length(done), 200)
     # No partial files, and no claim held by a live process.
-    expect_length(list.files(path, pattern = "^\\.tmp-", recursive = TRUE, all.files = TRUE), 0)
-    claims <- list.files(st$claims, full.names = TRUE)
-    expect_true(all(vapply(claims, bayesim:::.claim_stale, logical(1))))
+    expect_length(
+      list.files(path, pattern = "^\\.tmp-", recursive = TRUE, all.files = TRUE, include.dirs = TRUE),
+      0
+    )
+    tokens <- list.files(st$claims, recursive = TRUE)
+    expect_true(all(vapply(basename(tokens), bayesim:::.claim_stale, logical(1))))
     # The rest runs; finished fits are not run again.
     rest <- callr::r(script, list(path, started, "sequential"))
     expect_equal(nrow(rest$executed), 200 - length(done))
