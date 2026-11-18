@@ -409,3 +409,57 @@ test_that("the likelihood case selection implements the assessment policy contra
   expect_true(all(assessed$measurements$measurement == "performance"))
   expect_equal(nrow(assessed$excluded), 4)
 })
+
+test_that("user fields named id never overwrite canonical identities (#110)", {
+  context <- list(
+    condition = list(condition_id = "declared-condition", id = "auxiliary-id"),
+    dataset_id = "dataset-hash",
+    replicate = 1L,
+    method_id = "declared-method",
+    settings = list(id = "backend-setting")
+  )
+  meta <- grammar$.sg_metadata(context)
+  expect_identical(meta$condition_id, "declared-condition")
+  expect_identical(meta$method_id, "declared-method")
+  expect_identical(meta$dataset_id, "dataset-hash")
+
+  s <- grammar$study(
+    "ids",
+    data.frame(condition_id = c("small", "large"), id = "aux", n = c(8L, 12L)),
+    function(condition, context) rnorm(condition$n)
+  )
+  method <- function() {
+    grammar$study_method(
+      function(data, context) {
+        list(draws = array(
+          rnorm(40, mean(data)),
+          c(20, 2, 1),
+          dimnames = list(NULL, NULL, "theta")
+        ))
+      },
+      extract = list(draws = function(fit, data, context) fit$draws),
+      settings = list(id = "shared")
+    )
+  }
+  s <- grammar$with_methods(s, first = method(), second = method())
+  s <- grammar$with_measure(
+    s,
+    "estimate",
+    function(artifacts, context) data.frame(value = mean(artifacts$draws)),
+    needs = "draws"
+  )
+  s <- grammar$with_comparison(
+    s,
+    "paired",
+    function(results, artifacts, context) {
+      stopifnot(setequal(names(artifacts), c("first", "second")))
+      data.frame(value = mean(artifacts$first$draws - artifacts$second$draws))
+    },
+    needs = "draws"
+  )
+  run <- grammar$run_study(s, 1)
+  expect_setequal(run$measurements$method_id, c("first", "second"))
+  expect_setequal(run$measurements$condition_id, c("small", "large"))
+  expect_equal(nrow(run$measurements), 4)
+  expect_equal(nrow(run$comparisons), 2)
+})
