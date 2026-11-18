@@ -44,7 +44,9 @@
 # Evaluate `expr` on the stream `seed`, then restore the caller's generator
 # and state, also when `expr` fails. The first word of `.Random.seed` names
 # the generator, so assigning the state also sets the kind. Only a caller
-# without a state needs RNGkind() to restore its kind.
+# without a state needs RNGkind() to restore its kind. Under
+# `normal.kind = "Box-Muller"` the generator caches a second normal draw
+# outside `.Random.seed`, so a restored caller loses that one draw.
 .with_stream <- function(seed, expr) {
   env <- globalenv()
   old_seed <- env[[".Random.seed"]]
