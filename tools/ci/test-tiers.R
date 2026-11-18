@@ -47,6 +47,7 @@ bayesim_test_tier_core_only <- c(
   "parquet-summary",
   "report",
   "study-grammar",
+  "study-keys",
   "transport-purrr-mirai"
 )
 

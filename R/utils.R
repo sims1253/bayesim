@@ -9,7 +9,9 @@ NULL
 
 # Return stable integer group identifiers for the selected columns.
 group_ids <- function(df, by) {
-  if (length(by) == 0L) {
+  if (length(by) == 0L || nrow(df) == 0L) {
+    # paste0() turns zero-length columns into one key, so a frame without
+    # rows needs its own case.
     return(rep.int(1L, nrow(df)))
   }
 

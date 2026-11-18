@@ -82,7 +82,7 @@ summarise_study <- function(
       c(n, m, se)
     }
   })
-  stats <- do.call(rbind, stats)
+  stats <- do.call(rbind, c(list(matrix(numeric(), 0L, 3L)), stats))
   out$n <- as.integer(stats[, 1L])
   out$estimate <- stats[, 2L]
   out$mcse <- stats[, 3L]
