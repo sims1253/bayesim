@@ -148,3 +148,31 @@ describe("CmdStanFitter fit + draws + diagnostics", {
     expect_true(all(par_res$summary$status == "success"))
   })
 })
+
+test_that("CmdStanFitter compiles and fits from inline stan_code (#106)", {
+  withr::local_options(list(bayesim.cmdstan_models = NULL))
+  fitter <- CmdStanFitter(
+    stan_code = paste(
+      "data { int<lower=0> N; vector[N] y; }",
+      "parameters { real mu; }",
+      "model { y ~ normal(mu, 1); }",
+      sep = "\n"
+    ),
+    stan_data = function(data_bundle, fit_spec) {
+      list(N = nrow(data_bundle$train), y = data_bundle$train$y)
+    },
+    chains = 1L,
+    iter_warmup = 50L,
+    iter_sampling = 50L
+  )
+  data_bundle <- .gen(list(n = 20L), list(task_id = "t"))
+  res <- fit_model(
+    fitter,
+    data_bundle,
+    list(),
+    seed = 1L,
+    task_ctx = list(task_id = "t")
+  )
+  expect_true(res$success)
+  expect_true("mu" %in% colnames(extract_draws(fitter, res)))
+})

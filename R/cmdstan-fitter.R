@@ -195,7 +195,10 @@ CmdStanFitter <- function(
   mod <- if (!is.null(fitter@stan_file)) {
     cmdstanr::cmdstan_model(stan_file = fitter@stan_file)
   } else {
-    cmdstanr::cmdstan_model(stan_code = fitter@stan_code)
+    # cmdstan_model() has no stan_code argument (#106).
+    cmdstanr::cmdstan_model(
+      stan_file = cmdstanr::write_stan_file(fitter@stan_code)
+    )
   }
   cached[[key]] <- mod
   options(bayesim.cmdstan_models = cached)
