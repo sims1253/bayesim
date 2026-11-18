@@ -408,9 +408,19 @@
 # processes that take over one claim, exactly one wins.
 #
 # A claim is stale when this process made it and no longer holds it, when
-# its owner is a dead process on this host, or when it is older than
-# `getOption("bayesim.claim_timeout")` seconds (default one day). A process
-# releases only a claim that holds its own token.
+# its owner is a dead process on this host, or when it is older than the
+# timeout. The controller reads the timeout from
+# `getOption("bayesim.claim_timeout")` (default one day) and passes it to
+# its workers in the run specification, so that both judge a claim alike. A
+# process releases only a claim that holds its own token.
+#
+# A run looks for the finished record before it claims a job and each time
+# it waits on a busy one, so it stops waiting as soon as another process
+# has published. Two cases can still make it wait longer than the work
+# takes, and the store does not defend against them: a new process on the
+# owner's host that has the owner's dead process ID keeps the claim live
+# until the timeout, and a clock on another host that runs behind makes its
+# claims look younger than they are.
 
 .claims_held <- new.env(parent = emptyenv())
 
@@ -432,7 +442,7 @@
 
 # Claim the job `key`. Returns the token, or NULL when another process holds
 # the claim.
-.claim <- function(st, key) {
+.claim <- function(st, key, timeout = .claim_timeout()) {
   dir <- file.path(st$claims, key)
   token <- .claim_token()
   stage <- file.path(st$claims, paste0(".tmp-", token))
@@ -455,7 +465,7 @@
       next
     }
     old <- owners[[1L]]
-    if (!.claim_stale(old)) {
+    if (!.claim_stale(old, timeout)) {
       return(NULL)
     }
     if (suppressWarnings(file.rename(file.path(dir, old), file.path(dir, token)))) {
@@ -465,7 +475,9 @@
   NULL
 }
 
-.claim_stale <- function(token) {
+.claim_timeout <- function() getOption("bayesim.claim_timeout", 24 * 3600)
+
+.claim_stale <- function(token, timeout = .claim_timeout()) {
   owner <- strsplit(token, "_", fixed = TRUE)[[1L]]
   if (length(owner) != 4L) {
     # Not a token of this format. Its owner cannot be known.
@@ -477,7 +489,6 @@
     return(is.null(.claims_held[[token]]))
   }
   started <- as.numeric(owner[[3L]]) / 1000
-  timeout <- getOption("bayesim.claim_timeout", 24 * 3600)
   if (!is.finite(started) || as.numeric(Sys.time()) - started > timeout) {
     return(TRUE)
   }
@@ -488,9 +499,9 @@
 }
 
 # Whether a live claim on `key` exists.
-.claim_busy <- function(st, key) {
+.claim_busy <- function(st, key, timeout = .claim_timeout()) {
   owners <- list.files(file.path(st$claims, key))
-  length(owners) > 0L && !.claim_stale(owners[[1L]])
+  length(owners) > 0L && !.claim_stale(owners[[1L]], timeout)
 }
 
 .release <- function(st, key, token) {

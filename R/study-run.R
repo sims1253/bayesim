@@ -16,9 +16,12 @@
 #' Results do not depend on the backend, the number of workers or the order
 #' in which jobs finish. Several R processes can run the same study on one
 #' store at the same time. A process claims each job before it runs it, so
-#' that the others do other work, and usually each job runs once. When a
-#' claim is older than `getOption("bayesim.claim_timeout")` seconds (default
-#' one day), another process takes the job over. Taking over a job that is
+#' that the others do other work, and usually each job runs once. A process
+#' that finds a job claimed uses the other process's record as soon as it is
+#' written. When a claim is older than `getOption("bayesim.claim_timeout")`
+#' seconds (default one day), another process takes the job over. The
+#' process that calls `run_study()` reads the option and passes it to its
+#' workers. Taking over a job that is
 #' still running costs only duplicate work: the first record written wins,
 #' and every run uses it.
 #'
@@ -371,6 +374,8 @@ assess_study <- function(run, policy = NULL) {
   withr::local_preserve_seed()
   spec <- setup$spec
   spec$retry <- retry
+  # One timeout for the controller and every worker.
+  spec$claim_timeout <- .claim_timeout()
   datasets <- setup$datasets
   kinds <- c(
     "fits",
@@ -542,13 +547,16 @@ assess_study <- function(run, policy = NULL) {
       if (!length(deferred)) {
         break
       }
-      # Other processes hold the remaining jobs. Wait until their claims are
-      # gone or stale, then submit the jobs again; the worker then finds
-      # them done or runs them.
+      # Other processes hold the remaining jobs. Use a job's record as soon
+      # as it is in the store. Submit a job again when its claim is gone or
+      # stale; the worker then finds it done or runs it.
       Sys.sleep(0.05)
       still <- list()
       for (job in deferred) {
-        if (.claim_busy(st, job$key)) {
+        done <- .job_done(job, spec, st)
+        if (!is.null(done)) {
+          complete(job, done)
+        } else if (.claim_busy(st, job$key, spec$claim_timeout)) {
           still[[length(still) + 1L]] <- job
         } else {
           front <- c(front, list(job))

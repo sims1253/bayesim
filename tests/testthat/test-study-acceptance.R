@@ -211,15 +211,16 @@ test_that("a run with nothing left to do walks the fits once, reads each record 
 # 6. Work per job ----------------------------------------------------------------------
 #
 # Store operations are counted exactly. For n jobs on a new store, the
-# worker of each job claims it once and releases it once. It probes three
-# times: for the job's record, for failed attempts (one listing of the
-# record's directory), and for a stored dataset. It writes its record, and
+# worker of each job claims it once and releases it once. It probes five
+# times. Before it claims the job and again after, it probes for the job's
+# record and for failed attempts (one listing of the record's directory);
+# then it probes for a stored dataset. It writes its record, and
 # the controller reads that record once. The run as a whole writes the store
 # marker and walks the fits once, when it plans; it deletes nothing. Any
 # operation that grows faster than n breaks these equalities at one of the
 # sizes.
 
-test_that("each job claims, releases, probes three times, writes and reads once", {
+test_that("each job claims, releases, probes five times, writes and reads once", {
   ops_of <- c("claim", "release", "probe", "write", "read", "walk", "delete")
   counts <- function(n) {
     path <- withr::local_tempfile()
@@ -230,7 +231,7 @@ test_that("each job claims, releases, probes three times, writes and reads once"
   for (n in c(50, 500)) {
     expect_equal(
       counts(n),
-      c(claim = n, release = n, probe = 3 * n, write = n + 1, read = n, walk = 1, delete = 0),
+      c(claim = n, release = n, probe = 5 * n, write = n + 1, read = n, walk = 1, delete = 0),
       label = paste(n, "jobs")
     )
   }

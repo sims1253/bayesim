@@ -8,9 +8,10 @@
 #
 # The worker that runs a job holds its claim, from before it starts until
 # after it has published, and only that worker releases it. The controller
-# holds no claims. A worker that finds the claim held returns "busy"; one
-# that finds the job done after it has claimed it returns the record and
-# `ran = FALSE`.
+# holds no claims. A worker looks for the finished record before it claims
+# the job and again after; when it finds one, it returns the record and
+# `ran = FALSE`. A worker that finds the claim held returns "busy". The
+# claim timeout comes from the controller in the run specification.
 #
 # The worker holds the run specification serialised. A backend sends it to
 # each process once; each job is then a short list of indices and keys.
@@ -34,16 +35,28 @@
     stats::runif(1L)
   }
   st <- .job_store(spec)
+  found <- function() {
+    done <- .job_done(job, spec, st)
+    if (!is.null(done)) {
+      done$kind <- job$kind
+      done$ran <- FALSE
+    }
+    done
+  }
+  done <- found()
+  if (!is.null(done)) {
+    return(done)
+  }
   token <- NULL
   on.exit(.release(st, job$key, token), add = TRUE)
-  token <- .claim(st, job$key)
+  token <- .claim(st, job$key, spec$claim_timeout)
   if (is.null(token)) {
     return(list(kind = job$kind, status = "busy", ran = FALSE))
   }
-  done <- .job_done(job, spec, st)
+  # Another process may have published between the first look and the
+  # claim.
+  done <- found()
   if (!is.null(done)) {
-    done$kind <- job$kind
-    done$ran <- FALSE
     return(done)
   }
   cache$stage <- job$kind

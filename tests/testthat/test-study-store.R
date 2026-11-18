@@ -436,6 +436,77 @@ test_that("a process that loses the race to publish a transient artifact uses it
   expect_length(out$files, 0L)
 })
 
+# S30 --------------------------------------------------------------------------------
+
+# A backend that runs each job in this process, inside `wrap`.
+inline_backend <- function(wrap = function(run, job) run()) {
+  structure(list(name = "inline", open = function(worker) {
+    done <- list()
+    list(
+      capacity = 1L,
+      submit = function(id, job) {
+        done[[id]] <<- list(id = id, value = wrap(function() worker(job), job))
+      },
+      poll = function() {
+        out <- unname(done)
+        done <<- list()
+        out
+      },
+      close = function() done <<- list()
+    )
+  }), class = "bayesim_backend")
+}
+
+# Stop a run that waits on a claim more than `limit` times.
+local_wait_limit <- function(limit, first = NULL, env = parent.frame()) {
+  busy <- bayesim:::.claim_busy
+  n <- 0L
+  local_mocked_bindings(.claim_busy = function(...) {
+    n <<- n + 1L
+    if (n > limit) stop("the run kept waiting on a claim")
+    if (n == 1L && !is.null(first)) first()
+    busy(...)
+  }, .package = "bayesim", .env = env)
+}
+
+test_that("a run uses a busy job's record as soon as another process has published it", {
+  path <- withr::local_tempfile()
+  other <- withr::local_tempfile()
+  s <- noted_study(withr::local_tempfile())
+  run_study(s, 1, path = other)
+  # Another process holds every claim and keeps it. It publishes its records
+  # while this run waits.
+  local_mocked_bindings(.claim = function(...) NULL, .claim_busy = function(...) TRUE)
+  local_wait_limit(100L, first = function() {
+    dirs <- list.dirs(other, recursive = FALSE)
+    file.copy(dirs[basename(dirs) != "claims"], path, recursive = TRUE)
+  })
+  run <- run_study(s, 1, path = path, backend = inline_backend())
+  expect_equal(nrow(run$executed), 0L)
+  expect_identical(run$measurements, run_study(s, 1, path = other)$measurements)
+})
+
+test_that("a worker judges a claim with the timeout of the process that runs the study", {
+  path <- withr::local_tempfile()
+  s <- noted_study(withr::local_tempfile())
+  # A claim of another host that is ten seconds old is on every job.
+  old <- sprintf("elsewhere_1_%.0f_x", (as.numeric(Sys.time()) - 10) * 1000)
+  claim_old <- function(run, job) {
+    dir <- file.path(path, "claims", job$key)
+    if (!dir.exists(dir)) {
+      dir.create(dir)
+      file.create(file.path(dir, old))
+    }
+    # The worker's own option says that the claim is live.
+    withr::with_options(list(bayesim.claim_timeout = 3600), run())
+  }
+  withr::local_options(bayesim.claim_timeout = 1)
+  local_wait_limit(50L)
+  run <- run_study(s, 1, path = path, backend = inline_backend(claim_old))
+  # The study has one job, and the worker ran it.
+  expect_identical(run$executed$kind, "fit")
+})
+
 # S11 --------------------------------------------------------------------------------
 
 # Method `first` changes the dataset in place; method `second` reads it.
