@@ -153,3 +153,35 @@ test_that("checkpoint recovery falls back after checksum corruption", {
   expect_equal(recovered$checkpoint_id, 1L)
   expect_equal(recovered$results_df$value, 1)
 })
+
+test_that("generator defaults are fingerprinted by exact value and type", {
+  make_config <- function(generator) {
+    simulation_config(
+      data_grid = data.frame(n = 20L),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = generator,
+      fitter = LinearRegressionFitter(n_draws = 10L),
+      metrics = list(),
+      n_replicates = 1L,
+      seed = 42L
+    )
+  }
+  gen <- function(data_spec, task_ctx, sigma = 1) {
+    stats::rnorm(data_spec$n, sd = sigma)
+  }
+  close1 <- gen
+  formals(close1)$sigma <- 1.0000001
+  close2 <- gen
+  formals(close2)$sigma <- 1.0000002
+  as_integer <- gen
+  formals(as_integer)$sigma <- 1L
+
+  expect_false(identical(
+    config_fingerprint(make_config(close1)),
+    config_fingerprint(make_config(close2))
+  ))
+  expect_false(identical(
+    config_fingerprint(make_config(gen)),
+    config_fingerprint(make_config(as_integer))
+  ))
+})

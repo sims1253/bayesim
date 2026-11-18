@@ -661,22 +661,21 @@ capture_function_signature <- function(fn) {
       # differ only in a default argument generate different data but used
       # to share a fingerprint, so resume accepted the stored outcomes as if
       # generated under the new configuration. A formal without a default is
-      # stored as the empty symbol; keep it distinct from an explicit default.
-      default_repr <- vapply(
-        args,
-        function(d) {
-          if (identical(d, quote(expr =))) {
-            return("<missing>")
-          }
-          tryCatch(
-            paste(capture.output(print(d)), collapse = "\n"),
-            error = function(e) "<unprintable>"
-          )
-        },
-        character(1)
-      )
+      # stored as the empty symbol and deparses distinctly from an explicit
+      # default. Deparse exactly (hex doubles, 1L vs 1) so a change below
+      # print precision or of type still changes the hash; deparse ignores
+      # srcref, so the text is stable across sessions.
       args_hash <- digest::digest(
-        list(names(args), unname(default_repr)),
+        deparse(
+          args,
+          control = c(
+            "keepInteger",
+            "keepNA",
+            "niceNames",
+            "showAttributes",
+            "hexNumeric"
+          )
+        ),
         algo = "xxhash64"
       )
 
