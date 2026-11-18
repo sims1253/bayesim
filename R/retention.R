@@ -1,10 +1,3 @@
-#' @title Memory Management and Retention Policies
-#' @description Functions for controlling which artifacts are retained in simulation
-#'   results to manage memory usage during large-scale simulations.
-#' @name retention
-#' @keywords internal
-"_PACKAGE"
-
 ## Constants ------------------------------------------------------------------
 
 #' Valid retention options
