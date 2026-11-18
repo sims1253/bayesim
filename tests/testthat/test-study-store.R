@@ -130,43 +130,98 @@ test_that("a process releases only a claim that it owns", {
   expect_identical(list.files(dir), "elsewhere_1_0_0")
 })
 
+# A backend that runs each job in its own process, so that no job waits for
+# another job that its process has queued. close() lets running jobs run on,
+# as mirai daemons without a dispatcher do. `left` keeps those processes, so
+# that the test can wait for them and garbage collection does not kill them.
+process_backend <- function(left) {
+  structure(list(name = "process", open = function(worker) {
+    procs <- list()
+    list(
+      capacity = 2L,
+      submit = function(id, job) {
+        procs[[id]] <<- callr::r_bg(function(worker, job) worker(job), list(worker, job))
+      },
+      poll = function() {
+        repeat {
+          done <- names(procs)[!vapply(procs, function(p) p$is_alive(), logical(1))]
+          if (length(done)) break
+          Sys.sleep(0.02)
+        }
+        out <- lapply(done, function(id) {
+          list(id = id, value = tryCatch(procs[[id]]$get_result(), error = identity))
+        })
+        procs[done] <<- NULL
+        out
+      },
+      close = function() {
+        for (id in names(procs)) assign(id, procs[[id]], envir = left)
+        procs <<- list()
+      }
+    )
+  }), class = "bayesim_backend")
+}
+
 test_that("a worker holds its claim until it has published, also after the run stops", {
   skip_on_cran()
-  skip_if_not_installed("mirai")
+  skip_if_not_installed("callr")
   path <- withr::local_tempfile()
   gate <- withr::local_tempdir()
-  wait_for <- function(file) {
-    deadline <- Sys.time() + 60
-    while (!file.exists(file) && Sys.time() < deadline) Sys.sleep(0.02)
+  left <- new.env()
+  withr::defer(for (p in as.list(left)) p$kill())
+  # A gate that does not open in time fails the test with its name, both in a
+  # job and in the test.
+  wait_until <- function(ok, what, seconds = 120) {
+    deadline <- Sys.time() + seconds
+    while (!ok() && Sys.time() < deadline) Sys.sleep(0.02)
+    ok()
+  }
+  wait_for <- function(name) {
+    if (!wait_until(function() file.exists(file.path(gate, name)), name)) {
+      file.create(file.path(gate, paste0("timeout-", name)))
+      stop("gate '", name, "' did not open in time")
+    }
   }
   s <- study("hold", data.frame(condition_id = "a"),
              function(condition, context) context$replicate)
   s <- with_methods(s, m = study_method(function(data, context) {
     if (data == 1) {
       file.create(file.path(gate, "started"))
-      wait_for(file.path(gate, "go"))
+      wait_for("go")
     }
     list(v = data)
   }))
   s <- with_measure(s, "v", function(artifacts, context) {
     if (artifacts$fit$v == 2) {
-      wait_for(file.path(gate, "started"))
+      wait_for("started")
       stop("bad measure")
     }
     data.frame(value = artifacts$fit$v)
   }, needs = "fit")
-  # Without a dispatcher, a stopped task runs to its end on its daemon.
-  mirai::daemons(2, dispatcher = FALSE, .compute = "default")
-  on.exit(mirai::daemons(0, .compute = "default"), add = TRUE)
-  expect_error(run_study(s, 2, path = path, backend = mirai_backend()), "bad measure")
-  claims <- function() list.files(file.path(path, "claims"), pattern = "^[^.]")
-  # The fit of replicate 1 still runs, and its claim is still in place.
+  expect_error(run_study(s, 2, path = path, backend = process_backend(left)), "bad measure")
+  claims_dir <- file.path(path, "claims")
+  claims <- function() list.files(claims_dir, pattern = "^[^.]")
+  records <- function() list.files(file.path(path, "fits"), recursive = TRUE, full.names = TRUE)
+  # The run has stopped. The fit of replicate 1 still runs: it holds its
+  # claim and has published nothing.
   expect_length(claims(), 1L)
+  expect_length(records(), 0L)
   file.create(file.path(gate, "go"))
-  deadline <- Sys.time() + 60
-  while (length(claims()) && Sys.time() < deadline) Sys.sleep(0.05)
-  expect_length(claims(), 0L)
-  expect_length(list.files(file.path(path, "fits"), recursive = TRUE), 1L)
+  if (!wait_until(function() !length(claims()), "release")) {
+    fail("the worker did not release its claim within 120 s of 'go'")
+  }
+  expect_length(list.files(gate, pattern = "^timeout-"), 0L)
+  record <- records()
+  expect_length(record, 1L)
+  if (length(record) == 1L) {
+    expect_true(bayesim:::.is_success_record(basename(sub("[.]rds$", "", record))))
+    # Linking the record to its name changes its status time. Removing the
+    # claim directory is the last change to claims/. The record came first.
+    expect_lte(
+      as.numeric(file.info(record)$ctime),
+      as.numeric(file.info(claims_dir)$mtime)
+    )
+  }
 })
 
 # Invariant 1 ------------------------------------------------------------------------
