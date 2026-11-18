@@ -1,5 +1,5 @@
-# Acceptance tests for the study engine. Tests 5 to 7 time the engine; they
-# run only where timings mean something (not on CRAN or CI).
+# Acceptance tests for the study engine. None of them asserts a time limit;
+# inst/benchmarks/study-engine.R measures the engine's speed.
 
 # A study whose measurement reports the data and the method's own draw, so
 # that tests can see both random streams.
@@ -154,87 +154,146 @@ test_that("a change to anything a function uses changes the key", {
 })
 
 # 5. No-op resume --------------------------------------------------------------------
+#
+# Tests 5 to 7 assert what the engine does, not how long it takes, so that
+# they give the same verdict on any machine. The timings live in
+# inst/benchmarks/study-engine.R.
 
-timing_study <- function() {
+timing_study <- function(calls = NULL) {
+  note <- function(stage) {
+    if (!is.null(calls)) cat(stage, "\n", file = calls, append = TRUE, sep = "")
+  }
   s <- study("timing", data.frame(condition_id = "a", n = 5L),
-             function(condition, context) rnorm(condition$n))
-  s <- with_methods(s, m = study_method(function(data, context) list(mu = mean(data))))
-  with_measure(s, "mu", function(artifacts, context) data.frame(value = artifacts$fit$mu),
-               needs = "fit")
+             function(condition, context) {
+               note("generate")
+               rnorm(condition$n)
+             })
+  s <- with_methods(s, m = study_method(function(data, context) {
+    note("fit")
+    list(mu = mean(data))
+  }))
+  with_measure(s, "mu", function(artifacts, context) {
+    note("measure")
+    data.frame(value = artifacts$fit$mu)
+  }, needs = "fit")
 }
 
-test_that("a store of 5,000 records resumes in under a second", {
-  skip_on_cran()
-  skip_on_ci()
+store_ops <- function(expr) bayesim:::.with_store_trace(expr)
+
+test_that("a run with nothing left to do reads each record once and runs nothing", {
+  n <- 500
   path <- withr::local_tempfile()
-  s <- timing_study()
-  run_study(s, 5000, path = path)
-  elapsed <- numeric(3)
-  for (i in 1:3) {
-    elapsed[[i]] <- system.time(run <- run_study(s, 5000, path = path))[["elapsed"]]
-  }
-  elapsed <- min(elapsed)
+  calls <- withr::local_tempfile()
+  s <- timing_study(calls)
+  run_study(s, n, path = path)
+  expect_equal(as.vector(table(readLines(calls))[c("generate", "fit", "measure")]), rep(n, 3))
+  unlink(calls)
+
+  traced <- store_ops(run_study(s, n, path = path))
+  run <- traced$value
+  ops <- traced$ops
   expect_equal(nrow(run$executed), 0)
-  expect_equal(nrow(run$measurements), 5000)
-  message(sprintf("No-op resume of 5,000 records: %.3f s", elapsed))
-  expect_lt(elapsed, 1)
+  expect_equal(nrow(run$measurements), n)
+  # No user function ran: none of them wrote to the log.
+  expect_false(file.exists(calls))
+  # The only store work is one walk per kind of record the run needs and one
+  # read per record. Nothing is claimed, probed or written.
+  expect_setequal(unique(ops$op), c("walk", "read"))
+  expect_equal(sum(ops$op == "walk"), 4)
+  reads <- ops$path[ops$op == "read"]
+  records <- list.files(file.path(path, "fits"), recursive = TRUE, full.names = TRUE)
+  expect_length(records, n)
+  expect_equal(anyDuplicated(reads), 0L)
+  expect_setequal(normalizePath(reads), normalizePath(records))
 })
 
-# 6. Overhead per job ------------------------------------------------------------------
+# 6. Work per job ----------------------------------------------------------------------
 #
-# Overhead is the CPU time of run_study() minus the CPU time the same user
-# functions take in a plain loop, divided by the number of jobs. The
-# sequential backend runs everything in this process, so CPU time counts the
-# engine's work and not time that other processes on the machine take. Each
-# size runs twice; the test keeps the faster run.
+# Store operations are counted exactly. For n jobs on a new store, each job
+# claims once and probes three times: the controller looks for its record and
+# for a failed record, and the worker looks for a stored dataset. It writes
+# its record, and the run reads that record once when it collects results. The run as
+# a whole writes the store marker and walks the store four times: three kinds
+# when it plans, one when it collects. Any operation that grows faster than n
+# breaks these equalities at one of the sizes.
 
-test_that("the engine costs under 2 ms per job, from 500 to 5,000 jobs", {
-  skip_on_cran()
-  skip_on_ci()
-  s <- timing_study()
-  cpu <- function(t) t[["user.self"]] + t[["sys.self"]]
-  user_cpu <- function(n) {
-    cpu(system.time(for (i in seq_len(n)) {
-      data <- s$generate(s$conditions[1, ], list())
-      fit <- s$methods$m$fit(data, list())
-      s$measures$mu$compute(list(fit = fit), list())
-    }))
+test_that("store work per job does not depend on the number of jobs", {
+  counts <- function(n) {
+    path <- withr::local_tempfile()
+    ops <- store_ops(run_study(timing_study(), n, path = path))$ops
+    vapply(c("claim", "probe", "write", "read", "walk"), function(op) sum(ops$op == op), numeric(1))
   }
-  overhead <- vapply(c(500, 5000), function(n) {
+  for (n in c(50, 500)) {
+    expect_equal(
+      counts(n),
+      c(claim = n, probe = 3 * n, write = n + 1, read = n, walk = 4),
+      label = paste(n, "jobs")
+    )
+  }
+})
+
+# Store operations do not show work in memory that grows faster than the
+# number of jobs, for example a vector copied on each job. CPU time does, so
+# this test compares CPU time per job at 500 and 5,000 jobs. The sequential
+# backend runs everything in this process, and CPU time leaves out the time
+# that other processes take, so machine load moves the two sizes together. On
+# a 12-core workstation at a load average of about 24, three measurements of
+# the ratio gave 0.98, 1.07 and 1.09. Work that grows with the square of the
+# number of jobs makes the ratio approach 10 at these sizes. The limit of 3
+# lies between the two, and noise in one measurement does not reach it. Each size runs
+# twice and the test keeps the faster run.
+
+test_that("CPU time per job does not grow from 500 to 5,000 jobs", {
+  skip_on_cran()
+  s <- timing_study()
+  per_job <- function(n) {
     min(vapply(1:2, function(i) {
       path <- withr::local_tempfile()
-      engine <- cpu(system.time(run_study(s, n, path = path)))
-      1000 * (engine - user_cpu(n)) / n
+      t <- system.time(run_study(s, n, path = path))
+      (t[["user.self"]] + t[["sys.self"]]) / n
     }, numeric(1)))
-  }, numeric(1))
-  message(sprintf("Overhead per job: %.2f ms at 500 jobs, %.2f ms at 5,000", overhead[1], overhead[2]))
-  expect_lt(max(overhead), 2)
-  expect_lt(overhead[2], 1.5 * overhead[1] + 0.25)
+  }
+  ratio <- per_job(5000) / per_job(500)
+  expect_lt(ratio, 3)
 })
 
 # 7. Stragglers ------------------------------------------------------------------------
+#
+# The engine submits fits in study order, so the three slow fits (replicates
+# 1 to 3) go first and take three of the four workers. Each slow fit waits
+# until all 37 fast fits have left their mark, then records how many it saw.
+# If the engine kept the fast fits back until the slow ones finished, a slow
+# fit would see fewer than 37. The deadline of two minutes only stops a
+# broken engine from hanging the suite; a working one releases the slow fits
+# as soon as the last fast fit finishes.
 
 test_that("slow fits hold up one worker, not the run", {
   skip_on_cran()
-  skip_on_ci()
-  unit <- 0.2
-  # Three fits ten times longer than the rest, spread through the queue.
-  duration <- rep(unit, 40)
-  duration[c(5, 15, 25)] <- 10 * unit
+  marks <- withr::local_tempdir()
+  n <- 40
+  slow <- 1:3
   s <- study("straggle", data.frame(condition_id = "a"),
              function(condition, context) context$replicate)
   s <- with_methods(s, m = study_method(function(data, context) {
-    Sys.sleep(duration[[data]])
+    if (data %in% slow) {
+      deadline <- Sys.time() + 120
+      seen <- function() length(list.files(marks, pattern = "^fast-"))
+      while (seen() < n - length(slow) && Sys.time() < deadline) Sys.sleep(0.02)
+      writeLines(as.character(seen()), file.path(marks, paste0("slow-", data)))
+    } else {
+      file.create(file.path(marks, paste0("fast-", data)))
+    }
     list()
   }))
   mirai::daemons(4, .compute = "default")
   on.exit(mirai::daemons(0, .compute = "default"), add = TRUE)
-  # Warm the daemons, so that only scheduling counts.
-  run_study(s, 1, backend = mirai_backend())
-  wall <- system.time(run_study(s, 40, backend = mirai_backend()))[["elapsed"]]
-  ideal <- max(sum(duration) / 4, max(duration))
-  message(sprintf("Stragglers: %.2f s against an ideal of %.2f s (%.2fx)", wall, ideal, wall / ideal))
-  expect_lt(wall, 1.2 * ideal)
+  run <- run_study(s, n, backend = mirai_backend())
+  expect_equal(nrow(run$executed), n)
+  expect_length(list.files(marks, pattern = "^fast-"), n - length(slow))
+  seen <- vapply(paste0("slow-", slow), function(f) {
+    as.integer(readLines(file.path(marks, f)))
+  }, integer(1))
+  expect_equal(unname(seen), rep(n - length(slow), length(slow)))
 })
 
 # 8. Failure ----------------------------------------------------------------------------

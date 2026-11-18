@@ -84,6 +84,19 @@ BAYESIM_BENCH_BATCH=50 Rscript inst/benchmarks/checkpoint-scaling.R 1000
 The script verifies its own integrity (persisted outcomes must equal the task
 count) and warns if the checkpoint path starts dropping outcomes.
 
+`inst/benchmarks/study-engine.R` times the study engine: a run with nothing
+left to do on a store of 5,000 records, the engine's CPU time per job, and
+40 fits on 4 workers with three slow ones. It prints each figure next to its
+limit and exits with status 1 if one is exceeded. The acceptance tests in
+`test-study-acceptance.R` check the same three properties without timing
+them, so they pass on a loaded machine; this script tells you whether the
+engine is still fast. Run it on an idle machine when you touch
+`R/study-*.R`:
+
+```sh
+Rscript inst/benchmarks/study-engine.R
+```
+
 Format R code with `air format .` and run `jarl check .` before submitting a
 pull request. Generated documentation (`man/`, `NAMESPACE`, and `README.md`)
 should be updated whenever their roxygen or `README.Rmd` sources change.
