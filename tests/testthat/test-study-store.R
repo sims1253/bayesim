@@ -52,6 +52,18 @@ test_that("opening a store again after an interrupted first open succeeds", {
   expect_error(bayesim:::.store_open(foreign), "not empty")
 })
 
+# S19 ------------------------------------------------------------------------------
+
+test_that("a store on a file system without hard links is refused when it opens", {
+  root <- withr::local_tempdir()
+  local_mocked_bindings(.link_file = function(from, to) FALSE)
+  expect_error(bayesim:::.store_open(root), "hard links")
+  # A write never replaces a file, also when linking fails after the open.
+  path <- file.path(root, "one")
+  expect_error(bayesim:::.write_atomic("a", path, writeLines), "Could not publish")
+  expect_false(file.exists(path))
+})
+
 # S6 -------------------------------------------------------------------------------
 
 test_that("a size taken before a record changed does not read as corruption", {

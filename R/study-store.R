@@ -21,7 +21,9 @@
 #
 # * Every file is written once. A writer writes a temporary file and links
 #   it to its final name. The link fails when the name exists, so of two
-#   writers exactly one wins, and the other uses the file that won.
+#   writers exactly one wins, and the other uses the file that won. No
+#   write replaces a file, so a reader never sees a file change. A store on
+#   a file system without hard links is refused when it opens.
 # * Every fit attempt has an ID. The artifacts of an attempt are files named
 #   by that ID, and the record of the attempt holds it. A comparison key
 #   names the attempts that the comparison read. A record therefore never
@@ -113,6 +115,7 @@
         "{.path {path}} uses a store format that this version of bayesim cannot read."
       )
     }
+    .store_check_links(path)
   } else {
     # An earlier open that stopped before the marker was in place leaves
     # only entries that the store itself makes. They are not foreign.
@@ -126,6 +129,7 @@
       ))
     }
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
+    .store_check_links(path)
     .write_atomic(
       .store_marker,
       marker,
@@ -136,6 +140,17 @@
     dir.create(file.path(path, d), showWarnings = FALSE)
   }
   .store_handle(normalizePath(path, winslash = "/", mustWork = TRUE))
+}
+
+# The store publishes each file once by linking it to its name. Refuse a
+# file system without hard links before any job runs.
+.store_check_links <- function(path) {
+  if (!.links_work(path)) {
+    cli::cli_abort(c(
+      "The file system of {.path {path}} does not make hard links.",
+      i = "A study store publishes each file once by linking it to its name. Use a directory on another file system."
+    ))
+  }
 }
 
 # The handle is a list of paths. Workers rebuild it from the root without IO.
@@ -212,9 +227,8 @@
 # directory, then links it to `path`. A link fails when `path` exists, so of
 # several processes that write one path, exactly one wins. Returns TRUE when
 # this call put the file in place and FALSE when the file was already there.
-#
-# On a file system without hard links, the temporary file is renamed
-# instead. A rename replaces an existing file, so there the last writer wins.
+# No write replaces a file: a file system without hard links is refused when
+# the store opens.
 .write_atomic <- function(x, path, writer) {
   dir <- dirname(path)
   if (!dir.exists(dir)) {
@@ -224,16 +238,25 @@
   on.exit(if (file.exists(tmp)) unlink(tmp), add = TRUE)
   .trace_op("write", path)
   writer(x, tmp)
-  if (suppressWarnings(file.link(tmp, path))) {
+  if (.link_file(tmp, path)) {
     return(invisible(TRUE))
   }
   if (file.exists(path)) {
     return(invisible(FALSE))
   }
-  if (!file.rename(tmp, path)) {
-    cli::cli_abort("Could not write {.path {path}}.")
-  }
-  invisible(TRUE)
+  cli::cli_abort("Could not publish {.path {path}}: the link to its temporary file failed.")
+}
+
+# Make a hard link `to` of `from`. FALSE when it fails, also when `to`
+# exists.
+.link_file <- function(from, to) suppressWarnings(file.link(from, to))
+
+# Whether the file system of `dir` makes hard links.
+.links_work <- function(dir) {
+  from <- file.path(dir, .tmp_name("link-probe"))
+  to <- paste0(from, "-link")
+  on.exit(unlink(c(from, to)), add = TRUE)
+  file.create(from) && .link_file(from, to)
 }
 
 # Delete store files that this process wrote and no longer uses.
