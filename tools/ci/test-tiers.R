@@ -47,6 +47,7 @@ bayesim_test_tier_core_only <- c(
   "parquet-summary",
   "report",
   "study-acceptance",
+  "study-capture",
   "study-grammar",
   "study-keys",
   "study-store",

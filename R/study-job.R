@@ -120,7 +120,7 @@
 
 # Attempt IDs sort by time, so the last name is the latest attempt.
 .latest <- function(names) {
-  sort(names, method = "radix")[[length(names)]]
+  .radix_sort(names)[[length(names)]]
 }
 
 # Inputs ----------------------------------------------------------------------
@@ -312,7 +312,7 @@
     ))
   }
   ids <- vapply(olds, function(o) o$attempt$id %||% "", character(1))
-  canonical <- sort(unique(ids), method = "radix")[[1L]]
+  canonical <- .radix_sort(unique(ids))[[1L]]
   olds <- olds[ids == canonical]
   attempt <- olds[[1L]]$attempt
   cached <- list()

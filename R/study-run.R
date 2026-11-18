@@ -198,8 +198,9 @@ assess_study <- function(run, policy = NULL) {
   n_cond <- nrow(conditions)
   n_method <- length(cap$methods)
   method_ids <- names(cap$methods)
-  rows <- lapply(seq_len(n_cond), function(i) as.list(conditions[i, , drop = FALSE]))
-  cond_keys <- .condition_keys(rows)
+  # A condition row travels and counts in its captured form.
+  rows <- cap$conditions
+  cond_keys <- cap$condition_keys
   prepare_keys <- if (is.null(cap$prepare)) {
     rep("", n_cond)
   } else {
@@ -223,7 +224,7 @@ assess_study <- function(run, policy = NULL) {
     length(cidx)
   )
   measure_text <- paste(
-    sort(paste(names(cap$measures), vapply(cap$measures, `[[`, "", "id"), sep = ":")),
+    .radix_sort(paste(names(cap$measures), vapply(cap$measures, `[[`, "", "id"), sep = ":")),
     collapse = ","
   )
   fit_ids <- vapply(cap$methods, `[[`, "", "fit_id")
@@ -231,7 +232,7 @@ assess_study <- function(run, policy = NULL) {
     "measures",
     vapply(cap$methods, `[[`, "", "extract_id"),
     measure_text,
-    paste(sort(cap$retention), collapse = ",")
+    paste(.radix_sort(cap$retention), collapse = ",")
   )
   didx <- rep(seq_len(nrow(datasets)), each = n_method)
   midx <- rep(seq_len(n_method), nrow(datasets))
@@ -302,7 +303,7 @@ assess_study <- function(run, policy = NULL) {
   ok <- .is_success_record(names)
   ok_names <- names[ok]
   ok_keys <- keys[ok]
-  failed <- sort(names[.is_failure_record(names)], decreasing = TRUE, method = "radix")
+  failed <- .radix_sort(names[.is_failure_record(names)], decreasing = TRUE)
   latest_failure <- failed[match(fits$fit_key, .fit_key_of(failed))]
   state <- rep("fit", nrow(fits))
   state[fits$fit_key %in% ok_keys] <- "measure"
@@ -327,7 +328,7 @@ assess_study <- function(run, policy = NULL) {
 
 # The members of a comparison: each record it reads with the attempt in it.
 .sg_members <- function(records, attempts) {
-  paste(sort(paste(records, attempts, sep = "@"), method = "radix"), collapse = ",")
+  paste(.radix_sort(paste(records, attempts, sep = "@")), collapse = ",")
 }
 
 # The key of each artifact comparison of one dataset. It names the records of

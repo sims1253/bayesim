@@ -115,6 +115,9 @@ test_that("new replicates, methods and measurements run only the new work", {
 test_that("a change to anything a function uses changes the key", {
   path <- withr::local_tempfile()
   make <- function(shift, helper, version = "1") {
+    # Capture refuses a promise that is not forced.
+    force(shift)
+    force(helper)
     s <- study("fingerprint", data.frame(condition_id = "a"),
                function(condition, context) rnorm(3))
     s <- with_methods(s, m = study_method(
@@ -160,6 +163,8 @@ test_that("a change to anything a function uses changes the key", {
 # inst/benchmarks/study-engine.R.
 
 timing_study <- function(calls = NULL) {
+  # Capture refuses a promise that is not forced.
+  force(calls)
   note <- function(stage) {
     if (!is.null(calls)) cat(stage, "\n", file = calls, append = TRUE, sep = "")
   }

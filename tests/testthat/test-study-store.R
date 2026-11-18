@@ -78,6 +78,8 @@ test_that("a size taken before a record changed does not read as corruption", {
 
 # A study of one method whose fit and measurement note each call in `calls`.
 noted_study <- function(calls, conditions = "a") {
+  # Capture refuses a promise of a name or a call that is not forced.
+  force(calls)
   note <- function(what) cat(what, "\n", file = calls, append = TRUE, sep = "")
   s <- study("noted", data.frame(condition_id = conditions),
              function(condition, context) rnorm(3))
@@ -511,6 +513,8 @@ test_that("a worker judges a claim with the timeout of the process that runs the
 
 # Method `first` changes the dataset in place; method `second` reads it.
 mutating_study <- function(make, change) {
+  force(make)
+  force(change)
   s <- study("shared", data.frame(condition_id = "a"),
              function(condition, context) make())
   s <- with_methods(

@@ -18,18 +18,17 @@
   fn
 }
 
+# Names and keys in an order that does not depend on the locale. Every
+# ordering that feeds a key or a column order uses it. NULL sorts as an
+# empty vector.
+.radix_sort <- function(x, decreasing = FALSE) {
+  sort(as.character(x), decreasing = decreasing, method = "radix")
+}
+
 # One sha1 per element. The arguments are recycled and joined with a
 # separator that cannot occur in a hexadecimal key or a decimal number.
 .hash_text <- function(...) {
   .vdigest("sha1")(paste(..., sep = "\r"))
-}
-
-# The key of each condition row. All fields count, including condition_id.
-# The key hashes the row exactly as the functions of the study receive it:
-# with column order, types and attributes. 1L and 1 are different conditions,
-# because a function can tell them apart.
-.condition_keys <- function(rows) {
-  vapply(rows, .value_id, character(1), USE.NAMES = FALSE)
 }
 
 # The L'Ecuyer-CMRG state for a stream name. Each of the six seed words takes

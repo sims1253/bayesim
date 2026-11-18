@@ -594,7 +594,7 @@ print.bayesim_study_declaration <- function(x, ...) {
     do.call(vctrs::vec_c, unname(lapply(values, function(v) v[[nm]] %||% NA)))
   })
   names(out) <- .sg_prefix("method_", columns)
-  .sg_frame(out[order(names(out))], length(methods))
+  .sg_frame(out[.radix_sort(names(out))], length(methods))
 }
 
 # paste0() returns the prefix alone for an empty vector; this returns nothing.
@@ -646,6 +646,6 @@ print.bayesim_study_declaration <- function(x, ...) {
   columns <- names(x)
   x[c(
     intersect(.sg_identities, columns),
-    sort(setdiff(columns, .sg_identities))
+    .radix_sort(setdiff(columns, .sg_identities))
   )]
 }
