@@ -18,7 +18,8 @@ allowed, because it would appear as \code{condition_id}.}
 
 \item{generate}{\verb{function(condition, context)} that returns one dataset.
 \code{condition} is the condition row as a list. \code{context} holds
-\code{condition}, \code{dataset_id}, \code{replicate} and \code{prepared}.}
+\code{condition}, \code{dataset_id}, \code{replicate}, \code{prepared} and \code{seed}, the first
+word of the function's random stream.}
 
 \item{prepare}{Optional \verb{function(condition, context)} that runs once per
 condition. Its value is available as \code{context$prepared} to every other

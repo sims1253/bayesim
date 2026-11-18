@@ -25,7 +25,8 @@
 #'   allowed, because it would appear as `condition_id`.
 #' @param generate `function(condition, context)` that returns one dataset.
 #'   `condition` is the condition row as a list. `context` holds
-#'   `condition`, `dataset_id`, `replicate` and `prepared`.
+#'   `condition`, `dataset_id`, `replicate`, `prepared` and `seed`, the first
+#'   word of the function's random stream.
 #' @param prepare Optional `function(condition, context)` that runs once per
 #'   condition. Its value is available as `context$prepared` to every other
 #'   function.
