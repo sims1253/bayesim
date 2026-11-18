@@ -30,6 +30,42 @@ test_that("existing result paths are never silently reused", {
   )
 })
 
+test_that("resume must reject a generator whose default argument changed", {
+  gen1 <- function(data_spec, task_ctx, sigma = 1) {
+    x <- stats::rnorm(data_spec$n)
+    y <- x + stats::rnorm(data_spec$n, sd = sigma)
+    list(
+      train = data.frame(y = y, x = x),
+      test = NULL,
+      response = "y",
+      true_params = c(Intercept = 0, x = 1, sigma = sigma),
+      vars_of_interest = c("Intercept", "x", "sigma"),
+      meta = list()
+    )
+  }
+  gen2 <- gen1
+  formals(gen2)$sigma <- 10 # same body, same arg names, different default
+  path <- file.path(withr::local_tempdir(), "run")
+  cfg <- simulation_config(
+    data_grid = data.frame(n = 12L),
+    fit_grid = data.frame(model = "lm"),
+    data_generator = gen1,
+    fitter = LinearRegressionFitter(n_draws = 10L),
+    metrics = list(),
+    n_replicates = 2L,
+    seed = 1L,
+    result_path = path
+  )
+  run_simulation(cfg, resume = "never", progress = FALSE, verbose = FALSE)
+
+  changed <- cfg
+  changed@data_generator <- gen2
+  expect_error(
+    run_simulation(changed, resume = "must", progress = FALSE, verbose = FALSE),
+    class = "bayesim_checkpoint_error"
+  )
+})
+
 test_that("lifecycle predicates partition every declared task status", {
   expect_identical(
     is_terminal_task_status(TASK_STATUSES),

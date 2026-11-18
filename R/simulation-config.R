@@ -657,6 +657,29 @@ capture_function_signature <- function(fn) {
       args <- formals(fn)
       body_hash <- digest::digest(capture.output(print(body(fn))))
 
+      # Hash the default expressions as well (#102): two generators that
+      # differ only in a default argument generate different data but used
+      # to share a fingerprint, so resume accepted the stored outcomes as if
+      # generated under the new configuration. A formal without a default is
+      # stored as the empty symbol; keep it distinct from an explicit default.
+      default_repr <- vapply(
+        args,
+        function(d) {
+          if (identical(d, quote(expr =))) {
+            return("<missing>")
+          }
+          tryCatch(
+            paste(capture.output(print(d)), collapse = "\n"),
+            error = function(e) "<unprintable>"
+          )
+        },
+        character(1)
+      )
+      args_hash <- digest::digest(
+        list(names(args), unname(default_repr)),
+        algo = "xxhash64"
+      )
+
       # Hash the values of closure-captured free variables. The body hash
       # alone is identical for two functions whose bodies match but whose
       # captured environments bind different values (e.g. `f <- local({
@@ -673,7 +696,13 @@ capture_function_signature <- function(fn) {
           !identical(env, baseenv()) &&
           !identical(env, emptyenv())
       ) {
-        free_vars <- setdiff(all.vars(body(fn)), names(formals(fn)))
+        free_vars <- setdiff(
+          all.vars(as.call(c(quote(list), c(
+            list(body(fn)),
+            Filter(function(d) !identical(d, quote(expr =)), as.list(args))
+          )))),
+          names(args)
+        )
         captured <- free_vars[vapply(
           free_vars,
           exists,
@@ -709,6 +738,7 @@ capture_function_signature <- function(fn) {
         reference = reference,
         environment = env_name,
         args = names(args),
+        defaults_hash = args_hash,
         body_hash = body_hash,
         closure_hash = closure_hash
       )
