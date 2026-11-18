@@ -404,6 +404,26 @@ test_that("an artifact that was discarded and is needed again is computed again"
   expect_identical(compared$comparisons, fresh$comparisons)
 })
 
+# S25 --------------------------------------------------------------------------------
+
+test_that("a run that newly keeps a fit keeps the transient copy before its record names it", {
+  path <- withr::local_tempfile()
+  flag <- withr::local_tempfile()
+  s <- with_comparison(noted_study(withr::local_tempfile()), "spread", function(results, artifacts, context) {
+    if (file.exists(flag)) stop("bad comparison")
+    data.frame(value = stats::sd(artifacts$m$fit$draws))
+  }, needs = "fit")
+  # The comparison fails, so the fits stay in the transient files.
+  file.create(flag)
+  expect_error(run_study(s, 1, path = path), "bad comparison")
+  unlink(flag)
+  expect_length(list.files(file.path(path, "transient"), recursive = TRUE), 1L)
+  run_study(with_retention(s, "fit"), 1, path = path)
+  # The record that keeps the fit names a kept file.
+  expect_length(list.files(file.path(path, "artifacts"), recursive = TRUE), 1L)
+  expect_length(list.files(file.path(path, "transient"), recursive = TRUE), 0L)
+})
+
 # S26 --------------------------------------------------------------------------------
 
 test_that("a process that loses the race to publish a transient artifact uses its own value", {

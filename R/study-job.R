@@ -321,7 +321,7 @@
     }
     names <- setdiff(names, "data")
     if (length(names)) {
-      got <- .job_load_artifacts(st, job$fit_key, canonical, names)
+      got <- .job_stored_artifacts(st, spec, job$fit_key, canonical, names)
       missing <- setdiff(names, names(got))
       if (length(missing)) {
         fresh <- .job_regenerate(job, spec, cache, method, context, get_data(), missing)
@@ -419,9 +419,26 @@
   .job_extract(job, spec, cache, method, context, fit$value, data, names)
 }
 
-# The artifacts `names` of one attempt that the store holds.
+# The artifacts `names` of one attempt that the store holds. A retained
+# artifact that only the transient files hold is kept before it is used, so
+# that a record never names a kept artifact that is not there.
+.job_stored_artifacts <- function(st, spec, fit_key, attempt_id, names) {
+  got <- .job_load_artifacts(st, fit_key, attempt_id, names)
+  promote <- intersect(attr(got, "transient"), spec$retention)
+  attr(got, "transient") <- NULL
+  if (length(promote)) {
+    got[promote] <- .job_publish_artifacts(
+      st, spec, fit_key, attempt_id, got[promote]
+    )$artifacts
+  }
+  got
+}
+
+# The artifacts `names` of one attempt that the store holds, with the names
+# found in the transient files in the attribute "transient".
 .job_load_artifacts <- function(st, fit_key, attempt_id, names) {
   out <- list()
+  transient <- character()
   for (name in names) {
     for (kind in c("artifacts", "transient")) {
       file <- .artifact_file(st, kind, fit_key, attempt_id, name)
@@ -435,10 +452,14 @@
       })
       if (!is.null(raw)) {
         out[name] <- list(unserialize(raw))
+        if (kind == "transient") {
+          transient <- c(transient, name)
+        }
         break
       }
     }
   }
+  attr(out, "transient") <- transient
   out
 }
 
@@ -547,7 +568,7 @@
   bundles <- list()
   for (i in which(status == "success")) {
     midx <- job$midx[[i]]
-    a <- .job_load_artifacts(st, job$fit_keys[[i]], ids[[i]], needs)
+    a <- .job_stored_artifacts(st, spec, job$fit_keys[[i]], ids[[i]], needs)
     missing <- setdiff(needs, names(a))
     if (length(missing)) {
       method <- spec$cap$methods[[midx]]
@@ -583,7 +604,9 @@
     )
     .write_payload(list(value = value[[name]]), file)
   }
-  transient <- setdiff(needs, spec$retention)
+  # A retained artifact that was transient is now kept, so every transient
+  # file of these attempts can go.
+  transient <- needs
   if (length(transient)) {
     .store_delete(unlist(lapply(which(status == "success"), function(i) {
       vapply(transient, function(name) {
