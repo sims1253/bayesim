@@ -53,7 +53,7 @@ s <- study(
   )
 )
 s <- with_methods(s, conjugate = conjugate_lm())
-s <- with_measure(s, "coverage", coverage(0.9))
+s <- with_measure(s, "coverage", measure_coverage(0.9))
 run <- run_study(s, replicates = 20)
 summarise_study(run)
 }

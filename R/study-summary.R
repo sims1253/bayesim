@@ -6,12 +6,12 @@
 #' replicates, by condition, method, measurement and target. Each estimate
 #' comes with its Monte Carlo standard error (MCSE).
 #'
-#' For a measurement whose summary is `"rmse"` (see [rmse()]), the values are
+#' For a measurement whose summary is `"rmse"` (see [measure_rmse()]), the values are
 #' squared errors; the estimate is the root of their mean, and its MCSE comes
 #' from the delta method. For other measurements, the estimate is the mean.
 #'
 #' Comparisons are summarised per condition. When a comparison returns one
-#' paired difference per dataset, as [paired_difference()] does, the MCSE is
+#' paired difference per dataset, as [compare_paired()] does, the MCSE is
 #' the paired MCSE: the standard deviation of the differences divided by the
 #' square root of their number.
 #'

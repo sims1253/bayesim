@@ -22,7 +22,7 @@ list with the artifacts in \code{needs}. Each measurement has its own random
 stream.}
 
 \item{needs}{Names of the artifacts that \code{compute} uses: \code{fit}, \code{data} or
-an extractor name. Built-in measurements such as \code{\link[=coverage]{coverage()}} supply
+an extractor name. Built-in measurements such as \code{\link[=measure_coverage]{measure_coverage()}} supply
 their own default.}
 
 \item{version}{Version of \code{compute}.}

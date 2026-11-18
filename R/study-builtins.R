@@ -9,7 +9,7 @@
 #' `prior_draws()` makes a [study()] generator. For each dataset it draws the
 #' true parameters with `prior` and then the data with `simulate`. When the
 #' methods fit the same prior, the posterior ranks of the truth are uniform;
-#' [sbc_rank()] checks this.
+#' [measure_sbc_rank()] checks this.
 #'
 #' @param prior `function(condition)` that returns a named numeric vector of
 #'   parameter values.
@@ -134,12 +134,12 @@ conjugate_lm <- function(prior_mean = 0, prior_sd = 1, sigma = 1, draws = 1000) 
 #' `data` (a dataset with a named `truth`, as [prior_draws()] makes it). It
 #' returns one row per parameter, with columns `target` and `value`.
 #'
-#' * `coverage(level)`: `value` is 1 when the central posterior interval
+#' * `measure_coverage(level)`: `value` is 1 when the central posterior interval
 #'   holds the truth, otherwise 0.
-#' * `bias()`: `value` is the posterior mean minus the truth.
-#' * `rmse()`: `value` is the squared error of the posterior mean.
+#' * `measure_bias()`: `value` is the posterior mean minus the truth.
+#' * `measure_rmse()`: `value` is the squared error of the posterior mean.
 #'   [summarise_study()] reports the root of its mean.
-#' * `sbc_rank()`: `value` is the rank of the truth among the draws divided
+#' * `measure_sbc_rank()`: `value` is the rank of the truth among the draws divided
 #'   by the number of draws. When the method is calibrated, it is uniform on
 #'   0 to 1 and its mean is 0.5. The columns `rank` and `draws` hold the rank
 #'   and the number of draws.
@@ -151,7 +151,7 @@ NULL
 
 #' @rdname study-measures
 #' @export
-coverage <- function(level = 0.9) {
+measure_coverage <- function(level = 0.9) {
   if (!is.numeric(level) || length(level) != 1L || !(level > 0 && level < 1)) {
     cli::cli_abort("{.arg level} must be a probability between 0 and 1.")
   }
@@ -170,7 +170,7 @@ coverage <- function(level = 0.9) {
 
 #' @rdname study-measures
 #' @export
-bias <- function() {
+measure_bias <- function() {
   .builtin_measure(function(artifacts, context) {
     x <- .draws_truth(artifacts)
     data.frame(
@@ -183,7 +183,7 @@ bias <- function() {
 
 #' @rdname study-measures
 #' @export
-rmse <- function() {
+measure_rmse <- function() {
   .builtin_measure(
     function(artifacts, context) {
       x <- .draws_truth(artifacts)
@@ -199,7 +199,7 @@ rmse <- function() {
 
 #' @rdname study-measures
 #' @export
-sbc_rank <- function() {
+measure_sbc_rank <- function() {
   .builtin_measure(function(artifacts, context) {
     x <- .draws_truth(artifacts)
     n <- nrow(x$draws)
@@ -216,7 +216,7 @@ sbc_rank <- function() {
 
 #' Paired difference between methods
 #'
-#' `paired_difference()` makes a comparison for [with_comparison()]. Within
+#' `compare_paired()` makes a comparison for [with_comparison()]. Within
 #' each group, usually one dataset, it subtracts the reference method's
 #' measurement from each other method's, target by target. Because both
 #' methods saw the same data, the differences have a smaller Monte Carlo
@@ -230,7 +230,7 @@ sbc_rank <- function() {
 #'   `reference`, `target` and `value`. A dataset where the reference failed
 #'   gives no rows.
 #' @export
-paired_difference <- function(measurement, reference) {
+compare_paired <- function(measurement, reference) {
   .sg_name(measurement, "measurement")
   .sg_name(reference, "reference")
   function(results, artifacts, context) {

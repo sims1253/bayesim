@@ -47,7 +47,7 @@
 #'   )
 #' )
 #' s <- with_methods(s, conjugate = conjugate_lm())
-#' s <- with_measure(s, "coverage", coverage(0.9))
+#' s <- with_measure(s, "coverage", measure_coverage(0.9))
 #' run <- run_study(s, replicates = 20)
 #' summarise_study(run)
 study <- function(name, conditions, generate, prepare = NULL, version = "1") {
@@ -175,7 +175,7 @@ with_methods <- function(study, ...) {
 #'   list with the artifacts in `needs`. Each measurement has its own random
 #'   stream.
 #' @param needs Names of the artifacts that `compute` uses: `fit`, `data` or
-#'   an extractor name. Built-in measurements such as [coverage()] supply
+#'   an extractor name. Built-in measurements such as [measure_coverage()] supply
 #'   their own default.
 #' @param version Version of `compute`.
 #' @return The declaration with the measurement added.

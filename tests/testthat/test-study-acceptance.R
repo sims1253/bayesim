@@ -376,11 +376,11 @@ test_that("the conjugate model is calibrated and a wrong prior is not", {
     exact = conjugate_lm(draws = 200),
     narrow = conjugate_lm(prior_sd = 0.1, draws = 200)
   )
-  s <- with_measure(s, "coverage", coverage(0.9))
-  s <- with_measure(s, "bias", bias())
-  s <- with_measure(s, "rmse", rmse())
-  s <- with_measure(s, "rank", sbc_rank())
-  s <- with_comparison(s, "rmse_gain", paired_difference("rmse", reference = "exact"))
+  s <- with_measure(s, "coverage", measure_coverage(0.9))
+  s <- with_measure(s, "bias", measure_bias())
+  s <- with_measure(s, "rmse", measure_rmse())
+  s <- with_measure(s, "rank", measure_sbc_rank())
+  s <- with_comparison(s, "rmse_gain", compare_paired("rmse", reference = "exact"))
   run <- run_study(s, 400)
   sm <- summarise_study(run)
   exact <- sm[sm$method_id == "exact", ]

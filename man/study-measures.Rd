@@ -2,19 +2,19 @@
 % Please edit documentation in R/study-builtins.R
 \name{study-measures}
 \alias{study-measures}
-\alias{coverage}
-\alias{bias}
-\alias{rmse}
-\alias{sbc_rank}
+\alias{measure_coverage}
+\alias{measure_bias}
+\alias{measure_rmse}
+\alias{measure_sbc_rank}
 \title{Built-in measurements}
 \usage{
-coverage(level = 0.9)
+measure_coverage(level = 0.9)
 
-bias()
+measure_bias()
 
-rmse()
+measure_rmse()
 
-sbc_rank()
+measure_sbc_rank()
 }
 \arguments{
 \item{level}{Interval probability.}
@@ -30,12 +30,12 @@ returns one row per parameter, with columns \code{target} and \code{value}.
 }
 \details{
 \itemize{
-\item \code{coverage(level)}: \code{value} is 1 when the central posterior interval
+\item \code{measure_coverage(level)}: \code{value} is 1 when the central posterior interval
 holds the truth, otherwise 0.
-\item \code{bias()}: \code{value} is the posterior mean minus the truth.
-\item \code{rmse()}: \code{value} is the squared error of the posterior mean.
+\item \code{measure_bias()}: \code{value} is the posterior mean minus the truth.
+\item \code{measure_rmse()}: \code{value} is the squared error of the posterior mean.
 \code{\link[=summarise_study]{summarise_study()}} reports the root of its mean.
-\item \code{sbc_rank()}: \code{value} is the rank of the truth among the draws divided
+\item \code{measure_sbc_rank()}: \code{value} is the rank of the truth among the draws divided
 by the number of draws. When the method is calibrated, it is uniform on
 0 to 1 and its mean is 0.5. The columns \code{rank} and \code{draws} hold the rank
 and the number of draws.

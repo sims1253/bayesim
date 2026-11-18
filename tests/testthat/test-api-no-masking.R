@@ -19,3 +19,16 @@ describe("renamed generics do not mask foreign packages", {
     expect_true("fit_diagnostics" %in% exports)
   })
 })
+
+describe("study measures do not mask yardstick or Metrics", {
+  it("exports the measures under measure_ and compare_ names", {
+    exports <- getNamespaceExports(asNamespace("bayesim"))
+    for (old in c("coverage", "bias", "rmse", "sbc_rank", "paired_difference")) {
+      expect_false(old %in% exports, label = old)
+    }
+    for (new in c("measure_coverage", "measure_bias", "measure_rmse",
+                  "measure_sbc_rank", "compare_paired")) {
+      expect_true(new %in% exports, label = new)
+    }
+  })
+})

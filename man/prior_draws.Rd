@@ -20,5 +20,5 @@ Built-in measurements read \code{truth} from it.
 \code{prior_draws()} makes a \code{\link[=study]{study()}} generator. For each dataset it draws the
 true parameters with \code{prior} and then the data with \code{simulate}. When the
 methods fit the same prior, the posterior ranks of the truth are uniform;
-\code{\link[=sbc_rank]{sbc_rank()}} checks this.
+\code{\link[=measure_sbc_rank]{measure_sbc_rank()}} checks this.
 }
