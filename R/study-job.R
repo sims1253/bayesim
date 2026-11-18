@@ -18,6 +18,11 @@
 # returned with the stage, so that the controller can stop the run and say
 # where the error happened. Warnings are recorded with the attempt.
 .run_job <- function(job, spec, cache) {
+  # With a state in place, each stream swaps .Random.seed and nothing else.
+  # The caller's state is restored by run_study().
+  if (!exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+    stats::runif(1L)
+  }
   cache$stage <- job$kind
   cache$warnings <- character()
   started <- proc.time()[["elapsed"]]
@@ -207,7 +212,7 @@
     }
     artifacts <- list()
     cache$stage <- "extract"
-    for (name in setdiff(spec$required, "data")) {
+    for (name in spec$required[spec$required != "data"]) {
       artifacts[name] <- list(
         if (name == "fit") {
           fit$value
@@ -224,7 +229,8 @@
     }
     rm(fit)
     cached <- list()
-    kept <- intersect(c(spec$retention, spec$comparison_needs), names(artifacts))
+    kept <- unique(c(spec$retention, spec$comparison_needs))
+    kept <- kept[kept %in% names(artifacts)]
   }
 
   measurements <- list()
@@ -239,7 +245,7 @@
     if ("data" %in% measure$needs) {
       artifacts["data"] <- list(get_data())
     }
-    missing <- setdiff(measure$needs, names(artifacts))
+    missing <- measure$needs[!measure$needs %in% names(artifacts)]
     if (length(missing)) {
       cli::cli_abort(c(
         "Measurement {.val {name}} needs discarded artifacts: {paste(missing, collapse = ', ')}.",
@@ -281,6 +287,9 @@
 }
 
 .job_warnings <- function(cache, old = NA_character_) {
+  if (is.na(old) && !length(cache$warnings)) {
+    return(NA_character_)
+  }
   w <- unique(c(if (!is.na(old)) old, cache$warnings))
   if (length(w)) paste(w, collapse = "\n") else NA_character_
 }
@@ -405,31 +414,47 @@
 
 # `measurements` holds, for each attempt, the measurement list of its record.
 .sg_measure_frame <- function(spec, ix, measurements) {
-  names <- names(spec$cap$measures)
-  frames <- list()
-  owner <- integer()
-  which <- character()
-  for (i in seq_along(measurements)) {
-    m <- measurements[[i]]
-    for (name in intersect(names, names(m))) {
-      rows <- m[[name]]$rows
-      n <- nrow(rows)
-      if (n) {
-        frames[[length(frames) + 1L]] <- rows
-        owner <- c(owner, rep.int(i, n))
-        which <- c(which, rep.int(name, n))
-      }
-    }
-  }
-  if (!length(frames)) {
+  # Measurement order within each attempt; one pass, no growing vectors.
+  declared <- names(spec$cap$measures)
+  per <- lapply(measurements, function(m) {
+    m <- m[declared[declared %in% names(m)]]
+    lapply(m, `[[`, "rows")
+  })
+  counts <- lengths(per)
+  frames <- unlist(per, recursive = FALSE, use.names = FALSE)
+  which <- unlist(lapply(per, base::names), use.names = FALSE)
+  attempt <- rep.int(seq_along(per), counts)
+  n <- vapply(frames, nrow, integer(1))
+  if (!sum(n)) {
     return(data.frame())
   }
-  values <- .sg_bind(frames, order = FALSE)
+  owner <- rep.int(attempt, n)
+  which <- rep.int(which, n)
+  values <- .sg_rows(frames[n > 0L])
   sub <- lapply(ix, function(x) x[owner])
   meta <- .sg_meta_frame(spec, sub)
   meta$measurement <- which
   out <- c(as.list(meta), as.list(values))
   .sg_order_columns(.sg_frame(out, length(owner)))
+}
+
+# Bind measurement rows. Rows of one measurement usually share their
+# columns, so bind each column with one vec_c() when every frame has the same
+# names; otherwise fall back to vec_rbind().
+.sg_rows <- function(frames) {
+  if (length(frames) == 1L) {
+    return(frames[[1L]])
+  }
+  columns <- names(frames[[1L]])
+  same <- all(vapply(frames, function(f) identical(names(f), columns), logical(1)))
+  if (!same) {
+    return(do.call(vctrs::vec_rbind, unname(frames)))
+  }
+  out <- lapply(columns, function(col) {
+    vctrs::vec_c(!!!lapply(frames, `[[`, col))
+  })
+  names(out) <- columns
+  .sg_frame(out, vctrs::vec_size(out[[1L]]))
 }
 
 # Comparisons ------------------------------------------------------------------------

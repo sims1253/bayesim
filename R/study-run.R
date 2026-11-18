@@ -327,6 +327,7 @@ assess_study <- function(run, policy = NULL) {
   done_comparisons <- index$comparisons
 
   log <- list(kind = character(), id = character())
+  n_log <- 0L
   held <- character()
   handle <- NULL
   on.exit({
@@ -489,15 +490,16 @@ assess_study <- function(run, policy = NULL) {
       done <- finished(job)
       if (!is.null(done)) {
         .release(st, job$key)
-        held <- setdiff(held, job$key)
+        held <- held[held != job$key]
         complete(job, done)
         next
       }
-      id <- as.character(length(log$kind) + 1L)
-      log$kind <- c(log$kind, job$kind)
-      log$id <- c(log$id, job$key)
+      n_log <- n_log + 1L
+      id <- as.character(n_log)
+      log$kind[[n_log]] <- job$kind
+      log$id[[n_log]] <- job$key
       inflight[[id]] <- job
-      handle$submit(id, job[setdiff(names(job), c("key", "i", "d"))])
+      handle$submit(id, job[!names(job) %in% c("key", "i", "d")])
     }
     if (!length(inflight)) {
       if (!length(deferred)) {
@@ -539,7 +541,7 @@ assess_study <- function(run, policy = NULL) {
         .sg_stage_error(value$error)
       }
       .release(st, job$key)
-      held <- setdiff(held, job$key)
+      held <- held[held != job$key]
       complete(job, value)
       if (isTRUE(value$warnings > 0L)) {
         warned <- warned + 1L

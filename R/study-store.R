@@ -102,25 +102,41 @@
 # caller's random number stream.
 .tmp_counter <- new.env(parent = emptyenv())
 .next_tmp_id <- function() {
-  .tmp_counter$n <- (.tmp_counter$n %||% 0) + 1
-  format(.tmp_counter$n, scientific = FALSE)
+  .tmp_counter$n <- (.tmp_counter$n %||% 0L) + 1L
+  as.character(.tmp_counter$n)
 }
 
-.checksum <- function(payload) {
-  digest::digest(payload, algo = "xxhash64", serialize = FALSE)
-}
+.checksum <- function(payload) .vdigest("xxhash64")(payload)
 
+# A record is an RDS file. Without compression its bytes are those of
+# serialize(), so both sides skip the connection that saveRDS() and readRDS()
+# open.
 .write_payload <- function(value, path, compress = FALSE) {
   payload <- serialize(value, NULL, xdr = FALSE)
+  record <- list(payload = payload, checksum = .checksum(payload))
   .write_atomic(
-    list(payload = payload, checksum = .checksum(payload)),
+    record,
     path,
-    writer = function(x, f) saveRDS(x, f, compress = compress)
+    writer = if (isFALSE(compress)) {
+      function(x, f) writeBin(serialize(x, NULL), f)
+    } else {
+      function(x, f) saveRDS(x, f, compress = compress)
+    }
   )
 }
 
+.read_record <- function(path) {
+  size <- file.size(path)
+  bytes <- if (is.finite(size) && size > 2) readBin(path, "raw", size)
+  if (length(bytes) == size && identical(bytes[1:2], as.raw(c(0x58, 0x0a)))) {
+    unserialize(bytes)
+  } else {
+    readRDS(path)
+  }
+}
+
 .read_payload <- function(path) {
-  record <- tryCatch(readRDS(path), error = function(e) {
+  record <- tryCatch(.read_record(path), error = function(e) {
     cli::cli_abort("Unreadable study record {.path {path}}.", parent = e)
   })
   if (
@@ -144,11 +160,16 @@
 # Claims ---------------------------------------------------------------------
 #
 # A claim is a directory, because creating a directory is atomic and fails if
-# it exists. A file in it holds the owner's host, process ID and start time. A
-# claim is stale when its owner is a dead process on this host, or when it is
-# older than `getOption("bayesim.claim_timeout")` seconds (default one day).
+# it exists. The name of the one empty file in it holds the owner's host,
+# process ID and start time. A claim is stale when its owner is a dead process
+# on this host, or when it is older than
+# `getOption("bayesim.claim_timeout")` seconds (default one day).
 
-.host <- function() Sys.info()[["nodename"]]
+.host <- function() {
+  .tmp_counter$host <- .tmp_counter$host %||%
+    gsub("[^A-Za-z0-9.-]", "-", Sys.info()[["nodename"]])
+  .tmp_counter$host
+}
 
 .claim <- function(st, key) {
   dir <- file.path(st$claims, key)
@@ -166,18 +187,15 @@
   if (!dir.create(dir, showWarnings = FALSE)) {
     return(FALSE)
   }
-  writeLines(
-    c(.host(), Sys.getpid(), format(unclass(Sys.time()), digits = 15)),
-    file.path(dir, "owner")
-  )
+  file.create(file.path(
+    dir,
+    paste(.host(), Sys.getpid(), sprintf("%.3f", unclass(Sys.time())), sep = "_")
+  ))
   TRUE
 }
 
 .claim_stale <- function(dir) {
-  owner <- tryCatch(
-    suppressWarnings(readLines(file.path(dir, "owner"), warn = FALSE)),
-    error = function(e) character()
-  )
+  owner <- strsplit(list.files(dir)[1L], "_", fixed = TRUE)[[1L]]
   if (length(owner) < 3L) {
     # The owner may still be writing its details. Trust it for a minute.
     age <- as.numeric(Sys.time()) - as.numeric(file.mtime(dir))

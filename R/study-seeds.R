@@ -6,9 +6,16 @@
 
 .digest <- function(x) digest::digest(x, algo = "sha1")
 
+# Vectorised digests, made once per process.
+.digesters <- new.env(parent = emptyenv())
 .vdigest <- function(algo) {
-  fn <- digest::getVDigest(algo)
-  function(x) fn(x, serialize = FALSE)
+  fn <- .digesters[[algo]]
+  if (is.null(fn)) {
+    vd <- digest::getVDigest(algo)
+    fn <- function(x) vd(x, serialize = FALSE)
+    .digesters[[algo]] <- fn
+  }
+  fn
 }
 
 # One sha1 per element. The arguments are recycled and joined with a
@@ -50,21 +57,24 @@
 }
 
 # Evaluate `expr` on the stream `seed`, then restore the caller's generator
-# and state, also when `expr` fails.
+# and state, also when `expr` fails. The first word of `.Random.seed` names
+# the generator, so assigning the state also sets the kind. Only a caller
+# without a state needs RNGkind() to restore its kind.
 .with_stream <- function(seed, expr) {
-  old_kind <- RNGkind()
-  had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
-  old_seed <- if (had_seed) get(".Random.seed", envir = globalenv())
+  env <- globalenv()
+  old_seed <- env[[".Random.seed"]]
+  old_kind <- if (is.null(old_seed)) RNGkind()
   on.exit({
-    RNGkind(old_kind[1], old_kind[2], old_kind[3])
-    if (had_seed) {
-      assign(".Random.seed", old_seed, envir = globalenv())
-    } else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
-      rm(".Random.seed", envir = globalenv())
+    if (!is.null(old_seed)) {
+      assign(".Random.seed", old_seed, envir = env)
+    } else {
+      RNGkind(old_kind[1], old_kind[2], old_kind[3])
+      if (exists(".Random.seed", envir = env, inherits = FALSE)) {
+        rm(".Random.seed", envir = env)
+      }
     }
   })
-  RNGkind("L'Ecuyer-CMRG", "Inversion", "Rejection")
-  assign(".Random.seed", c(10407L, seed), envir = globalenv())
+  assign(".Random.seed", c(10407L, seed), envir = env)
   expr
 }
 

@@ -103,9 +103,6 @@ conjugate_lm <- function(prior_mean = 0, prior_sd = 1, sigma = 1, draws = 1000) 
   if (is.matrix(draws)) {
     return(draws)
   }
-  if (is.numeric(draws) && !is.null(names(draws))) {
-    stop("Draws must be a matrix, a 3-D array or a posterior draws object.")
-  }
   stop("Draws must be a matrix, a 3-D array or a posterior draws object.")
 }
 
