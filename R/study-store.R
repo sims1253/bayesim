@@ -76,10 +76,12 @@
       )
     }
   } else {
-    if (
-      dir.exists(path) &&
-        length(list.files(path, all.files = TRUE, no.. = TRUE))
-    ) {
+    # An earlier open that stopped before the marker was in place leaves
+    # only entries that the store itself makes. They are not foreign.
+    entries <- list.files(path, all.files = TRUE, no.. = TRUE)
+    own <- entries %in% c(.store_kinds, "claims", "bayesim-store") |
+      startsWith(entries, ".tmp-")
+    if (dir.exists(path) && !all(own)) {
       cli::cli_abort(c(
         "{.path {path}} is not empty and is not a bayesim study store.",
         i = "Use a new directory."
@@ -126,10 +128,7 @@
   if (!dir.exists(dir)) {
     dir.create(dir, recursive = TRUE, showWarnings = FALSE)
   }
-  tmp <- file.path(
-    dir,
-    paste0(".tmp-", Sys.getpid(), "-", .next_tmp_id(), "-", basename(path))
-  )
+  tmp <- file.path(dir, .tmp_name(basename(path)))
   on.exit(if (file.exists(tmp)) unlink(tmp), add = TRUE)
   .trace_op("write", path)
   writer(x, tmp)
@@ -139,11 +138,46 @@
   invisible(path)
 }
 
-# A per-process counter keeps temporary names unique without using the
-# caller's random number stream.
+# A temporary name is unique across hosts and processes: it holds the host,
+# the process ID, a nonce for this process and a counter. Stores on shared
+# file systems see many hosts, and process IDs repeat across hosts and over
+# time.
 .tmp_counter <- new.env(parent = emptyenv())
+.tmp_name <- function(base) {
+  paste0(
+    ".tmp-", .host(), "-", Sys.getpid(), "-", .process_nonce(), "-",
+    .next_tmp_id(), "-", base
+  )
+}
+
+# The nonce is a digest of the host, the process ID, the time to the
+# microsecond and the name of the session's temporary directory. It draws no
+# random numbers, so it does not move the caller's stream. A forked child
+# has another process ID and makes its own nonce.
+.process_nonce <- function() {
+  pid <- Sys.getpid()
+  if (!identical(.tmp_counter$pid, pid)) {
+    .tmp_counter$nonce <- substr(
+      .vdigest("sha1")(paste(
+        .host(),
+        pid,
+        format(Sys.time(), "%Y-%m-%d %H:%M:%OS6"),
+        proc.time()[["elapsed"]],
+        basename(tempdir()),
+        sep = "\r"
+      )),
+      1L,
+      16L
+    )
+    .tmp_counter$n <- 0L
+    .tmp_counter$pid <- pid
+  }
+  .tmp_counter$nonce
+}
+
 .next_tmp_id <- function() {
-  .tmp_counter$n <- (.tmp_counter$n %||% 0L) + 1L
+  .process_nonce()
+  .tmp_counter$n <- .tmp_counter$n + 1L
   as.character(.tmp_counter$n)
 }
 
@@ -166,8 +200,9 @@
   )
 }
 
-.read_record <- function(path, size = file.size(path)) {
+.read_record <- function(path, size = NULL) {
   .trace_op("read", path)
+  size <- size %||% file.size(path)
   bytes <- if (is.finite(size) && size > 2) readBin(path, "raw", size)
   if (length(bytes) == size && identical(bytes[1:2], as.raw(c(0x58, 0x0a)))) {
     unserialize(bytes)
@@ -176,22 +211,30 @@
   }
 }
 
-# `size` lets a caller that reads many records stat them in one call.
-.read_payload <- function(path, size = file.size(path)) {
-  record <- tryCatch(.read_record(path, size), error = function(e) {
-    cli::cli_abort("Unreadable study record {.path {path}}.", parent = e)
-  })
-  if (
-    !is.list(record) ||
-      !is.raw(record$payload) ||
-      !identical(record$checksum, .checksum(record$payload))
-  ) {
+# `size` lets a caller that reads many records stat them in one call. A
+# size taken before the file changed reads too few or too many bytes; the
+# record then fails its check, and the file is read again with a fresh size.
+.read_payload <- function(path, size = NULL) {
+  record <- tryCatch(.read_record(path, size), error = function(e) e)
+  if (!is.null(size) && !.record_ok(record)) {
+    return(.read_payload(path))
+  }
+  if (inherits(record, "error")) {
+    cli::cli_abort("Unreadable study record {.path {path}}.", parent = record)
+  }
+  if (!.record_ok(record)) {
     cli::cli_abort(c(
       "Checksum mismatch: {.path {path}}.",
       i = "Delete the file to compute it again."
     ))
   }
   unserialize(record$payload)
+}
+
+.record_ok <- function(record) {
+  is.list(record) &&
+    is.raw(record$payload) &&
+    identical(record$checksum, .checksum(record$payload))
 }
 
 # Whether store files exist. Every probe of the store for a record goes

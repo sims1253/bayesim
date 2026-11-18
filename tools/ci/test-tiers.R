@@ -48,6 +48,7 @@ bayesim_test_tier_core_only <- c(
   "report",
   "study-grammar",
   "study-keys",
+  "study-store",
   "transport-purrr-mirai"
 )
 
