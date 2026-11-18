@@ -18,6 +18,45 @@
 # names, and a key changes when anything that determines the result changes.
 
 .store_kinds <- c("fits", "artifacts", "datasets", "prepared", "comparisons")
+
+# Store trace ----------------------------------------------------------------
+#
+# Every read, write, directory walk and claim goes through one of four
+# functions, and each reports itself to .trace_op(). The tests count these
+# operations to check how much work a run does without timing it. When no
+# trace is on, the cost is one test of a logical.
+
+.store_trace <- new.env(parent = emptyenv())
+.store_trace$on <- FALSE
+
+.trace_op <- function(op, path) {
+  if (.store_trace$on) {
+    n <- .store_trace$n + 1L
+    .store_trace$op[[n]] <- op
+    .store_trace$path[[n]] <- path
+    .store_trace$n <- n
+  }
+}
+
+# Evaluate `expr` and return its value with the store operations that this
+# process made meanwhile, as a data frame of `op` and `path`. Jobs that a
+# backend runs in another process are not counted.
+.with_store_trace <- function(expr) {
+  .store_trace$n <- 0L
+  .store_trace$op <- character()
+  .store_trace$path <- character()
+  .store_trace$on <- TRUE
+  on.exit(.store_trace$on <- FALSE)
+  value <- expr
+  list(
+    value = value,
+    ops = data.frame(
+      op = .store_trace$op,
+      path = .store_trace$path,
+      stringsAsFactors = FALSE
+    )
+  )
+}
 .store_marker <- "bayesim study store, format 1"
 
 .store_open <- function(path) {
@@ -74,6 +113,7 @@
 # directory walk per kind.
 .store_index <- function(st, kinds = .store_kinds) {
   out <- lapply(kinds, function(kind) {
+    .trace_op("walk", st[[kind]])
     files <- list.files(st[[kind]], pattern = "\\.rds$", recursive = TRUE)
     sub("\\.rds$", "", basename(files))
   })
@@ -91,6 +131,7 @@
     paste0(".tmp-", Sys.getpid(), "-", .next_tmp_id(), "-", basename(path))
   )
   on.exit(if (file.exists(tmp)) unlink(tmp), add = TRUE)
+  .trace_op("write", path)
   writer(x, tmp)
   if (!file.rename(tmp, path)) {
     cli::cli_abort("Could not write {.path {path}}.")
@@ -126,6 +167,7 @@
 }
 
 .read_record <- function(path, size = file.size(path)) {
+  .trace_op("read", path)
   bytes <- if (is.finite(size) && size > 2) readBin(path, "raw", size)
   if (length(bytes) == size && identical(bytes[1:2], as.raw(c(0x58, 0x0a)))) {
     unserialize(bytes)
@@ -152,9 +194,16 @@
   unserialize(record$payload)
 }
 
+# Whether store files exist. Every probe of the store for a record goes
+# through here, so that the trace counts it.
+.store_has <- function(paths) {
+  for (p in paths) .trace_op("probe", p)
+  file.exists(paths)
+}
+
 # Read a record if it exists; NULL otherwise.
 .read_if <- function(path) {
-  if (file.exists(path)) .read_payload(path) else NULL
+  if (.store_has(path)) .read_payload(path) else NULL
 }
 
 # Claims ---------------------------------------------------------------------
@@ -187,6 +236,7 @@
   if (!dir.create(dir, showWarnings = FALSE)) {
     return(FALSE)
   }
+  .trace_op("claim", dir)
   file.create(file.path(
     dir,
     paste(.host(), Sys.getpid(), sprintf("%.3f", unclass(Sys.time())), sep = "_")

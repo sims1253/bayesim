@@ -71,7 +71,7 @@
     return(cache$prepared[[key]]$value)
   }
   file <- .store_file(.job_store(spec), "prepared", key)
-  if (!file.exists(file)) {
+  if (!.store_has(file)) {
     cli::cli_abort(
       "The prepared value for condition {.val {spec$condition_ids[[cidx]]}} is missing from the store."
     )
@@ -106,7 +106,7 @@
   }
   st <- .job_store(spec)
   file <- .store_file(st, "datasets", job$dataset_id)
-  data <- if (file.exists(file)) {
+  data <- if (.store_has(file)) {
     .read_payload(file)$data
   } else {
     cache$stage <- "generate"
@@ -345,7 +345,7 @@
   cache$stage <- "compare"
   for (name in names(job$keys)) {
     file <- .store_file(st, "comparisons", job$keys[[name]])
-    if (file.exists(file)) {
+    if (.store_has(file)) {
       next
     }
     value <- .sg_compare(
@@ -361,7 +361,7 @@
   # Evict artifacts that no later step needs.
   for (i in which(status == "success")) {
     file <- .store_file(st, "artifacts", job$fit_keys[[i]])
-    if (!file.exists(file)) {
+    if (!.store_has(file)) {
       next
     }
     a <- .read_payload(file)

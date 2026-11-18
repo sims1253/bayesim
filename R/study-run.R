@@ -446,19 +446,19 @@ assess_study <- function(run, policy = NULL) {
   # The output of a job, if it exists: list(status, record) or NULL.
   finished <- function(job) {
     if (job$kind == "prepare") {
-      if (file.exists(.store_file(st, "prepared", job$key))) {
+      if (.store_has(.store_file(st, "prepared", job$key))) {
         return(list(status = "success"))
       }
     } else if (job$kind == "fit") {
       record <- fits$record[[job$i]]
-      if (file.exists(.store_file(st, "fits", record))) {
+      if (.store_has(.store_file(st, "fits", record))) {
         return(list(status = "success", record = record))
       }
       failed <- paste0(job$fit_key, ".failed")
-      if (!retry && file.exists(.store_file(st, "fits", failed))) {
+      if (!retry && .store_has(.store_file(st, "fits", failed))) {
         return(list(status = "failed", record = failed))
       }
-    } else if (all(file.exists(.store_file(st, "comparisons", job$keys)))) {
+    } else if (all(.store_has(.store_file(st, "comparisons", job$keys)))) {
       return(list(status = "success"))
     }
     NULL
