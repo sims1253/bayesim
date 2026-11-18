@@ -10,6 +10,7 @@
 # each process once; each job is then a short list of indices and keys.
 
 .make_worker <- function(spec) {
+  force(spec)
   cache <- new.env(parent = emptyenv())
   function(job) .run_job(job, spec, cache)
 }

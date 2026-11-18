@@ -24,3 +24,15 @@ test_that("a summary of values that are all missing has no rows and the usual co
   expect_named(aimed, c(names(out), "n_needed", "done"))
 })
 
+# S17 ------------------------------------------------------------------------------
+
+test_that("the serialised worker holds the run specification and nothing of its caller", {
+  spec <- list(cap = list(), root = tempdir())
+  bare <- length(serialize(bayesim:::.make_worker(spec), NULL))
+  make <- function(spec) {
+    big <- runif(131072) # 1 MB that the worker does not use
+    bayesim:::.make_worker(spec)
+  }
+  expect_lt(length(serialize(make(spec), NULL)), bare + 10000)
+})
+
