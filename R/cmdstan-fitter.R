@@ -178,9 +178,13 @@ CmdStanFitter <- function(
 .cmdstan_model <- function(fitter) {
   cached <- getOption("bayesim.cmdstan_models")
   key <- if (!is.null(fitter@stan_file)) {
+    # Hash the file contents too, so editing the program at the same path
+    # recompiles (#104). Edited `#include` files are not tracked.
     digest::digest(list(
       file = normalizePath(fitter@stan_file, mustWork = FALSE),
-      code = NULL
+      code = if (file.exists(fitter@stan_file)) {
+        digest::digest(file = fitter@stan_file)
+      }
     ))
   } else {
     digest::digest(list(file = NULL, code = fitter@stan_code))
