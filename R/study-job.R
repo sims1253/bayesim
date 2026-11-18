@@ -85,7 +85,6 @@
 
 .job_context <- function(job, spec, cache) {
   list(
-    study = spec$cap$name,
     condition = spec$conditions[[job$cidx]],
     dataset_id = job$dataset_id,
     replicate = job$replicate,
@@ -136,7 +135,7 @@
     c("prepare", key),
     spec$cap$prepare,
     condition = condition,
-    context = list(study = spec$cap$name, condition = condition)
+    context = list(condition = condition)
   )
   .write_payload(
     list(value = value),
@@ -351,7 +350,6 @@
     }
     value <- .sg_compare(
       spec$cap$comparisons[name],
-      spec$cap$name,
       results,
       attempts,
       bundles = bundles,
@@ -466,7 +464,6 @@
 
 .sg_compare <- function(
   comparisons,
-  study_name,
   results,
   attempts,
   bundles = NULL,
@@ -532,7 +529,7 @@
           artifacts[[id]] <- artifacts[[id]][spec$needs]
         }
       }
-      context <- list(study = study_name, group = group_values, attempts = members)
+      context <- list(group = group_values, attempts = members)
       value <- .invoke(
         c(
           stream,

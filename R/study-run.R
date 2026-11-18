@@ -149,7 +149,6 @@ assess_study <- function(run, policy = NULL) {
       attempts = run$attempts,
       comparisons = .sg_bind(.sg_compare(
         saved,
-        run$study$name,
         selected,
         run$attempts,
         stream = c("compare", run$plan$seed)
@@ -183,7 +182,8 @@ assess_study <- function(run, policy = NULL) {
   n_cond <- nrow(conditions)
   n_method <- length(cap$methods)
   method_ids <- names(cap$methods)
-  cond_keys <- .condition_keys(conditions)
+  rows <- lapply(seq_len(n_cond), function(i) as.list(conditions[i, , drop = FALSE]))
+  cond_keys <- .condition_keys(rows)
   prepare_keys <- if (is.null(cap$prepare)) {
     rep("", n_cond)
   } else {
@@ -236,7 +236,6 @@ assess_study <- function(run, policy = NULL) {
   raw <- Filter(function(x) length(x$needs) > 0L, cap$comparisons)
   cond_meta <- .sg_condition_meta(conditions)
   method_meta <- .sg_method_meta(study$methods)
-  rows <- lapply(seq_len(n_cond), function(i) as.list(conditions[i, , drop = FALSE]))
   spec <- list(
     cap = cap,
     root = NULL,
@@ -618,7 +617,6 @@ assess_study <- function(run, policy = NULL) {
       comparisons,
       .sg_compare(
         plain,
-        study$name,
         measurements,
         attempts,
         stream = c("compare", spec$seed)

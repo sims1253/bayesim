@@ -36,3 +36,52 @@ test_that("the serialised worker holds the run specification and nothing of its 
   expect_lt(length(serialize(make(spec), NULL)), bare + 10000)
 })
 
+# S7 -------------------------------------------------------------------------------
+
+test_that("callbacks do not see the study name, so studies on one store share results", {
+  seen <- withr::local_tempfile()
+  make <- function(name) {
+    s <- study(name, data.frame(condition_id = "a"), function(condition, context) {
+      cat("generate", is.null(context$study), "\n", file = seen, append = TRUE)
+      paste(context$study, "data")
+    }, prepare = function(condition, context) {
+      cat("prepare", is.null(context$study), "\n", file = seen, append = TRUE)
+      1
+    })
+    s <- one_method(s)
+    with_comparison(s, "c", function(results, artifacts, context) {
+      cat("compare", is.null(context$study), "\n", file = seen, append = TRUE)
+      data.frame(value = 0)
+    }, needs = "fit")
+  }
+  path <- withr::local_tempfile()
+  run_study(make("one"), 1, path = path)
+  shared <- run_study(make("two"), 1, path = path)
+  expect_equal(nrow(shared$executed), 0)
+  expect_identical(shared$measurements$seen, run_study(make("two"), 1)$measurements$seen)
+  expect_true(all(grepl("TRUE", readLines(seen))))
+})
+
+test_that("conditions that callbacks can tell apart have different keys", {
+  make <- function(x) {
+    s <- study("typed", data.frame(condition_id = "a", x = I(list(x))),
+               function(condition, context) typeof(condition$x[[1]]))
+    one_method(s)
+  }
+  make_column <- function(x) {
+    s <- study("typed", data.frame(condition_id = "a", x = x),
+               function(condition, context) paste(typeof(condition$x), class(condition$x)))
+    one_method(s)
+  }
+  for (pair in list(list(1L, 1), list(TRUE, 1), list("a", factor("a")))) {
+    path <- withr::local_tempfile()
+    run_study(make_column(pair[[1]]), 1, path = path)
+    second <- run_study(make_column(pair[[2]]), 1, path = path)
+    expect_equal(nrow(second$executed), 1)
+    expect_identical(second$measurements$seen, run_study(make_column(pair[[2]]), 1)$measurements$seen)
+  }
+  path <- withr::local_tempfile()
+  run_study(make(1L), 1, path = path)
+  expect_equal(nrow(run_study(make(1), 1, path = path)$executed), 1)
+})
+

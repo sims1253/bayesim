@@ -25,26 +25,11 @@
 }
 
 # The key of each condition row. All fields count, including condition_id.
-# Whole numbers stored as integers and as doubles give the same key, and
-# factors count as their labels.
-.condition_keys <- function(conditions) {
-  vapply(
-    seq_len(nrow(conditions)),
-    function(i) {
-      row <- lapply(as.list(conditions[i, , drop = FALSE]), function(x) {
-        x <- unclass(x)
-        if (is.factor(x)) {
-          x <- as.character(x)
-        }
-        if (is.integer(x) || is.logical(x)) {
-          storage.mode(x) <- "double"
-        }
-        x
-      })
-      .digest(row[order(names(row))])
-    },
-    character(1)
-  )
+# The key hashes the row exactly as the functions of the study receive it:
+# with column order, types and attributes. 1L and 1 are different conditions,
+# because a function can tell them apart.
+.condition_keys <- function(rows) {
+  vapply(rows, .digest, character(1), USE.NAMES = FALSE)
 }
 
 # The L'Ecuyer-CMRG state for a stream name. Each of the six seed words takes

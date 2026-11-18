@@ -16,15 +16,16 @@
 #' number, the value of `prepare` and the generator. All methods see the same
 #' dataset for a condition and replicate.
 #'
-#' @param name Study name. It is available to every function as
-#'   `context$study`.
+#' @param name Study name, for printing and reports. The functions of the
+#'   study do not see it, so studies that differ only in name share results
+#'   in one store.
 #' @param conditions A data frame with one row per condition. It must have a
 #'   unique, nonempty character column `condition_id`. Atomic columns appear
 #'   in results with the prefix `condition_`. A column named `id` is not
 #'   allowed, because it would appear as `condition_id`.
 #' @param generate `function(condition, context)` that returns one dataset.
-#'   `condition` is the condition row as a list. `context` holds `study`,
-#'   `condition`, `dataset_id`, `replicate`, `prepared` and `seed`.
+#'   `condition` is the condition row as a list. `context` holds
+#'   `condition`, `dataset_id`, `replicate` and `prepared`.
 #' @param prepare Optional `function(condition, context)` that runs once per
 #'   condition. Its value is available as `context$prepared` to every other
 #'   function.

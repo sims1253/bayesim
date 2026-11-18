@@ -7,8 +7,9 @@
 study(name, conditions, generate, prepare = NULL, version = "1")
 }
 \arguments{
-\item{name}{Study name. It is available to every function as
-\code{context$study}.}
+\item{name}{Study name, for printing and reports. The functions of the
+study do not see it, so studies that differ only in name share results
+in one store.}
 
 \item{conditions}{A data frame with one row per condition. It must have a
 unique, nonempty character column \code{condition_id}. Atomic columns appear
@@ -16,8 +17,8 @@ in results with the prefix \code{condition_}. A column named \code{id} is not
 allowed, because it would appear as \code{condition_id}.}
 
 \item{generate}{\verb{function(condition, context)} that returns one dataset.
-\code{condition} is the condition row as a list. \code{context} holds \code{study},
-\code{condition}, \code{dataset_id}, \code{replicate}, \code{prepared} and \code{seed}.}
+\code{condition} is the condition row as a list. \code{context} holds
+\code{condition}, \code{dataset_id}, \code{replicate} and \code{prepared}.}
 
 \item{prepare}{Optional \verb{function(condition, context)} that runs once per
 condition. Its value is available as \code{context$prepared} to every other
