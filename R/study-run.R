@@ -581,7 +581,9 @@ assess_study <- function(run, policy = NULL) {
   record <- fits$record
   missing <- !record %in% names
   record[missing] <- paste0(fits$fit_key[missing], ".failed")
-  payloads <- lapply(record, function(r) .read_payload(.store_file(st, "fits", r)))
+  files <- .store_file(st, "fits", record)
+  sizes <- file.size(files)
+  payloads <- lapply(seq_along(files), function(i) .read_payload(files[[i]], sizes[[i]]))
   ix <- list(
     dataset_id = datasets$dataset_id[fits$didx],
     cidx = datasets$cidx[fits$didx],

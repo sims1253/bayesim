@@ -125,8 +125,7 @@
   )
 }
 
-.read_record <- function(path) {
-  size <- file.size(path)
+.read_record <- function(path, size = file.size(path)) {
   bytes <- if (is.finite(size) && size > 2) readBin(path, "raw", size)
   if (length(bytes) == size && identical(bytes[1:2], as.raw(c(0x58, 0x0a)))) {
     unserialize(bytes)
@@ -135,8 +134,9 @@
   }
 }
 
-.read_payload <- function(path) {
-  record <- tryCatch(.read_record(path), error = function(e) {
+# `size` lets a caller that reads many records stat them in one call.
+.read_payload <- function(path, size = file.size(path)) {
+  record <- tryCatch(.read_record(path, size), error = function(e) {
     cli::cli_abort("Unreadable study record {.path {path}}.", parent = e)
   })
   if (
