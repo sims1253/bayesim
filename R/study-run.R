@@ -300,7 +300,15 @@ assess_study <- function(run, policy = NULL) {
 .sg_compare_keys <- function(setup, dataset_id, records) {
   spec <- setup$spec
   members <- paste(sort(records), collapse = ",")
-  keys <- .hash_text("comparison", spec$raw_ids, dataset_id, members)
+  # The name is in the key because it is in the comparison's seed and in
+  # its rows.
+  keys <- .hash_text(
+    "comparison",
+    spec$raw_comparisons,
+    spec$raw_ids,
+    dataset_id,
+    members
+  )
   names(keys) <- spec$raw_comparisons
   keys
 }

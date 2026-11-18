@@ -248,7 +248,9 @@
       compute = f$fn,
       needs = x$needs,
       summary = x$summary %||% "mean",
-      id = .digest(list(f$id, sort(x$needs), x$version))
+      # A callback receives its artifacts in the order of `needs`, so the
+      # order is part of the identity.
+      id = .digest(list(f$id, x$needs, x$version))
     )
   })
   names(measures) <- names(study$measures)
@@ -259,7 +261,7 @@
       compute = f$fn,
       by = x$by,
       needs = x$needs,
-      id = .digest(list(f$id, x$by, sort(x$needs), x$version))
+      id = .digest(list(f$id, x$by, x$needs, x$version))
     )
   })
   names(comparisons) <- names(study$comparisons)

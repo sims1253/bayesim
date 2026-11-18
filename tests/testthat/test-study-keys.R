@@ -85,3 +85,32 @@ test_that("conditions that callbacks can tell apart have different keys", {
   expect_equal(nrow(run_study(make(1), 1, path = path)$executed), 1)
 })
 
+# S9 -------------------------------------------------------------------------------
+
+test_that("the order of a measurement's needs is part of its key", {
+  make <- function(needs) {
+    s <- study("order", data.frame(condition_id = "a"), function(condition, context) 1)
+    s <- with_methods(s, m = study_method(function(data, context) list()))
+    s <- with_retention(s, "fit")
+    with_measure(s, "first", function(artifacts, context) {
+      data.frame(value = 0, first = names(artifacts)[1])
+    }, needs = needs)
+  }
+  path <- withr::local_tempfile()
+  expect_equal(run_study(make(c("fit", "data")), 1, path = path)$measurements$first, "fit")
+  expect_equal(run_study(make(c("data", "fit")), 1, path = path)$measurements$first, "data")
+})
+
+test_that("comparisons with one callback and different names have their own rows and draws", {
+  draw <- function(results, artifacts, context) data.frame(value = runif(1))
+  s <- study("names", data.frame(condition_id = "a"), function(condition, context) 1)
+  s <- with_methods(s, m = study_method(function(data, context) list()))
+  s <- with_comparison(s, "one", draw, needs = "fit")
+  s <- with_comparison(s, "two", draw, needs = "fit")
+  run <- run_study(s, 1)
+  expect_setequal(run$comparisons$comparison, c("one", "two"))
+  expect_false(identical(
+    run$comparisons$value[run$comparisons$comparison == "one"],
+    run$comparisons$value[run$comparisons$comparison == "two"]
+  ))
+})
