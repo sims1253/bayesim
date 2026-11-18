@@ -9,13 +9,13 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+library(bayesim)
 ```
 
 Describe the experiment with ordinary R functions. The runner supplies shared
 data, deterministic random streams, saved results and comparison groups.
-This experimental interface is sourced explicitly; the supported package API
-still starts with `simulation_config()`.
+The study grammar is part of the package. The `simulation_config()` interface
+of bayesim 2.0 is still available.
 
 ```text
 condition × replicate → one dataset → each method
@@ -83,10 +83,10 @@ stopifnot(identical(first$attempts, later$attempts[later$attempts$replicate <= 3
 table(later$measurements$measurement)
 ```
 
-This reuse requires unchanged scientific dependencies. Cache keys track function
-bodies, settings and explicit versions, but cannot detect changed global helpers,
-package versions or external files. Increment the relevant declaration's
-`version` when those dependencies change.
+This reuse requires unchanged scientific dependencies. Store keys track
+function bodies, the values and helper functions that they use, settings and
+explicit versions. They cannot detect changed package versions or external
+files. Increment the relevant declaration's `version` when those change.
 
 The case studies test the boundaries of this interface:
 
@@ -96,12 +96,9 @@ The case studies test the boundaries of this interface:
 | [Primed priors](experimental-primed-priors.html) | Preparation shared across inner replicates and data reused in refits |
 | [Method comparison](experimental-method-comparison.html) | Direct CmdStan methods, sampler settings and pointwise comparison inputs |
 
-Those vignettes build plans without running their expensive fits. This runner
-is a reference implementation: individual RDS records and in-memory result tables
-still need replacement or validation for a study with millions of fits. It also
-requires exclusive access to a run directory. Its purpose is to test whether the
-study declaration captures the scientific decisions before committing to a
-production execution and storage design.
+Those vignettes build plans without running their expensive fits. To run a
+study in parallel, pass `backend = mirai_backend(4)` to `run_study()`. Several
+R processes can share one store path; each fit runs once.
 
 ```{r cleanup, include=FALSE}
 unlink(run_path, recursive = TRUE)

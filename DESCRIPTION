@@ -61,6 +61,12 @@ Collate:
     'study-seeds.R'
     'study-store.R'
     'study-capture.R'
+    'study-grammar.R'
+    'study-job.R'
+    'study-run.R'
+    'study-backends.R'
+    'study-builtins.R'
+    'study-summary.R'
 Imports:
     S7,
     carrier,
@@ -81,6 +87,7 @@ Imports:
     withr (>= 3.0.3)
 Suggests:
     brms (>= 2.22.0),
+    callr,
     cmdstanr (>= 0.7.0),
     ggplot2,
     knitr,

@@ -24,7 +24,7 @@ That last step preserves the conditioning used to draw the parameters.
 Dropping the priming rows changes the statistical procedure.
 
 ```{r load-grammar}
-source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+library(bayesim)
 ```
 
 ## Declare preparation and generation
@@ -235,7 +235,7 @@ six preparation fits and thirty refits, so it is excluded from vignette builds.
 ```{r expensive-run, eval=FALSE}
 primed_run <- run_study(
   primed_study, replicates = 5L, seed = 671126974L,
-  path = "primed-priors-run", workers = 1L
+  path = "primed-priors-run"
 )
 primed_assessment <- assess_study(primed_run)
 ```
