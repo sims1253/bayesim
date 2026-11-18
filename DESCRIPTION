@@ -58,10 +58,14 @@ Collate:
     'sbc-bands.R'
     'analysis.R'
     'global_imports.R'
+    'study-seeds.R'
+    'study-store.R'
+    'study-capture.R'
 Imports:
     S7,
     carrier,
     cli (>= 3.6.0),
+    codetools,
     digest (>= 0.6.30),
     jsonlite (>= 1.8.0),
     loo,
@@ -73,6 +77,7 @@ Imports:
     stats,
     tibble (>= 3.2.0),
     utils,
+    vctrs,
     withr (>= 3.0.3)
 Suggests:
     brms (>= 2.22.0),
