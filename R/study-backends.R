@@ -111,13 +111,15 @@ mirai_backend <- function(n = NULL, ...) {
           .bayesim_worker = worker,
           .compute = profile
         )
+        # The worker exists only on the daemons, so the call is quoted.
+        call <- quote(.bayesim_worker(job))
         tasks <- list()
         ok <- TRUE
         list(
           capacity = 2L * workers,
           submit = function(id, job) {
             tasks[[id]] <<- mirai::mirai(
-              .bayesim_worker(job),
+              .expr = call,
               job = job,
               .compute = profile
             )
