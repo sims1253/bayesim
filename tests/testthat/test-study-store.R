@@ -404,6 +404,18 @@ test_that("an artifact that was discarded and is needed again is computed again"
   expect_identical(compared$comparisons, fresh$comparisons)
 })
 
+# S26 --------------------------------------------------------------------------------
+
+test_that("a process that loses the race to publish a transient artifact uses its own value", {
+  st <- local_store()
+  spec <- list(retention = character(), compress = FALSE)
+  # Another process published the file first, and a comparison deleted it.
+  local_mocked_bindings(.write_raw = function(...) FALSE)
+  out <- bayesim:::.job_publish_artifacts(st, spec, fit_name(), "1", list(fit = 42))
+  expect_identical(out$artifacts, list(fit = 42))
+  expect_length(out$files, 0L)
+})
+
 # S11 --------------------------------------------------------------------------------
 
 # Method `first` changes the dataset in place; method `second` reads it.

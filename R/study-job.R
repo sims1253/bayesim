@@ -444,7 +444,10 @@
 
 # Publish artifacts of one attempt: retained ones to `artifacts`, the ones
 # that only comparisons need to `transient`. When another process published
-# an artifact of the same attempt first, its value replaces this one.
+# a retained artifact of the same attempt first, its value replaces this
+# one, so that the measurements agree with the kept file. A comparison job
+# may delete a transient file at any time, so a process that loses the race
+# to publish one keeps its own value. Losing a race is never an error.
 .job_publish_artifacts <- function(st, spec, fit_key, attempt_id, artifacts) {
   files <- character()
   for (name in names(artifacts)) {
@@ -453,7 +456,7 @@
     raw <- serialize(artifacts[[name]], NULL, xdr = FALSE)
     if (.write_raw(raw, file, spec$compress)) {
       files <- c(files, file)
-    } else {
+    } else if (kind == "artifacts") {
       artifacts[name] <- list(.read_payload(file))
     }
   }
