@@ -605,3 +605,72 @@ describe("SBC simultaneous bands", {
     )
   })
 })
+
+describe("plot_rank_ecdf with missing ranks (#108)", {
+  na_ranks <- function(rank, n_ranks = 11L, param = "x") {
+    tibble::tibble(
+      task_id = sprintf("t%02d", seq_along(rank)),
+      param = param,
+      rank = as.integer(rank),
+      n_draws = 10L,
+      n_ranks = as.integer(n_ranks)
+    )
+  }
+
+  it("builds the ECDF and band from the valid ranks only", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- na_ranks(c(0L, 2L, NA))
+    expect_warning(plot_rank_ecdf(ranks), "1 missing rank")
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+    d <- p$data
+    expect_equal(d$rank_norm, c(0.5, 2.5) / 11)
+    expect_equal(d$ecdf, c(0.5, 1))
+    expect_equal(unique(d$n), 2L)
+    expect_equal(nrow(ggplot2::layer_data(p, 3)), 2L)
+  })
+
+  it("does not recycle a single valid rank into fabricated points", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- na_ranks(c(0L, NA, NA))
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+    expect_equal(p$data$rank_norm, 0.5 / 11)
+    expect_equal(p$data$ecdf, 1)
+    expect_equal(p$data$n, 1L)
+    expect_equal(nrow(ggplot2::layer_data(p, 3)), 1L)
+  })
+
+  it("drops a panel whose ranks are all missing", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- rbind(
+      na_ranks(c(0L, 5L, 10L), param = "x"),
+      na_ranks(c(NA, NA), param = "z")
+    )
+    expect_warning(plot_rank_ecdf(ranks), "2 missing rank")
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+    expect_identical(unique(p$data$param), "x")
+    expect_equal(unique(p$data$n), 3L)
+    expect_identical(unique(ggplot2::layer_data(p, 1)$PANEL), factor(1L))
+  })
+
+  it("errors when no rank is usable", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    expect_error(
+      suppressWarnings(plot_rank_ecdf(na_ranks(c(NA, NA)))),
+      class = "bayesim_config_error"
+    )
+  })
+
+  it("normalizes valid ranks per task when supports are mixed", {
+    skip_if_not(requireNamespace("ggplot2", quietly = TRUE))
+    ranks <- na_ranks(
+      c(0L, 50L, NA, 199L),
+      n_ranks = c(101L, 101L, 101L, 201L)
+    )
+    p <- suppressWarnings(plot_rank_ecdf(ranks))
+    d <- p$data
+    expect_equal(d$rank_norm, sort(c(0.5 / 101, 50.5 / 101, 199.5 / 201)))
+    expect_equal(d$ecdf, seq_len(3L) / 3L)
+    expect_equal(unique(d$n), 3L)
+    expect_equal(unique(d$S), 200)
+  })
+})
