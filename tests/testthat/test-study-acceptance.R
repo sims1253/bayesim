@@ -232,31 +232,6 @@ test_that("store work per job does not depend on the number of jobs", {
   }
 })
 
-# Store operations do not show work in memory that grows faster than the
-# number of jobs, for example a vector copied on each job. CPU time does, so
-# this test compares CPU time per job at 500 and 5,000 jobs. The sequential
-# backend runs everything in this process, and CPU time leaves out the time
-# that other processes take, so machine load moves the two sizes together. On
-# a 12-core workstation at a load average of about 24, three measurements of
-# the ratio gave 0.98, 1.07 and 1.09. Work that grows with the square of the
-# number of jobs makes the ratio approach 10 at these sizes. The limit of 3
-# lies between the two, and noise in one measurement does not reach it. Each size runs
-# twice and the test keeps the faster run.
-
-test_that("CPU time per job does not grow from 500 to 5,000 jobs", {
-  skip_on_cran()
-  s <- timing_study()
-  per_job <- function(n) {
-    min(vapply(1:2, function(i) {
-      path <- withr::local_tempfile()
-      t <- system.time(run_study(s, n, path = path))
-      (t[["user.self"]] + t[["sys.self"]]) / n
-    }, numeric(1)))
-  }
-  ratio <- per_job(5000) / per_job(500)
-  expect_lt(ratio, 3)
-})
-
 # 7. Stragglers ------------------------------------------------------------------------
 #
 # The engine submits fits in study order, so the three slow fits (replicates

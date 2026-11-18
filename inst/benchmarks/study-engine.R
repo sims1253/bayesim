@@ -7,13 +7,15 @@
 # the engine does: how many records a resume reads, how much store work each
 # job costs, and that a slow fit holds up only its own worker. They assert no
 # time limit, so that they give the same verdict on any machine. This script
-# measures how fast the engine does that work, against three limits:
+# measures how fast the engine does that work, against four limits:
 #
 #   resume    a run with nothing left to do, on a store of 5,000 records,
 #             takes under 1 s (the fastest of 3 runs)
 #   overhead  the engine's CPU time per job, beyond the user's functions, is
 #             under 2 ms at 500 and at 5,000 jobs, and the 5,000-job figure is
 #             under 1.5 times the 500-job figure plus 0.25 ms
+#   growth    the total CPU time per job at 5,000 jobs is under 3 times the
+#             figure at 500 jobs
 #   straggle  40 fits on 4 workers, three of them ten times slower than the
 #             rest, take under 1.2 times the ideal schedule
 #
@@ -80,6 +82,35 @@ bench_overhead <- function(sizes = c(500, 5000)) {
   )
 }
 
+# Store operations do not show work in memory that grows faster than the
+# number of jobs, for example a vector copied on each job. CPU time does, so
+# this measurement compares the CPU time per job at 500 and 5,000 jobs. The
+# sequential backend runs everything in this process, and CPU time leaves out
+# the time that other processes take, so machine load moves the two sizes
+# together. On a 12-core workstation at a load average of about 24, three
+# measurements of the ratio gave 0.98, 1.07 and 1.09. Work that grows with the
+# square of the number of jobs makes the ratio approach 10 at these sizes. The
+# limit of 3 lies between the two. Each size runs twice, and the faster run
+# counts. The acceptance tests used to assert this limit; they now assert
+# counts only, which give the same verdict on any machine.
+bench_growth <- function(sizes = c(500, 5000)) {
+  s <- timing_study()
+  per_job <- vapply(sizes, function(n) {
+    min(vapply(1:2, function(i) {
+      path <- tempfile()
+      on.exit(unlink(path, recursive = TRUE))
+      cpu(system.time(run_study(s, n, path = path, progress = FALSE))) / n
+    }, numeric(1)))
+  }, numeric(1))
+  ratio <- per_job[2] / per_job[1]
+  data.frame(
+    measurement = "growth",
+    value = sprintf("CPU time per job at %d is %.2f x the time at %d", sizes[2], ratio, sizes[1]),
+    limit = "under 3 x",
+    pass = ratio < 3
+  )
+}
+
 bench_straggle <- function(unit = 0.2, workers = 4) {
   duration <- rep(unit, 40)
   duration[c(5, 15, 25)] <- 10 * unit
@@ -105,7 +136,7 @@ bench_straggle <- function(unit = 0.2, workers = 4) {
   )
 }
 
-results <- rbind(bench_resume(), bench_overhead(), bench_straggle())
+results <- rbind(bench_resume(), bench_overhead(), bench_growth(), bench_straggle())
 print(results, right = FALSE, row.names = FALSE)
 if (!all(results$pass)) {
   quit(status = 1)
