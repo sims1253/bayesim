@@ -657,6 +657,28 @@ capture_function_signature <- function(fn) {
       args <- formals(fn)
       body_hash <- digest::digest(capture.output(print(body(fn))))
 
+      # Hash the default expressions as well (#102): two generators that
+      # differ only in a default argument generate different data but used
+      # to share a fingerprint, so resume accepted the stored outcomes as if
+      # generated under the new configuration. A formal without a default is
+      # stored as the empty symbol and deparses distinctly from an explicit
+      # default. Deparse exactly (hex doubles, 1L vs 1) so a change below
+      # print precision or of type still changes the hash; deparse ignores
+      # srcref, so the text is stable across sessions.
+      args_hash <- digest::digest(
+        deparse(
+          args,
+          control = c(
+            "keepInteger",
+            "keepNA",
+            "niceNames",
+            "showAttributes",
+            "hexNumeric"
+          )
+        ),
+        algo = "xxhash64"
+      )
+
       # Hash the values of closure-captured free variables. The body hash
       # alone is identical for two functions whose bodies match but whose
       # captured environments bind different values (e.g. `f <- local({
@@ -673,7 +695,13 @@ capture_function_signature <- function(fn) {
           !identical(env, baseenv()) &&
           !identical(env, emptyenv())
       ) {
-        free_vars <- setdiff(all.vars(body(fn)), names(formals(fn)))
+        free_vars <- setdiff(
+          all.vars(as.call(c(quote(list), c(
+            list(body(fn)),
+            Filter(function(d) !identical(d, quote(expr =)), as.list(args))
+          )))),
+          names(args)
+        )
         captured <- free_vars[vapply(
           free_vars,
           exists,
@@ -709,6 +737,7 @@ capture_function_signature <- function(fn) {
         reference = reference,
         environment = env_name,
         args = names(args),
+        defaults_hash = args_hash,
         body_hash = body_hash,
         closure_hash = closure_hash
       )

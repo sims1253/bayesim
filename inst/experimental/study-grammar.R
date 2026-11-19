@@ -513,11 +513,17 @@ print.bayesim_study_plan <- function(x, ...) {
     replicate = context$replicate,
     method_id = context$method_id
   )
+  # A user field named `id` maps onto condition_id or method_id; never let
+  # it overwrite a canonical identity column (#110).
+  reserved <- names(x)
   for (prefix in c("condition", "method")) {
     values <- if (prefix == "condition") context$condition else context$settings
     values <- .sg_scalar_fields(values)
     for (nm in setdiff(names(values), "condition_id")) {
-      x[[paste0(prefix, "_", nm)]] <- values[[nm]]
+      column <- paste0(prefix, "_", nm)
+      if (!column %in% reserved) {
+        x[[column]] <- values[[nm]]
+      }
     }
   }
   as.data.frame(x, stringsAsFactors = FALSE)

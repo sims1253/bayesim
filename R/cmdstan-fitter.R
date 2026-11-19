@@ -177,23 +177,38 @@ CmdStanFitter <- function(
 # keyed by file/code hash so each daemon compiles once per distinct stan input.
 .cmdstan_model <- function(fitter) {
   cached <- getOption("bayesim.cmdstan_models")
-  key <- if (!is.null(fitter@stan_file)) {
-    digest::digest(list(
-      file = normalizePath(fitter@stan_file, mustWork = FALSE),
-      code = NULL
+  if (!is.null(fitter@stan_file)) {
+    # One entry per path, holding the hash of the contents it was compiled
+    # from (#104). Models for one path share one executable, so when the
+    # contents change the executable is rebuilt and the entry replaced;
+    # otherwise A -> B -> A would reuse A's model running B's executable.
+    # Edited `#include` files are not tracked.
+    key <- digest::digest(list(
+      file = normalizePath(fitter@stan_file, mustWork = FALSE)
     ))
+    code <- if (file.exists(fitter@stan_file)) {
+      digest::digest(file = fitter@stan_file)
+    }
   } else {
-    digest::digest(list(file = NULL, code = fitter@stan_code))
+    key <- digest::digest(list(file = NULL, code = fitter@stan_code))
+    code <- NULL
   }
-  if (!is.null(cached) && !is.null(cached[[key]])) {
-    return(cached[[key]])
+  entry <- cached[[key]]
+  if (!is.null(entry) && identical(entry$code, code)) {
+    return(entry$model)
   }
   mod <- if (!is.null(fitter@stan_file)) {
-    cmdstanr::cmdstan_model(stan_file = fitter@stan_file)
+    cmdstanr::cmdstan_model(
+      stan_file = fitter@stan_file,
+      force_recompile = !is.null(entry)
+    )
   } else {
-    cmdstanr::cmdstan_model(stan_code = fitter@stan_code)
+    # cmdstan_model() has no stan_code argument (#106).
+    cmdstanr::cmdstan_model(
+      stan_file = cmdstanr::write_stan_file(fitter@stan_code)
+    )
   }
-  cached[[key]] <- mod
+  cached[[key]] <- list(code = code, model = mod)
   options(bayesim.cmdstan_models = cached)
   mod
 }

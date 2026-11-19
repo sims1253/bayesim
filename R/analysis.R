@@ -614,6 +614,19 @@ plot_rank_ecdf <- function(ranks, alpha = 0.95, by = NULL) {
     "Unknown SBC facet column(s): "
   )
 
+  # Missing ranks (failed or skipped tasks) must not enter the panel sample
+  # size; drop them up front and say how many (#108).
+  usable <- is.finite(ranks$rank)
+  if (!any(usable)) {
+    stop(bayesim_config_error("No usable ranks: every rank is missing"))
+  }
+  if (!all(usable)) {
+    cli::cli_warn(
+      "Excluded {sum(!usable)} missing rank{?s} from the SBC rank ECDF."
+    )
+    ranks <- ranks[usable, , drop = FALSE]
+  }
+
   facet_cols <- c("param", by)
   group_keys <- group_ids(ranks, facet_cols)
   rank_groups <- split(seq_len(nrow(ranks)), group_keys, drop = TRUE)

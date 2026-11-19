@@ -148,3 +148,65 @@ describe("CmdStanFitter fit + draws + diagnostics", {
     expect_true(all(par_res$summary$status == "success"))
   })
 })
+
+test_that("CmdStanFitter compiles and fits from inline stan_code (#106)", {
+  withr::local_options(list(bayesim.cmdstan_models = NULL))
+  fitter <- CmdStanFitter(
+    stan_code = paste(
+      "data { int<lower=0> N; vector[N] y; }",
+      "parameters { real mu; }",
+      "model { y ~ normal(mu, 1); }",
+      sep = "\n"
+    ),
+    stan_data = function(data_bundle, fit_spec) {
+      list(N = nrow(data_bundle$train), y = data_bundle$train$y)
+    },
+    chains = 1L,
+    iter_warmup = 50L,
+    iter_sampling = 50L
+  )
+  data_bundle <- .gen(list(n = 20L), list(task_id = "t"))
+  res <- fit_model(
+    fitter,
+    data_bundle,
+    list(),
+    seed = 1L,
+    task_ctx = list(task_id = "t")
+  )
+  expect_true(res$success)
+  expect_true("mu" %in% colnames(extract_draws(fitter, res)))
+})
+
+test_that("restoring an edited Stan file samples the restored program", {
+  withr::local_options(list(bayesim.cmdstan_models = NULL))
+  path <- withr::local_tempfile(fileext = ".stan")
+  program <- function(center) {
+    sprintf("parameters { real mu; } model { mu ~ normal(%s, 0.1); }", center)
+  }
+  fitter <- CmdStanFitter(
+    stan_file = path,
+    stan_data = function(data_bundle, fit_spec) list(),
+    chains = 1L,
+    iter_warmup = 100L,
+    iter_sampling = 100L
+  )
+  data_bundle <- .gen(list(n = 10L), list(task_id = "t"))
+  mean_mu <- function() {
+    res <- fit_model(
+      fitter,
+      data_bundle,
+      list(),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
+    expect_true(res$success)
+    mean(extract_draws(fitter, res)[, "mu"])
+  }
+
+  writeLines(program(0), path)
+  expect_lt(abs(mean_mu()), 1)
+  writeLines(program(100), path)
+  expect_lt(abs(mean_mu() - 100), 1)
+  writeLines(program(0), path)
+  expect_lt(abs(mean_mu()), 1)
+})

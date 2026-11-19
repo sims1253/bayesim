@@ -302,3 +302,73 @@ describe("truth recorded in summary", {
     expect_s3_class(p, "ggplot")
   })
 })
+
+describe("formulas delivered through a fit_grid list-column (#107)", {
+  formula_config <- function(fit_grid) {
+    simulation_config(
+      data_grid = data.frame(n = 40L, beta = 0.5),
+      fit_grid = fit_grid,
+      data_generator = .gen,
+      fitter = LinearRegressionFitter(n_draws = 50L),
+      metrics = list(),
+      n_replicates = 1L,
+      seed = 107L
+    )
+  }
+  expect_formula_grid_fits <- function(fit_grid) {
+    config <- formula_config(fit_grid)
+    result <- run_simulation(
+      config,
+      resume = "never",
+      progress = FALSE,
+      verbose = FALSE
+    )
+    expect_true(all(result$summary$status == "success"))
+
+    # The spec the engine delivers yields the coefficients of its formula.
+    task_grid <- bayesim:::create_task_grid(config)
+    coef_names <- lapply(seq_len(nrow(task_grid)), function(i) {
+      spec <- bayesim:::get_task_spec_at(task_grid, i, config)
+      res <- fit_model(
+        config@fitter,
+        .gen(spec$data_spec, spec$task_ctx),
+        spec$fit_spec,
+        seed = 1L,
+        task_ctx = spec$task_ctx
+      )
+      expect_true(res$success)
+      colnames(res$draws)
+    })
+    names(coef_names) <- fit_grid$model[task_grid$fit_idx]
+    expect_true(all(c("Intercept", "x") %in% coef_names$with_x))
+    expect_true("Intercept" %in% coef_names$intercept_only)
+    expect_false("x" %in% coef_names$intercept_only)
+  }
+
+  it("fits a base data.frame formula list-column", {
+    fg <- data.frame(model = c("with_x", "intercept_only"))
+    fg$formula <- list(y ~ x, y ~ 1)
+    expect_formula_grid_fits(fg)
+  })
+
+  it("fits a tibble formula list-column", {
+    expect_formula_grid_fits(tibble::tibble(
+      model = c("with_x", "intercept_only"),
+      formula = list(y ~ x, y ~ 1)
+    ))
+  })
+
+  it("still fits an unwrapped formula passed directly", {
+    fitter <- LinearRegressionFitter(n_draws = 50L)
+    res <- fit_model(
+      fitter,
+      .gen(list(n = 40L), list(task_id = "t")),
+      list(formula = y ~ 1),
+      seed = 1L,
+      task_ctx = list(task_id = "t")
+    )
+    expect_true(res$success)
+    expect_true("Intercept" %in% colnames(res$draws))
+    expect_false("x" %in% colnames(res$draws))
+  })
+})

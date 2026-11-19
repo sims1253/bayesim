@@ -30,6 +30,68 @@ test_that("formula list-columns participate in the public config fingerprint", {
   ))
 })
 
+test_that("generator default arguments participate in the config fingerprint", {
+  gen1 <- function(data_spec, task_ctx, sigma = 1) {
+    x <- stats::rnorm(data_spec$n)
+    y <- x + stats::rnorm(data_spec$n, sd = sigma)
+    list(train = data.frame(y = y, x = x), response = "y")
+  }
+  gen2 <- gen1
+  formals(gen2)$sigma <- 10 # same body, same arg names, different default
+  gen3 <- function(data_spec, task_ctx, sigma = 1) {
+    x <- stats::rnorm(data_spec$n)
+    y <- x + stats::rnorm(data_spec$n, sd = sigma)
+    list(train = data.frame(y = y, x = x), response = "y")
+  }
+  gen4 <- local({
+    mu <- 1
+    function(data_spec, task_ctx, center = mu) stats::rnorm(data_spec$n, center)
+  })
+  gen5 <- local({
+    mu <- 5
+    function(data_spec, task_ctx, center = mu) stats::rnorm(data_spec$n, center)
+  })
+  make_config <- function(generator) {
+    simulation_config(
+      data_grid = data.frame(n = 20L),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = generator,
+      fitter = LinearRegressionFitter(n_draws = 10L),
+      metrics = list(),
+      n_replicates = 1L,
+      seed = 42L
+    )
+  }
+
+  gen_body <- function(data_spec, task_ctx, sigma = 1) {
+    x <- stats::rnorm(data_spec$n)
+    y <- 2 * x + stats::rnorm(data_spec$n, sd = sigma)
+    list(train = data.frame(y = y, x = x), response = "y")
+  }
+
+  # A different body must not share a fingerprint...
+  expect_false(identical(
+    config_fingerprint(make_config(gen1)),
+    config_fingerprint(make_config(gen_body))
+  ))
+  # ...nor may differing default arguments...
+  expect_false(identical(
+    config_fingerprint(make_config(gen1)),
+    config_fingerprint(make_config(gen2))
+  ))
+  # ...and a closure binding used only as a default value must participate
+  # like a body free variable.
+  expect_false(identical(
+    config_fingerprint(make_config(gen4)),
+    config_fingerprint(make_config(gen5))
+  ))
+  # The same definition yields the same fingerprint across calls.
+  expect_identical(
+    config_fingerprint(make_config(gen1)),
+    config_fingerprint(make_config(gen3))
+  )
+})
+
 test_that("checkpoint recovery falls back after checksum corruption", {
   result_path <- file.path(withr::local_tempdir(), "checksum-fallback")
   fingerprint <- "focused-corruption-test"
@@ -90,4 +152,36 @@ test_that("checkpoint recovery falls back after checksum corruption", {
   )
   expect_equal(recovered$checkpoint_id, 1L)
   expect_equal(recovered$results_df$value, 1)
+})
+
+test_that("generator defaults are fingerprinted by exact value and type", {
+  make_config <- function(generator) {
+    simulation_config(
+      data_grid = data.frame(n = 20L),
+      fit_grid = data.frame(model = "lm"),
+      data_generator = generator,
+      fitter = LinearRegressionFitter(n_draws = 10L),
+      metrics = list(),
+      n_replicates = 1L,
+      seed = 42L
+    )
+  }
+  gen <- function(data_spec, task_ctx, sigma = 1) {
+    stats::rnorm(data_spec$n, sd = sigma)
+  }
+  close1 <- gen
+  formals(close1)$sigma <- 1.0000001
+  close2 <- gen
+  formals(close2)$sigma <- 1.0000002
+  as_integer <- gen
+  formals(as_integer)$sigma <- 1L
+
+  expect_false(identical(
+    config_fingerprint(make_config(close1)),
+    config_fingerprint(make_config(close2))
+  ))
+  expect_false(identical(
+    config_fingerprint(make_config(gen)),
+    config_fingerprint(make_config(as_integer))
+  ))
 })

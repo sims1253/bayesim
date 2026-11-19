@@ -152,10 +152,15 @@ S7::method(fit_model, LinearRegressionFitter) <- function(
       "LinearRegressionFitter requires data_bundle$train"
     ))
   }
-  response <- data_bundle$response %||%
-    all.vars(fit_spec$formula)[1L] %||%
-    "y"
+  # A fit_grid formula list-column reaches us wrapped in a length-1 list
+  # (as.list() on a grid row); unwrap it as the brms fitter does (#107).
   formula <- fit_spec$formula
+  if (is.list(formula) && length(formula) == 1L) {
+    formula <- formula[[1]]
+  }
+  response <- data_bundle$response %||%
+    all.vars(formula)[1L] %||%
+    "y"
 
   des <- .lm_design(data, response, formula)
   post <- .nig_posterior(
