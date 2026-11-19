@@ -9,7 +9,7 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
-source(system.file("experimental", "study-grammar.R", package = "bayesim"))
+library(bayesim)
 source(system.file("experimental", "likelihood-case.R", package = "bayesim"))
 ```
 

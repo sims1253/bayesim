@@ -110,7 +110,7 @@ likelihood_positive_design <- function() {
       ]][[3]]
     }
   }
-  data_generation_configuration$id <- as.numeric(rownames(
+  data_generation_configuration$source_row <- as.numeric(rownames(
     data_generation_configuration
   ))
 
@@ -368,7 +368,7 @@ likelihood_unit_design <- function() {
       data_generation_configuration$y_z4_coef[[i]] <- bathtub_list$y_z4_coef
     }
   }
-  data_generation_configuration$id <- as.numeric(rownames(
+  data_generation_configuration$source_row <- as.numeric(rownames(
     data_generation_configuration
   ))
 

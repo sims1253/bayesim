@@ -25,7 +25,6 @@ and sampler setting, so either can vary without changing the data generator.
 
 ```{r setup}
 library(bayesim)
-source(system.file("experimental", "study-grammar.R", package = "bayesim"))
 ```
 
 ## Data and truth
@@ -277,7 +276,7 @@ paired calculation, and retained draws support later parameter summaries.
 ```{r run-method-study, eval=FALSE}
 method_run <- run_study(
   method_study, replicates = 10L, seed = 2718L,
-  path = "runs/gdr2-method-example", workers = 1L
+  path = "runs/gdr2-method-example"
 )
 assessment <- assess_study(method_run)
 ```

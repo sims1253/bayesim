@@ -46,7 +46,11 @@ bayesim_test_tier_core_only <- c(
   "model-grid",
   "parquet-summary",
   "report",
+  "study-acceptance",
+  "study-capture",
   "study-grammar",
+  "study-keys",
+  "study-store",
   "transport-purrr-mirai"
 )
 

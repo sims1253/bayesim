@@ -1,12 +1,8 @@
-# The experimental API is sourced explicitly, just as in its vignettes.
-grammar <- new.env(parent = globalenv())
-sys.source(
-  system.file("experimental", "study-grammar.R", package = "bayesim"),
-  grammar
-)
+# The study grammar, promoted from inst/experimental. Each place where this
+# file differs from the experimental version marks a deliberate change.
 
 make_grammar_study <- function() {
-  s <- grammar$study(
+  s <- study(
     "test",
     data.frame(condition_id = c("small", "large"), n = c(8L, 12L)),
     function(condition, context) {
@@ -14,7 +10,7 @@ make_grammar_study <- function() {
       rnorm(condition$n)
     }
   )
-  method <- grammar$study_method(
+  method <- study_method(
     function(data, context) {
       list(
         data_mean = mean(data),
@@ -30,8 +26,8 @@ make_grammar_study <- function() {
       truth = function(fit, data, context) fit$data_mean
     )
   )
-  s <- grammar$with_methods(s, first = method, second = method)
-  s <- grammar$with_measure(
+  s <- with_methods(s, first = method, second = method)
+  s <- with_measure(
     s,
     "estimate",
     function(artifacts, context) {
@@ -43,7 +39,7 @@ make_grammar_study <- function() {
     },
     needs = c("draws", "truth")
   )
-  grammar$with_retention(s, c("draws", "truth"))
+  with_retention(s, c("draws", "truth"))
 }
 
 canonical_grammar_rows <- function(rows) {
@@ -57,28 +53,28 @@ canonical_grammar_rows <- function(rows) {
 }
 
 test_that("plans validate artifact requirements without executing scientific code", {
-  s <- grammar$study(
+  s <- study(
     "plan",
     data.frame(condition_id = "a"),
     function(condition, context) stop("generated"),
     prepare = function(condition, context) stop("prepared")
   )
-  s <- grammar$with_methods(
+  s <- with_methods(
     s,
-    method = grammar$study_method(function(data, context) stop("fitted"))
+    method = study_method(function(data, context) stop("fitted"))
   )
-  p <- grammar$plan_study(s, 2000000)
+  p <- plan_study(s, 2000000)
   expect_equal(p$fits, 2000000)
   expect_true(p$prepare)
-  missing <- grammar$with_measure(
+  missing <- with_measure(
     s,
     "interval",
     function(artifacts, context) data.frame(),
     needs = "draws"
   )
-  expect_error(grammar$plan_study(missing, 1), "cannot supply: draws")
+  expect_error(plan_study(missing, 1), "cannot supply: draws")
   expect_error(
-    grammar$with_comparison(
+    with_comparison(
       s,
       "across",
       function(results, artifacts, context) data.frame(),
@@ -87,12 +83,12 @@ test_that("plans validate artifact requirements without executing scientific cod
     ),
     "within dataset_id"
   )
-  expect_error(grammar$plan_study(s, 0), "replicates")
+  expect_error(plan_study(s, 0), "replicates")
 })
 
 test_that("dataset identities survive method and replicate extensions and condition reordering", {
   s <- make_grammar_study()
-  first <- grammar$run_study(s, 2, seed = 102L)
+  first <- run_study(s, 2, seed = 102L)
   expect_equal(
     first$measurements$generated[c(1, 3, 5, 7)],
     first$measurements$generated[c(2, 4, 6, 8)]
@@ -101,10 +97,10 @@ test_that("dataset identities survive method and replicate extensions and condit
     first$measurements$value[c(1, 3, 5, 7)],
     first$measurements$value[c(2, 4, 6, 8)]
   ))
-  extended <- grammar$with_methods(s, third = s$methods$first)
+  extended <- with_methods(s, third = s$methods$first)
   extended$conditions <- extended$conditions[2:1, , drop = FALSE]
   extended$methods <- extended$methods[c("third", "second", "first")]
-  later <- grammar$run_study(extended, 3, seed = 102L)
+  later <- run_study(extended, 3, seed = 102L)
   old <- later$measurements[
     later$measurements$replicate <= 2 & later$measurements$method_id != "third",
   ]
@@ -117,8 +113,8 @@ test_that("dataset identities survive method and replicate extensions and condit
 test_that("saved draws support additional measurements without refitting", {
   s <- make_grammar_study()
   path <- file.path(withr::local_tempdir(), "run")
-  first <- grammar$run_study(s, 2, path = path)
-  s <- grammar$with_measure(
+  first <- run_study(s, 2, path = path)
+  s <- with_measure(
     s,
     "interval90",
     function(artifacts, context) {
@@ -128,7 +124,7 @@ test_that("saved draws support additional measurements without refitting", {
     },
     needs = "draws"
   )
-  later <- grammar$run_study(s, 3, path = path)
+  later <- run_study(s, 3, path = path)
   old <- later$attempts[later$attempts$replicate <= 2, ]
   expect_equal(first$attempts, old) # persisted timings would change on refit
   expect_equal(sum(later$measurements$measurement == "interval90"), 12)
@@ -142,16 +138,24 @@ test_that("saved draws support additional measurements without refitting", {
     ],
     ignore_attr = TRUE
   )
-  expect_error(grammar$run_study(s, 2, seed = 2, path = path), "seed")
+  # Changed: a store holds any number of seeds, because the seed is part of
+  # every key. Another seed is new work, not an error.
+  other <- run_study(s, 1, seed = 2, path = path)
+  expect_false(any(other$attempts$dataset_id %in% later$attempts$dataset_id))
+  expect_equal(nrow(run_study(s, 3, path = path)$executed), 0)
   original <- make_grammar_study()
-  no_draws <- grammar$with_retention(original)
+  no_draws <- with_retention(original)
   dropped_path <- file.path(withr::local_tempdir(), "discarded")
-  grammar$run_study(no_draws, 1, path = dropped_path)
+  run_study(no_draws, 1, path = dropped_path)
   s$retention <- character()
-  expect_error(
-    grammar$run_study(s, 1, path = dropped_path),
-    "discarded artifacts: draws"
-  )
+  # Changed: discarded draws are computed again on the same stream, so the
+  # new measurement equals the one on the store that kept the draws.
+  again <- run_study(s, 1, path = dropped_path)
+  interval <- function(run) {
+    m <- run$measurements
+    m[m$measurement == "interval90" & m$replicate == 1, c("method_id", "lower", "upper")]
+  }
+  expect_equal(interval(again), interval(later), ignore_attr = TRUE)
 })
 
 test_that("preparation is shared and independently addressable from an external scheduler", {
@@ -163,9 +167,9 @@ test_that("preparation is shared and independently addressable from an external 
     rnorm(2)
   }
   path <- file.path(withr::local_tempdir(), "prepared")
-  first <- grammar$run_study(s, 2, path = path)
+  first <- run_study(s, 2, path = path)
   expect_length(readLines(count_file), 2)
-  one <- grammar$evaluate_replicate(s, "small", 1, path = path)
+  one <- evaluate_replicate(s, "small", 1, path = path)
   expect_length(readLines(count_file), 2)
   expect_equal(
     one$measurements,
@@ -179,7 +183,7 @@ test_that("preparation is shared and independently addressable from an external 
 
 test_that("group inputs survive until comparison and complete comparisons are reusable", {
   s <- make_grammar_study()
-  s <- grammar$with_comparison(
+  s <- with_comparison(
     s,
     "paired",
     function(results, artifacts, context) {
@@ -188,28 +192,28 @@ test_that("group inputs survive until comparison and complete comparisons are re
     },
     needs = "draws"
   )
-  s <- grammar$with_retention(s)
+  s <- with_retention(s)
   path <- file.path(withr::local_tempdir(), "group")
-  first <- grammar$run_study(s, 2, path = path)
+  first <- run_study(s, 2, path = path)
   expect_equal(nrow(first$comparisons), 4)
-  second <- grammar$run_study(s, 2, path = path)
+  second <- run_study(s, 2, path = path)
   expect_equal(first$comparisons, second$comparisons)
   expect_equal(first$attempts, second$attempts)
   s$methods <- rev(s$methods)
-  reordered <- grammar$run_study(s, 2, path = path)
+  reordered <- run_study(s, 2, path = path)
   expect_equal(first$comparisons, reordered$comparisons)
 })
 
 test_that("analysis policies update reference groups without hiding failed methods", {
   s <- make_grammar_study()
-  s <- grammar$with_methods(
+  s <- with_methods(
     s,
-    failed = grammar$study_method(
+    failed = study_method(
       function(data, context) stop("deliberate failure"),
       extract = s$methods$first$extract
     )
   )
-  s <- grammar$with_comparison(s, "gap", function(results, artifacts, context) {
+  s <- with_comparison(s, "gap", function(results, artifacts, context) {
     good <- results[results$measurement == "estimate", , drop = FALSE]
     data.frame(
       n_attempted = nrow(context$attempts),
@@ -218,16 +222,16 @@ test_that("analysis policies update reference groups without hiding failed metho
       best = if (nrow(good)) max(good$value) else NA_real_
     )
   })
-  run <- grammar$run_study(s, 1)
-  all <- grammar$assess_study(run)
-  selected <- grammar$assess_study(run, function(measurements, attempts) {
+  run <- run_study(s, 1)
+  all <- assess_study(run)
+  selected <- assess_study(run, function(measurements, attempts) {
     measurements$method_id == "first"
   })
   expect_equal(all$comparisons$n_used, c(2, 2))
   expect_equal(selected$comparisons$n_used, c(1, 1))
   expect_equal(selected$comparisons$n_failed, c(1, 1))
   expect_equal(nrow(selected$excluded), 2)
-  empty <- grammar$assess_study(run, function(measurements, attempts) {
+  empty <- assess_study(run, function(measurements, attempts) {
     rep(FALSE, nrow(measurements))
   })
   expect_equal(empty$comparisons$n_used, c(0, 0))
@@ -239,8 +243,8 @@ test_that("sequential and worker execution preserve results and caller RNG", {
   withr::local_seed(402)
   before <- .Random.seed
   kind <- RNGkind()
-  sequential <- grammar$run_study(s, 2)
-  parallel <- grammar$run_study(s, 2, workers = 2)
+  sequential <- run_study(s, 2)
+  parallel <- run_study(s, 2, backend = mirai_backend(2))
   expect_identical(.Random.seed, before)
   expect_identical(RNGkind(), kind)
   expect_equal(sequential$measurements, parallel$measurements)
@@ -248,12 +252,12 @@ test_that("sequential and worker execution preserve results and caller RNG", {
 
 test_that("measurements have separate random streams", {
   s <- make_grammar_study()
-  s <- grammar$with_measure(s, "random", function(artifacts, context) {
+  s <- with_measure(s, "random", function(artifacts, context) {
     data.frame(value = runif(1))
   })
-  first <- grammar$run_study(s, 2)
+  first <- run_study(s, 2)
   s$measures <- s$measures[c("random", "estimate")]
-  second <- grammar$run_study(s, 2)
+  second <- run_study(s, 2)
   expect_equal(
     canonical_grammar_rows(first$measurements),
     canonical_grammar_rows(second$measurements)
@@ -268,7 +272,7 @@ test_that("a failed comparison resumes from committed fits and transient inputs"
     cat("fit\n", file = context$condition$marker, append = TRUE)
     list(data_mean = mean(data), draws = array(rnorm(40), c(20, 2, 1)))
   }
-  s <- grammar$with_comparison(
+  s <- with_comparison(
     s,
     "interrupted",
     function(results, artifacts, context) {
@@ -282,11 +286,11 @@ test_that("a failed comparison resumes from committed fits and transient inputs"
     },
     needs = "draws"
   )
-  s <- grammar$with_retention(s)
+  s <- with_retention(s)
   path <- file.path(withr::local_tempdir(), "interrupted")
-  expect_error(grammar$run_study(s, 1, path = path), "comparison interrupted")
+  expect_error(run_study(s, 1, path = path), "comparison interrupted")
   expect_length(readLines(marker), 1)
-  resumed <- grammar$run_study(s, 1, path = path)
+  resumed <- run_study(s, 1, path = path)
   expect_length(readLines(marker), 2) # only the second condition still needed a fit
   expect_equal(nrow(resumed$comparisons), 2)
   unlink(c(marker, paste0(marker, ".ready")))
@@ -308,7 +312,7 @@ test_that("planning rejects grouping fields the runtime cannot emit", {
     "method_vector",
     "method_nested"
   )) {
-    invalid <- grammar$with_comparison(
+    invalid <- with_comparison(
       s,
       "invalid",
       function(results, artifacts, context) {
@@ -317,11 +321,11 @@ test_that("planning rejects grouping fields the runtime cannot emit", {
       by = by
     )
     expect_error(
-      grammar$run_study(invalid, 1),
+      run_study(invalid, 1),
       "Unknown comparison grouping columns"
     )
   }
-  valid <- grammar$with_comparison(
+  valid <- with_comparison(
     s,
     "valid",
     function(results, artifacts, context) {
@@ -329,7 +333,7 @@ test_that("planning rejects grouping fields the runtime cannot emit", {
     },
     by = c("condition_n", "method_scalar")
   )
-  expect_equal(grammar$plan_study(valid, 1)$fits, 4)
+  expect_equal(plan_study(valid, 1)$fits, 4)
 })
 
 test_that("retained reference artifacts are verified as bytes and corruption is rejected", {
@@ -340,10 +344,10 @@ test_that("retained reference artifacts are verified as bytes and corruption is 
     shared$draws <- fit$draws
     list(first = shared, second = shared)
   }
-  s <- grammar$with_retention(s, c("draws", "truth", "reference"))
+  s <- with_retention(s, c("draws", "truth", "reference"))
   path <- file.path(withr::local_tempdir(), "reference")
-  first <- grammar$run_study(s, 1, path = path)
-  s <- grammar$with_measure(
+  first <- run_study(s, 1, path = path)
+  s <- with_measure(
     s,
     "reference",
     function(artifacts, context) {
@@ -355,19 +359,23 @@ test_that("retained reference artifacts are verified as bytes and corruption is 
     },
     needs = "reference"
   )
-  reused <- grammar$run_study(s, 1, path = path)
+  reused <- run_study(s, 1, path = path)
   expect_identical(first$attempts, reused$attempts)
   expect_equal(nrow(reused$measurements), 4)
-  file <- list.files(
+  # Changed: a new measurement writes a new record next to the old one, so
+  # corrupt every record to be sure the run reads a corrupted one.
+  files <- list.files(
     file.path(path, "fits"),
     recursive = TRUE,
     full.names = TRUE
-  )[[1]]
-  record <- readRDS(file)
-  expect_type(record$payload, "raw")
-  record$payload[[1]] <- as.raw(bitwXor(as.integer(record$payload[[1]]), 1L))
-  saveRDS(record, file)
-  expect_error(grammar$run_study(s, 1, path = path), "Checksum mismatch")
+  )
+  for (file in files) {
+    record <- readRDS(file)
+    expect_type(record$payload, "raw")
+    record$payload[[1]] <- as.raw(bitwXor(as.integer(record$payload[[1]]), 1L))
+    saveRDS(record, file)
+  }
+  expect_error(run_study(s, 1, path = path), "Checksum mismatch")
 })
 
 test_that("callback errors restore the caller's RNG state", {
@@ -379,19 +387,19 @@ test_that("callback errors restore the caller's RNG state", {
   withr::local_seed(492L)
   before <- .Random.seed
   kind <- RNGkind()
-  expect_error(grammar$run_study(s, 1), "generation interrupted")
+  expect_error(run_study(s, 1), "generation interrupted")
   expect_identical(.Random.seed, before)
   expect_identical(RNGkind(), kind)
 })
 
 test_that("the likelihood case selection implements the assessment policy contract", {
-  example <- new.env(parent = grammar)
+  example <- new.env(parent = environment())
   sys.source(
     system.file("experimental", "likelihood-case.R", package = "bayesim"),
     example
   )
   s <- make_grammar_study()
-  s <- grammar$with_measure(s, "performance", function(artifacts, context) {
+  s <- with_measure(s, "performance", function(artifacts, context) {
     data.frame(
       value = 0.1,
       rmse_s = 0.5,
@@ -403,9 +411,42 @@ test_that("the likelihood case selection implements the assessment policy contra
       divergents = 0
     )
   })
-  run <- grammar$run_study(s, 1)
-  assessed <- grammar$assess_study(run, policy = example$likelihood_selection)
+  run <- run_study(s, 1)
+  assessed <- assess_study(run, policy = example$likelihood_selection)
   expect_equal(nrow(assessed$measurements), 4)
   expect_true(all(assessed$measurements$measurement == "performance"))
   expect_equal(nrow(assessed$excluded), 4)
+})
+
+# Deliberate change (#110): a field named `id` would overwrite an identity
+# column, so planning refuses it.
+test_that("a condition field or method setting named id is an error (#110)", {
+  s <- study(
+    "ids",
+    data.frame(condition_id = "a", id = 7L),
+    function(condition, context) rnorm(3)
+  )
+  s <- with_methods(s, m = study_method(function(data, context) mean(data)))
+  expect_error(plan_study(s, 1), "condition_id")
+
+  s <- study("ids", data.frame(condition_id = "a"), function(condition, context) rnorm(3))
+  s <- with_methods(
+    s,
+    m = study_method(function(data, context) mean(data), settings = list(id = 3))
+  )
+  expect_error(plan_study(s, 1), "method_id")
+
+  s <- study("ids", data.frame(condition_id = "a", n = 3L), function(condition, context) rnorm(3))
+  s <- with_methods(
+    s,
+    m = study_method(function(data, context) list(m = mean(data)),
+                     settings = list(scale = 2)),
+    n = study_method(function(data, context) list(m = mean(data)))
+  )
+  s <- with_measure(s, "m", function(artifacts, context) {
+    data.frame(value = artifacts$fit$m)
+  }, needs = "fit")
+  run <- run_study(s, 1)
+  expect_setequal(run$measurements$condition_id, "a")
+  expect_setequal(run$measurements$method_id, c("m", "n"))
 })
